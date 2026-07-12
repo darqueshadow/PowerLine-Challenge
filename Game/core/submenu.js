@@ -93,7 +93,7 @@
                 id: "asteroid-command",
                 displayName: "Asteroid Command",
                 status: "available",
-                screenshot: "cartridges/asteroid_command/images/zone-east.png",
+                screenshot: "cartridges/Asteroid Command/files/assets/Menus/title_screen.png",
                 synopsis: "Defend Niagara's three paramedic sectors from asteroid strikes. Master PowerLine commands under pressure as you protect North, South, and East zones using the Command Tower. Incorrect commands and sector losses damage the tower. If the tower falls early, you'll watch the remaining sectors get destroyed one by one.",
                 cassetteImage: "assets/images/asteroid-command.png"
             }
@@ -293,7 +293,7 @@
             if (cartridge.id === 'blank-cassette') {
                 window.location.href = "cartridges/blank/index.html";
             } else if (cartridge.id === 'asteroid-command') {
-                window.location.href = "cartridges/asteroid-command/files/index.html";
+                window.location.href = "cartridges/Asteroid Command/files/index.html";
             }
             // Future cassettes will be added here
             else {
