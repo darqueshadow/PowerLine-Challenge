@@ -1,0 +1,39 @@
+BLANK CASSETTE FILE - PLACEMENT INSTRUCTIONS
+============================================
+
+✓ The file has been updated with:
+  - "OPTIONS" changed to "EJECT CASSETTE"
+  - Returns to main console when ejected
+  - Keyboard shortcut: Press "2" to eject
+
+FILE LOCATION:
+--------------
+Place this index.html file at:
+C:\Users\darqu\OneDrive\(PCL)\Game\cassettes\blank\index.html
+
+Replace your existing blank cassette game file with this updated version.
+
+
+WHAT IT DOES:
+-------------
+Menu shows:
+  1. START GAME     → Starts the game
+  2. EJECT CASSETTE → Returns to main console (../../index.html)
+
+When you lose (shields = 0):
+  → Returns to Blank Cassette menu (not game over screen)
+  → Can START GAME again or EJECT CASSETTE
+
+Navigation Flow:
+  Main Console → Cassette Submenu → Blank Game → [Lose] → Blank Menu → [Eject] → Main Console
+
+
+VERIFY IT WORKS:
+----------------
+1. Open main console (Game/index.html)
+2. Click cassette tray
+3. Select Blank Cassette
+4. Click Play
+5. See "BLANK CASSETTE" menu with 2 options
+6. Press "2" or click "EJECT CASSETTE"
+7. Should return to main console

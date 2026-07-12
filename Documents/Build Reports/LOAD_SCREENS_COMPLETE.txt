@@ -1,0 +1,252 @@
+PET/COMMODORE LOAD SCREENS - IMPLEMENTATION COMPLETE ✓
+======================================================
+
+All requested PET/Commodore-style LOAD screen overlays have been added!
+
+═══════════════════════════════════════════════════════════
+WHAT WAS ADDED
+═══════════════════════════════════════════════════════════
+
+1. LOADING SCREEN (When starting a cassette)
+   - Shows "LOAD <CASSETTE NAME>,8,1" message
+   - Displays for 5 seconds before launching game
+   - Uses cassette's displayName (uppercased)
+
+2. EXIT SCREEN (When ejecting a cassette)
+   - Shows "REWINDING CASSETTE..." message
+   - Displays for 5 seconds before returning to console
+   - Simple text-based placeholder
+
+
+═══════════════════════════════════════════════════════════
+FILE CHANGES
+═══════════════════════════════════════════════════════════
+
+✓ /Game/index.html
+  - Added #cassette-load-screen overlay with three text lines
+  - Placed after #crt-transition div
+
+✓ /Game/styles/main-menu.css
+  - Added styling for #cassette-load-screen
+  - Full-screen black background
+  - Green PET-style text (#39ff14)
+  - Hidden by default, visible when .active class added
+
+✓ /Game/core/submenu.js
+  - Modified handleStart() function:
+    * Gets selected cassette
+    * Updates load screen text with cassette name
+    * Shows load screen overlay
+    * Waits 5 seconds
+    * Then navigates to cassette game
+
+✓ /Game/cartridges/blank/index.html
+  - Added #cassette-exit-screen overlay
+  - Added CSS styling (duplicated from main-menu.css)
+  - Modified ejectCassette() function:
+    * Shows exit screen overlay
+    * Waits 5 seconds
+    * Then returns to console (../../index.html)
+
+
+═══════════════════════════════════════════════════════════
+COMPLETE NAVIGATION FLOW WITH LOAD SCREENS
+═══════════════════════════════════════════════════════════
+
+1. Main Console (index.html)
+   ↓ Click cassette tray
+   
+2. CRT Flicker Transition (500ms)
+   ↓
+   
+3. Cassette Submenu
+   ↓ Select Blank Cassette, Click Play
+   
+4. ★ LOAD SCREEN (5 seconds) ★
+   Displays:
+   READY.
+   LOAD "BLANK CASSETTE",8,1
+   RUN
+   ↓
+   
+5. Blank Cassette Menu
+   1. START GAME
+   2. EJECT CASSETTE
+   ↓ Press 1 or click START GAME
+   
+6. Playing Game
+   ↓ Lose all shields
+   
+7. Back to Blank Cassette Menu
+   ↓ Press 2 or click EJECT CASSETTE
+   
+8. ★ EXIT SCREEN (5 seconds) ★
+   Displays:
+   READY.
+   REWINDING CASSETTE...
+   RETURNING TO CONSOLE
+   ↓
+   
+9. Back to Main Console
+
+
+═══════════════════════════════════════════════════════════
+TECHNICAL IMPLEMENTATION
+═══════════════════════════════════════════════════════════
+
+Load Screen Overlay (in index.html):
+-------------------------------------
+<div id="cassette-load-screen" aria-hidden="true">
+    <div class="cassette-load-content">
+        <p id="cassette-load-line-1">READY.</p>
+        <p id="cassette-load-line-2">LOAD "BLANK CASSETTE",8,1</p>
+        <p id="cassette-load-line-3">RUN</p>
+    </div>
+</div>
+
+CSS Styling:
+------------
+- Full viewport overlay (100vw x 100vh)
+- Black background (#000)
+- Green monospace text (#39ff14) with glow
+- Hidden by default (opacity: 0)
+- Shown with .active class (opacity: 1)
+- z-index: 10000 (above everything)
+
+JavaScript Logic (submenu.js):
+-------------------------------
+1. Get selected cassette object
+2. Update load line text with cassette.displayName.toUpperCase()
+3. Add .active class to show overlay
+4. setTimeout(navigate, 5000) - wait 5 seconds
+5. Navigate to cassette's game URL
+
+Exit Screen (in blank cassette):
+---------------------------------
+Same structure and styling as load screen
+Shows in ejectCassette() function
+Delays return to console by 5 seconds
+
+
+═══════════════════════════════════════════════════════════
+LOAD SCREEN TEXT FORMAT
+═══════════════════════════════════════════════════════════
+
+For Blank Cassette:
+  READY.
+  LOAD "BLANK CASSETTE",8,1
+  RUN
+
+For future cassettes (e.g., Asteroid Command):
+  READY.
+  LOAD "ASTEROID COMMAND",8,1
+  RUN
+
+Format: LOAD "<UPPERCASE NAME>",8,1
+The cassette's displayName is automatically uppercased
+
+
+═══════════════════════════════════════════════════════════
+TIMING BREAKDOWN
+═══════════════════════════════════════════════════════════
+
+CRT Flicker:    500ms (0.5 seconds)
+Load Screen:   5000ms (5 seconds)
+Exit Screen:   5000ms (5 seconds)
+
+Total delay entering cassette: ~5.5 seconds
+Total delay exiting cassette:  ~5 seconds
+
+
+═══════════════════════════════════════════════════════════
+FUTURE ENHANCEMENTS (Not Implemented Yet)
+═══════════════════════════════════════════════════════════
+
+Possible additions:
+☐ Animated "loading" dots or progress indicator
+☐ Blinking cursor effect
+☐ Tape counter or progress bar
+☐ Sound effects (tape loading sounds)
+☐ More authentic PET/Commodore styling
+☐ Different load messages per cassette type
+☐ Error messages for failed loads
+
+
+═══════════════════════════════════════════════════════════
+TESTING CHECKLIST
+═══════════════════════════════════════════════════════════
+
+Main Console → Cassette Submenu:
+☐ CRT transition works
+☐ Submenu appears with Blank Cassette
+
+Launch Cassette:
+☐ Click Play button
+☐ Load screen appears (black background, green text)
+☐ Text reads: "READY." / "LOAD "BLANK CASSETTE",8,1" / "RUN"
+☐ After 5 seconds, navigates to blank game
+
+Blank Cassette Game:
+☐ Menu shows "BLANK CASSETTE" title
+☐ Options: 1. START GAME / 2. EJECT CASSETTE
+
+Eject Cassette:
+☐ Click "2. EJECT CASSETTE" or press "2" key
+☐ Exit screen appears (black background, green text)
+☐ Text reads: "READY." / "REWINDING CASSETTE..." / "RETURNING TO CONSOLE"
+☐ After 5 seconds, returns to main console
+
+Full Round Trip:
+☐ Console → Submenu → [5s Load] → Game → [5s Exit] → Console
+
+
+═══════════════════════════════════════════════════════════
+NOTES
+═══════════════════════════════════════════════════════════
+
+Accessibility:
+- All overlays use aria-hidden attribute
+- Changes from "true" to "false" when visible
+
+Color Scheme:
+- Consistent with existing green phosphor CRT theme
+- Uses #39ff14 (main green) throughout
+- Text has subtle glow effect (text-shadow)
+
+Code Quality:
+- Minimal JavaScript for maximum compatibility
+- No external dependencies
+- Reuses existing CSS patterns
+- Clean separation of concerns
+
+Browser Compatibility:
+- Pure CSS transitions
+- Standard JavaScript setTimeout
+- Should work in all modern browsers
+
+
+═══════════════════════════════════════════════════════════
+FILE STRUCTURE REFERENCE
+═══════════════════════════════════════════════════════════
+
+/Game/
+├── index.html                     ✓ Updated (load screen added)
+├── assets/
+│   └── images/
+│       └── [all images unchanged]
+├── core/
+│   ├── main-menu.js              ✓ Original
+│   └── submenu.js                ✓ Updated (handleStart modified)
+├── styles/
+│   └── main-menu.css             ✓ Updated (load screen CSS added)
+└── cassettes/
+    └── blank/
+        └── index.html            ✓ Updated (exit screen added)
+
+
+═══════════════════════════════════════════════════════════
+ALL SYSTEMS GO! 🎮
+═══════════════════════════════════════════════════════════
+
+Your PowerLine Challenge now has authentic PET/Commodore-style load screens!
+Test the complete flow and enjoy the retro cassette loading experience.

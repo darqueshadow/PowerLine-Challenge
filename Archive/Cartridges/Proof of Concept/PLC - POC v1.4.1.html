@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerLine Command - Type to Defend Earth</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00FFFF;
+            --neon-magenta: #FF00FF;
+            --neon-yellow: #FFFF00;
+            --neon-orange: #FF6600;
+            --dark-bg: #0a0a1f;
+            --darker-bg: #050510;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(to bottom, #000000, #0a0a1f, #1a0a2e);
+            color: var(--neon-cyan);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        #startScreen, #challengeScreen, #gameScreen, #gameOverScreen, #pauseScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        #challengeScreen, #gameScreen, #gameOverScreen, #pauseScreen {
+            display: none;
+        }
+
+        h1 {
+            font-size: 4rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan),
+                         0 0 40px var(--neon-cyan),
+                         0 0 60px var(--neon-cyan);
+            margin-bottom: 1rem;
+            letter-spacing: 0.1em;
+            font-weight: 900;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--neon-magenta);
+            text-shadow: 0 0 10px var(--neon-magenta);
+            margin-bottom: 3rem;
+            font-weight: 400;
+        }
+
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 400px;
+        }
+
+        .menu-item {
+            background: rgba(10, 10, 31, 0.8);
+            border: 2px solid var(--neon-cyan);
+            padding: 1rem 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .menu-item:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 20px var(--neon-cyan),
+                       0 0 40px var(--neon-cyan);
+            transform: translateX(10px);
+        }
+
+        .menu-item.selected {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 20px var(--neon-yellow);
+        }
+
+        .menu-number {
+            font-size: 1.5rem;
+            color: var(--neon-yellow);
+            font-weight: 900;
+            min-width: 30px;
+        }
+
+        .menu-text {
+            font-size: 1.2rem;
+            flex: 1;
+        }
+
+        .menu-subtitle {
+            font-size: 0.8rem;
+            color: var(--neon-magenta);
+            display: block;
+            margin-top: 0.3rem;
+        }
+
+        .challenge-option {
+            border-color: var(--neon-magenta);
+        }
+
+        .challenge-option:hover {
+            box-shadow: 0 0 20px var(--neon-magenta);
+            border-color: var(--neon-magenta);
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .play-area {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .in-game-hud {
+            position: absolute;
+            top: 20px;
+            background: rgba(10, 10, 31, 0.9);
+            padding: 15px 25px;
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            z-index: 100;
+        }
+
+        .hud-left {
+            left: 20px;
+        }
+
+        .hud-right {
+            right: 20px;
+        }
+
+        .hud-item {
+            margin-bottom: 8px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .hud-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .hud-label {
+            color: var(--neon-magenta);
+            font-size: 0.9rem;
+            margin-right: 10px;
+        }
+
+        .hud-value {
+            color: var(--neon-yellow);
+            font-size: 1.1rem;
+            font-weight: 900;
+        }
+
+        .planet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(to top, 
+                rgba(0, 100, 255, 0.3),
+                rgba(0, 100, 255, 0.1),
+                transparent
+            );
+            border-top: 3px solid rgba(0, 150, 255, 0.5);
+            box-shadow: 0 -10px 50px rgba(0, 150, 255, 0.3);
+            z-index: 5;
+        }
+
+        .spaceship {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 120px;
+            background: linear-gradient(to bottom, 
+                var(--neon-cyan) 0%,
+                #0088aa 30%,
+                #004455 70%,
+                #002233 100%
+            );
+            clip-path: polygon(
+                50% 0%,
+                70% 15%,
+                80% 40%,
+                75% 70%,
+                70% 100%,
+                30% 100%,
+                25% 70%,
+                20% 40%,
+                30% 15%
+            );
+            box-shadow: 
+                0 0 30px var(--neon-cyan),
+                inset 0 -20px 30px rgba(0, 0, 0, 0.5);
+            z-index: 150;
+        }
+
+        .spaceship::before {
+            content: '';
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40%;
+            height: 30%;
+            background: radial-gradient(ellipse, 
+                rgba(255, 255, 255, 0.8),
+                rgba(0, 200, 255, 0.4),
+                transparent
+            );
+            border-radius: 50%;
+        }
+
+        .spaceship::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 20px;
+            background: radial-gradient(ellipse at center,
+                rgba(255, 100, 0, 0.8),
+                rgba(255, 200, 0, 0.4),
+                transparent
+            );
+            filter: blur(5px);
+            animation: engineGlow 0.3s infinite alternate;
+        }
+
+        @keyframes engineGlow {
+            from { opacity: 0.6; transform: translateX(-50%) scaleY(1); }
+            to { opacity: 1; transform: translateX(-50%) scaleY(1.3); }
+        }
+
+        .shield-dome {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 500px;
+            height: 250px;
+            border-radius: 50% 50% 0 0;
+            border: 3px solid transparent;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 160;
+            pointer-events: none;
+        }
+
+        .shield-dome.full {
+            border-color: rgba(0, 255, 100, 0.6);
+            background: radial-gradient(ellipse at bottom,
+                rgba(0, 255, 100, 0.15),
+                rgba(0, 255, 100, 0.05),
+                transparent 70%
+            );
+            box-shadow: 
+                0 0 40px rgba(0, 255, 100, 0.4),
+                inset 0 -20px 60px rgba(0, 255, 100, 0.2);
+            opacity: 0.9;
+        }
+
+        .shield-dome.medium {
+            border-color: rgba(0, 255, 100, 0.4);
+            background: radial-gradient(ellipse at bottom,
+                rgba(0, 255, 100, 0.1),
+                rgba(0, 255, 100, 0.03),
+                transparent 70%
+            );
+            box-shadow: 
+                0 0 30px rgba(0, 255, 100, 0.3),
+                inset 0 -20px 40px rgba(0, 255, 100, 0.15);
+            opacity: 0.7;
+        }
+
+        .shield-dome.low {
+            border-color: rgba(150, 150, 150, 0.3);
+            background: radial-gradient(ellipse at bottom,
+                rgba(150, 150, 150, 0.08),
+                rgba(150, 150, 150, 0.02),
+                transparent 70%
+            );
+            box-shadow: 
+                0 0 20px rgba(150, 150, 150, 0.2),
+                inset 0 -20px 30px rgba(150, 150, 150, 0.1);
+            opacity: 0.5;
+        }
+
+        .shield-dome.overcharged {
+            border-color: rgba(0, 255, 100, 0.9);
+            background: radial-gradient(ellipse at bottom,
+                rgba(0, 255, 100, 0.25),
+                rgba(0, 255, 100, 0.1),
+                transparent 70%
+            );
+            box-shadow: 
+                0 0 60px rgba(0, 255, 100, 0.6),
+                inset 0 -20px 80px rgba(0, 255, 100, 0.3);
+            opacity: 1;
+            animation: shield-pulse 1s infinite;
+        }
+
+        @keyframes shield-pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .shield-flash {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 500px;
+            height: 250px;
+            border-radius: 50% 50% 0 0;
+            background: radial-gradient(ellipse at bottom,
+                rgba(255, 100, 0, 0.8),
+                rgba(255, 150, 0, 0.4),
+                transparent 70%
+            );
+            opacity: 0;
+            z-index: 25;
+            pointer-events: none;
+            animation: shieldFlash 0.6s;
+        }
+
+        @keyframes shieldFlash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .input-area {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            z-index: 200;
+        }
+
+        #commandInput {
+            width: 100%;
+            padding: 15px 25px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.3rem;
+            background: rgba(10, 10, 31, 0.95);
+            border: 3px solid var(--neon-cyan);
+            color: var(--neon-yellow);
+            text-align: center;
+            outline: none;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5),
+                       inset 0 0 20px rgba(0, 0, 0, 0.5);
+            letter-spacing: 0.1em;
+        }
+
+        #commandInput::placeholder {
+            color: rgba(0, 255, 255, 0.4);
+        }
+
+        #commandInput:focus {
+            box-shadow: 0 0 40px var(--neon-cyan),
+                       0 0 60px var(--neon-cyan),
+                       inset 0 0 20px rgba(0, 0, 0, 0.5);
+            border-color: var(--neon-yellow);
+        }
+
+        .asteroid {
+            position: absolute;
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            z-index: 50;
+        }
+
+        .asteroid-icon {
+            width: 120px;
+            height: 120px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(0 0 15px rgba(255, 100, 0, 0.6));
+        }
+
+        .asteroid-text {
+            background: rgba(0, 20, 50, 0.95);
+            border: 2px solid var(--neon-yellow);
+            padding: 8px 16px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--neon-yellow);
+            text-align: center;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.4);
+            white-space: nowrap;
+            font-weight: 700;
+        }
+
+        .asteroid.bomb .asteroid-text {
+            border-color: var(--neon-orange);
+            color: var(--neon-orange);
+            animation: bombPulse 0.5s infinite;
+        }
+
+        .asteroid.bomb .asteroid-icon {
+            filter: drop-shadow(0 0 20px rgba(255, 100, 0, 0.8));
+        }
+
+        .asteroid.bomb .asteroid-icon::before {
+            content: '💣';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 2rem;
+            filter: drop-shadow(0 0 10px orange);
+        }
+
+        @keyframes bombPulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 100, 0, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(255, 100, 0, 1); }
+        }
+
+        .asteroid.falling {
+            animation: fall linear forwards;
+        }
+
+        @keyframes fall {
+            from {
+                top: -100px;
+            }
+            to {
+                top: calc(100vh - 200px);
+            }
+        }
+
+        .explosion {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle,
+                rgba(255, 255, 100, 1) 0%,
+                rgba(255, 150, 0, 0.8) 20%,
+                rgba(255, 100, 0, 0.6) 40%,
+                rgba(200, 50, 0, 0.3) 60%,
+                transparent 100%
+            );
+            transform: translate(-50%, -50%) scale(0);
+            animation: explode 0.6s ease-out forwards;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 0 60px rgba(255, 150, 0, 0.8);
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .ground-impact {
+            position: absolute;
+            width: 300px;
+            height: 400px;
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAGQCAYAAAAUdV17AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABGGSURBVHhe7d0x[BASE64_MUSHROOM_CLOUD]');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: bottom center;
+            transform: translateX(-50%) scale(0.1);
+            transform-origin: bottom center;
+            animation: mushroomCloud 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 60;
+            filter: brightness(3) drop-shadow(0 0 30px rgba(255, 100, 0, 0.9));
+        }
+
+        @keyframes mushroomCloud {
+            0% {
+                transform: translateX(-50%) translateY(0) scale(0.1);
+                opacity: 1;
+                filter: brightness(3) drop-shadow(0 0 30px rgba(255, 100, 0, 0.9));
+            }
+            50% {
+                transform: translateX(-50%) translateY(-40px) scale(1);
+                opacity: 1;
+                filter: brightness(2) drop-shadow(0 0 50px rgba(255, 150, 0, 0.8));
+            }
+            100% {
+                transform: translateX(-50%) translateY(-60px) scale(1.5);
+                opacity: 0;
+                filter: brightness(0.5) drop-shadow(0 0 60px rgba(200, 50, 0, 0.4));
+            }
+        }
+
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-10px, 5px); }
+            20% { transform: translate(10px, -5px); }
+            30% { transform: translate(-10px, -5px); }
+            40% { transform: translate(10px, 5px); }
+            50% { transform: translate(-10px, 5px); }
+            60% { transform: translate(10px, -5px); }
+            70% { transform: translate(-10px, -5px); }
+            80% { transform: translate(10px, 5px); }
+            90% { transform: translate(-10px, 5px); }
+        }
+
+        .screen-shake {
+            animation: screenShake 0.6s;
+        }
+
+        .laser {
+            position: absolute;
+            width: 8px;
+            height: 40px;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAoCAYAAADORmYKAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAvSURBVEhL7cxBAQAgDMCwzb9nDzSASmTu3keSfs7Mh/gHBQoUKFCgQIECBQoUKPwArgwRKjvFRWgAAAAASUVORK5CYII=');
+            background-size: contain;
+            background-repeat: no-repeat;
+            filter: drop-shadow(0 0 10px cyan) brightness(1.5);
+            z-index: 70;
+            pointer-events: none;
+        }
+
+        .alien-bolt {
+            position: absolute;
+            width: 8px;
+            height: 40px;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAoCAYAAADORmYKAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAA2SURBVEhL7czBCQAgDATAsv+ejVBQkPh3c4CCJLh7M0l6O+cc4h8UKFCgQIECBQoUKFCg8AO4MkOo7BQhnwAAAABJRU5ErkJggg==');
+            background-size: contain;
+            background-repeat: no-repeat;
+            filter: drop-shadow(0 0 10px red) brightness(1.5);
+            z-index: 70;
+            pointer-events: none;
+        }
+
+        @keyframes shootLaser {
+            from { transform: translateY(0); }
+            to { transform: translateY(-500px); }
+        }
+
+        @keyframes shootAlienBolt {
+            from { transform: translateY(0); }
+            to { transform: translateY(500px); }
+        }
+
+        @keyframes spaceshipHit {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); filter: brightness(1); }
+            25% { transform: translateX(-50%) rotate(-10deg); filter: brightness(1.5) drop-shadow(0 0 30px orange); }
+            50% { transform: translateX(-50%) rotate(10deg); filter: brightness(1.2) drop-shadow(0 0 20px orange); }
+            75% { transform: translateX(-50%) rotate(-10deg); filter: brightness(1.3) drop-shadow(0 0 25px orange); }
+        }
+
+        .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: 900;
+            z-index: 300;
+            pointer-events: none;
+            animation: feedbackPop 0.8s ease-out forwards;
+        }
+
+        .feedback.correct {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .feedback.incorrect {
+            color: #ff3333;
+            text-shadow: 0 0 20px #ff3333;
+        }
+
+        @keyframes feedbackPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        }
+
+        .bonus-notification {
+            position: absolute;
+            background: rgba(10, 10, 31, 0.95);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            z-index: 250;
+            pointer-events: none;
+            animation: bonusPop 1.5s ease-out forwards;
+        }
+
+        .bonus-small {
+            border: 2px solid var(--neon-yellow);
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.6);
+            font-size: 0.7rem;
+        }
+
+        .bonus-large {
+            border: 3px solid var(--neon-magenta);
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.8);
+            font-size: 1.2rem;
+        }
+
+        @keyframes bonusPop {
+            0% { transform: scale(0); opacity: 0; }
+            20% { transform: scale(1.2); opacity: 1; }
+            80% { transform: scale(1); opacity: 1; }
+            90% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        #gameOverScreen {
+            background: linear-gradient(135deg, 
+                rgba(10, 10, 40, 0.98),
+                rgba(80, 0, 0, 0.95),
+                rgba(10, 10, 40, 0.98)
+            );
+            z-index: 1000;
+        }
+
+        #gameOverScreen h1 {
+            font-size: 4rem;
+            color: #ff3333;
+            text-shadow: 0 0 30px #ff3333,
+                         0 0 60px #ff3333;
+        }
+
+        #gameOverEmoji {
+            font-size: 8rem;
+            margin: 1rem 0;
+            filter: drop-shadow(0 0 20px rgba(255, 100, 0, 0.6));
+        }
+
+        #gameOverMessage {
+            font-size: 1.3rem;
+            color: var(--neon-cyan);
+            margin-bottom: 2rem;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .stats-display {
+            background: rgba(10, 10, 31, 0.9);
+            border: 2px solid var(--neon-cyan);
+            padding: 2rem;
+            margin: 2rem 0;
+            min-width: 400px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 1rem 0;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.3rem;
+        }
+
+        .stat-label {
+            color: var(--neon-cyan);
+        }
+
+        .stat-value {
+            color: var(--neon-yellow);
+            font-weight: 900;
+        }
+
+        #pauseScreen {
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+        }
+
+        #pauseScreen h1 {
+            color: var(--neon-cyan);
+            margin-bottom: 1rem;
+        }
+
+        #pauseScreen .subtitle {
+            color: var(--neon-magenta);
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+
+    <div id="startScreen">
+        <h1>POWERLINE COMMAND</h1>
+        <p class="subtitle">Type the Base Numbers to Defend Earth</p>
+        
+        <div class="menu-container">
+            <div class="menu-item selected" id="menuEngage" data-index="0">
+                <span class="menu-number">1.</span>
+                <div>
+                    <span class="menu-text">ENGAGE SYSTEMS</span>
+                    <span class="menu-subtitle" id="currentGame">Base Name - Base Number</span>
+                </div>
+            </div>
+            <div class="menu-item" id="menuChallenges" data-index="1">
+                <span class="menu-number">2.</span>
+                <span class="menu-text">SELECT A CHALLENGE</span>
+            </div>
+        </div>
+        
+        <p class="subtitle" style="margin-top: 3rem; font-size: 0.9rem; opacity: 0.7;">Press ESC to Pause Game</p>
+    </div>
+
+    <div id="challengeScreen">
+        <h1>SELECT CHALLENGE</h1>
+        <p class="subtitle">Choose Your Training Mission</p>
+        
+        <div class="menu-container">
+            <div class="menu-item challenge-option" data-challenge="base-number" data-index="0">
+                <span class="menu-number">1.</span>
+                <span class="menu-text">BASE NAME - BASE NUMBER</span>
+            </div>
+            <div class="menu-item challenge-option" id="backToMenu" data-index="1">
+                <span class="menu-number">ESC.</span>
+                <span class="menu-text">BACK TO MENU</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameScreen">
+        <div class="game-container">
+            <div class="play-area" id="playArea">
+                <div class="in-game-hud hud-left">
+                    <div class="hud-item">
+                        <span class="hud-label">SCORE:</span>
+                        <span class="hud-value" id="score">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">ACCURACY:</span>
+                        <span class="hud-value" id="accuracy">100%</span>
+                    </div>
+                </div>
+                
+                <div class="in-game-hud hud-right">
+                    <div class="hud-item">
+                        <span class="hud-label">SHIELDS:</span>
+                        <span class="hud-value" id="strikes">3/3</span>
+                    </div>
+                </div>
+
+                <div class="planet"></div>
+                
+                <div class="spaceship"></div>
+                <div class="shield-dome full"></div>
+                
+                <div class="input-area">
+                    <input type="text" id="commandInput" autocomplete="off" placeholder="Enter PowerLine Code...">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pauseScreen">
+        <h1>PAUSED</h1>
+        <p class="subtitle">Press SPACE to Resume</p>
+    </div>
+
+    <div id="gameOverScreen">
+        <h1 id="gameOverTitle">EARTH DESTROYED</h1>
+        <div id="gameOverEmoji">🏚️💥🔥</div>
+        <p id="gameOverMessage">The city lies in ruins...</p>
+        
+        <div class="stats-display">
+            <div class="stat-row">
+                <span class="stat-label">FINAL SCORE:</span>
+                <span class="stat-value" id="finalScore">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">ACCURACY:</span>
+                <span class="stat-value" id="finalAccuracy">0%</span>
+            </div>
+        </div>
+        
+        <div class="menu-container">
+            <div class="menu-item" onclick="playAgain()">
+                <span class="menu-number">1.</span>
+                <span class="menu-text">PLAY AGAIN</span>
+            </div>
+            <div class="menu-item" onclick="goToMainMenu()">
+                <span class="menu-number">ESC.</span>
+                <span class="menu-text">MAIN MENU</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game Settings
+        const GAME_SETTINGS = {
+            // Main values
+            CORRECTS_PER_SPEED_INCREASE: 1,
+            SPEED_INCREASE_PERCENT: 0.07,
+            BASE_MAX_ASTEROIDS: 3,
+            CORRECTS_PER_ASTEROID_INCREASE: 10
+        };
+        // Shorthand aliases (auto-linked)
+        GAME_SETTINGS.CPSI = GAME_SETTINGS.CORRECTS_PER_SPEED_INCREASE;
+        GAME_SETTINGS.SIP  = GAME_SETTINGS.SPEED_INCREASE_PERCENT;
+        GAME_SETTINGS.BMA  = GAME_SETTINGS.BASE_MAX_ASTEROIDS;
+        GAME_SETTINGS.CPAI = GAME_SETTINGS.CORRECTS_PER_ASTEROID_INCREASE;
+
+        // Base data
+        const asteroidImages = [
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+        ];
+        
+        let currentBonusOffset = 0;
+        
+        const baseData = [
+            { name: "Niagara Falls", code: "72100" },
+            { name: "Ontario St", code: "72101" },
+            { name: "Linwell", code: "72102" },
+            { name: "Thorold", code: "72103" },
+            { name: "NOTL", code: "72104" },
+            { name: "Grimsby", code: "72105" },
+            { name: "Port Colborne", code: "72107" },
+            { name: "King St", code: "72108" },
+            { name: "Smithville", code: "72109" },
+            { name: "Vineland", code: "72110" },
+            { name: "Pelham", code: "72111" },
+            { name: "Ridgeway", code: "72113" },
+            { name: "Glendale", code: "72115" },
+            { name: "St Paul", code: "72116" },
+            { name: "Fort Erie", code: "72117" },
+            { name: "Merittville", code: "72118" },
+            { name: "HQ", code: "72120" },
+            { name: "Fitch St", code: "72121" },
+            { name: "Westwood", code: "72122" }
+        ];
+
+        const gameOverScreens = [
+            { title: "EARTH DESTROYED", emoji: "🏚️💥🔥", message: "The city lies in ruins... Maybe practice more?" },
+            { title: "OOPS! PLANET GO BOOM!", emoji: "🌍💥😵", message: "Earth is now a space pancake. Nice work, genius!" },
+            { title: "YOU HAD ONE JOB!", emoji: "🤦‍♂️🚑💀", message: "Protect Earth, they said. It'll be fun, they said..." }
+        ];
+
+        let score = 0;
+        let totalAttempts = 0;
+        let correctAttempts = 0;
+        let strikes = 0;
+        let activeAsteroids = [];
+        let currentStreak = 0;
+        let hadBackspace = false;
+        let streak25Count = 0;
+        let gameInterval;
+        let startTime;
+        let spawnRate = 1500;
+        let fallDuration = 15000;
+        let lastBombTime = 0;
+        let bombChance = 0.15;
+        let maxAsteroids = 2;
+        let checkInterval;
+        let cleanupInterval;
+        
+        let currentScreen = 'start';
+        let selectedIndex = 0;
+        let currentGame = 'base-number';
+        let lastPlayedGame = localStorage.getItem('lastPlayedGame') || 'base-number';
+        let isPaused = false;
+
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        function pauseGame() {
+            if (!isPaused && currentScreen === 'game') {
+                isPaused = true;
+                document.getElementById('pauseScreen').style.display = 'flex';
+            }
+        }
+
+        function resumeGame() {
+            if (isPaused) {
+                isPaused = false;
+                document.getElementById('pauseScreen').style.display = 'none';
+                document.getElementById('commandInput').focus();
+            }
+        }
+
+        function playAgain() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            startGame();
+        }
+
+        function goToMainMenu() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'none';
+            showStartScreen();
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('challengeScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'flex';
+            currentScreen = 'game';
+            isPaused = false;
+            
+            score = 0;
+            totalAttempts = 0;
+            correctAttempts = 0;
+            strikes = 0;
+            activeAsteroids = [];
+            startTime = Date.now();
+            spawnRate = 1500;
+            fallDuration = 15000;
+            maxAsteroids = GAME_SETTINGS.BASE_MAX_ASTEROIDS;
+            currentStreak = 0;
+            hadBackspace = false;
+            streak25Count = 0;
+            currentBonusOffset = 0;
+            
+            const playArea = document.getElementById('playArea');
+            const toRemove = playArea.querySelectorAll('.asteroid:not(.spaceship), .explosion, .ground-impact, .laser, .alien-bolt, .feedback, .bonus-notification, .shield-flash');
+            toRemove.forEach(element => element.remove());
+            
+            updateHUD();
+            updateShieldVisuals();
+            document.getElementById('commandInput').focus();
+            
+            gameInterval = setInterval(spawnAsteroid, spawnRate);
+            spawnAsteroid();
+            setTimeout(spawnAsteroid, 500);
+            
+            checkInterval = setInterval(checkAsteroidPositions, 200);
+            cleanupInterval = setInterval(() => {
+                const before = activeAsteroids.length;
+                activeAsteroids = activeAsteroids.filter(a => {
+                    if (!a.element.parentElement) return false;
+                    if (a.destroyed) return false;
+                    return true;
+                });
+            }, 2000);
+        }
+
+        function checkAsteroidPositions() {
+            if (isPaused) return;
+            
+            const currentTime = Date.now();
+            
+            for (let i = activeAsteroids.length - 1; i >= 0; i--) {
+                const asteroid = activeAsteroids[i];
+                
+                if (asteroid.destroyed) continue;
+                
+                if (!asteroid.element || !asteroid.element.parentElement || asteroid.element.classList.contains('zapped')) {
+                    asteroid.destroyed = true;
+                    activeAsteroids.splice(i, 1);
+                    continue;
+                }
+                
+                const timeElapsed = currentTime - asteroid.spawnTime;
+                
+                if (timeElapsed >= (asteroid.fallDuration + 200)) {
+                    asteroid.destroyed = true;
+                    strikes++;
+                    
+                    asteroid.element.style.opacity = '0';
+                    createGroundImpact(asteroid.element);
+                    
+                    setTimeout(() => {
+                        if (asteroid.element && asteroid.element.parentElement) {
+                            asteroid.element.remove();
+                        }
+                    }, 300);
+                    
+                    activeAsteroids.splice(i, 1);
+                    updateHUD();
+                    
+                    if (strikes >= 3) {
+                        setTimeout(() => endGame(), 1500);
+                    }
+                }
+            }
+        }
+
+        function spawnAsteroid() {
+            if (activeAsteroids.length >= maxAsteroids) return;
+            
+            const currentTime = Date.now();
+            const activeCodes = activeAsteroids.map(a => a.data.code);
+            const availableBases = baseData.filter(base => !activeCodes.includes(base.code));
+            
+            let base;
+            if (availableBases.length === 0) {
+                base = baseData[Math.floor(Math.random() * baseData.length)];
+            } else {
+                base = availableBases[Math.floor(Math.random() * availableBases.length)];
+            }
+            
+            const playArea = document.getElementById('playArea');
+            const asteroid = document.createElement('div');
+            const asteroidType = Math.floor(Math.random() * 5);
+            asteroid.className = 'asteroid falling';
+            
+            const asteroidIcon = document.createElement('div');
+            asteroidIcon.className = 'asteroid-icon';
+            asteroidIcon.style.backgroundImage = `url('${asteroidImages[asteroidType]}')`;
+            
+            const asteroidText = document.createElement('div');
+            asteroidText.className = 'asteroid-text';
+            asteroidText.textContent = base.name;
+            
+            asteroid.appendChild(asteroidIcon);
+            asteroid.appendChild(asteroidText);
+            asteroid.dataset.code = base.code;
+            asteroid.dataset.name = base.name;
+            
+            const currentFallDuration = fallDuration;
+            asteroid.style.animationDuration = (currentFallDuration / 1000) + 's';
+            
+            const maxX = playArea.offsetWidth - 200;
+            const asteroidWidth = 200;
+            const minSpacing = asteroidWidth + 50;
+            
+            let leftPos;
+            let attempts = 0;
+            let validPosition = false;
+            
+            while (!validPosition && attempts < 50) {
+                leftPos = Math.random() * maxX;
+                validPosition = true;
+                
+                for (let activeAst of activeAsteroids) {
+                    const activeLeft = parseFloat(activeAst.element.style.left);
+                    const distance = Math.abs(leftPos - activeLeft);
+                    
+                    if (distance < minSpacing) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                attempts++;
+            }
+            
+            if (!validPosition) {
+                leftPos = Math.random() * maxX;
+            }
+            
+            asteroid.style.left = leftPos + 'px';
+            asteroid.style.top = '-100px';
+            
+            playArea.appendChild(asteroid);
+            
+            const asteroidData = {
+                element: asteroid,
+                data: base,
+                spawnTime: currentTime,
+                fallDuration: currentFallDuration,
+                destroyed: false
+            };
+            
+            activeAsteroids.push(asteroidData);
+        }
+
+        function checkCommand() {
+            const input = document.getElementById('commandInput');
+            const command = input.value.trim();
+            
+            if (!command) return;
+            
+            totalAttempts++;
+            let found = false;
+            
+            for (let i = activeAsteroids.length - 1; i >= 0; i--) {
+                const asteroid = activeAsteroids[i];
+                
+                if (asteroid.destroyed) continue;
+                
+                if (asteroid.data.code === command) {
+                    found = true;
+                    correctAttempts++;
+                    asteroid.destroyed = true;
+                    currentStreak++;
+                    
+                    let pointsEarned = 7;
+                    const bonuses = [];
+                    
+                    if (!hadBackspace) {
+                        pointsEarned += 3;
+                    }
+                    
+                    if (currentStreak > 0 && currentStreak % 25 === 0) {
+                        pointsEarned += 25;
+                        streak25Count++;
+                        bonuses.push({ type: '25 STREAK', points: 25, size: 'small' });
+                        
+                        if (streak25Count >= 4) {
+                            pointsEarned += 75;
+                            bonuses.push({ type: '100 STREAK', points: 75, size: 'large' });
+                            streak25Count = 0;
+                        }
+                    }
+                    
+                    score += pointsEarned;
+                    
+                    bonuses.forEach(bonus => {
+                        showBonus(bonus.type, bonus.points, bonus.size);
+                    });
+                    
+                    fireLaser(asteroid.element);
+                    hadBackspace = false;
+                    
+                    // Difficulty scaling using GAME_SETTINGS
+                    if (correctAttempts % GAME_SETTINGS.CORRECTS_PER_SPEED_INCREASE === 0) {
+                        spawnRate = Math.max(400, spawnRate * (1 - GAME_SETTINGS.SPEED_INCREASE_PERCENT));
+                        fallDuration = Math.max(8000, fallDuration * (1 - GAME_SETTINGS.SPEED_INCREASE_PERCENT));
+                        clearInterval(gameInterval);
+                        gameInterval = setInterval(spawnAsteroid, spawnRate);
+                    }
+                    
+                    if (correctAttempts % GAME_SETTINGS.CORRECTS_PER_ASTEROID_INCREASE === 0) {
+                        maxAsteroids = Math.min(6, maxAsteroids + 1);
+                    }
+                    
+                    updateHUD();
+                    updateShieldVisuals();
+                    break;
+                }
+            }
+            
+            if (!found) {
+                if (activeAsteroids.length > 0 && activeAsteroids[0].element && !activeAsteroids[0].destroyed) {
+                    fireEnemyLaser(activeAsteroids[0].element);
+                }
+                
+                // Show MISS feedback
+                const feedback = document.createElement('div');
+                feedback.className = 'feedback incorrect';
+                feedback.textContent = 'MISS';
+                document.getElementById('playArea').appendChild(feedback);
+                setTimeout(() => feedback.remove(), 800);
+                
+                strikes++;
+                currentStreak = 0;
+                hadBackspace = false;
+                streak25Count = 0;
+                
+                if (strikes >= 3) {
+                    setTimeout(() => endGame(), 600);
+                }
+            }
+            
+            input.value = '';
+            updateHUD();
+            updateShieldVisuals();
+        }
+
+        function showExplosion(asteroidElement) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = asteroidElement.style.left;
+            explosion.style.top = asteroidElement.style.top;
+            
+            const playArea = document.getElementById('playArea');
+            playArea.appendChild(explosion);
+            
+            setTimeout(() => explosion.remove(), 800);
+        }
+
+        function fireLaser(asteroidElement) {
+            const playArea = document.getElementById('playArea');
+            const spaceship = document.querySelector('.spaceship');
+            
+            if (!asteroidElement || !spaceship) return;
+            
+            const asteroidRect = asteroidElement.getBoundingClientRect();
+            const shipRect = spaceship.getBoundingClientRect();
+            const playRect = playArea.getBoundingClientRect();
+            
+            const startX = shipRect.left - playRect.left + (shipRect.width / 2);
+            const startY = shipRect.top - playRect.top;
+            
+            const targetX = asteroidRect.left - playRect.left + (asteroidRect.width / 2);
+            const targetY = asteroidRect.top - playRect.top + (asteroidRect.height / 2);
+            
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+            
+            const laser = document.createElement('div');
+            laser.className = 'laser';
+            laser.style.left = startX + 'px';
+            laser.style.top = startY + 'px';
+            laser.style.transform = `rotate(${angle + 90}deg)`;
+            laser.style.transformOrigin = 'center center';
+            
+            playArea.appendChild(laser);
+            
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const travelTime = Math.min(150, distance / 3);
+            
+            requestAnimationFrame(() => {
+                laser.style.transition = `transform ${travelTime}ms linear`;
+                laser.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle + 90}deg)`;
+            });
+            
+            setTimeout(() => {
+                laser.remove();
+                
+                if (asteroidElement && asteroidElement.parentElement) {
+                    asteroidElement.remove();
+                }
+                
+                createExplosion(targetX, targetY);
+                activeAsteroids = activeAsteroids.filter(a => a.element !== asteroidElement);
+                
+            }, travelTime);
+        }
+
+        function createGroundImpact(asteroidElement) {
+            const playArea = document.getElementById('playArea');
+            const asteroidRect = asteroidElement.getBoundingClientRect();
+            const playRect = playArea.getBoundingClientRect();
+            
+            const impactX = asteroidRect.left - playRect.left + (asteroidRect.width / 2);
+            const groundY = playRect.height - 120;
+            
+            const impact = document.createElement('div');
+            impact.className = 'ground-impact';
+            impact.style.left = impactX + 'px';
+            impact.style.bottom = '0px';
+            impact.style.transform = 'translateX(-50%)';
+            
+            playArea.appendChild(impact);
+            
+            playArea.classList.add('screen-shake');
+            setTimeout(() => {
+                playArea.classList.remove('screen-shake');
+            }, 600);
+            
+            setTimeout(() => impact.remove(), 2000);
+        }
+
+        function fireEnemyLaser(asteroidElement) {
+            const playArea = document.getElementById('playArea');
+            const spaceship = document.querySelector('.spaceship');
+            
+            if (!asteroidElement || !spaceship) return;
+            
+            const asteroidRect = asteroidElement.getBoundingClientRect();
+            const shipRect = spaceship.getBoundingClientRect();
+            const playRect = playArea.getBoundingClientRect();
+            
+            const startX = asteroidRect.left - playRect.left + (asteroidRect.width / 2);
+            const startY = asteroidRect.top - playRect.top + (asteroidRect.height / 2);
+            
+            const targetX = shipRect.left - playRect.left + (shipRect.width / 2);
+            const targetY = shipRect.top - playRect.top + (shipRect.height / 4);
+            
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+            
+            const laser = document.createElement('div');
+            laser.className = 'alien-bolt';
+            laser.style.left = startX + 'px';
+            laser.style.top = startY + 'px';
+            laser.style.transform = `rotate(${angle + 90}deg)`;
+            laser.style.transformOrigin = 'center center';
+            
+            playArea.appendChild(laser);
+            
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const travelTime = Math.min(200, distance / 2.5);
+            
+            requestAnimationFrame(() => {
+                laser.style.transition = `transform ${travelTime}ms linear`;
+                laser.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle + 90}deg)`;
+            });
+            
+            setTimeout(() => {
+                laser.remove();
+                
+                const shield = document.querySelector('.shield-dome');
+                if (shield) {
+                    shield.style.filter = 'brightness(2)';
+                    setTimeout(() => shield.style.filter = '', 100);
+                }
+                
+                updateShieldVisuals();
+                
+            }, travelTime);
+        }
+
+        function createExplosion(centerX, centerY) {
+            const playArea = document.getElementById('playArea');
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = centerX + 'px';
+            explosion.style.top = centerY + 'px';
+            
+            playArea.appendChild(explosion);
+            
+            setTimeout(() => explosion.remove(), 600);
+        }
+
+        function updateShieldVisuals() {
+            const shield = document.querySelector('.shield-dome');
+            if (!shield) return;
+            
+            shield.classList.remove('full', 'medium', 'low', 'overcharged');
+            
+            if (strikes > 3) {
+                shield.classList.add('overcharged');
+            } else if (strikes === 0) {
+                shield.classList.add('full');
+            } else if (strikes === 1) {
+                shield.classList.add('medium');
+            } else if (strikes === 2) {
+                shield.classList.add('low');
+            }
+        }
+
+        function showBonus(bonusType, points, size = 'small') {
+            const playArea = document.getElementById('playArea');
+            const bonus = document.createElement('div');
+            
+            if (size === 'large') {
+                bonus.className = 'bonus-notification bonus-large';
+                bonus.innerHTML = `
+                    <div style="font-size: 0.9rem; color: var(--neon-yellow); margin-bottom: 3px; font-weight: 900;">${bonusType}</div>
+                    <div style="font-size: 1.8rem; font-weight: 900;">+${points}</div>
+                `;
+            } else {
+                bonus.className = 'bonus-notification bonus-small';
+                bonus.innerHTML = `
+                    <div style="font-size: 0.6rem; color: var(--neon-magenta); margin-bottom: 2px;">${bonusType}</div>
+                    <div style="font-size: 0.9rem; font-weight: 900;">+${points}</div>
+                `;
+            }
+            
+            bonus.style.top = `calc(70px + ${currentBonusOffset}px)`;
+            bonus.style.right = '30px';
+            bonus.style.left = 'auto';
+            bonus.style.transform = 'none';
+            
+            currentBonusOffset += (size === 'large' ? 80 : 45);
+            
+            playArea.appendChild(bonus);
+            
+            setTimeout(() => {
+                bonus.remove();
+                currentBonusOffset = Math.max(0, currentBonusOffset - (size === 'large' ? 80 : 45));
+            }, 1500);
+        }
+
+        function updateHUD() {
+            document.getElementById('score').textContent = score;
+            
+            const accuracy = totalAttempts === 0 ? 100 : Math.round((correctAttempts / totalAttempts) * 100);
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            
+            const shieldsLeft = 3 - strikes;
+            document.getElementById('strikes').textContent = shieldsLeft + '/3';
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            clearInterval(checkInterval);
+            clearInterval(cleanupInterval);
+            
+            const accuracy = totalAttempts === 0 ? 0 : Math.round((correctAttempts / totalAttempts) * 100);
+            
+            const randomScreen = gameOverScreens[Math.floor(Math.random() * gameOverScreens.length)];
+            
+            document.getElementById('gameOverTitle').textContent = randomScreen.title;
+            document.getElementById('gameOverEmoji').textContent = randomScreen.emoji;
+            document.getElementById('gameOverMessage').textContent = randomScreen.message;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalAccuracy').textContent = accuracy + '%';
+            
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            currentScreen = 'gameover';
+        }
+
+        function showStartScreen() {
+            document.getElementById('startScreen').style.display = 'flex';
+            document.getElementById('challengeScreen').style.display = 'none';
+            currentScreen = 'start';
+            selectedIndex = 0;
+            
+            document.getElementById('currentGame').textContent = 'Base Name - Base Number';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            createStars();
+            
+            const input = document.getElementById('commandInput');
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' || e.key === 'Delete') {
+                    hadBackspace = true;
+                }
+            });
+            
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    checkCommand();
+                }
+            });
+            
+            document.addEventListener('keydown', (e) => {
+                // Menu navigation with number keys
+                if (currentScreen === 'start') {
+                    if (e.key === '1') {
+                        e.preventDefault();
+                        startGame();
+                    } else if (e.key === '2') {
+                        e.preventDefault();
+                        // Show challenge selection screen (future implementation)
+                        console.log('Challenge selection not yet implemented');
+                    }
+                }
+                
+                if (currentScreen === 'challenge') {
+                    if (e.key === '1') {
+                        e.preventDefault();
+                        // Start selected challenge
+                        currentGame = 'base-number';
+                        startGame();
+                    } else if (e.key.toLowerCase() === 'escape') {
+                        e.preventDefault();
+                        showStartScreen();
+                    }
+                }
+                
+                if (currentScreen === 'game' && e.key === 'Escape') {
+                    e.preventDefault();
+                    pauseGame();
+                }
+                
+                if (isPaused && e.key === ' ') {
+                    e.preventDefault();
+                    resumeGame();
+                }
+                
+                // Game over screen navigation
+                if (currentScreen === 'gameover') {
+                    if (e.key === '1') {
+                        e.preventDefault();
+                        playAgain();
+                    } else if (e.key.toLowerCase() === 'escape') {
+                        e.preventDefault();
+                        goToMainMenu();
+                    }
+                }
+            });
+            
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    if (this.id === 'menuEngage') {
+                        startGame();
+                    }
+                });
+            });
+            
+            document.getElementById('playArea').addEventListener('click', () => {
+                if (currentScreen === 'game') {
+                    input.focus();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

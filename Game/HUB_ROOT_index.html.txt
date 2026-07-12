@@ -1,0 +1,133 @@
+[CODE FILENAME: HUB_ROOT_index]
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerLine Challenge — Training Console</title>
+    <link rel="stylesheet" href="styles/main-menu.css">
+</head>
+<body>
+
+<!--
+    ================================================================
+    CRT FLICKER TRANSITION
+    
+    Appears when transitioning from main menu to submenu.
+    Shows for 300-600ms with static/flicker effect, then hides.
+    ================================================================
+-->
+<div id="crt-transition" aria-hidden="true"></div>
+
+<!--
+    ================================================================
+    CASSETTE LOAD SCREEN
+    
+    PET/Commodore-style loading screen shown when launching a cassette.
+    ================================================================
+-->
+<div id="cassette-load-screen" aria-hidden="true">
+    <div class="cassette-load-content">
+        <p id="cassette-load-line-1">READY.</p>
+        <p id="cassette-load-line-2">LOAD "BLANK CASSETTE",8,1</p>
+        <p id="cassette-load-line-3">RUN</p>
+    </div>
+</div>
+
+
+<!--
+    ================================================================
+    PLC MAIN MENU CONTAINER
+    
+    The main menu screen with the computer illustration.
+    ================================================================
+-->
+<div id="plc-container">
+
+    <!-- The computer illustration — sizes itself to fit the viewport -->
+    <img id="bg-image" src="assets/images/Main_Menu.png" alt="PowerLine Challenge Training Console">
+
+    <!--
+        ============================================================
+        CASSETTE TRAY CLICK ZONE
+        ============================================================
+    -->
+    <div id="tray-click-zone"
+         role="button"
+         tabindex="0"
+         aria-label="Browse cartridges"
+         aria-expanded="false">
+    </div>
+
+</div><!-- end #plc-container -->
+
+
+<!--
+    ================================================================
+    CARTRIDGE SUBMENU
+    
+    The cassette-based game selection screen.
+    Hidden by default, shown after CRT transition.
+    ================================================================
+-->
+<section id="cartridge-submenu" aria-hidden="true">
+
+    <!-- Header -->
+    <div id="submenu-header">
+        <h1 id="submenu-title">Select a Game Cassette</h1>
+    </div>
+
+    <!-- Main content area with 3 panels -->
+    <div id="submenu-content">
+        
+        <!-- Left: Screenshot Panel -->
+        <div id="game-screenshot-panel">
+            <img id="game-screenshot" 
+                 src="assets/images/coming-soon-placeholder.svg" 
+                 alt="Game screenshot">
+        </div>
+
+        <!-- Center: Cassette Row (horizontal scrolling) -->
+        <div id="cassette-row-container">
+            <div id="cassette-row">
+                <!-- Cassettes injected here by submenu.js -->
+            </div>
+        </div>
+
+        <!-- Right: Game Info Panel -->
+        <div id="game-info-panel">
+            <h2 id="game-title">—</h2>
+            <p id="game-synopsis">Select a cassette to view details.</p>
+            <div id="game-status"></div>
+        </div>
+
+    </div>
+
+    <!-- Bottom: Cassette Deck with Controls -->
+    <div id="cassette-deck-area">
+        
+        <img id="cassette-deck" 
+             src="assets/images/Cassette_Deck.png" 
+             alt="Cassette Deck">
+
+        <div id="deck-controls">
+            <button id="back-to-main" aria-label="Back to Main Menu">
+                ◄ BACK
+            </button>
+            <button id="start-cartridge" disabled aria-label="Start Game">
+                Select a cassette to begin
+            </button>
+        </div>
+
+    </div>
+
+</section><!-- end #cartridge-submenu -->
+
+
+<script src="core/main-menu.js"></script>
+<script src="core/submenu.js"></script>
+</body>
+</html>
+
+<!DOCTYPE html>

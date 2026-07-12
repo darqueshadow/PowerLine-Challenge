@@ -1,0 +1,41 @@
+PATH FIX - CASSETTES vs CARTRIDGES
+====================================
+
+PROBLEM IDENTIFIED:
+Your folder is named "cassettes" but the code was looking for "cartridges"
+
+YOUR ACTUAL STRUCTURE:
+/Game/
+└── cassettes/           ← You have this
+    └── blank/
+        └── index.html
+
+CODE WAS LOOKING FOR:
+/Game/
+└── cartridges/          ← Code was looking for this
+    └── blank/
+        └── index.html
+
+
+FIXED IN submenu.js:
+====================
+OLD: window.location.href = "cartridges/blank/index.html";
+NEW: window.location.href = "cassettes/blank/index.html";
+
+
+INSTRUCTIONS:
+=============
+1. Replace your /Game/core/submenu.js with the updated version
+2. Test by clicking the Play button
+3. Should now navigate correctly to cassettes/blank/index.html
+
+
+NOTE FOR FUTURE:
+================
+When adding new games, use the "cassettes" folder:
+/Game/cassettes/asteroid-command/index.html
+/Game/cassettes/zombie/index.html
+etc.
+
+And update paths in submenu.js accordingly:
+window.location.href = "cassettes/asteroid-command/index.html";

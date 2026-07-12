@@ -1,0 +1,57 @@
+SCORING SYSTEM,,,,,
+,,,,,
+Scoring Event,Value / Multiplier,Trigger / Condition,Description,UI Flavor Text,Stacks / Resets
+?? BASE SCORING ??,,,,,
+Base Hit (Clear),Rank Base,Asteroid typed correctly and destroyed.,Pulls base point value from progression.csv based on current rank.,"""TARGET NEUTRALIZED""",Per event
+Perfect Shot,0.25x,0 Backspaces used on the command.,25% bonus of current Base Hit. Increased from 20% to reward clean typing.,"""PERFECT""","Per event, feeds streak"
+Early Intercept,0.5x,Target cleared within the top 25% of the screen.,50% bonus of current Base Hit. Rewards fast reaction.,"""EARLY INTERCEPT""","Per event, stacks with Perfect Shot"
+,,,,,
+?? STREAK BONUSES ??,,,,,
+5x Perfect Streak,75,5 consecutive Perfect Shots (0 backspaces).,NEW — Mini-streak milestone. Keeps players motivated before the big bonuses.,"""LOCKED IN""",One-time per streak
+8x Perfect Streak,150,8 consecutive Perfect Shots (0 backspaces).,Reduced from 10. More achievable at higher tiers where speed is brutal.,"""EXCELLENT""",One-time per streak
+15x Perfect Streak,400,15 consecutive Perfect Shots (0 backspaces).,Reduced from 20. Keeps the big bonus within reach at high-tier speeds.,"""UNSTOPPABLE""",One-time per streak
+25x Perfect Streak,1000,25 consecutive Perfect Shots (0 backspaces).,NEW — Elite tier reward. Extremely difficult but achievable for the best players.,"""LEGEND""",One-time per streak
+Streak Forgiveness,n/a,1 backspace allowed per target without breaking streak.,"NEW — Instead of hard reset on any error, 1 backspace is forgiven. 2+ backspaces on a single target breaks streak.",,Passive rule
+,,,,,
+?? TYPING PENALTIES ??,,,,,
+Key Dust (1-2 Backspaces),-0.1x,1-2 Backspaces used while clearing a target.,Flat 10% penalty of current Base Hit. Minor slip.,"""KEY DUST""",Per event
+Static Jam (3-4 Backspaces),-0.2x,3-4 Backspaces used while clearing a target.,Flat 20% penalty of current Base Hit. Sloppy typing.,"""SIGNAL NOISE""",Per event
+Comms Drift (5-6 Backspaces),-30,5-6 Backspaces used while clearing a target.,Flat -30 points. Separated from Static Jam for granularity.,"""COMMS DRIFT""",Per event
+Static Jam (7+ Backspaces),-50,7+ Backspaces used while clearing a target.,Flat -50 points. Max typing penalty. Capped to prevent death spirals.,"""STATIC JAM"" (Max penalty)","Per event, capped"
+,,,,,
+?? BASE / ZONE DESTRUCTION PENALTIES ??,,,,,
+Consecutive Base Destruction Rule,See below,Tracks consecutive bases destroyed WITHOUT an asteroid kill in between.,A counter tracks how many bases have been destroyed in a row. Destroying an asteroid resets the counter to 0. Penalty only applies on the 2nd+ consecutive base destroyed.,,Counter resets on any asteroid destroyed
+1st Base Destroyed (consecutive),0,First base destroyed in a consecutive streak.,No penalty. Player gets a free pass on the first base lost.,"""BASE LOST""",Counter = 1
+2nd Base Destroyed (consecutive),-100,Second base destroyed without destroying an asteroid in between.,-100 point penalty. Pressure mounts.,"""SECTOR BREACH""",Counter = 2
+3rd Base Destroyed (consecutive),-200,Third base destroyed without destroying an asteroid in between.,-200 point penalty. Escalating consequence.,"""CRITICAL FAILURE""",Counter = 3
+4th+ Base Destroyed (consecutive),-300,Fourth or more base destroyed without destroying an asteroid in between.,-300 point penalty per additional base. Capped at -300 to prevent total wipeout spirals.,"""SYSTEM COLLAPSE""","Counter = 4+, capped penalty"
+Asteroid Destroyed (Counter Reset),0,Player destroys any asteroid.,Resets the consecutive base destruction counter to 0. Next base destroyed will be treated as the 1st (no penalty).,,Counter ? 0
+Penalty Formula,n/a,"penalty = MAX(0, (consecutive_count - 1)) * -100","Capped at -300 per event. E.g.: count=1 ? 0, count=2 ? -100, count=3 ? -200, count=4+ ? -300.",,Code logic
+Legacy: Target Impact,REMOVED,Old per-base Rank Penalty from progression.csv.,REPLACED by the Consecutive Base Destruction system above. Old behavior penalized every single base loss.,,Deprecated
+,,,,,
+?? STREAK MULTIPLIER STEPS ??,,,,,
+Streak Count,Multiplier Applied to Base Hit,Description,,,
+0-2 kills,1.0x,No streak bonus. Standard base hit value.,,,
+3-4 kills,1.1x,Small streak warming up. +10% to Base Hit.,,,
+5-7 kills,1.2x,Getting in the zone. +20% to Base Hit.,,"""WARMING UP""",
+8-14 kills,1.35x,Solid streak. +35% to Base Hit.,,"""ON FIRE""",
+15-24 kills,1.5x,Deep streak. +50% to Base Hit.,,"""UNSTOPPABLE""",
+25+ kills,1.75x,Elite streak. +75% to Base Hit. Maximum multiplier.,,"""LEGEND MODE""",
+,,,,,
+?? MICRO-REWARDS & MILESTONES ??,,,,,
+Calibration Bonus,50,Every 500 points earned within a rank tier.,NEW — Flat +50 bonus every 500 points to keep momentum between rank-ups. Prevents the grind feeling.,"""SYSTEMS CALIBRATED""",Repeatable within tier
+Comeback Bonus,25,Destroy 3 asteroids in a row after losing a base.,NEW — Small reward for recovering after a base loss. Encourages players to keep fighting instead of giving up.,"""BACK ONLINE""",One-time per base loss event
+Speed Demon,0.15x,Target cleared within 1.5 seconds of appearing on screen.,NEW — 15% bonus of Base Hit. Rewards lightning-fast reactions regardless of screen position.,"""SPEED DEMON""","Per event, stacks with Perfect Shot"
+First Blood,25,First asteroid destroyed in a session.,NEW — Small session-start bonus. Gets the dopamine flowing immediately.,"""ONLINE""",Once per session
+Rank-Up Bonus,Rank Base x 2,Player reaches a new rank tier.,NEW — 2x the new rank's Base Hit value as a one-time bonus. Celebrates the achievement.,"""RANK UP!""",Once per rank transition
+Near-Miss Save,15,Target destroyed in the bottom 10% of the screen (just before impact).,NEW — Flat +15 bonus. Clutch save reward. Adds tension and excitement.,"""CLOSE CALL!""",Per event
+,,,,,
+?? RULES & CODE NOTES ??,,,,,
+Rule,Detail,,,,
+Multiplier stacking,"Perfect Shot + Early Intercept + Speed Demon can all stack on one kill. Apply additively to Base Hit (e.g., 0.25 + 0.5 + 0.15 = 0.9x bonus).",,,,
+Streak counter,Counts consecutive asteroid kills without a base being destroyed. Breaking streak (base destroyed) resets kill-streak counter to 0.,,,,
+Streak forgiveness,1 backspace per target is allowed without breaking a Perfect Shot streak. 2+ backspaces on any single target breaks the streak.,,,,
+Base destruction counter,"Separate counter from kill-streak. Tracks consecutive bases destroyed. Resets to 0 whenever ANY asteroid is destroyed. Penalty = MIN(-300, (count - 1) * -100).",,,,
+Penalty cap,No single event can deduct more than -300 points. Prevents death spirals at high difficulty.,,,,
+Score floor,"Player score cannot go below 0. If penalty would reduce score below 0, score is set to 0.",,,,
+Bonus stacking order,"Base Hit ? Apply multiplier bonuses (Perfect, Early, Speed) ? Apply streak multiplier ? Apply flat bonuses (milestone streaks) ? Apply penalties.",,,,

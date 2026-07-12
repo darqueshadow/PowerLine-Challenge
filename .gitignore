@@ -1,0 +1,17 @@
+# === PowerLine Challenge (PLC) monorepo ===
+
+# Dependencies (dev-only tooling under cartridges; never deployed)
+node_modules/
+
+# OS / editor / OneDrive cruft
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+*.swp
+*~
+*.tmp
+
+# Oversized uncompressed source audio — exceeds GitHub's 100MB per-file limit.
+# Kept on local disk only; convert to a compressed format before adding to the repo.
+Game/cartridges/The Aquanaut/files/assets/SFX/Background1.wav

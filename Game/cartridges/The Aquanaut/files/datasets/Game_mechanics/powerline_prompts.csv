@@ -1,0 +1,10 @@
+Command,Required Code,Description
+NTF,"NTF <Unit List> Incident, [Comment]",Notify. Assign a Unit to an incident
+ENR,ENR <Unit List> [Comment],Unit Enroute to Scene
+ARR,ARR <Unit List> [Comment],Place Unit in the At Scene status
+PTC,PTC <Unit List> [Comment],Place vehicle in Patient Contact status
+DPT,"DPT <Unit> [Location], Incident ID, [# persons seen], [persons tx], [protocol code], [tx priority code], [Comment]",Unit: Depart Scene (Transporting)
+ARD,ARD <Unit List> [Comment],Unit arrived at Destination
+TOC,TOC <Unit List> [Comment],Transfer of PT Care to Hospital
+AVA,"AVA <Unit List> [Disposition Code], [Exception Reason Code], [Comment]",Place Unit in the Available status
+CAV,"CAV <Unit> [OOS Reason], [Comment]",Put Unit Conditional Available

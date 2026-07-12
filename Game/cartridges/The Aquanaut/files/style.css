@@ -1,0 +1,3169 @@
+/* ============================================
+   THE AQUANAUT — BELOW THE BLACK — STYLE.CSS
+   Deep Ocean Horror Edition
+   ============================================ */
+
+:root {
+    --color-bg: #020810;
+    --color-primary: #00ccaa;
+    --color-secondary: #ff4444;
+    --color-accent: #44ddff;
+    --color-danger: #ff2233;
+    --color-success: #00ff88;
+    --color-text: #8abacc;
+    --color-dim: #3a6678;
+    --color-white: #c8dde8;
+    --font-arcade: 'Courier New', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-arcade); }
+
+/* === Game Container === */
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #020810 0%, #04101a 50%, #020810 100%);
+    position: relative;
+}
+
+/* === HUD — VDS + Command only; stats live in sidebars === */
+#hud {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 25px;
+    background: rgba(0, 0, 0, 0.7);
+    border-bottom: 1px solid var(--color-primary);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+}
+
+#hud-center {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+/* === Main Area: horizontal flex wrapping left panel | canvas | right panel === */
+#main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+    /* Deep ocean abyss gradient — almost pure black fading to midnight blue */
+    background: linear-gradient(to bottom,
+        rgb(2, 4, 8) 0%,
+        rgb(3, 8, 16) 10%,
+        rgb(4, 12, 24) 30%,
+        rgb(5, 16, 30) 50%,
+        rgb(4, 12, 24) 70%,
+        rgb(3, 8, 16) 90%,
+        rgb(2, 6, 12) 100%);
+}
+
+/* === Left Sidebar: Score / Rank / Streak === */
+#left-panel {
+    width: 88px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px 8px;
+    gap: 22px;
+    background: rgba(0, 0, 0, 0.55);
+    border-right: 1px solid rgba(0, 204, 170, 0.2);
+}
+
+.panel-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.panel-label {
+    color: var(--color-white) !important;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* Corroded brass nameplate — submarine interior */
+#left-panel .panel-label.nameplate {
+    background: linear-gradient(180deg, #5a6a6a 0%, #6a7a78 40%, #586868 60%, #4a5a58 100%);
+    color: #1a2220 !important;
+    font-size: 8px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-align: center;
+    padding: 3px 6px;
+    border: 1px solid #3a4a48;
+    border-top-color: #6a7a78;
+    border-left-color: #6a7a78;
+    border-radius: 2px;
+    /* Engraved press-in effect */
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.15);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.05);
+    width: 100%;
+    display: block;
+}
+
+/* Mini VDS screen — scaled-down version of main VDS */
+.mini-vds {
+    background: rgba(4, 10, 18, 0.95);
+    border: 2px solid #2a3a40;
+    border-radius: 3px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+    padding: 4px 5px;
+    text-align: center;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+}
+
+/* Value overrides inside the left panel */
+#left-panel #score-value  { font-size: 20px; font-weight: bold; }
+#left-panel #tier-value   { font-size: 10px; font-weight: bold; word-break: break-word; }
+#left-panel #streak-value { font-size: 20px; font-weight: bold; }
+
+/* === Right Sidebar: Shield Strength vertical bar === */
+#right-panel {
+    width: 68px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 12px 8px 14px;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.55);
+    border-left: 1px solid rgba(0, 204, 170, 0.2);
+}
+
+#score-label, #tier-label, #streak-label {
+    color: var(--color-white) !important;
+    font-weight: bold;
+}
+
+#score-value { color: var(--color-accent); text-shadow: 0 0 10px var(--color-accent); font-size: 20px; font-weight: bold; transition: color 0.3s, text-shadow 0.3s; }
+#score-value.score-negative { color: #ff3333; text-shadow: 0 0 12px #ff0000, 0 0 25px rgba(255, 0, 0, 0.4); }
+#score-value.score-penalty-flash { color: #ff3333; text-shadow: 0 0 12px #ff0000, 0 0 25px rgba(255, 0, 0, 0.4); }
+#tier-value { color: var(--color-primary); text-shadow: 0 0 10px var(--color-primary); font-weight: bold; }
+#streak-value { color: var(--color-primary); text-shadow: 0 0 10px var(--color-primary); font-size: 18px; font-weight: bold; }
+
+/* === VDS === */
+#vds-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+}
+#vds-container, #vds2-container {
+    height: 42px;
+    background: rgba(4, 10, 18, 0.95);
+    border: 2px solid #2a3a40;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 1);
+    transition: border-color 0.15s ease;
+}
+#vds-container { width: 160px; }
+#vds2-container { width: 280px; }
+
+#vds-container.flash-hit, #vds2-container.flash-hit { border-color: var(--color-success); box-shadow: inset 0 0 15px #000, 0 0 8px var(--color-success); }
+#vds-container.flash-miss, #vds2-container.flash-miss { border-color: var(--color-danger); box-shadow: inset 0 0 15px #000, 0 0 8px var(--color-danger); }
+#vds-container.flash-impact, #vds2-container.flash-impact { border-color: var(--color-secondary); box-shadow: inset 0 0 15px #000, 0 0 8px var(--color-secondary); }
+#vds-container.flash-bonus, #vds2-container.flash-bonus { border-color: var(--color-accent); box-shadow: inset 0 0 15px #000, 0 0 8px var(--color-accent); }
+
+#status-message, #status-message-2 { font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; white-space: nowrap; }
+#status-message.hit, #status-message-2.hit { color: var(--color-success); }
+#status-message.miss, #status-message.misfire, #status-message-2.miss, #status-message-2.misfire { color: var(--color-danger); }
+#status-message.impact, #status-message-2.impact { color: var(--color-secondary); }
+#status-message.bonus, #status-message.commendation, #status-message-2.bonus, #status-message-2.commendation { color: var(--color-accent); }
+/* VDS typewriter cursor — teal sonar pulse */
+#vds-cursor {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #00ccaa;
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: vds-blink 0.5s steps(1) infinite;
+}
+#vds-cursor.hidden, #vds2-cursor.hidden { display: none; }
+#vds2-cursor {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #00ccaa;
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: vds-blink 0.5s steps(1) infinite;
+}
+@keyframes vds-blink { 50% { opacity: 0; } }
+
+/* === Command Input (Now docked in HUD) === */
+#command-box {
+    display: flex;
+    align-items: center;
+    position: relative;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ddaa;
+    border-radius: 4px;
+    padding: 0 15px;
+    height: 42px; /* Matches VDS perfectly */
+    z-index: 50;
+}
+
+#command-prompt { color: #00ddaa; font-size: 20px; margin-right: 10px; text-shadow: 0 0 5px #00ddaa; }
+#command-input {
+    background: transparent;
+    border: none;
+    color: #00ddaa;
+    font-family: var(--font-arcade);
+    font-size: 18px;
+    width: 350px;
+    outline: none;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px #00ddaa;
+    caret-color: transparent; /* Hide native caret — we use a custom block cursor */
+}
+#command-input::placeholder { color: rgba(0, 221, 170, 0.35); }
+#command-input.error { animation: shake 0.3s ease; color: var(--color-danger); }
+#command-input.success { color: var(--color-success); }
+
+/* Commodore PET solid teal block cursor */
+#block-cursor {
+    display: inline-block;
+    width: 11px;
+    height: 18px;
+    background: #00ddaa;
+    vertical-align: middle;
+    animation: blockBlink 0.6s step-end infinite;
+    box-shadow: 0 0 6px #00ddaa;
+    pointer-events: none;
+    position: absolute;
+}
+@keyframes blockBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* === Play Area === */
+#play-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 16:9 aspect-locked canvas wrapper — sized by JS */
+#canvas-wrapper {
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    /* Deep ocean — no sky image, pure darkness */
+    background: linear-gradient(to bottom,
+        #020810 0%, #030c14 30%, #04101a 60%, #030c14 100%);
+}
+
+#game-canvas { width: 100%; height: 100%; display: block; }
+
+/* ============================================
+   HOLODECK GRID — Permanent Tactical Floor
+   ============================================ */
+#holodeck-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    /* Default: invisible until activated */
+    background-image:
+        linear-gradient(rgba(180, 170, 120, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(180, 170, 120, 0.12) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0;
+}
+
+/* Flash state: Bright striking yellow on activation (holds for 3 seconds) */
+#holodeck-grid.grid-flash {
+    opacity: 1 !important;
+    background-image:
+        linear-gradient(rgba(255, 215, 0, 0.75) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255, 215, 0, 0.75) 2px, transparent 2px);
+    background-size: 60px 60px;
+    box-shadow:
+        inset 0 0 150px rgba(255, 215, 0, 0.25),
+        inset 0 0 60px rgba(255, 215, 0, 0.15);
+    filter: brightness(1.2);
+}
+
+/* Signal flash: Blazing yellow — password box opened */
+#holodeck-grid.grid-signal-yellow {
+    opacity: 1 !important;
+    background-color: rgba(255, 220, 0, 0.3) !important;
+    background-image:
+        linear-gradient(#ffe600 8px, transparent 8px),
+        linear-gradient(90deg, #ffe600 8px, transparent 8px) !important;
+    background-size: 80px 80px !important;
+    box-shadow: inset 0 0 200px rgba(255, 230, 0, 0.8) !important;
+    filter: brightness(2) contrast(1.5);
+    z-index: 999;
+}
+
+/* Signal flash: Red CRT static failure */
+#holodeck-grid.grid-signal-red {
+    opacity: 1 !important;
+    background-color: rgba(255, 0, 0, 0.3) !important;
+    background-image:
+        repeating-radial-gradient(circle, rgba(0,0,0,0.6) 2px, transparent 3px),
+        linear-gradient(#ff0000 6px, transparent 6px),
+        linear-gradient(90deg, #ff0000 6px, transparent 6px) !important;
+    background-size: 4px 4px, 60px 60px, 60px 60px !important;
+    box-shadow: inset 0 0 200px rgba(255, 0, 0, 0.9) !important;
+    filter: contrast(2.5) brightness(1.2) blur(1px);
+    z-index: 999;
+    animation: holodeck-static 0.1s infinite;
+}
+
+/* The 80s Horror Glitch Animation */
+@keyframes holodeck-static {
+    0%   { transform: translate(2px, 1px) scale(1.01); background-position: 0px 0px, 0 0, 0 0; }
+    25%  { transform: translate(-2px, -3px) scale(1); background-position: -10px 15px, 2px -2px, -2px 2px; }
+    50%  { transform: translate(-4px, 0px) scale(1.02); background-position: 15px -10px, -2px 2px, 2px -2px; }
+    75%  { transform: translate(2px, 3px) scale(1.01); background-position: -15px 10px, 2px 2px, -2px -2px; }
+    100% { transform: translate(-2px, -1px) scale(1); background-position: 10px -15px, 0 0, 0 0; }
+}
+
+/* Permanent holodeck state: Ghostly faint grey grid */
+#holodeck-grid.grid-watermark {
+    opacity: 0.08 !important; /* Drastically reduced to prevent wash-out */
+    background-color: transparent !important;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px) !important;
+    background-size: 60px 60px !important;
+    filter: none;
+    box-shadow: none !important;
+    pointer-events: none !important; /* CRITICAL: Allows clicks to pass through to the game */
+    z-index: 999;
+}
+
+/* Menu overlay: holodeck grid background */
+#start-overlay.holodeck-menu-active {
+    background-color: #0a0a00 !important;
+    background-image:
+        linear-gradient(rgba(255, 190, 0, 0.7) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255, 190, 0, 0.7) 2px, transparent 2px) !important;
+    background-size: 60px 60px !important;
+    box-shadow: inset 0 0 100px rgba(255, 190, 0, 0.15) !important;
+}
+
+#simulation-status {
+    position: absolute;
+    top: 125px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--color-accent);
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px var(--color-accent);
+    text-transform: uppercase;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+#simulation-status.visible { opacity: 1; }
+
+#size-prompt {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding: 10px 0;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ff3333;
+    background: #000000;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px rgba(255, 50, 50, 0.8);
+    z-index: 9999;
+    pointer-events: none;
+    font-family: var(--font-arcade);
+    animation: size-prompt-flash 0.8s ease-in-out infinite;
+}
+@keyframes size-prompt-flash {
+    0%, 100% { color: #ff3333; background: #000000; text-shadow: 0 0 10px rgba(255, 50, 50, 0.8); }
+    50%      { color: #000000; background: #ff3333; text-shadow: none; }
+}
+#size-prompt.hidden { display: none; }
+
+/* === God Mode Menu — LCARS Star Trek Computer Panel === */
+/* LCARS color palette — kept as-is for dev mode */
+:root {
+    --lcars-gold: #ffbe00;
+    --lcars-tangerine: #ff9900;
+    --lcars-peach: #ffcc99;
+    --lcars-lavender: #cc99cc;
+    --lcars-violet: #9977aa;
+    --lcars-blue: #99ccff;
+    --lcars-sky: #6688cc;
+    --lcars-bg: #000000;
+    --lcars-text: #ff9900;
+}
+
+#god-mode-menu {
+    margin-top: 20px;
+    background: var(--lcars-bg);
+    border: 3px solid var(--lcars-gold);
+    border-radius: 24px 4px 4px 24px;
+    padding: 0;
+    min-width: 640px;
+    pointer-events: auto;
+    animation: gm-fade-in 0.4s ease;
+    overflow: hidden;
+    position: relative;
+}
+#god-mode-menu.hidden { display: none; }
+@keyframes gm-fade-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* LCARS header bar — rounded left end */
+.gm-header {
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: var(--lcars-bg);
+    text-align: right;
+    padding: 8px 16px 8px 30px;
+    background: var(--lcars-gold);
+    border-radius: 20px 0 0 0;
+    margin: 0;
+    border-bottom: 3px solid var(--lcars-bg);
+}
+
+/* LCARS side rail */
+#god-mode-menu::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+    background: linear-gradient(180deg,
+        var(--lcars-gold) 0%, var(--lcars-gold) 30%,
+        var(--lcars-bg) 30%, var(--lcars-bg) 32%,
+        var(--lcars-tangerine) 32%, var(--lcars-tangerine) 55%,
+        var(--lcars-bg) 55%, var(--lcars-bg) 57%,
+        var(--lcars-lavender) 57%, var(--lcars-lavender) 75%,
+        var(--lcars-bg) 75%, var(--lcars-bg) 77%,
+        var(--lcars-sky) 77%, var(--lcars-sky) 100%
+    );
+    border-radius: 0 0 0 20px;
+    z-index: 1;
+}
+
+/* Two-column layout */
+.gm-columns {
+    display: flex;
+    gap: 0;
+}
+.gm-col {
+    flex: 1;
+    min-width: 0;
+}
+#gm-col-challenges {
+    border-left: 3px solid var(--lcars-bg);
+}
+#gm-col-data {
+    border-left: 3px solid var(--lcars-bg);
+    background: rgba(255, 190, 0, 0.03);
+}
+
+/* Content area inside the rail */
+.gm-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 14px 7px 24px;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 190, 0, 0.1);
+}
+.gm-row:last-of-type {
+    border-bottom: none;
+}
+.gm-text {
+    flex: 1;
+    min-width: 0;
+}
+.gm-label {
+    font-size: 12px;
+    letter-spacing: 1.2px;
+    color: var(--lcars-peach);
+}
+.gm-hint {
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    color: var(--lcars-sky);
+    margin-top: 2px;
+}
+.gm-toggle {
+    font-family: var(--font-arcade);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    padding: 4px 14px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 50px;
+    text-align: center;
+}
+.gm-toggle.gm-on {
+    color: var(--lcars-bg);
+    background: var(--lcars-peach);
+    text-shadow: none;
+    box-shadow: 0 0 8px rgba(255, 204, 153, 0.3);
+}
+.gm-toggle.gm-off {
+    color: var(--lcars-bg);
+    background: var(--lcars-violet);
+    text-shadow: none;
+    box-shadow: 0 0 8px rgba(153, 119, 170, 0.3);
+}
+.gm-toggle:hover {
+    filter: brightness(1.3);
+    transform: scale(1.05);
+}
+
+/* === God Mode Dropdown Select — LCARS style === */
+.gm-select {
+    font-family: var(--font-arcade);
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.8px;
+    padding: 4px 10px;
+    border: 2px solid var(--lcars-gold);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--lcars-bg);
+    color: var(--lcars-gold);
+    min-width: 120px;
+    text-align: center;
+    transition: all 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffaa00'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 24px;
+}
+.gm-select:hover {
+    filter: brightness(1.3);
+    border-color: var(--lcars-peach);
+    box-shadow: 0 0 8px rgba(255, 190, 0, 0.3);
+}
+.gm-select:focus {
+    outline: none;
+    border-color: var(--lcars-peach);
+    box-shadow: 0 0 12px rgba(255, 190, 0, 0.4);
+}
+.gm-select option {
+    background: #1a1a0a;
+    color: var(--lcars-gold);
+    font-family: var(--font-arcade);
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+/* === God Mode Expandable Sections — LCARS style === */
+.gm-section {
+    margin: 0;
+    border-top: 3px solid var(--lcars-bg);
+    padding: 0;
+    position: relative;
+}
+.gm-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 7px 14px 7px 24px;
+    user-select: none;
+    background: rgba(255, 190, 0, 0.06);
+    transition: background 0.2s ease;
+}
+.gm-section-header:hover {
+    background: rgba(255, 190, 0, 0.12);
+}
+.gm-section-arrow {
+    font-size: 10px;
+    color: var(--lcars-tangerine);
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.gm-section-title {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: var(--lcars-tangerine);
+    flex: 1;
+}
+.gm-section-count {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--lcars-bg);
+    background: var(--lcars-sky);
+    padding: 2px 10px;
+    border-radius: 10px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+}
+.gm-section-body {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 4px 14px 8px 24px;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.4);
+}
+.gm-section-body.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding: 0 14px 0 24px;
+}
+.gm-check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 190, 0, 0.05);
+}
+.gm-check-row:last-child { border-bottom: none; }
+.gm-checkbox {
+    accent-color: var(--lcars-tangerine);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.gm-check-label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--lcars-blue);
+}
+
+/* LCARS bottom bar */
+#god-mode-menu::after {
+    content: '';
+    display: block;
+    height: 10px;
+    background: linear-gradient(90deg,
+        var(--lcars-lavender) 0%, var(--lcars-lavender) 20%,
+        var(--lcars-bg) 20%, var(--lcars-bg) 22%,
+        var(--lcars-sky) 22%, var(--lcars-sky) 50%,
+        var(--lcars-bg) 50%, var(--lcars-bg) 52%,
+        var(--lcars-tangerine) 52%, var(--lcars-tangerine) 80%,
+        var(--lcars-bg) 80%, var(--lcars-bg) 82%,
+        var(--lcars-gold) 82%, var(--lcars-gold) 100%
+    );
+    border-radius: 0 0 0 20px;
+}
+
+/* ALWAYS ON info badge */
+.gm-badge-always {
+    font-family: var(--font-arcade);
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--lcars-sky);
+    color: var(--lcars-bg);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* UPDATE DATASETS button — LCARS styled */
+.gm-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-top: 2px solid var(--lcars-bg);
+}
+
+/* Holodeck footer bar — egress left, admin right */
+.gm-footer-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px 10px 24px;
+    border-top: 3px solid var(--lcars-bg);
+    background: rgba(0, 0, 0, 0.3);
+}
+.gm-footer-left {
+    display: flex;
+    align-items: center;
+}
+.gm-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+/* RETURN TO DIVE inside god-mode footer — red egress styling */
+.gm-footer-bar #exit-holodeck-btn {
+    font-family: var(--font-arcade);
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    padding: 6px 18px;
+    border: 2px solid #cc3333;
+    border-radius: 4px 16px 16px 4px;
+    background: rgba(204, 51, 51, 0.15);
+    color: #cc3333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.gm-footer-bar #exit-holodeck-btn:hover {
+    background: #cc3333;
+    color: #000;
+    box-shadow: 0 0 20px rgba(204, 51, 51, 0.5);
+}
+
+/* Section divider between filter groups in column 2 */
+.gm-section-divider {
+    height: 3px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--lcars-tangerine) 15%,
+        var(--lcars-tangerine) 85%,
+        transparent 100%
+    );
+    margin: 4px 14px 4px 24px;
+    opacity: 0.6;
+}
+
+.gm-dataset-btn {
+    font-family: var(--font-arcade);
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    padding: 6px 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--lcars-tangerine);
+    color: var(--lcars-bg);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.gm-dataset-btn:hover { background: var(--lcars-gold); transform: scale(1.03); }
+.gm-dataset-btn:active { transform: scale(0.97); }
+.gm-dataset-btn:disabled { opacity: 0.5; cursor: wait; }
+
+.dataset-status {
+    font-family: var(--font-arcade);
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    transition: color 0.3s;
+}
+.dataset-status.loading { color: var(--lcars-gold); }
+.dataset-status.success { color: var(--color-success, #00ff88); }
+.dataset-status.error { color: #ff4444; }
+
+/* Scrollbar styling — LCARS themed */
+.gm-section-body::-webkit-scrollbar { width: 6px; }
+.gm-section-body::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); }
+.gm-section-body::-webkit-scrollbar-thumb { background: var(--lcars-tangerine); border-radius: 3px; }
+.gm-section-body::-webkit-scrollbar-thumb:hover { background: var(--lcars-gold); }
+
+#beta-indicator {
+    position: absolute;
+    top: 120px;
+    right: 20px;
+    color: var(--color-accent);
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--color-accent);
+    letter-spacing: 2px;
+    padding: 5px 10px;
+    border: 1px solid var(--color-accent);
+    background: rgba(68, 221, 255, 0.08);
+    z-index: 50;
+    animation: pulse 1s infinite;
+}
+
+/* === Overlays === */
+#start-overlay, #game-over-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 8, 16, 0.96);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    overflow-y: auto;
+}
+/* Powered-down sign-off — shown when the browser blocks window.close() on quit. */
+#powered-down-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    cursor: pointer;
+    font-family: var(--font-arcade);
+}
+#powered-down-overlay .pd-text {
+    color: #00FF41;
+    font-size: 28px;
+    letter-spacing: 4px;
+    text-shadow: 0 0 12px rgba(0, 255, 65, 0.6);
+}
+#powered-down-overlay .pd-sub { color: #2a8a5a; font-size: 14px; letter-spacing: 2px; }
+#powered-down-overlay .pd-hint { color: #145a3a; font-size: 12px; letter-spacing: 1px; }
+
+/* Main menu background (dive control console) */
+#start-overlay.main-menu-bg {
+    background:
+        url('assets/Menus/mainscreen.png') center center / contain no-repeat,
+        radial-gradient(ellipse at 0% 50%, rgba(0, 60, 80, 0.3) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 50%, rgba(0, 60, 80, 0.3) 0%, transparent 50%),
+        linear-gradient(180deg, #020810 0%, #04101a 100%);
+}
+/* Scoring submenu — greyscale version using a fullscreen pseudo-element behind content */
+#start-overlay.scoring-menu-bg {
+    background: linear-gradient(180deg, #020810 0%, #04101a 100%);
+}
+/* Greyscale background image behind scoring content */
+#scoring-bg-layer {
+    position: absolute;
+    inset: 0;
+    background:
+        url('assets/Menus/mainscreen.png') center center / contain no-repeat,
+        radial-gradient(ellipse at 0% 50%, rgba(0, 50, 60, 0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 50%, rgba(0, 50, 60, 0.2) 0%, transparent 50%),
+        linear-gradient(180deg, #020810 0%, #04101a 100%);
+    filter: grayscale(100%) brightness(0.4);
+    z-index: 0;
+    pointer-events: none;
+}
+#start-overlay.scoring-menu-bg #scoring-page {
+    position: relative;
+    z-index: 1;
+}
+/* Title screen — deep ocean teal/blue glow instead of orange fire */
+#start-overlay.title-screen-bg {
+    background:
+        url('assets/Menus/titlescreen.png') center center / cover no-repeat,
+        linear-gradient(180deg, #020810 0%, #04101a 100%);
+}
+/* Side panel bioluminescent glow decorations */
+#start-overlay.title-screen-bg::before,
+#start-overlay.title-screen-bg::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 12%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+#start-overlay.title-screen-bg::before {
+    left: 0;
+    background:
+        radial-gradient(ellipse at 80% 15%, rgba(0, 150, 180, 0.35) 0%, transparent 40%),
+        radial-gradient(ellipse at 70% 18%, rgba(0, 80, 120, 0.2) 0%, transparent 30%),
+        linear-gradient(170deg, transparent 10%, rgba(0, 100, 140, 0.06) 20%, transparent 35%),
+        radial-gradient(ellipse at 60% 45%, rgba(0, 130, 160, 0.25) 0%, transparent 35%),
+        radial-gradient(ellipse at 50% 48%, rgba(0, 60, 100, 0.15) 0%, transparent 25%),
+        linear-gradient(175deg, transparent 38%, rgba(0, 100, 140, 0.04) 45%, transparent 55%),
+        radial-gradient(ellipse at 75% 75%, rgba(0, 140, 170, 0.2) 0%, transparent 35%),
+        radial-gradient(ellipse at 65% 78%, rgba(0, 60, 100, 0.12) 0%, transparent 25%),
+        linear-gradient(168deg, transparent 68%, rgba(0, 100, 140, 0.05) 75%, transparent 85%);
+}
+#start-overlay.title-screen-bg::after {
+    right: 0;
+    background:
+        radial-gradient(ellipse at 30% 25%, rgba(0, 150, 180, 0.3) 0%, transparent 38%),
+        radial-gradient(ellipse at 40% 28%, rgba(0, 80, 120, 0.18) 0%, transparent 28%),
+        linear-gradient(190deg, transparent 18%, rgba(0, 100, 140, 0.05) 25%, transparent 38%),
+        radial-gradient(ellipse at 20% 55%, rgba(0, 100, 140, 0.2) 0%, transparent 35%),
+        radial-gradient(ellipse at 35% 58%, rgba(0, 60, 100, 0.12) 0%, transparent 25%),
+        linear-gradient(185deg, transparent 48%, rgba(0, 100, 140, 0.04) 55%, transparent 65%),
+        radial-gradient(ellipse at 40% 85%, rgba(0, 140, 170, 0.25) 0%, transparent 35%),
+        radial-gradient(ellipse at 50% 88%, rgba(0, 60, 100, 0.15) 0%, transparent 28%),
+        linear-gradient(192deg, transparent 78%, rgba(0, 100, 140, 0.06) 85%, transparent 92%);
+}
+/* ── Title screen sonar sweep — rotating conic gradient ── */
+#title-sonar-sweep {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+}
+#start-overlay:not(.title-screen-bg) #title-sonar-sweep { display: none; }
+
+.title-sweep-arm {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150%;
+    height: 150%;
+    transform: translate(-50%, -50%);
+    /* Stronger alphas so the green reads as GREEN over the blue ocean art
+       instead of washing out to light blue */
+    background: conic-gradient(
+        from 0deg,
+        rgba(0, 255, 65, 0.55) 0deg,
+        transparent 1deg,
+        transparent 280deg,
+        rgba(0, 255, 65, 0.06) 310deg,
+        rgba(0, 255, 65, 0.16) 340deg,
+        rgba(0, 255, 65, 0.34) 355deg,
+        rgba(0, 255, 65, 0.55) 360deg
+    );
+    animation: title-sonar-rotate 4s linear infinite;
+    border-radius: 50%;
+    transition: opacity 0.3s ease-out;
+}
+/* Ping flare — intensified leading edge at 12 o'clock */
+.title-sweep-arm.ping-active {
+    background: conic-gradient(
+        from 0deg,
+        rgba(0, 255, 65, 0.85) 0deg,
+        rgba(0, 255, 65, 0.18) 2deg,
+        transparent 4deg,
+        transparent 270deg,
+        rgba(0, 255, 65, 0.09) 310deg,
+        rgba(0, 255, 65, 0.26) 340deg,
+        rgba(0, 255, 65, 0.55) 355deg,
+        rgba(0, 255, 65, 0.85) 360deg
+    );
+    filter: brightness(1.4);
+}
+@keyframes title-sonar-rotate {
+    0%   { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ── In-game full-screen sonar sweep — JS-driven angle ──
+   No blend mode: 'screen' shifted the green toward cyan over blue
+   shallow water. All sweeps stay sonar green (#00FF41). */
+#game-sonar-sweep {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.45s ease-out;
+}
+#game-sonar-sweep.active { opacity: 1; }
+
+.game-sweep-arm {
+    position: absolute;
+    /* top/left set inline from JS based on aquanaut origin */
+    width: 240%;
+    height: 240%;
+    transform: translate(-50%, -50%) rotate(var(--sweep-angle, 0deg));
+    transform-origin: 50% 50%;
+    background: conic-gradient(
+        from 0deg,
+        rgba(0, 255, 65, 0.50) 0deg,
+        rgba(0, 255, 65, 0.22) 3deg,
+        rgba(0, 255, 65, 0.10) 10deg,
+        rgba(0, 255, 65, 0.04) 28deg,
+        rgba(0, 255, 65, 0.01) 55deg,
+        transparent 70deg,
+        transparent 360deg
+    );
+    border-radius: 50%;
+    will-change: transform;
+    filter: blur(0.4px);
+}
+
+/* Ping-edge highlight at the leading line of the arm */
+.game-sweep-arm::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    height: 1.5px;
+    background: linear-gradient(90deg, rgba(0, 255, 65, 0), rgba(0, 255, 65, 0.85));
+    transform-origin: 0% 50%;
+    transform: translate(0, -50%) rotate(-90deg);
+    box-shadow: 0 0 4px rgba(0, 255, 65, 0.6);
+    pointer-events: none;
+}
+
+#pause-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #020810 0%, #04101a 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+/* Greyscale freeze-frame on its own layer behind the paws + menu. */
+#pause-bg-layer {
+    position: absolute;
+    inset: 0;
+    background:
+        url('assets/Menus/mainscreen.png') center center / contain no-repeat,
+        radial-gradient(ellipse at 0% 50%, rgba(0, 50, 60, 0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 50%, rgba(0, 50, 60, 0.2) 0%, transparent 50%),
+        linear-gradient(180deg, #020810 0%, #04101a 100%);
+    filter: grayscale(100%) brightness(0.4);
+    z-index: 0;
+    pointer-events: none;
+}
+#pause-overlay #pause-content {
+    position: relative;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+    padding: 30px 40px;
+}
+
+/* Cat paw prints over the paused freeze-frame — a random walk trail laid down
+   each pause, with a wet-teal glow so they read as critter tracks across the
+   glass. Above the greyscale bg-layer, below the menu. */
+#pause-paws {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+.otter-paw {
+    position: absolute;
+    width: 64px;
+    height: 70px;
+    opacity: 0.42;
+    background: center / contain no-repeat
+        url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20110'%3E%3Cg%20fill='%23bfeee8'%3E%3Cellipse%20cx='50'%20cy='78'%20rx='26'%20ry='23'/%3E%3Cellipse%20cx='17'%20cy='52'%20rx='8.5'%20ry='12'/%3E%3Cellipse%20cx='34'%20cy='36'%20rx='9'%20ry='13'/%3E%3Cellipse%20cx='52'%20cy='30'%20rx='9'%20ry='13.5'/%3E%3Cellipse%20cx='70'%20cy='36'%20rx='9'%20ry='13'/%3E%3Cellipse%20cx='86'%20cy='52'%20rx='8.5'%20ry='12'/%3E%3C/g%3E%3C/svg%3E");
+    filter: drop-shadow(0 0 6px rgba(120, 220, 210, 0.35));
+}
+
+#start-content, #scoring-page, #game-over-content, #pause-content { text-align: center; padding: 30px; max-width: 800px; }
+#start-content { background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; width: 100%; max-width: 100%; padding: 0; text-align: center; box-sizing: border-box; position: relative; }
+#scoring-page, #game-over-content { max-width: 600px; }
+.menu-page.hidden { display: none; }
+.menu-buttons { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 16px; }
+.menu-buttons.hidden { display: none; }
+.menu-buttons-row { display: flex; gap: 10px; justify-content: center; }
+/* Title: THE AQUANAUT — sonar green phosphor glow */
+#start-content h1 {
+    font-size: 56px;
+    color: #00FF41;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.45), 0 0 25px rgba(0, 255, 65, 0.25), 0 0 50px rgba(0, 255, 65, 0.1);
+    margin-bottom: 8px;
+    letter-spacing: 6px;
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    -webkit-text-stroke: 2px #000000;
+    paint-order: stroke fill;
+}
+#scoring-page h1, #game-over-content h1, #pause-content h1 { font-size: 32px; color: var(--color-primary); text-shadow: 0 0 20px var(--color-primary); margin-bottom: 8px; letter-spacing: 4px; }
+/* Game Over: DIVER LOST — blood red */
+#game-over-content h1 { color: #ff2233; text-shadow: 0 0 20px #ff2233, 0 0 40px rgba(255, 0, 0, 0.3); }
+/* Game Over background — flooded control room */
+#game-over-overlay.game-over-bg {
+    background: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+}
+/* Full-colour flooded-room backdrop — on its own layer behind the menu, so the
+   menu (its sibling at z-index 1) sits above it. */
+#game-over-bg-layer {
+    position: absolute;
+    inset: 0;
+    background:
+        url('assets/Menus/endscreen.png') center center / contain no-repeat,
+        linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+    z-index: 0;
+    pointer-events: none;
+}
+#game-over-overlay:not(.game-over-bg) #game-over-bg-layer { display: none; }
+#game-over-overlay.game-over-bg::before,
+#game-over-overlay.game-over-bg::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 12%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    /* Desaturate the red edge-glows so the backdrop reads uniformly grey. */
+    filter: grayscale(100%) brightness(0.6);
+}
+#game-over-overlay.game-over-bg::before {
+    left: 0;
+    background:
+        radial-gradient(ellipse at 80% 15%, rgba(180, 0, 0, 0.35) 0%, transparent 40%),
+        radial-gradient(ellipse at 70% 18%, rgba(120, 0, 0, 0.2) 0%, transparent 30%),
+        linear-gradient(170deg, transparent 10%, rgba(150, 0, 0, 0.06) 20%, transparent 35%),
+        radial-gradient(ellipse at 60% 45%, rgba(160, 0, 0, 0.25) 0%, transparent 35%),
+        radial-gradient(ellipse at 50% 48%, rgba(100, 0, 0, 0.15) 0%, transparent 25%),
+        linear-gradient(175deg, transparent 38%, rgba(150, 0, 0, 0.04) 45%, transparent 55%),
+        radial-gradient(ellipse at 75% 75%, rgba(140, 0, 0, 0.2) 0%, transparent 35%),
+        radial-gradient(ellipse at 65% 78%, rgba(80, 0, 0, 0.12) 0%, transparent 25%),
+        linear-gradient(168deg, transparent 68%, rgba(150, 0, 0, 0.05) 75%, transparent 85%);
+}
+#game-over-overlay.game-over-bg::after {
+    right: 0;
+    background:
+        radial-gradient(ellipse at 30% 25%, rgba(180, 0, 0, 0.3) 0%, transparent 38%),
+        radial-gradient(ellipse at 40% 28%, rgba(120, 0, 0, 0.18) 0%, transparent 28%),
+        linear-gradient(190deg, transparent 18%, rgba(150, 0, 0, 0.05) 25%, transparent 38%),
+        radial-gradient(ellipse at 20% 55%, rgba(140, 0, 0, 0.2) 0%, transparent 35%),
+        radial-gradient(ellipse at 35% 58%, rgba(80, 0, 0, 0.12) 0%, transparent 25%),
+        linear-gradient(185deg, transparent 48%, rgba(150, 0, 0, 0.04) 55%, transparent 65%),
+        radial-gradient(ellipse at 40% 85%, rgba(160, 0, 0, 0.25) 0%, transparent 35%),
+        radial-gradient(ellipse at 50% 88%, rgba(100, 0, 0, 0.15) 0%, transparent 28%),
+        linear-gradient(192deg, transparent 78%, rgba(150, 0, 0, 0.06) 85%, transparent 92%);
+}
+#game-over-overlay.game-over-bg #game-over-content {
+    position: relative;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+    padding: 30px 40px;
+}
+
+/* === CAT Login Terminal (Commodore PET style) === */
+/* Keep green but add subtle blue-green tint for underwater feel */
+#cat-login-overlay {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 150;
+}
+#cat-monitor {
+    width: min(700px, 90vw);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+#cat-bezel {
+    background: #0a1a18;
+    border: 4px solid #22cc88;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow:
+        0 0 30px rgba(34, 204, 136, 0.12),
+        inset 0 0 60px rgba(0, 0, 0, 0.8);
+}
+#cat-header {
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    color: #22cc88;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+    text-shadow: 0 0 8px rgba(34, 204, 136, 0.5);
+}
+#cat-screen {
+    background: #000;
+    border: 2px solid #1a5544;
+    padding: 20px;
+    min-height: 180px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    color: #22cc88;
+    line-height: 1.6;
+    text-shadow: 0 0 4px rgba(34, 204, 136, 0.35);
+    position: relative;
+    overflow-y: auto;
+    max-height: 40vh;
+}
+#cat-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.15) 2px,
+        rgba(0, 0, 0, 0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+#cat-output {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+#cat-input-line {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+}
+#cat-prompt {
+    color: #22cc88;
+    white-space: pre;
+}
+#cat-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #22cc88;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    text-shadow: 0 0 4px rgba(34, 204, 136, 0.35);
+    flex: 1;
+    caret-color: transparent;
+    text-transform: uppercase;
+}
+#cat-cursor {
+    color: #22cc88;
+    animation: cat-blink 0.6s steps(1) infinite;
+    text-shadow: 0 0 6px rgba(34, 204, 136, 0.7);
+}
+@keyframes cat-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+/* Leaderboard section */
+#cat-leaderboard {
+    background: #000;
+    border: 2px solid #1a5544;
+    border-top: none;
+    padding: 15px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #22cc88;
+    text-shadow: 0 0 4px rgba(34, 204, 136, 0.35);
+    max-height: 35vh;
+    overflow-y: auto;
+}
+#cat-lb-title {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 15px;
+    letter-spacing: 2px;
+}
+.cat-lb-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid #0a2a20;
+}
+.cat-lb-row.header {
+    border-bottom: 1px solid #22cc88;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+.cat-lb-rank { width: 30px; text-align: right; margin-right: 10px; }
+.cat-lb-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.cat-lb-score { width: 80px; text-align: right; }
+.cat-lb-tier { width: 120px; text-align: right; }
+.cat-lb-empty {
+    text-align: center;
+    color: #1a5544;
+    padding: 10px 0;
+    font-style: italic;
+}
+/* Submit score button on game over */
+#submit-score-btn {
+    margin-bottom: 8px;
+}
+#score-submit-status {
+    display: block;
+    font-size: 12px;
+    min-height: 18px;
+    margin-bottom: 8px;
+}
+
+.subtitle { font-size: 12px; color: var(--color-dim); letter-spacing: 3px; margin-bottom: 20px; }
+
+/* Title screen CTA — the BENEATH THE BLACK title IS this button now. It has no
+   vertical tracer or hover glow: its visibility is driven by the rotating sonar
+   sweep (see initTitleSonarPing) — it lights as the arm crosses its bearing,
+   holds, then fades behind the sweep. Still keyboard-selectable so Enter descends. */
+#title-press-prompt {
+    font-family: var(--font-arcade);
+    color: #00FF41;
+    background: #000;
+    border: 2px solid #00FF41;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    margin-top: 14px;
+    cursor: pointer;
+    position: relative;
+    z-index: 10;
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+    box-shadow: 0 0 14px rgba(0, 255, 65, 0.3);
+    transition: none;
+    /* Hidden until the sonar sweep's bright edge first crosses it (initTitleSonarPing
+       latches the first contact). Prevents a partial flash before the arm reaches it. */
+    opacity: 0;
+}
+/* Selection adds no visual treatment — the sweep alone reveals the button.
+   (text-shadow/animation left free so the contact flicker below can drive them.) */
+#title-press-prompt:hover, #title-press-prompt.menu-kb-selected {
+    background: #000 !important;
+    color: #00FF41 !important;
+    border-color: #00FF41 !important;
+    box-shadow: 0 0 14px rgba(0, 255, 65, 0.3) !important;
+    outline: none !important;
+    animation: none !important;
+}
+/* Quick over-bright flicker the instant the sweep makes contact, then the JS
+   opacity fade takes over. !important + later-in-source beats the selected
+   rule's `animation: none`. */
+#title-press-prompt.contact-flash {
+    animation: title-contact-flash 180ms linear 1 !important;
+}
+@keyframes title-contact-flash {
+    0%   { filter: brightness(2.6); text-shadow: 0 0 16px #c8ffd6, 0 0 30px rgba(0, 255, 65, 0.95), 0 0 50px rgba(0, 255, 65, 0.55); }
+    25%  { filter: brightness(1.25); }
+    45%  { filter: brightness(2.1); }
+    70%  { filter: brightness(1.3); }
+    100% { filter: brightness(1); text-shadow: 0 0 8px rgba(0, 255, 65, 0.6); }
+}
+#title-press-prompt.hidden { display: none; }
+
+#scoring-info, #tier-info {
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 204, 170, 0.2);
+    border-radius: 4px;
+    text-align: left;
+}
+
+#scoring-info h3, #tier-info h3 { color: var(--color-primary); font-size: 12px; letter-spacing: 2px; margin-bottom: 10px; text-align: center; }
+.score-row, .tier-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: var(--color-dim); }
+.score-row span:last-child { color: var(--color-success); }
+.score-row.penalty span:last-child { color: var(--color-danger); }
+.score-row.bonus span:last-child { color: var(--color-accent); }
+.tier-row span:last-child { color: var(--color-primary); }
+
+/* Title screen layout — upper-left quadrant, clear of diver art */
+#title-top { position: absolute; top: 15%; left: 8%; z-index: 5; text-align: left; }
+
+#final-stats { margin: 15px 0; padding: 10px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; font-size: 12px; color: var(--color-dim); }
+
+/* === Boot Sequence Overlay === */
+#boot-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#boot-overlay.hidden { display: none; }
+#boot-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* === Dev Mode Password Prompt === */
+#dev-mode-prompt {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+}
+
+#dev-mode-content {
+    text-align: center;
+    padding: 30px;
+    background: rgba(4, 16, 24, 0.95);
+    border: 2px solid var(--color-accent);
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(68, 221, 255, 0.2);
+}
+
+#dev-mode-content p {
+    color: var(--color-accent);
+    font-size: 14px;
+    letter-spacing: 3px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px var(--color-accent);
+}
+
+#dev-password-input {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--color-accent);
+    border-radius: 4px;
+    padding: 12px 20px;
+    color: var(--color-accent);
+    font-family: var(--font-arcade);
+    font-size: 18px;
+    letter-spacing: 4px;
+    text-align: center;
+    width: 250px;
+    outline: none;
+    text-transform: uppercase;
+}
+
+#dev-password-input:focus {
+    box-shadow: 0 0 15px rgba(68, 221, 255, 0.4);
+}
+
+#dev-timer {
+    margin-top: 15px;
+    font-size: 24px;
+    color: var(--color-danger);
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--color-danger);
+    animation: pulse 1s infinite;
+}
+
+/* === Buttons === */
+#start-btn, #restart-btn, #main-menu-btn, #eject-btn, #holodeck-btn, #exit-holodeck-btn, #scoring-btn, #back-to-menu-btn, #resume-btn, #restart-pause-btn, #quit-btn, #settings-btn, #highscores-btn, #settings-back-btn, #highscores-back-btn, #submit-score-btn, #change-player-btn, #quit-game-btn {
+    background: rgba(0, 10, 5, 0.6);
+    border: 2px solid #00FF41;
+    color: #00FF41;
+    font-family: var(--font-arcade);
+    font-size: 14px;
+    padding: 12px 30px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    margin: 5px;
+    text-shadow: 0 0 6px rgba(0, 255, 65, 0.4);
+}
+
+#start-btn:hover, #restart-btn:hover, #main-menu-btn:hover, #resume-btn:hover, #restart-pause-btn:hover, #quit-btn:hover, #submit-score-btn:hover,
+#scoring-btn:hover, #settings-btn:hover, #highscores-btn:hover, #change-player-btn:hover, #quit-game-btn:hover, #back-to-menu-btn:hover, #settings-back-btn:hover, #highscores-back-btn:hover {
+    background: rgba(0, 255, 65, 0.15);
+    color: #00FF41;
+    box-shadow: 0 0 25px rgba(0, 255, 65, 0.4), 0 0 50px rgba(0, 255, 65, 0.15);
+}
+/* Generic keyboard-selected highlight */
+button.menu-kb-selected {
+    background: rgba(0, 255, 65, 0.15) !important;
+    color: #00FF41 !important;
+    box-shadow: 0 0 25px rgba(0, 255, 65, 0.4), 0 0 50px rgba(0, 255, 65, 0.2) !important;
+    outline: 2px solid #00FF41;
+    outline-offset: 3px;
+    animation: menu-pulse 1s ease-in-out infinite;
+}
+@keyframes menu-pulse {
+    0%, 100% { box-shadow: 0 0 25px rgba(0, 255, 65, 0.4), 0 0 50px rgba(0, 255, 65, 0.2); }
+    50%      { box-shadow: 0 0 35px rgba(0, 255, 65, 0.5), 0 0 70px rgba(0, 255, 65, 0.3); }
+}
+/* ============================================================
+   MAIN / GAME-OVER / PAUSE MENU OPTIONS — sonar console look
+   Unselected : black face, sonar-green text + green outline (no fill).
+   Selected   : same black/green face, plus a bright green VERTICAL
+                tracer bar that sweeps left -> right across the button,
+                a touch faster than the in-game sonar sweep.
+   NO solid-green fill / black-text state anywhere.
+   Covers main menu: BEGIN DESCENT / SCORING / SETTINGS / DIVE LOG / CHANGE DIVER
+   game over: LOG DIVE RECORD / NEW DIVE / SURFACE
+   pause: RESUME DIVE / RESTART DIVE / ABORT TO SURFACE
+   ============================================================ */
+#start-btn, #scoring-btn, #settings-btn, #highscores-btn, #change-player-btn, #quit-game-btn,
+#resume-btn, #restart-pause-btn, #quit-btn,
+#submit-score-btn, #restart-btn, #main-menu-btn {
+    background: #000;
+    color: #00FF41;
+    border: 2px solid #00FF41;
+    font-weight: bold;
+    text-shadow: 0 0 6px rgba(0, 255, 65, 0.45);
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+/* Selected (hover or keyboard) — same black/green face, just brighter glow.
+   The moving vertical tracer bar (::before) is what signals selection. */
+#start-btn:hover, #start-btn.menu-kb-selected,
+#scoring-btn:hover, #scoring-btn.menu-kb-selected,
+#settings-btn:hover, #settings-btn.menu-kb-selected,
+#highscores-btn:hover, #highscores-btn.menu-kb-selected,
+#change-player-btn:hover, #change-player-btn.menu-kb-selected,
+#quit-game-btn:hover, #quit-game-btn.menu-kb-selected,
+#resume-btn:hover, #resume-btn.menu-kb-selected,
+#restart-pause-btn:hover, #restart-pause-btn.menu-kb-selected,
+#quit-btn:hover, #quit-btn.menu-kb-selected,
+#submit-score-btn:hover, #submit-score-btn.menu-kb-selected,
+#restart-btn:hover, #restart-btn.menu-kb-selected,
+#main-menu-btn:hover, #main-menu-btn.menu-kb-selected {
+    background: #000000 !important;
+    color: #00FF41 !important;
+    border-color: #00FF41 !important;
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.85) !important;
+    box-shadow: 0 0 22px rgba(0, 255, 65, 0.45), inset 0 0 16px rgba(0, 255, 65, 0.12) !important;
+    outline: none !important;
+    animation: none !important;
+}
+/* Vertical tracer bar — clipped to the button face, sweeps L -> R.
+   1.1s is a touch quicker than the in-game sonar sweep (2.8s/rev). */
+#start-btn:hover::before, #start-btn.menu-kb-selected::before,
+#scoring-btn:hover::before, #scoring-btn.menu-kb-selected::before,
+#settings-btn:hover::before, #settings-btn.menu-kb-selected::before,
+#highscores-btn:hover::before, #highscores-btn.menu-kb-selected::before,
+#change-player-btn:hover::before, #change-player-btn.menu-kb-selected::before,
+#quit-game-btn:hover::before, #quit-game-btn.menu-kb-selected::before,
+#resume-btn:hover::before, #resume-btn.menu-kb-selected::before,
+#restart-pause-btn:hover::before, #restart-pause-btn.menu-kb-selected::before,
+#quit-btn:hover::before, #quit-btn.menu-kb-selected::before,
+#submit-score-btn:hover::before, #submit-score-btn.menu-kb-selected::before,
+#restart-btn:hover::before, #restart-btn.menu-kb-selected::before,
+#main-menu-btn:hover::before, #main-menu-btn.menu-kb-selected::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    pointer-events: none;
+    background: #00FF41;
+    box-shadow: 0 0 10px 2px rgba(0, 255, 65, 0.85), 0 0 22px 4px rgba(0, 255, 65, 0.4);
+    animation: menu-tracer-sweep 1.1s linear infinite;
+}
+@keyframes menu-tracer-sweep {
+    0%   { left: -3px;  opacity: 0; }
+    8%   { opacity: 1; }
+    92%  { opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+}
+/* #start-btn (BEGIN DESCENT) shares the unified sonar look + sizing of the
+   other main-menu options — no size override; it's the main-menu default. */
+#holodeck-btn {
+    border: none;
+    background: var(--lcars-tangerine, #ff9900);
+    color: #000;
+    font-weight: bold;
+    border-radius: 20px 4px 4px 20px;
+    padding: 12px 28px;
+}
+#holodeck-btn:hover, #holodeck-btn.menu-kb-selected {
+    background: var(--lcars-gold, #ffbe00) !important;
+    color: #000 !important;
+    box-shadow: 0 0 25px rgba(255, 190, 0, 0.5), 0 0 50px rgba(255, 190, 0, 0.25) !important;
+    outline: 2px solid var(--lcars-gold, #ffbe00); outline-offset: 3px;
+}
+#exit-holodeck-btn {
+    border: none;
+    background: var(--lcars-violet, #9977aa);
+    color: #000;
+    font-weight: bold;
+    border-radius: 4px 20px 20px 4px;
+    padding: 12px 28px;
+}
+#exit-holodeck-btn:hover, #exit-holodeck-btn.menu-kb-selected {
+    background: var(--lcars-lavender, #cc99cc) !important;
+    color: #000 !important;
+    box-shadow: 0 0 25px rgba(204, 153, 204, 0.5), 0 0 50px rgba(204, 153, 204, 0.25) !important;
+    outline: 2px solid var(--lcars-lavender, #cc99cc); outline-offset: 3px;
+}
+#eject-btn { border-color: var(--color-secondary); color: var(--color-secondary); }
+#eject-btn:hover { background: var(--color-secondary); color: var(--color-bg); }
+/* scoring-btn uses PET green from above */
+#back-to-menu-btn, #settings-back-btn, #highscores-back-btn { border-color: var(--color-dim); color: var(--color-dim); margin-top: 10px; }
+#back-to-menu-btn:hover, #back-to-menu-btn.menu-kb-selected,
+#settings-back-btn:hover, #settings-back-btn.menu-kb-selected,
+#highscores-back-btn:hover, #highscores-back-btn.menu-kb-selected {
+    background: var(--color-dim) !important; color: var(--color-bg) !important;
+    box-shadow: 0 0 25px var(--color-dim), 0 0 50px rgba(58, 102, 120, 0.3) !important;
+    outline: 2px solid var(--color-dim); outline-offset: 3px;
+}
+/* Settings & High Scores selected state is handled by the unified
+   "MAIN MENU OPTIONS" block above (radar-tracer treatment). */
+/* Settings & High Scores submenu background layers */
+#settings-bg-layer, #highscores-bg-layer {
+    position: absolute;
+    inset: 0;
+    background:
+        url('assets/Menus/mainscreen.png') center center / contain no-repeat,
+        radial-gradient(ellipse at 0% 50%, rgba(0, 50, 60, 0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 50%, rgba(0, 50, 60, 0.2) 0%, transparent 50%),
+        linear-gradient(180deg, #020810 0%, #04101a 100%);
+    filter: grayscale(100%) brightness(0.4);
+    z-index: 0;
+    pointer-events: none;
+}
+#start-overlay.settings-menu-bg,
+#start-overlay.highscores-menu-bg {
+    background: linear-gradient(180deg, #020810 0%, #04101a 100%);
+}
+#start-overlay.settings-menu-bg #settings-page,
+#start-overlay.highscores-menu-bg #highscores-page {
+    position: relative;
+    z-index: 1;
+}
+/* Settings panel */
+#settings-panel {
+    margin: 20px 0;
+    padding: 20px 30px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 204, 170, 0.2);
+    border-radius: 4px;
+    text-align: left;
+}
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 14px;
+    color: var(--color-dim);
+    border-bottom: 1px solid rgba(0, 204, 170, 0.1);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-label {
+    font-family: var(--font-arcade);
+    letter-spacing: 2px;
+    color: var(--color-primary);
+}
+.toggle-btn {
+    font-family: var(--font-arcade);
+    font-size: 13px;
+    padding: 6px 20px;
+    border: 2px solid #22cc88;
+    background: rgba(34, 204, 136, 0.1);
+    color: #22cc88;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.2s ease;
+    min-width: 70px;
+    text-align: center;
+}
+.toggle-btn.on {
+    border-color: #22cc88;
+    color: #22cc88;
+    background: rgba(34, 204, 136, 0.1);
+    text-shadow: 0 0 6px rgba(34, 204, 136, 0.4);
+}
+.toggle-btn.off {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+    background: rgba(255, 34, 51, 0.08);
+    text-shadow: 0 0 6px rgba(255, 34, 51, 0.3);
+}
+.toggle-btn:hover {
+    box-shadow: 0 0 15px currentColor;
+}
+/* High Scores panel */
+#highscores-panel {
+    margin: 20px 0;
+    padding: 20px 30px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 204, 170, 0.2);
+    border-radius: 4px;
+    text-align: center;
+}
+#highscores-panel h3 {
+    color: var(--color-primary);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+}
+.hs-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 12px;
+    color: var(--color-dim);
+    border-bottom: 1px solid rgba(0, 204, 170, 0.05);
+}
+.hs-row:last-child { border-bottom: none; }
+.hs-row.header { color: var(--color-primary); font-size: 11px; letter-spacing: 1px; margin-bottom: 4px; border-bottom: 1px solid rgba(0, 204, 170, 0.15); }
+.hs-rank { width: 30px; text-align: center; }
+.hs-name { flex: 1; text-align: left; padding-left: 10px; color: var(--color-accent); }
+.hs-row.header .hs-name { color: var(--color-primary); }
+.hs-empty { color: var(--color-dim); font-size: 12px; padding: 20px 0; letter-spacing: 2px; }
+
+/* === Holodeck Access Prompt — 15-second timed gate === */
+#holodeck-prompt {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+#holodeck-prompt.active {
+    opacity: 0;
+    pointer-events: auto;
+}
+#holodeck-prompt-content {
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    color: #ffd700;
+}
+#holodeck-prompt-content p {
+    font-size: 1.2rem;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+#holodeck-password-input {
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #ffd700;
+    color: #ffd700;
+    font-family: 'Courier New', monospace;
+    font-size: 1.4rem;
+    padding: 8px 16px;
+    text-align: center;
+    letter-spacing: 4px;
+    outline: none;
+    width: 240px;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+#holodeck-password-input:focus {
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+    border-color: #ffec80;
+}
+#holodeck-timer {
+    font-size: 2rem;
+    color: #ff4444;
+    margin-top: 12px;
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+    letter-spacing: 2px;
+}
+
+/* === Utility === */
+.hidden { display: none !important; }
+
+/* ============================================
+   TETHER LAYER — Energy Beam System
+   ============================================ */
+#tether-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Base tether line style (can be overridden per-line in JS) */
+.tether-line {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* === Animations === */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Energy flow animation for SVG tethers (applied via JS) */
+@keyframes energy-flow {
+    0% { stroke-dashoffset: 14; }
+    100% { stroke-dashoffset: 0; }
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+    #command-input { width: 280px; font-size: 16px; }
+    #hud { font-size: 11px; padding: 10px 15px; }
+    #hud-center { flex-direction: row; gap: 8px; }
+    #vds-container { width: 120px; height: 36px; }
+    #vds2-container { width: 180px; height: 36px; }
+    #command-box { height: 36px; padding: 0 10px; }
+    #status-message { font-size: 11px; }
+    /* Collapse sidebars on small screens */
+    #left-panel { width: 62px; padding: 12px 4px; gap: 10px; }
+    .panel-label.nameplate { font-size: 7px; padding: 2px 4px; letter-spacing: 1px; }
+    .mini-vds { padding: 3px 3px; min-height: 22px; }
+    #left-panel #score-value { font-size: 16px; }
+    #left-panel #streak-value { font-size: 16px; }
+    #right-panel { width: 48px; padding: 8px 4px 10px; }
+    .hose-dot { width: 16px; height: 16px; }
+}
+
+/* ============================================================
+   DEEP OCEAN HULL THEME
+   Corroded Submarine Interior Aesthetic
+   Targets: HUD panels, VDS, Command Box, sidebars
+   ============================================================ */
+
+/* Pressure hull rivet pattern — subtle watermark tile */
+:root {
+    --hull-watermark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='120' height='120' fill='none'/%3E%3Cg stroke='%2300ccaa' stroke-width='0.3' opacity='0.06' fill='none'%3E%3Crect x='10' y='10' width='100' height='100' rx='2'/%3E%3Cline x1='60' y1='10' x2='60' y2='110'/%3E%3Cline x1='10' y1='60' x2='110' y2='60'/%3E%3Ccircle cx='10' cy='10' r='3'/%3E%3Ccircle cx='60' cy='10' r='3'/%3E%3Ccircle cx='110' cy='10' r='3'/%3E%3Ccircle cx='10' cy='60' r='3'/%3E%3Ccircle cx='60' cy='60' r='2'/%3E%3Ccircle cx='110' cy='60' r='3'/%3E%3Ccircle cx='10' cy='110' r='3'/%3E%3Ccircle cx='60' cy='110' r='3'/%3E%3Ccircle cx='110' cy='110' r='3'/%3E%3C/g%3E%3C/svg%3E");
+    --crt-scanlines: repeating-linear-gradient(
+        0deg, transparent, transparent 3px,
+        rgba(0,0,0,0.15) 3px, rgba(0,0,0,0.15) 4px
+    );
+}
+
+/* CRT scanline overlay on the top HUD bar
+   Base: dark corroded slate — submarine hull plate */
+#hud {
+    background:
+        var(--hull-watermark),
+        var(--crt-scanlines),
+        rgb(26, 40, 48) !important;
+    background-size: 120px 120px, auto, auto !important;
+    box-shadow: 0 0 10px rgba(0,204,170,0.06),
+                inset 0 -1px 0 rgba(0,204,170,0.08),
+                inset 0 1px 0 rgba(255,255,255,0.02) !important;
+}
+
+/* Left panel — dark corroded hull plate + rivet watermark + scanlines */
+#left-panel {
+    background:
+        var(--hull-watermark),
+        var(--crt-scanlines),
+        rgb(22, 34, 42) !important;
+    background-size: 120px 120px, auto, auto !important;
+    box-shadow: inset -3px 0 18px rgba(0,0,0,0.5),
+                inset 0 0 1px rgba(255,255,255,0.02) !important;
+}
+
+/* Mini VDS screens — match main VDS deep ocean treatment */
+.mini-vds {
+    background: rgb(8, 16, 22) !important;
+    border-color: rgba(0,204,170,0.2) !important;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.7),
+                inset 0 0 3px rgba(0,204,170,0.03),
+                0 0 4px rgba(0,204,170,0.04) !important;
+}
+
+/* Right panel — same dark corroded hull base */
+#right-panel {
+    background:
+        var(--hull-watermark),
+        var(--crt-scanlines),
+        rgb(22, 34, 42) !important;
+    background-size: 120px 120px, auto, auto !important;
+    box-shadow: inset 3px 0 18px rgba(0,0,0,0.5),
+                inset 0 0 1px rgba(255,255,255,0.02) !important;
+}
+
+/* Sidebars and play-area sit above any background layers */
+#left-panel, #right-panel, #play-area {
+    position: relative;
+    z-index: 1;
+}
+
+/* VDS containers — recessed dark submarine instrument well */
+#vds-container, #vds2-container {
+    background: rgb(8, 16, 22) !important;
+    border-color: rgba(0,204,170,0.2) !important;
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.7),
+                inset 0 0 5px rgba(0,204,170,0.03),
+                0 0 6px rgba(0,204,170,0.04) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ============================================
+   VOICE LAYER — challenge_phrases.voice
+   cad   = system → dispatcher  → CAD readout (NTF, TOC)  — plain terminal box
+   radio = crew   → dispatcher  → same plain straight-edged box (comic panel retired)
+   ============================================ */
+/* radio: crew speech now uses the SAME plain straight-edged rectangular box as cad —
+   the jagged comic-panel clip-path + lightning crackle were retired so every challenge
+   box reads as a clean straight-lined readout. (.voice-radio is still toggled in JS but
+   no longer changes the box shape.) */
+/* cad: plain terminal readout — no prefix, no decoration. The distinction from radio
+   is carried entirely by the radio comic panel above (the old "▎CAD" tick is removed). */
+/* Scanline pass over VDS readouts */
+#vds-container::after, #vds2-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--crt-scanlines);
+    pointer-events: none;
+    z-index: 1;
+}
+#status-message, #status-message-2 { position: relative; z-index: 2; }
+
+/* Command box — dark hull recess */
+#command-box {
+    background: rgb(10, 20, 28) !important;
+    border-color: rgba(0,221,170,0.4) !important;
+    box-shadow: 0 0 8px rgba(0,221,170,0.08),
+                inset 0 0 10px rgba(0,0,0,0.5) !important;
+}
+
+/* ── Silver Nameplate Labels ── */
+.nameplate {
+    display: block;
+    text-align: center;
+    font-size: 7px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: #c0c8d0;
+    text-transform: uppercase;
+    background: linear-gradient(180deg, #6a727a 0%, #4a5058 40%, #3a4048 60%, #2a3038 100%);
+    border: 1px solid rgba(160, 175, 190, 0.25);
+    border-radius: 2px;
+    padding: 1px 4px;
+    margin-bottom: 3px;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.6);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1),
+                0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* ── Suit Integrity Bar ── */
+#suit-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#suit-status .nameplate {
+    text-align: center;
+    line-height: 1.2;
+}
+
+#suit-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
+    padding: 3px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.suit-segment {
+    width: 22px;
+    height: 12px;
+    border-radius: 2px;
+    transition: background 0.3s, box-shadow 0.3s, opacity 0.3s;
+}
+
+/* Level colors: 5=green, 4=blue, 3=yellow, 2=orange, 1=purple */
+.suit-segment[data-level="5"] { background: #00ff88; box-shadow: 0 0 6px #00ff88; }
+.suit-segment[data-level="4"] { background: #3399ff; box-shadow: 0 0 6px #3399ff; }
+.suit-segment[data-level="3"] { background: #ffdd33; box-shadow: 0 0 6px #ffdd33; }
+.suit-segment[data-level="2"] { background: #ff8833; box-shadow: 0 0 6px #ff8833; }
+.suit-segment[data-level="1"] { background: #cc44ff; box-shadow: 0 0 6px #cc44ff; }
+
+.suit-segment.depleted {
+    background: #222 !important;
+    box-shadow: none !important;
+    opacity: 0.3;
+}
+
+.suit-segment.draining {
+    animation: suitDrain 0.4s ease-in-out;
+}
+
+@keyframes suitDrain {
+    0%, 100% { opacity: 1; }
+    30% { opacity: 0.2; }
+    60% { opacity: 0.8; }
+}
+
+/* ============================================
+   GRAPPLE STATE — Adrenaline Focus + Center Popup
+   ============================================ */
+
+/* Center-screen integrity popup — appears during grapple */
+#grapple-popup {
+    position: fixed;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid #ff4444;
+    border-radius: 6px;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.4), 0 0 60px rgba(255, 0, 0, 0.15);
+    animation: grapple-pulse 0.8s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+#grapple-popup.hidden { display: none; }
+
+@keyframes grapple-pulse {
+    0%   { border-color: #ff4444; box-shadow: 0 0 30px rgba(255, 0, 0, 0.4), 0 0 60px rgba(255, 0, 0, 0.15); }
+    100% { border-color: #ff8844; box-shadow: 0 0 40px rgba(255, 80, 0, 0.5), 0 0 80px rgba(255, 60, 0, 0.2); }
+}
+
+#grapple-label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #ff6666;
+    text-shadow: 0 0 8px rgba(255, 50, 50, 0.6);
+}
+
+#grapple-blocks {
+    display: flex;
+    gap: 6px;
+}
+
+.grapple-block {
+    width: 32px;
+    height: 18px;
+    border-radius: 3px;
+    transition: background 0.3s, box-shadow 0.3s, opacity 0.3s;
+}
+
+.grapple-block[data-level="5"] { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+.grapple-block[data-level="4"] { background: #3399ff; box-shadow: 0 0 10px #3399ff; }
+.grapple-block[data-level="3"] { background: #ffdd33; box-shadow: 0 0 10px #ffdd33; }
+.grapple-block[data-level="2"] { background: #ff8833; box-shadow: 0 0 10px #ff8833; }
+.grapple-block[data-level="1"] { background: #cc44ff; box-shadow: 0 0 10px #cc44ff; }
+
+.grapple-block.depleted {
+    background: #222 !important;
+    box-shadow: none !important;
+    opacity: 0.25;
+}
+
+.grapple-block.draining {
+    animation: grapple-block-drain 0.4s ease-in-out;
+}
+
+@keyframes grapple-block-drain {
+    0%   { transform: scale(1); filter: brightness(1); }
+    30%  { transform: scale(1.3); filter: brightness(2); }
+    60%  { transform: scale(0.8); filter: brightness(0.5); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+#grapple-warning {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    color: #ff8866;
+    text-shadow: 0 0 6px rgba(255, 100, 50, 0.5);
+    animation: grapple-warn-blink 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes grapple-warn-blink {
+    0%   { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* Diver-attack alarm — show the exact command, big and urgent (3-second window) */
+#grapple-label { font-size: 15px; }
+#grapple-command {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(20px, 2.6vw, 40px);
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #ffffff;
+    background: rgba(255, 40, 40, 0.16);
+    border: 2px solid #ff5a3a;
+    border-radius: 6px;
+    padding: 6px 20px;
+    text-shadow: 0 0 14px rgba(255, 130, 90, 0.95);
+    animation: diver-cmd-pulse 0.5s ease-in-out infinite alternate;
+}
+#grapple-command:empty { display: none; }
+@keyframes diver-cmd-pulse {
+    0%   { transform: scale(1);    box-shadow: 0 0 18px rgba(255, 40, 40, 0.5); }
+    100% { transform: scale(1.05); box-shadow: 0 0 30px rgba(255, 90, 40, 0.7); }
+}
+
+/* Adrenaline Focus — sonar overlay scales up during grapple */
+.sonar-challenge-overlay.adrenaline-focus {
+    z-index: 150;
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.sonar-challenge-overlay.adrenaline-focus .sonar-probe {
+    width: 84px;
+    height: 84px;
+    border-color: #ff4444 !important;
+    box-shadow: 0 0 16px rgba(255, 68, 68, 0.6), 0 0 32px rgba(255, 68, 68, 0.2) !important;
+    animation: adrenaline-probe-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes adrenaline-probe-pulse {
+    0%   { box-shadow: 0 0 16px rgba(255, 68, 68, 0.6), 0 0 32px rgba(255, 68, 68, 0.2); }
+    100% { box-shadow: 0 0 24px rgba(255, 100, 68, 0.8), 0 0 48px rgba(255, 60, 60, 0.3); }
+}
+
+.sonar-challenge-overlay.adrenaline-focus .sonar-unit-id {
+    font-size: 16px !important;
+    color: #ff6666 !important;
+}
+
+.sonar-challenge-overlay.adrenaline-focus .sonar-char {
+    color: #ff6666 !important;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(255, 50, 50, 0.8);
+}
+
+.sonar-challenge-overlay.adrenaline-focus .sonar-challenge-text {
+    font-size: 18px !important;
+    padding: 6px 14px !important;
+    border-color: #ff4444 !important;
+    box-shadow: 0 0 16px rgba(255, 68, 68, 0.5), inset 0 0 8px rgba(255, 68, 68, 0.15) !important;
+    background: rgba(40, 0, 0, 0.9) !important;
+}
+
+.sonar-challenge-overlay.adrenaline-focus .sonar-challenge-content {
+    color: #ff6666 !important;
+    text-shadow: 0 0 8px rgba(255, 50, 50, 0.8), 0 0 16px rgba(255, 50, 50, 0.3);
+}
+
+/* Grapple jitter on canvas wrapper — screen shake during attack */
+@keyframes grapple-jitter {
+    0%   { transform: translate(0, 0); }
+    10%  { transform: translate(-2px, 1px); }
+    20%  { transform: translate(2px, -1px); }
+    30%  { transform: translate(-1px, -2px); }
+    40%  { transform: translate(1px, 2px); }
+    50%  { transform: translate(-2px, -1px); }
+    60%  { transform: translate(2px, 1px); }
+    70%  { transform: translate(-1px, 2px); }
+    80%  { transform: translate(1px, -2px); }
+    90%  { transform: translate(-2px, 0); }
+    100% { transform: translate(0, 0); }
+}
+
+#canvas-wrapper.grapple-shake {
+    animation: grapple-jitter 0.15s linear infinite;
+}
+
+/* ============================================
+   HOSE STATUS INDICATORS — Umbilical System
+   ============================================ */
+#hose-status {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    padding: 4px 0;
+    align-items: center;
+}
+
+.hose-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 0;
+    transition: opacity 0.3s ease;
+}
+
+.hose-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.3s, box-shadow 0.3s;
+}
+
+.hose-dot.gas-color {
+    background: #33ff66;
+    box-shadow: 0 0 10px rgba(51, 255, 102, 0.5), 0 0 22px rgba(51, 255, 102, 0.3);
+}
+
+.hose-dot.liquid-color {
+    background: #ff8833;
+    box-shadow: 0 0 10px rgba(255, 136, 51, 0.5), 0 0 22px rgba(255, 136, 51, 0.3);
+}
+
+.hose-dot.electrical-color {
+    background: #ffdd33;
+    box-shadow: 0 0 10px rgba(255, 221, 51, 0.5), 0 0 22px rgba(255, 221, 51, 0.3);
+}
+
+.hose-indicator.severed .hose-dot {
+    background: #441111 !important;
+    box-shadow: none !important;
+    animation: hose-flicker 0.4s steps(1) infinite;
+}
+
+.hose-indicator.severed .nameplate {
+    color: #661122;
+    text-decoration: line-through;
+}
+
+@keyframes hose-flicker {
+    0%, 60% { opacity: 0.3; }
+    61%, 100% { opacity: 0.8; }
+}
+
+/* ============================================
+   DEPTH GAUGE — Pressure Display
+   ============================================ */
+#depth-gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+    padding: 4px 0;
+}
+
+#depth-label {
+    font-size: 8px;
+    font-weight: bold;
+    color: var(--color-white);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#depth-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--color-accent);
+    text-shadow: 0 0 8px rgba(68, 221, 255, 0.4);
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Pressure meter — §9 cosmetic readout that creeps green → red with depth */
+#pressure-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    width: 86%;
+    margin-top: 5px;
+}
+#pressure-label {
+    font-size: 7px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #6aa0c0;
+    opacity: 0.85;
+    text-transform: uppercase;
+}
+#pressure-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(10, 30, 45, 0.7);
+    border: 1px solid rgba(80, 140, 180, 0.4);
+    border-radius: 3px;
+    overflow: hidden;
+}
+#pressure-fill {
+    width: 0%;
+    height: 100%;
+    background: hsl(140, 85%, 52%);
+    transition: width 0.3s linear, background 0.6s linear, box-shadow 0.6s linear;
+}
+
+/* ============================================
+   SALVAGE VALUE — Left Panel Display
+   ============================================ */
+#salvage-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--color-accent);
+    text-shadow: 0 0 8px rgba(68, 221, 255, 0.3);
+    text-align: center;
+    width: 100%;
+    letter-spacing: 1px;
+}
+
+/* ============================================
+   KILL CAM OVERLAY — Death Sequence
+   ============================================ */
+#kill-cam-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+#kill-cam-overlay.hidden { display: none; }
+
+/* Canvas layer — creature animations, effects (behind helmet) */
+#kill-cam-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 1;
+}
+
+/* Vignette effect — on top of canvas, under helmet */
+#kill-cam-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 30%,
+        rgba(0, 0, 0, 0.3) 55%,
+        rgba(0, 0, 0, 0.7) 100%
+    );
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ============================================
+   HELMET INTERIOR SHELL — constructed overlay (SVG/CSS), armed at key moments,
+   depth-reactive. Sits over the playfield canvas inside #canvas-wrapper. The
+   Helmet controller (script.js) drives --helmet-op / --helmet-vig / --helmet-fog.
+   ============================================ */
+#helmet-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 40;            /* above the canvas playfield, below DOM HUD popups */
+    pointer-events: none;
+    opacity: var(--helmet-op, 0);
+}
+#helmet-overlay.hidden { display: none; }
+
+/* Edge vignette — viewport closes in; darkens with depth (--helmet-vig) */
+#helmet-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 72% 80% at 50% 48%,
+        transparent 44%,
+        rgba(2, 10, 18, calc(var(--helmet-vig, 0.3) * 0.55)) 72%,
+        rgba(1, 5, 10, var(--helmet-vig, 0.3)) 100%);
+}
+
+/* Interior fog / condensation — thickens with depth (--helmet-fog) */
+#helmet-fog {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 80% at 50% 46%,
+        rgba(150, 200, 220, calc(var(--helmet-fog, 0) * 0.5)) 0%,
+        rgba(40, 95, 125, var(--helmet-fog, 0)) 100%);
+    mix-blend-mode: screen;
+}
+
+/* Constructed brass frame + HUD ticks (art-tuned later) */
+#helmet-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.5));
+}
+
+/* ============================================
+   LEADING PROBE — Compound sonar + challenge overlay
+   Sonar bubble leads on the forward side of movement,
+   challenge text trails behind. Single DOM element.
+   ============================================ */
+
+.sonar-challenge-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--creature-gap, 40px);
+    pointer-events: none;
+    z-index: 30;
+    will-change: transform;
+    white-space: nowrap;
+    transition: opacity 0.3s ease;
+}
+
+/* Sonar spawn-in: scale up from nothing with a ping ripple */
+.sonar-spawn-in {
+    animation: sonar-spawn-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+@keyframes sonar-spawn-in {
+    0% {
+        opacity: 0;
+        transform: translate3d(var(--spawn-x, 0), var(--spawn-y, 0), 0) translate(-50%, -50%) scale(0);
+        filter: brightness(3);
+    }
+    40% {
+        opacity: 1;
+        filter: brightness(2);
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(var(--spawn-x, 0), var(--spawn-y, 0), 0) translate(-50%, -50%) scale(1);
+        filter: brightness(1);
+    }
+}
+
+/* Vertical stack: probe on top, challenge on bottom — direction classes retained for compatibility */
+.sonar-challenge-overlay.leading-right,
+.sonar-challenge-overlay.leading-left {
+    flex-direction: column;
+}
+
+/* Near the screen bottom the bubble would clip off the edge below the target — flip the
+   stack so the bubble sits ABOVE the target instead (toggled from JS by proximity to the
+   bottom). Defined after the column rules so it wins on source order. */
+.sonar-challenge-overlay.flip-up {
+    flex-direction: column-reverse;
+}
+
+/* ── Sonar Probe (circular bubble with unit ID) ── */
+
+/* Post-reveal the unit ID rides on the fish (canvas tag) — the probe
+   hides but keeps its layout slot so the challenge box stays put */
+.sonar-probe.probe-hidden {
+    visibility: hidden;
+    animation: none;
+}
+
+.sonar-probe {
+    --probe-glow: #00FF41;
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(0, 6, 12, 0.88);
+    border: 1.5px solid rgba(0, 255, 65, 0.6);
+    box-shadow:
+        0 0 8px rgba(0, 255, 65, 0.3),
+        0 0 16px rgba(0, 255, 65, 0.1),
+        inset 0 0 8px rgba(0, 255, 65, 0.04);
+    flex-shrink: 0;
+    overflow: hidden;
+    animation: probe-pulse 2.5s ease-in-out infinite;
+    transition: transform 0.4s ease-out, box-shadow 0.4s ease-out;
+}
+
+@keyframes probe-pulse {
+    0%, 100% {
+        border-color: rgba(0, 255, 65, 0.4);
+        box-shadow: 0 0 6px rgba(0, 255, 65, 0.2), 0 0 12px rgba(0, 255, 65, 0.08);
+    }
+    50% {
+        border-color: rgba(0, 255, 65, 0.85);
+        box-shadow: 0 0 12px rgba(0, 255, 65, 0.5), 0 0 24px rgba(0, 255, 65, 0.2);
+    }
+}
+
+/* Probe ring — subtle inner ring */
+.sonar-probe-ring {
+    position: absolute;
+    top: 3px; left: 3px; right: 3px; bottom: 3px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 255, 65, 0.1);
+    pointer-events: none;
+}
+
+/* Per-creature sweep arm + trail are now suppressed — the full-screen
+   #game-sonar-sweep replaces them. Kept in DOM for code-path safety. */
+.sonar-sweep-arm,
+.sonar-sweep-trail {
+    display: none !important;
+}
+
+/* Crosshairs (faint decorative grid) */
+.sonar-crosshair {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+.sonar-crosshair::before,
+.sonar-crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 255, 65, 0.06);
+}
+.sonar-crosshair::before {
+    top: 50%; left: 15%; right: 15%;
+    height: 1px;
+    transform: translateY(-50%);
+}
+.sonar-crosshair::after {
+    left: 50%; top: 15%; bottom: 15%;
+    width: 1px;
+    transform: translateX(-50%);
+}
+
+/* Center dot */
+.sonar-center-dot {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: rgba(0, 255, 65, 0.4);
+    transform: translate(-50%, -50%);
+    z-index: 4;
+}
+
+/* Background color reveal layer — Rule of Thirds */
+.sonar-bg-reveal {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease-out;
+}
+
+/* Unit ID container — centered in probe */
+.sonar-unit-id {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    color: #00FF41;
+    white-space: nowrap;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+}
+
+/* Individual character spans — JS controls opacity per sweep */
+.sonar-char {
+    transition: opacity 0.8s ease-out;
+    color: #00FF41;
+}
+.sonar-char-lit {
+    text-shadow: 0 0 6px #00FF41, 0 0 12px #00FF41;
+    font-size: 15px;
+    transition: opacity 0.05s ease-out;
+}
+
+/* ── Challenge Text Box (trails behind probe) ── */
+
+.sonar-challenge-text {
+    --chal-bg: #000000;
+    --chal-fg: #00FF41;
+    position: relative;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: var(--chal-bg, #000000);
+    border: 1.5px solid var(--chal-fg, #00FF41);
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.4),
+                inset 0 0 4px rgba(0, 255, 65, 0.15);
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    /* Normal weight — bold made the lighter challenge colours (DPT lavender) hard to read. */
+    font-weight: normal;
+    color: var(--chal-fg, #00FF41);
+    text-align: center;
+    line-height: 1.2;
+    /* Crisp glyphs: a tight dark halo pins the edges so the saturated fill can't bleed into
+       them (no more blue/green haze on white text), then a small SAME-colour bloom for the
+       bright wet shine. Centred blurs (no hard offsets) keep the letters from thickening —
+       the earlier 4-way ring read as over-bold on the lighter colours (DPT lavender). */
+    text-shadow:
+        0 0 1px rgba(0, 0, 0, 0.9),
+        0 0 2px rgba(0, 0, 0, 0.7),
+        0 0 4px var(--chal-fg, #00FF41);
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    transition: max-width 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
+                opacity 0.3s ease-in,
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
+}
+
+.sonar-challenge-text.challenge-visible {
+    max-width: 560px;
+    opacity: 1;
+}
+
+.sonar-challenge-text.challenge-hidden {
+    max-width: 0;
+    opacity: 0;
+}
+
+/* Challenge text content — hidden by default, revealed by sweep mask */
+.sonar-challenge-content {
+    position: relative;
+    z-index: 2;
+    white-space: nowrap;
+    /* Text starts fully masked (invisible) — JS sweep sets gradient mask */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, transparent 100%);
+}
+
+/* Challenge box background color reveal — CSV colors pulse through on sweep */
+.challenge-bg-reveal {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border-radius: inherit;
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease-out;
+}
+
+/* Horizontal sweep arm inside challenge box */
+.challenge-sweep-arm {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent, rgba(0, 255, 65, 0.7), transparent);
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.4), 0 0 16px rgba(0, 255, 65, 0.2);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: left 0.05s linear;
+}
+
+/* Text color driven by CSS variable — mask-based reveal handles visibility */
+.sonar-challenge-content {
+    color: var(--chal-fg, #00FF41);
+}
+
+/* Vertical stack — challenge box is a standalone element below the creature */
+.leading-right .sonar-challenge-text,
+.leading-left .sonar-challenge-text {
+    border-radius: 3px;
+    margin: 0;
+}
+
+/* ── Light cone visibility states ── */
+
+.sonar-challenge-overlay.in-cone .sonar-challenge-text {
+    /* Colors driven by CSV data via inline styles */
+}
+.sonar-challenge-overlay.in-cone .sonar-probe {
+    opacity: 1;
+}
+
+.sonar-challenge-overlay.out-cone .sonar-challenge-text {
+    filter: brightness(0.55);
+}
+.sonar-challenge-overlay.out-cone .sonar-probe {
+    opacity: 0.35;
+    animation: none;
+}
+.sonar-challenge-overlay.out-cone .sonar-char {
+    filter: brightness(0.3);
+}
+.sonar-challenge-overlay.out-cone .sonar-sweep-arm,
+.sonar-challenge-overlay.out-cone .sonar-sweep-trail {
+    opacity: 0.2;
+}
+
+/* ── Sonar Revealed — Detection→Action phase transition ──
+   When creature sprite is fully visible, sonar display fades out.
+   Unit ID persists with challenge box colors applied via inline styles. */
+
+.sonar-revealed .sonar-sweep-arm,
+.sonar-revealed .sonar-sweep-trail,
+.sonar-revealed .sonar-crosshair,
+.sonar-revealed .sonar-center-dot,
+.sonar-revealed .sonar-probe-ring,
+.sonar-revealed .sonar-bg-reveal {
+    opacity: 0 !important;
+    transition: opacity 0.6s ease-out;
+}
+
+.sonar-revealed {
+    animation: none;
+    transition: background 0.4s ease-out, border-color 0.4s ease-out, box-shadow 0.4s ease-out;
+}
+
+.sonar-revealed .sonar-unit-id {
+    transition: color 0.4s ease-out, background 0.4s ease-out, border-radius 0.2s ease-out, padding 0.2s ease-out;
+}
+
+.sonar-revealed .sonar-char {
+    opacity: 1 !important;
+    transition: color 0.4s ease-out, text-shadow 0.4s ease-out;
+}
+
+/* ============================================
+   TOC MONITOR PANEL — single-line Current Status + offload tint (chevrons retired)
+   (nested in .sonar-challenge-overlay, only for TOC units)
+   ============================================ */
+.toc-status-panel {
+    position: relative;
+    margin-top: 4px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    line-height: 1;
+    z-index: 2;
+}
+/* Offload tint box — White (default) / Pink (>60m waiting) / Blue (offloaded/live).
+   PRE-ACTIVATION (White/Pink waiting) currently reads SOLID WHITE with black text (Andrew
+   trying this look). The live Blue fill colour is applied INLINE from toc_colors.csv
+   (#4F9BE0) so "available" still reads as distinct.
+   ── To REVERT to the old transparent waiting look, restore:
+        .toc-tint-box        background: rgba(230,236,240,0.10); border:1px solid rgba(230,236,240,0.28);
+        .toc-tint-box.toc-color-pink  background: rgba(241,176,183,0.16); border-color: rgba(241,176,183,0.42);
+        .toc-status-label    color: rgba(214,234,244,0.96); text-shadow: 0 0 4px rgba(138,186,204,0.45); */
+/* Blank-box frame — black fill + green trim — shown until the screen sweep crosses this
+   TOC unit. Same "undetected contact" look as the other challenge boxes pre-sweep. */
+.toc-blank-frame {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    background: #000000;
+    border: 1.5px solid #00FF41;
+    box-shadow: 0 0 6px rgba(0, 255, 65, 0.35), inset 0 0 4px rgba(0, 255, 65, 0.12);
+    z-index: 0;
+    pointer-events: none;
+}
+.toc-tint-box {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.55);
+    /* Above the blank frame; JS fades opacity in/out with the sweep-arm angle. */
+    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, opacity 0.2s ease;
+}
+.toc-tint-box.toc-color-pink {
+    background: #f6dfe2;
+    border-color: rgba(0, 0, 0, 0.5);
+}
+/* Blue/live: SOLID blue (the inline fill from toc_colors.csv overrides this exact value,
+   but this class default guarantees the box reads blue whenever the unit is available —
+   no dependence on the inline path). Clean outer glow only; no inset wash. */
+.toc-tint-box.toc-color-blue {
+    background: #2E90FF;
+    border-color: #1657a8;
+    box-shadow: 0 0 10px rgba(46, 144, 255, 0.75);
+}
+/* Current Status label (no timestamp) — text-only readout (chevron pips removed) */
+.toc-status-label {
+    position: relative;
+    z-index: 2;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    color: #000000;            /* black font on the white waiting fill (see revert note above) */
+    text-align: center;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    text-shadow: none;
+    transition: color 0.2s ease;
+}
+.toc-status-label.toc-status-improper-call {
+    color: #ff5252;
+    text-shadow: 0 0 6px rgba(255, 82, 82, 0.85), 0 0 12px rgba(255, 82, 82, 0.4);
+    animation: toc-improper-flash 0.35s ease-in-out 2;
+}
+@keyframes toc-improper-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+/* Bed Assign icon (cosmetic, after Triage) — inline on the single status line.
+   display:none while unassigned so it reserves NO space (keeps the panel one line). */
+.toc-bed-icon {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2396D7F0" stroke-width="1.6"><path d="M3 7v11M3 12h15a3 3 0 0 1 3 3v3M3 14h18"/><circle cx="7.5" cy="10" r="1.6"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: none;
+    pointer-events: none;
+    filter: drop-shadow(0 0 2px rgba(138, 186, 204, 0.55));
+}
+.toc-bed-icon.toc-bed-icon-visible { display: block; opacity: 0.8; }
+
+/* ============================================
+   LCARS CAD AUTOCOMPLETE DROPDOWN
+   ============================================ */
+
+#autocomplete-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgba(5, 15, 25, 0.95);
+    border: 1px solid rgba(0, 221, 170, 0.4);
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    z-index: 100;
+    font-family: var(--font-arcade);
+    font-size: 13px;
+}
+
+/* PowerLine Prompt — Required Code display below command input */
+/* ── PowerLine Prompt (compact, below command input) ── */
+#powerline-prompt {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #0a0a0a;
+    border: 1px solid rgba(0, 221, 170, 0.2);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 6px 15px;
+    z-index: 49;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 0.8px;
+}
+#powerline-prompt.hidden { display: none; }
+
+#powerline-required {
+    color: #556677;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+/* PowerLine segment colors — warm amber/cyan digital terminal palette */
+#powerline-required .pl-command { color: #e0a040; font-weight: bold; }
+#powerline-required .pl-required { color: #6aaabb; }
+#powerline-required .pl-optional { color: #3d6070; }
+#powerline-required .pl-active {
+    color: #44ffcc;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(68, 255, 204, 0.5);
+}
+#powerline-required .pl-done { color: #2a7a6a; }
+#powerline-required .pl-comma { color: #4a6070; margin: 0 2px; }
+
+#powerline-description {
+    color: #3a6678;
+    font-size: 10px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+}
+
+/* ── Command Reference Toggle Button ── */
+#cmd-ref-toggle {
+    position: absolute;
+    right: -36px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    background: rgba(10, 10, 10, 0.85);
+    border: 1px solid rgba(0, 221, 170, 0.3);
+    border-radius: 4px;
+    color: #44aa88;
+    font-family: 'Consolas', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    z-index: 50;
+}
+#cmd-ref-toggle:hover {
+    border-color: #44ffcc;
+    color: #44ffcc;
+    box-shadow: 0 0 8px rgba(68, 255, 204, 0.3);
+}
+
+/* Fullscreen toggle — sits just right of the command-reference (?) button */
+#fullscreen-toggle {
+    position: absolute;
+    right: -70px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    background: rgba(10, 10, 10, 0.85);
+    border: 1px solid rgba(0, 221, 170, 0.3);
+    border-radius: 4px;
+    color: #44aa88;
+    font-family: 'Consolas', monospace;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    z-index: 50;
+}
+#fullscreen-toggle:hover {
+    border-color: #44ffcc;
+    color: #44ffcc;
+    box-shadow: 0 0 8px rgba(68, 255, 204, 0.3);
+}
+#cmd-ref-toggle.active {
+    border-color: #e0a040;
+    color: #e0a040;
+    box-shadow: 0 0 8px rgba(224, 160, 64, 0.3);
+}
+
+/* ── Command Reference Floating Overlay ── */
+#cmd-ref-overlay {
+    position: fixed;
+    z-index: 300;
+    background: #0a0a0a;
+    border: 1.5px solid #e0a04066;
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(224, 160, 64, 0.08);
+    min-width: 260px;
+    min-height: 60px;
+    overflow: hidden;
+    resize: both;
+    display: flex;
+    flex-direction: column;
+}
+#cmd-ref-overlay.hidden { display: none; }
+
+#cmd-ref-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background: #111;
+    border-bottom: 1px solid #e0a04033;
+    cursor: grab;
+    user-select: none;
+}
+#cmd-ref-titlebar:active { cursor: grabbing; }
+
+#cmd-ref-title {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: #e0a040;
+    font-weight: bold;
+}
+
+#cmd-ref-close {
+    width: 20px;
+    height: 20px;
+    background: none;
+    border: 1px solid #55333366;
+    border-radius: 3px;
+    color: #884444;
+    font-size: 13px;
+    font-family: 'Consolas', monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, border-color 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+#cmd-ref-close:hover {
+    color: #ff4444;
+    border-color: #ff444466;
+}
+
+#cmd-ref-body {
+    padding: 10px 14px;
+    flex: 1;
+    overflow: auto;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+#cmd-ref-required {
+    color: #556677;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+}
+
+/* Mirror the PowerLine segment colors but larger */
+#cmd-ref-required .pl-command { color: #e0a040; font-weight: bold; }
+#cmd-ref-required .pl-required { color: #6aaabb; }
+#cmd-ref-required .pl-optional { color: #3d6070; }
+#cmd-ref-required .pl-active {
+    color: #44ffcc;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(68, 255, 204, 0.5);
+}
+#cmd-ref-required .pl-done { color: #2a7a6a; }
+#cmd-ref-required .pl-comma { color: #4a6070; margin: 0 3px; }
+
+#cmd-ref-description {
+    color: #3a6678;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #1a2a30;
+}
+
+/* Resize handle hint */
+#cmd-ref-overlay::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid #e0a04033;
+    border-bottom: 2px solid #e0a04033;
+    pointer-events: none;
+}
+
+.ac-item {
+    padding: 6px 12px;
+    color: var(--color-text);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0, 221, 170, 0.1);
+    transition: background 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ac-item:hover,
+.ac-item.ac-selected {
+    background: rgba(0, 221, 170, 0.15);
+    color: var(--color-primary);
+}
+
+/* ============================================================
+   MONOCHROME SONAR-GREEN GAMEPLAY HUD
+   Unifies every in-game readout/font to one glowing phosphor
+   green (#00FF41 — same as the sonar sweep + title) and turns
+   the teal-blue divider line under the top bar sonar green.
+   Placed last so it wins on source order.
+   ============================================================ */
+:root {
+    --sonar-green: #00FF41;
+    --sonar-glow: 0 0 8px rgba(0, 255, 65, 0.55), 0 0 16px rgba(0, 255, 65, 0.25);
+}
+
+/* "Lighted line across the top" — HUD bottom divider → sonar green */
+#hud {
+    border-bottom: 1px solid var(--sonar-green) !important;
+    box-shadow: 0 0 12px rgba(0, 255, 65, 0.12),
+                inset 0 -1px 0 rgba(0, 255, 65, 0.45),
+                inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+}
+
+/* VDS status readouts — every state (hit/miss/impact/bonus) unified to green */
+#status-message, #status-message-2,
+#status-message.hit, #status-message-2.hit,
+#status-message.miss, #status-message.misfire,
+#status-message-2.miss, #status-message-2.misfire,
+#status-message.impact, #status-message-2.impact,
+#status-message.bonus, #status-message.commendation,
+#status-message-2.bonus, #status-message-2.commendation {
+    color: var(--sonar-green);
+    text-shadow: var(--sonar-glow);
+}
+
+/* VDS blink cursors */
+#vds-cursor, #vds2-cursor {
+    background: var(--sonar-green);
+    box-shadow: 0 0 6px rgba(0, 255, 65, 0.6);
+}
+
+/* Command line — prompt, typed text, placeholder, block cursor */
+#command-prompt { color: var(--sonar-green); text-shadow: 0 0 5px var(--sonar-green); }
+#command-input  { color: var(--sonar-green); text-shadow: 0 0 5px var(--sonar-green); }
+#command-input::placeholder { color: rgba(0, 255, 65, 0.35); }
+#block-cursor   { background: var(--sonar-green); box-shadow: 0 0 6px var(--sonar-green); }
+
+/* Left-panel stat values (note: #score-value.score-negative keeps its red
+   warning when the score goes negative — higher specificity wins). */
+#score-value   { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
+#tier-value    { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
+#streak-value  { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
+#salvage-value { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
+
+/* Right-panel depth gauge */
+#depth-label { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
+#depth-value { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
+
+/* Nameplate labels (SCORE / DEPTH / STREAK / SALVAGE / SUIT INTEGRITY /
+   GAS / H₂O / COMMS) — flat glowing green, metallic plate removed */
+#left-panel .panel-label.nameplate,
+#right-panel .nameplate,
+.panel-label.nameplate,
+.nameplate {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--sonar-green) !important;
+    text-shadow: var(--sonar-glow) !important;
+}
+
+/* PowerLine command syntax — flattened to sonar-green shades, keeping a
+   readable bright→dim hierarchy (active brightest, optional/done dimmest) */
+#powerline-required, #cmd-ref-required { color: rgba(0, 255, 65, 0.55); }
+#powerline-required .pl-command, #cmd-ref-required .pl-command { color: var(--sonar-green); font-weight: bold; }
+#powerline-required .pl-required, #cmd-ref-required .pl-required { color: rgba(0, 255, 65, 0.85); }
+#powerline-required .pl-optional, #cmd-ref-required .pl-optional { color: rgba(0, 255, 65, 0.40); }
+#powerline-required .pl-active,   #cmd-ref-required .pl-active   {
+    color: var(--sonar-green); font-weight: bold;
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+}
+#powerline-required .pl-done,  #cmd-ref-required .pl-done  { color: rgba(0, 255, 65, 0.45); }
+#powerline-required .pl-comma, #cmd-ref-required .pl-comma { color: rgba(0, 255, 65, 0.35); }
+#powerline-description, #cmd-ref-description { color: rgba(0, 255, 65, 0.5); }
+#cmd-ref-title  { color: var(--sonar-green); }
+#cmd-ref-toggle { color: rgba(0, 255, 65, 0.7); }
+
+/* Command autocomplete dropdown */
+.ac-item { color: rgba(0, 255, 65, 0.7); }
+.ac-item:hover, .ac-item.ac-selected { color: var(--sonar-green); background: rgba(0, 255, 65, 0.15); }
+
+/* In-play simulation status banner */
+#simulation-status { color: var(--sonar-green); text-shadow: 0 0 5px var(--sonar-green); }

@@ -1,0 +1,6 @@
+seq,key,label
+1,ARR_DEST,Arrived at Destination
+2,ARR_ED,Arrived in ED
+3,TRIAGED,Triaged
+4,TOC_REQ,TOC Requested
+5,TOC_CMP,TOC Completed

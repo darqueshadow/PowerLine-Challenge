@@ -1,0 +1,113 @@
+PowerLine Challenge - Submenu Setup Instructions
+=================================================
+
+FILES CREATED:
+--------------
+1. index.html        - Main structure with both main menu and submenu
+2. main-menu.css     - All styles including CRT transition and submenu
+3. main-menu.js      - Handles main menu → submenu transition
+4. submenu.js        - Handles cassette selection and navigation
+
+
+REQUIRED FOLDER STRUCTURE:
+--------------------------
+PowerLineChallenge/
+├── index.html
+├── main-menu.css
+├── main-menu.js
+├── submenu.js
+├── Main_Menu.png                                          (your existing main menu image)
+├── Cassette_BLANK.png                                     (blank cassette)
+├── Cassette_Deck.png                                      (cassette deck)
+└── assets/
+    └── screenshots/
+        └── coming-soon-placeholder.png                    (NEEDS TO BE CREATED - see below)
+
+
+ASSET THAT NEEDS TO BE CREATED:
+--------------------------------
+Create a simple placeholder image for:
+  assets/screenshots/coming-soon-placeholder.png
+
+This can be:
+  - A simple black rectangle with green text saying "COMING SOON"
+  - Any placeholder image (400x300px or similar)
+  - Or temporarily use a copy of the blank cassette image
+
+For now, you can create a simple one using any image editor, or I can generate a basic HTML-based placeholder if needed.
+
+
+HOW IT WORKS:
+-------------
+1. User clicks the cassette tray zone on the main menu
+2. CRT flicker transition plays (500ms)
+3. Submenu appears with:
+   - Horizontal cassette row (showing the blank cassette)
+   - Screenshot panel (showing placeholder)
+   - Info panel (showing "Blank Cartridge" details)
+   - Cassette deck at bottom with Start/Back buttons
+
+4. Navigation:
+   - Click cassettes or use Left/Right arrow keys (or A/D keys)
+   - Click "Start" button (currently disabled for blank cartridge)
+   - Click "Back" button to return to main menu
+
+
+ADDING NEW CARTRIDGES:
+----------------------
+To add a new game cartridge (e.g., "Asteroid Command"):
+
+1. In submenu.js, locate the loadCartridges() function
+2. Add a new object to the array:
+
+   {
+     id: "asteroid-command",
+     displayName: "Asteroid Command",
+     status: "available",                                    // or "coming-soon"
+     screenshot: "assets/screenshots/asteroid-command.png",
+     synopsis: "Space-themed PLC training mission with falling command asteroids.",
+     cassetteImage: "assets/cassettes/asteroid-cassette.png" // custom cassette art
+   }
+
+3. Create the corresponding assets:
+   - Custom cassette PNG (or reuse blank cassette temporarily)
+   - Screenshot PNG
+
+
+CURRENT STATE:
+--------------
+✓ Main menu with clickable cassette tray
+✓ CRT flicker transition animation
+✓ Submenu with cassette row
+✓ Screenshot and info panels
+✓ Cassette deck with control buttons
+✓ Keyboard navigation (arrows, A/D, Enter, Escape)
+✓ Mouse click navigation
+✓ One blank cartridge shown (status: "coming-soon")
+
+TODO:
+-----
+☐ Create coming-soon-placeholder.png
+☐ Test the interface
+☐ Build actual game cartridges
+☐ Create custom cassette art for each game
+☐ Implement cartridge loader (replace alert() in handleStart())
+
+
+TESTING:
+--------
+1. Open index.html in a browser
+2. Click the cassette tray (or press Enter when focused)
+3. See CRT flicker transition
+4. See submenu with blank cassette
+5. Use arrow keys or A/D to navigate (only 1 cassette for now)
+6. Click Back button to return to main menu
+
+
+NOTES:
+------
+- The blank cassette shows as "Coming Soon" so Start button is disabled
+- When you create a cartridge and set status: "available", the Start button will enable
+- All transitions use the CRT flicker effect
+- The cassette deck image is purely decorative
+- Color scheme matches your green phosphor CRT aesthetic (#39ff14)

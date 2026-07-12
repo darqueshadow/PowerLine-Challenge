@@ -1,0 +1,405 @@
+/* ============================================
+   ASTEROID COMMAND v2.0.G — STYLE.CSS
+   Niagara Kinetic Master
+   ============================================ */
+
+:root {
+    --color-bg: #0a0a12;
+    --color-primary: #00ffff;
+    --color-secondary: #ff6600;
+    --color-accent: #ffd700;
+    --color-danger: #ff3366;
+    --color-success: #00ff88;
+    --color-text: #e0e0ff;
+    --color-dim: #6688aa;
+    --color-white: #ffffff;
+    --font-arcade: 'Courier New', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-arcade); }
+
+/* === Game Container === */
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #0a0a18 0%, #0d0d24 50%, #0a0a18 100%);
+    position: relative;
+}
+
+/* === HUD === */
+#hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 25px;
+    background: rgba(0, 0, 0, 0.7);
+    border-bottom: 1px solid var(--color-primary);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+}
+
+#hud-left, #hud-right { display: flex; gap: 10px; align-items: center; flex: 1; }
+#hud-left { justify-content: flex-start; }
+#hud-right { justify-content: flex-end; }
+#hud-center { position: absolute; left: 45%; transform: translateX(-50%); }
+
+#score-label, #tier-label, #shields-label, #streak-label {
+    color: var(--color-white) !important;
+    font-weight: bold;
+}
+
+#score-value { color: var(--color-accent); text-shadow: 0 0 10px var(--color-accent); font-size: 20px; font-weight: bold; }
+#multiplier-value { color: var(--color-success); font-weight: bold; margin-left: 4px; }
+#tier-value { color: var(--color-primary); text-shadow: 0 0 10px var(--color-primary); font-weight: bold; }
+#shields-value { color: var(--color-success); text-shadow: 0 0 8px var(--color-success); letter-spacing: 1px; }
+#streak-value { color: var(--color-primary); text-shadow: 0 0 10px var(--color-primary); font-size: 18px; font-weight: bold; }
+
+#shields-value.shield-100 { color: #00ff88; }
+#shields-value.shield-50 { color: #ff6600; }
+#shields-value.shield-25 { color: #9d00ff; animation: pulse 0.8s infinite; }
+#shields-value.critical { color: #666; }
+
+/* === VDS === */
+#vds-container {
+    width: 270px;
+    height: 42px;
+    background: rgba(10, 10, 20, 0.95);
+    border: 2px solid #444;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 1);
+    transition: border-color 0.15s ease;
+}
+
+#vds-container.flash-hit { border-color: var(--color-success); box-shadow: inset 0 0 15px #000, 0 0 8px var(--color-success); }
+#vds-container.flash-miss { border-color: var(--color-danger); box-shadow: inset 0 0 15px #000, 0 0 8px var(--color-danger); }
+#vds-container.flash-impact { border-color: var(--color-secondary); box-shadow: inset 0 0 15px #000, 0 0 8px var(--color-secondary); }
+#vds-container.flash-bonus { border-color: var(--color-accent); box-shadow: inset 0 0 15px #000, 0 0 8px var(--color-accent); }
+
+#status-message { font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+#status-message.hit { color: var(--color-success); }
+#status-message.miss, #status-message.misfire { color: var(--color-danger); }
+#status-message.impact { color: var(--color-secondary); }
+#status-message.bonus, #status-message.commendation { color: var(--color-accent); }
+
+/* === Command Input === */
+#command-box {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--color-primary);
+    border-radius: 4px;
+    padding: 8px 15px;
+    z-index: 50;
+}
+
+#command-prompt { color: var(--color-primary); font-size: 20px; margin-right: 10px; }
+#command-input {
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    font-family: var(--font-arcade);
+    font-size: 18px;
+    width: 350px;
+    outline: none;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+#command-input::placeholder { color: var(--color-dim); opacity: 0.5; }
+#command-input.error { animation: shake 0.3s ease; color: var(--color-danger); }
+#command-input.success { color: var(--color-success); }
+
+/* === Play Area === */
+#play-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: url('assets/master_background_sky.png') no-repeat center bottom;
+    background-size: cover;
+}
+
+#game-canvas { width: 100%; height: 100%; display: block; }
+
+/* === Holodeck Grid (12% watermark) === */
+#holodeck-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    background-image: 
+        linear-gradient(rgba(255, 215, 0, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 215, 0, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    opacity: 0;
+    transition: opacity 3s ease;
+}
+
+#holodeck-grid.grid-active { opacity: 1 !important; }
+#holodeck-grid.grid-watermark { opacity: 0.12 !important; }
+
+#simulation-status {
+    position: absolute;
+    top: 125px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--color-accent);
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px var(--color-accent);
+    text-transform: uppercase;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+#simulation-status.visible { opacity: 1; }
+
+#beta-indicator {
+    position: absolute;
+    top: 120px;
+    right: 20px;
+    color: var(--color-accent);
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--color-accent);
+    letter-spacing: 2px;
+    padding: 5px 10px;
+    border: 1px solid var(--color-accent);
+    background: rgba(255, 215, 0, 0.1);
+    z-index: 50;
+    animation: pulse 1s infinite;
+}
+
+/* === Zone Labels === */
+#zone-labels {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    pointer-events: none;
+    padding: 0 20px;
+}
+
+.zone-label {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #00aaff;
+    text-shadow: 0 0 6px #00aaff;
+    padding: 5px 10px;
+    background: rgba(0, 170, 255, 0.15);
+    border: 1px solid rgba(0, 170, 255, 0.4);
+    border-radius: 3px;
+    margin-bottom: 8px;
+}
+
+.zone-label[data-zone="tower"] {
+    color: var(--color-accent);
+    text-shadow: 0 0 10px var(--color-accent);
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.zone-label.destroyed { color: var(--color-danger); opacity: 0.4; text-decoration: line-through; }
+.zone-label.disabled { color: var(--color-secondary); animation: pulse 1s infinite; }
+
+/* === Overlays === */
+#start-overlay, #game-over-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 10, 18, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+#start-content, #game-over-content { text-align: center; padding: 30px; max-width: 600px; }
+#start-content h1, #game-over-content h1 { font-size: 32px; color: var(--color-primary); text-shadow: 0 0 20px var(--color-primary); margin-bottom: 8px; letter-spacing: 4px; }
+#game-over-content h1 { color: var(--color-danger); text-shadow: 0 0 20px var(--color-danger); }
+.subtitle { font-size: 12px; color: var(--color-secondary); letter-spacing: 3px; margin-bottom: 20px; }
+
+#scoring-info, #tier-info {
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 4px;
+    text-align: left;
+}
+
+#scoring-info h3, #tier-info h3 { color: var(--color-primary); font-size: 12px; letter-spacing: 2px; margin-bottom: 10px; text-align: center; }
+.score-row, .tier-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: var(--color-dim); }
+.score-row span:last-child { color: var(--color-success); }
+.score-row.penalty span:last-child { color: var(--color-danger); }
+.score-row.bonus span:last-child { color: var(--color-accent); }
+.tier-row span:last-child { color: var(--color-primary); }
+
+#instructions { margin: 15px 0 20px; color: var(--color-dim); font-size: 12px; }
+#final-stats { margin: 15px 0; padding: 10px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; font-size: 12px; color: var(--color-dim); }
+
+/* === Dev Mode Password Prompt (Fix 3) === */
+#dev-mode-prompt {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+}
+
+#dev-mode-content {
+    text-align: center;
+    padding: 30px;
+    background: rgba(20, 20, 40, 0.95);
+    border: 2px solid var(--color-accent);
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+}
+
+#dev-mode-content p {
+    color: var(--color-accent);
+    font-size: 14px;
+    letter-spacing: 3px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px var(--color-accent);
+}
+
+#dev-password-input {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--color-accent);
+    border-radius: 4px;
+    padding: 12px 20px;
+    color: var(--color-accent);
+    font-family: var(--font-arcade);
+    font-size: 18px;
+    letter-spacing: 4px;
+    text-align: center;
+    width: 250px;
+    outline: none;
+    text-transform: uppercase;
+}
+
+#dev-password-input:focus {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+#dev-timer {
+    margin-top: 15px;
+    font-size: 24px;
+    color: var(--color-danger);
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--color-danger);
+    animation: pulse 1s infinite;
+}
+
+/* === Buttons === */
+#start-btn, #restart-btn, #eject-btn, #holodeck-btn {
+    background: transparent;
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+    font-family: var(--font-arcade);
+    font-size: 14px;
+    padding: 12px 30px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    margin: 5px;
+}
+
+#start-btn:hover, #restart-btn:hover { background: var(--color-primary); color: var(--color-bg); box-shadow: 0 0 20px var(--color-primary); }
+#holodeck-btn { border-color: var(--color-accent); color: var(--color-accent); }
+#holodeck-btn:hover { background: var(--color-accent); color: var(--color-bg); box-shadow: 0 0 20px var(--color-accent); }
+#eject-btn { border-color: var(--color-secondary); color: var(--color-secondary); }
+#eject-btn:hover { background: var(--color-secondary); color: var(--color-bg); }
+
+/* === Utility === */
+.hidden { display: none !important; }
+
+/* === Tether Layer (Tractor Beam System) === */
+#tether-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.tether-line {
+    stroke: rgba(255, 215, 0, 0.7); /* Yellow energy beam */
+    stroke-width: 2px;
+    stroke-dasharray: 4; /* Classic 80s tactical radar look */
+}
+
+/* === Challenge Box (Spatial UI Physics) === */
+.challenge-box {
+    position: absolute;
+    background-color: #FFD700; /* Standard Yellow */
+    color: #000;
+    border: 2px solid #FFF;
+    padding: 8px;
+    border-radius: 4px;
+    z-index: 10;
+    /* Allows the box to 'squish' smoothly when under pressure */
+    transition: width 0.2s ease, height 0.2s ease;
+}
+
+.challenge-box .command-display {
+    background-color: #0000FF; /* Standard Blue */
+    color: #FFF;
+}
+
+/* === Particle/Shatter System === */
+.particle-container,
+#particle-container {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 15; /* Above targets, below HUD */
+    overflow: hidden;
+}
+
+.shard {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-size: 400%; /* Zoom into a specific "rocky" part of the texture */
+    opacity: 1;
+    pointer-events: none;
+}
+
+/* Three distinct jagged shapes for variety */
+.shape-a { clip-path: polygon(20% 0%, 80% 20%, 100% 80%, 30% 100%, 0% 40%); }
+.shape-b { clip-path: polygon(50% 0%, 100% 100%, 0% 80%); }
+.shape-c { clip-path: polygon(10% 20%, 90% 10%, 80% 90%, 20% 80%); }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+@media (max-width: 768px) {
+    #command-input { width: 280px; font-size: 16px; }
+    #hud { font-size: 11px; padding: 10px 15px; }
+    #hud-center { position: relative; left: auto; transform: none; }
+    #vds-container { width: 180px; height: 36px; }
+    #status-message { font-size: 11px; }
+}

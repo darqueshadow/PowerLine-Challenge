@@ -1,0 +1,9 @@
+Rank / Tier,Points Required,Speed (Min),Speed (Max),Spawn (Min sec),Spawn (Max sec),Max Targets,Base Hit (Clear),Target Impact (Penalty),Asteroid Radius,Projectile Speed
+Trainee,0,0.6x,0.8x,5,6.5,6,100,-50,20,800
+Mentoring,2001,0.8x,1.0x,4.5,5.5,8,125,-60,19,850
+Signed Off,5001,1.0x,1.2x,4,5,10,200,-100,18,900
+Out of Probation,10001,1.2x,1.4x,3.5,4,12,300,-150,17,1000
+2 Years In,20001,1.5x,1.8x,3,3.5,14,450,-225,16,1100
+Full Time,35001,1.8x,2.2x,2.5,3,16,600,-300,15,1200
+Veteran,55001,2.5x,3.0x,1.5,2,20,850,-500,14,1300
+O.A.S,80001,3.0x,4.0x,0.8,1.2,25,1200,-600,13,1400

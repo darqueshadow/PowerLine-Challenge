@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE AQUANAUT — SFX AUDITION BENCH</title>
+<style>
+    :root {
+        --green: #00ff41;
+        --green-dim: #0a8f2f;
+        --amber: #ffcc33;
+        --bg: #02080a;
+        --panel: #06141a;
+        --line: #0c3a2a;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        background: radial-gradient(circle at 50% -10%, #073042 0%, var(--bg) 60%);
+        color: var(--green);
+        font-family: "Courier New", ui-monospace, monospace;
+        padding: 24px 18px 60px;
+        min-height: 100vh;
+    }
+    h1 { font-size: 20px; letter-spacing: 4px; margin: 0 0 2px; text-shadow: 0 0 8px rgba(0,255,65,0.5); }
+    .sub { color: var(--green-dim); font-size: 12px; letter-spacing: 1px; margin-bottom: 20px; }
+    .sub code { color: var(--amber); }
+
+    .controls {
+        display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+        background: var(--panel); border: 1px solid var(--line);
+        padding: 12px 16px; border-radius: 6px; margin-bottom: 22px;
+    }
+    .ctl-group { display: flex; align-items: center; gap: 8px; }
+    .ctl-group label { font-size: 11px; letter-spacing: 1px; color: var(--green-dim); text-transform: uppercase; }
+
+    .mode-btn, .toggle-btn {
+        background: transparent; color: var(--green-dim);
+        border: 1px solid var(--line); border-radius: 4px;
+        padding: 6px 12px; font-family: inherit; font-size: 12px;
+        letter-spacing: 1px; cursor: pointer; transition: all .12s;
+    }
+    .mode-btn.active, .toggle-btn.active {
+        color: var(--bg); background: var(--green);
+        box-shadow: 0 0 10px rgba(0,255,65,0.5); font-weight: bold;
+    }
+    .toggle-btn.active.warn { background: var(--amber); box-shadow: 0 0 10px rgba(255,204,51,0.5); }
+
+    input[type=range] { accent-color: var(--green); width: 140px; }
+    .vol-val { color: var(--amber); font-size: 12px; min-width: 34px; }
+
+    .group-title {
+        font-size: 12px; letter-spacing: 3px; color: var(--amber);
+        margin: 22px 0 10px; border-bottom: 1px dashed var(--line); padding-bottom: 5px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 9px; }
+
+    /* ── A cue cell = play button + sample footer ── */
+    .sfx-cell {
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 4px; overflow: hidden; transition: all .1s;
+    }
+    .sfx-cell.dragover { border-color: var(--amber); box-shadow: 0 0 14px rgba(255,204,51,0.45); }
+    .sfx-cell.has-sample { border-left: 3px solid var(--amber); }
+
+    .sfx-btn {
+        display: block; width: 100%; background: transparent; color: var(--green);
+        border: 0; border-left: 3px solid var(--green-dim);
+        padding: 11px 13px; text-align: left;
+        font-family: inherit; font-size: 13px; cursor: pointer;
+        transition: all .1s; position: relative;
+    }
+    .sfx-cell.has-sample .sfx-btn { border-left-color: transparent; }
+    .sfx-btn:hover { background: #0a2028; }
+    .sfx-btn:active, .sfx-btn.flash {
+        background: var(--green); color: var(--bg); box-shadow: 0 0 14px rgba(0,255,65,0.6);
+    }
+    .sfx-btn .ev { display: block; font-weight: bold; letter-spacing: 1px; }
+    .sfx-btn .desc { display: block; font-size: 10px; color: var(--green-dim); margin-top: 3px; }
+    .sfx-btn:active .desc, .sfx-btn.flash .desc { color: rgba(2,8,10,0.7); }
+    .sfx-btn.new::after {
+        content: "NEW"; position: absolute; top: 6px; right: 8px;
+        font-size: 8px; letter-spacing: 1px; color: var(--amber);
+    }
+
+    .cell-foot {
+        display: flex; align-items: center; gap: 6px;
+        padding: 5px 9px; border-top: 1px solid var(--line);
+        background: rgba(0,0,0,0.25);
+    }
+    .mini {
+        background: transparent; color: var(--green-dim);
+        border: 1px solid var(--line); border-radius: 3px;
+        font-family: inherit; font-size: 10px; letter-spacing: .5px;
+        padding: 3px 7px; cursor: pointer; white-space: nowrap;
+    }
+    .mini:hover { color: var(--green); border-color: var(--green-dim); }
+    .copy-btn:hover, .reset-btn:hover { color: var(--amber); border-color: var(--amber); }
+    .src-tag {
+        margin-left: auto; font-size: 9px; letter-spacing: .5px;
+        color: var(--green-dim); text-align: right;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50%;
+    }
+    .sfx-cell.has-sample .src-tag { color: var(--amber); }
+
+    .hint {
+        margin-top: 26px; font-size: 11px; color: var(--green-dim);
+        border-top: 1px dashed var(--line); padding-top: 12px; line-height: 1.7;
+    }
+    .hint code { color: var(--amber); }
+    .hint b { color: var(--green); }
+    #status { color: var(--amber); font-size: 11px; margin-left: auto; max-width: 360px; text-align: right; }
+</style>
+</head>
+<body>
+    <h1>THE AQUANAUT // SFX AUDITION BENCH</h1>
+    <div class="sub">Test harness for <code>core/audio.js</code> — click a cue to hear it. Drag an audio file onto a cue (or <code>↥</code>) to audition a real sample in its place. Serve over <code>http://</code>.</div>
+
+    <div class="controls">
+        <div class="ctl-group">
+            <label>Mode</label>
+            <button class="mode-btn active" data-mode="standard">STANDARD</button>
+            <button class="mode-btn" data-mode="holodeck">HOLODECK</button>
+        </div>
+        <div class="ctl-group">
+            <label>Master</label>
+            <input type="range" id="vol" min="0" max="1" step="0.01" value="0.5">
+            <span class="vol-val" id="vol-val">0.50</span>
+        </div>
+        <div class="ctl-group">
+            <button class="toggle-btn" id="burst">BURST ×6</button>
+            <button class="toggle-btn warn" id="mute">MUTE SFX</button>
+        </div>
+        <div id="status">AUDIO: not started — click a cue</div>
+    </div>
+
+    <div id="board"></div>
+
+    <div class="hint">
+        <b>Audition a sample:</b> drag a <code>.wav</code>/<code>.mp3</code> onto any cue (or click <code>↥ sample</code>). It plays in place of the synth immediately — click the cue to hear it, <code>↺ synth</code> to A/B against the original. Loaded files live only in this page until you commit them.<br>
+        <b>Make it permanent (in the game):</b> 1) save the file to <code>files/assets/sfx/</code> · 2) click <code>⧉ spec</code> to copy that cue's line · 3) paste it into <code>AudioManager.sampleSpecs</code> in <code>core/audio.js</code>. Missing files fall back to the synth, so it's safe to add them one at a time.<br>
+        <b>Notes:</b> samples override the synth in <b>Standard</b> mode only (Holodeck stays digital). Leave fast cues like <code>typing</code>/<code>fire</code> on the synth — repeated samples sound machine-gunned. <b>BURST ×6</b> replays a cue 6× to test rapid-fire feel.
+    </div>
+
+    <script src="core/audio.js"></script>
+    <script>
+        // ── Event catalogue, grouped for the bench ──
+        const GROUPS = [
+            ["CORE COMBAT LOOP", [
+                ["typing",       "Keystroke — character entered", true],
+                ["typingDelete", "Keystroke — backspace/delete",  true],
+                ["fire",         "Sonar pulse launched",          true],
+                ["hit",          "Creature struck / cleared",     true],
+                ["misfire",      "Mistype — pressure spike",      true],
+                ["misfireAlarm", "Rebreather jam klaxon",         false],
+            ]],
+            ["DEFENSE / HOSE", [
+                ["hullHit",      "Dive-bell hull stress",         false],
+                ["hullBreach",   "Hull breach klaxon",            false],
+                ["bellBreach",   "Bell implosion (deep boom)",    false],
+                ["targetImpact", "Creature reaches the hose",     false],
+                ["hoseDown",     "Hose severed",                  false],
+                ["latch",        "Creature latches on",           false],
+                ["unlatch",      "Creature released",             false],
+            ]],
+            ["CONTACT / ECONOMY", [
+                ["spawn",        "Creature contact ping",         false],
+                ["salvage",      "Salvage collected (ding)",      false],
+                ["rovArrival",   "Nanomedic ROV arrives",         false],
+                ["rovDestroyed", "ROV destroyed",                 false],
+            ]],
+            ["DEATH / KILL-CAM", [
+                ["diverAlarm",   "Diver-attack survival klaxon",  true],
+                ["killCamStart", "Kill-cam dread rumble",         false],
+                ["heartbeat",    "Heartbeat double-thump",        false],
+                ["glassCrack",   "Visor glass cracks",            false],
+                ["metalGroan",   "Hull groans under pressure",    false],
+                ["jawSnap",      "Great white jaw snap",          false],
+                ["tentacle",     "Jellyfish wet slither",         false],
+                ["implosion",    "Final implosion",               false],
+                ["gameOver",     "Game-over descent",             false],
+            ]],
+            ["UI", [
+                ["lcarsButton",  "Holodeck panel touch",          false],
+            ]],
+        ];
+
+        const board = document.getElementById('board');
+        const statusEl = document.getElementById('status');
+        let started = false;
+
+        function status(msg) { statusEl.textContent = msg; }
+
+        function ensureStarted() {
+            if (started) return;
+            AudioManager.init();
+            AudioManager.setVolume(parseFloat(document.getElementById('vol').value));
+            started = true;
+            status(AudioManager.initialized ? 'AUDIO: live' : 'AUDIO: Web Audio unavailable');
+        }
+
+        function setStandard() {
+            document.querySelectorAll('.mode-btn').forEach(b =>
+                b.classList.toggle('active', b.dataset.mode === 'standard'));
+            if (started) AudioManager.setMode('standard');
+        }
+
+        function trigger(ev, btn) {
+            ensureStarted();
+            const burst = document.getElementById('burst').classList.contains('active');
+            const n = burst ? 6 : 1;
+            for (let i = 0; i < n; i++) setTimeout(() => AudioManager.play(ev), i * 90);
+            btn.classList.add('flash');
+            setTimeout(() => btn.classList.remove('flash'), 130);
+        }
+
+        // ── Load a local file as the override sample for one cue ──
+        async function loadSampleFile(ev, file, cell) {
+            ensureStarted();
+            if (!AudioManager.ctx) { status('no audio context — cannot decode'); return; }
+            try {
+                const buf = await file.arrayBuffer();
+                const audio = await AudioManager.ctx.decodeAudioData(buf);
+                AudioManager.samples[ev] = audio;          // _playStandard checks this first
+                cell._fileName = file.name;
+                cell.classList.add('has-sample');
+                cell.querySelector('.src-tag').textContent = '◉ ' + file.name;
+                cell.querySelector('.reset-btn').hidden = false;
+                cell.querySelector('.copy-btn').hidden = false;
+                setStandard();                              // samples only sound in Standard mode
+                status('loaded "' + file.name + '" → ' + ev + ' · click the cue to hear it');
+            } catch (e) {
+                status('could not decode ' + file.name + ' (' + e.message + ')');
+            }
+        }
+
+        function clearSample(ev, cell) {
+            delete AudioManager.samples[ev];
+            cell._fileName = null;
+            cell.classList.remove('has-sample');
+            cell.querySelector('.src-tag').textContent = 'synth';
+            cell.querySelector('.reset-btn').hidden = true;
+            cell.querySelector('.copy-btn').hidden = true;
+            status(ev + ' → reverted to synth');
+        }
+
+        function copySpec(ev, cell) {
+            const ext = ((cell._fileName || 'sound.wav').split('.').pop() || 'wav').toLowerCase();
+            const line = ev + ": { url: 'assets/sfx/" + ev + "." + ext + "', gain: 1.0, pitchVar: 0.0 },";
+            (navigator.clipboard ? navigator.clipboard.writeText(line) : Promise.reject())
+                .then(() => status('copied → save your file as files/assets/sfx/' + ev + '.' + ext + ', paste into sampleSpecs'))
+                .catch(() => status('paste this into sampleSpecs →  ' + line));
+        }
+
+        // ── Build the board ──
+        GROUPS.forEach(([title, events]) => {
+            const h = document.createElement('div');
+            h.className = 'group-title';
+            h.textContent = title;
+            board.appendChild(h);
+
+            const grid = document.createElement('div');
+            grid.className = 'grid';
+            events.forEach(([ev, desc, isNew]) => {
+                const cell = document.createElement('div');
+                cell.className = 'sfx-cell';
+                cell.innerHTML =
+                    '<button class="sfx-btn' + (isNew ? ' new' : '') + '">' +
+                        '<span class="ev">' + ev + '</span><span class="desc">' + desc + '</span>' +
+                    '</button>' +
+                    '<div class="cell-foot">' +
+                        '<label class="mini load-btn" title="Load a local audio file to audition as this cue">↥ sample' +
+                            '<input type="file" accept="audio/*" hidden></label>' +
+                        '<button class="mini reset-btn" title="Revert to the synth voice" hidden>↺ synth</button>' +
+                        '<button class="mini copy-btn" title="Copy the sampleSpecs line for this cue" hidden>⧉ spec</button>' +
+                        '<span class="src-tag">synth</span>' +
+                    '</div>';
+
+                cell.querySelector('.sfx-btn').addEventListener('click', e => trigger(ev, e.currentTarget));
+                cell.querySelector('input[type=file]').addEventListener('change', e => {
+                    if (e.target.files[0]) loadSampleFile(ev, e.target.files[0], cell);
+                });
+                cell.querySelector('.reset-btn').addEventListener('click', () => clearSample(ev, cell));
+                cell.querySelector('.copy-btn').addEventListener('click', () => copySpec(ev, cell));
+
+                // Drag & drop onto the whole cell
+                cell.addEventListener('dragover', e => { e.preventDefault(); cell.classList.add('dragover'); });
+                cell.addEventListener('dragleave', () => cell.classList.remove('dragover'));
+                cell.addEventListener('drop', e => {
+                    e.preventDefault();
+                    cell.classList.remove('dragover');
+                    const f = e.dataTransfer.files[0];
+                    if (f) loadSampleFile(ev, f, cell);
+                });
+
+                grid.appendChild(cell);
+            });
+            board.appendChild(grid);
+        });
+
+        // ── Controls ──
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ensureStarted();
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                AudioManager.setMode(btn.dataset.mode);
+            });
+        });
+
+        const vol = document.getElementById('vol');
+        const volVal = document.getElementById('vol-val');
+        vol.addEventListener('input', () => {
+            volVal.textContent = parseFloat(vol.value).toFixed(2);
+            if (started) AudioManager.setVolume(parseFloat(vol.value));
+        });
+
+        document.getElementById('burst').addEventListener('click', e =>
+            e.currentTarget.classList.toggle('active'));
+
+        document.getElementById('mute').addEventListener('click', e => {
+            ensureStarted();
+            AudioManager._sfxMuted = e.currentTarget.classList.toggle('active');
+        });
+
+        // Type anywhere to audition the keystroke cue
+        document.addEventListener('keydown', e => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key.length === 1 || e.key === 'Backspace') {
+                ensureStarted();
+                AudioManager.play(e.key === 'Backspace' ? 'typingDelete' : 'typing');
+            }
+        });
+    </script>
+</body>
+</html>

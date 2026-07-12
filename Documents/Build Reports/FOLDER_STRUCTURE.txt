@@ -1,0 +1,71 @@
+COMPLETE FOLDER STRUCTURE - LOAD SCREENS UPDATE
+================================================
+
+Place these files in your Game folder exactly as shown:
+
+/Game/
+│
+├── index.html                           ✓ Main console (UPDATED - load screen added)
+│
+├── assets/
+│   └── images/
+│       ├── Main_Menu.png                (Your existing file)
+│       ├── Cassette_Deck.png            (Your existing file)
+│       ├── Cassette_BLANK.png           (Your existing file)
+│       └── coming-soon-placeholder.svg  (Your existing file)
+│
+├── core/
+│   ├── main-menu.js                     (Your existing file - no changes)
+│   └── submenu.js                       ✓ UPDATED - handleStart() modified
+│
+├── styles/
+│   └── main-menu.css                    ✓ UPDATED - load screen CSS added
+│
+└── cassettes/
+    └── blank/
+        └── index.html                   ✓ UPDATED - exit screen added
+
+
+FILES TO REPLACE:
+=================
+
+1. /Game/index.html
+   - Replace with the new version
+   - Added cassette-load-screen overlay
+
+2. /Game/styles/main-menu.css
+   - Replace with the new version
+   - Added CSS for load screen styling
+
+3. /Game/core/submenu.js
+   - Replace with the new version
+   - Modified handleStart() function
+
+4. /Game/cassettes/blank/index.html
+   - Replace with the new version
+   - Added exit screen overlay
+   - Modified ejectCassette() function
+
+
+NO CHANGES NEEDED:
+==================
+
+- /Game/core/main-menu.js (unchanged)
+- All files in /Game/assets/images/ (unchanged)
+
+
+QUICK TEST:
+===========
+
+1. Open /Game/index.html in browser
+2. Click cassette tray
+3. Select Blank Cassette
+4. Click Play
+5. See green text: "LOAD BLANK CASSETTE,8,1" (wait 5 seconds)
+6. See Blank Cassette menu
+7. Click "2. EJECT CASSETTE"
+8. See green text: "REWINDING CASSETTE..." (wait 5 seconds)
+9. Back at main console!
+
+
+ALL DONE! 🎮

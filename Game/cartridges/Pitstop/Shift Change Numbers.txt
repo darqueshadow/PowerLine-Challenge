@@ -1,0 +1,18 @@
+Shift Change Numbers
+
+For your files. I went and looked at the Break Log and got the actual numbers. 
+The 12 hour trucks are "Continental" as in that they follow a continental rotation. The 24 hour trucks are on a 5/4/5 shift rotation. Perhaps we could divide the race type that way. Full Out, or Continental (just place holders for now), although I am not committed to this concept. 
+
+* denotes 12 hour unit
+
+0530 - 7
+0600 - 5
+0630 - 4
+0700 - 5
+0730 - 6
+0800 - 1*
+0900 - 2*
+1000 - 3*
+1100 - 1* or 2* (seasonal)
+1200 - 4*
+1400 - 2*

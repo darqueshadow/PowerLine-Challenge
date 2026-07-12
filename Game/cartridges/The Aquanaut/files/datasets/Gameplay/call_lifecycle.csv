@@ -1,0 +1,9 @@
+﻿stage_id,stage_name,command_template,unit_color,challenge_color,variable,stage_type
+NTF,Notified,NTF {units} {inc_numbers},AVA,Black / Sonar Green (#000000 / #00FF41),inc_numbers,normal
+ENR,En Route,ENR {units},NTF,Black / Sonar Green (#000000 / #00FF41),none,normal
+ARR,Arrived,ARR {units},ENR,Black / Sonar Green (#000000 / #00FF41),none,normal
+PTC,Patient Contact,PTC {units},ARR,Black / Sonar Green (#000000 / #00FF41),none,normal
+DPT,Depart,"DPT {units} {hospitals},,,,{ctas},{ctas}",ARR,{ctas},hospital+ctas,normal
+ARD,Arrived Destination,ARD {units},DPT,Black / Sonar Green (#000000 / #00FF41),none,normal
+TOC,Transfer of Care,TOC {units},ARD,gated,none,gated
+AVA,Available,AVA {units} CC,ARD,,none,terminal

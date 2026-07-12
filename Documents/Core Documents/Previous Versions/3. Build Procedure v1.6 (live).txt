@@ -1,0 +1,368 @@
+
+🔧 PowerLine Challenge – Build Procedure v1.6 (Draft)
+
+Role of this document:
+This is the Technical Manual for implementing the PowerLine Challenge system. It sits under Laws v1.6 1.docx (“The Constitution”) and 2. Overview v1.6 1.docx (“The Design Bible”), and tells Claude how to build the project in code. [User Refernce Guide | Word], [1. Laws v1.6 1 | Word], [Build Procedure 1 | Word]
+
+
+1. Scope and Purpose
+
+Rebuild the PowerLine Command Training System as a clean, modular web project. [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+Separate:
+
+The Arcade / Main Menu hub (console UI, game selection, music control). [Build Procedure 1 | Word], [<File>Buil...ocx</File> | Word]
+The core engine and dataset logic. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+Individual Cartridges (themes like Asteroid Command, Zombie, Bubble Clouds) that plug into the common engine and dataset. [Build Procedure 1 | Word], [User Refernce Guide | Word]
+A neutral Empty Cartridge / “Blank” used as the base for new cartridges. [Build Procedure 1 | Word], [1. Laws v1.6 1 | Word], [User Refernce Guide | Word]
+
+
+
+Claude must treat this Build Procedure as implementation detail, always respecting definitions and hard rules in 1. Laws v1.6 1.docx. [1. Laws v1.6 1 | Word], [User Refernce Guide | Word]
+
+2. Project Structure (Folders & Files)
+The recommended folder layout aligns with the modular Arcade + Cartridges structure. [Build Procedure 1 | Word], [<File>Buil...ocx</File> | Word]
+Plain TextPowerLineChallenge/  arcade.html          # Main hub (Arcade) + menu + cartridge loader  /core                # Shared engine & system modules    config.js    data.js    engine.js    hud.js    ui.js    audio.js  /cartridges    /blank             # Empty Cartridge / “Blank” template (never edited directly)      index.html      style.css      script.js    /asteroid-command  # Example themed cartridge      index.html      style.css      script.js      cartridge.json    /...other cartridges...  /assets    /images    /audio    /fonts    /datasets          # CSV files derived from Excel workbookShow more lines
+
+
+arcade.html (or index.html, if aliased) acts as the Arcade hub / Main Menu, giving access to:
+
+Speed Drills
+Action Zone (dynamic games with movement/aiming)
+Strategy
+Head-to-Head
+Blank (developer-only in non‑demo builds) [Build Procedure 1 | Word], [1. Laws v1.6 1 | Word], [User Refernce Guide | Word]
+
+
+
+The Blank cartridge folder is the neutral implementation of the Empty Cartridge: all core gameplay logic, placeholder visuals (green Targets, yellow Challenges, blue Command), no dataset, no theme. [Build Procedure 1 | Word], [User Refernce Guide | Word], [First Conv...Copilot) 1 | Word]
+
+
+
+3. Core Engine Modules (/core)
+These files are theme‑agnostic and must not contain any theme-specific images, colors, or audio. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+3.1 config.js
+
+Holds shared constants and tunable values for:
+
+Base fall duration, spawn delay, difficulty increase rate, spawn reduction rate. [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+Maximum simultaneous Targets, shields, scoring, streak thresholds. [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+
+
+Must be structured so cartridges can override a safe subset of values via configOverrides or equivalent mechanism. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word]
+
+3.2 data.js
+Implements dataset structures and challenge generation. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+
+Load data from CSV(s) generated from the Excel master sheet:
+
+commandTypes (e.g., AP, ENP, BSEH) with “challenge” and “command” strings. [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+units (e.g., 2101, 2102, CARE1–CARE8, FIT, MHRT). [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+bases (challenge name + numeric command code). [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+Data pools such as UnitNumber, BaseName/BaseCode, Hospital, CallNumber, Priority. [User Refernce Guide | Word], [Build Procedure 1 | Word]
+
+
+
+Implement generateChallenge() that returns { challenge, command } using the universal formula: [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+Challenge: [Challenge PL] [Unit] [Base challenge]
+Command:  [Command PL] [Unit] [Base command]
+
+
+
+Respect Challenge Templates, Command Templates, Challenge Sets / Modules, and Data Pools as defined in the dataset and reference docs. [User Refernce Guide | Word], [Build Procedure 1 | Word]
+
+
+3.3 engine.js
+Implements the core game loop and Target lifecycle. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+Maintains game state:
+
+Score, streak, shields, accuracy, difficulty multiplier. [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+
+
+Target lifecycle:
+
+Spawn → fall → validate on Command input → Hit / Miss → Impact and cleanup. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+
+Difficulty scaling:
+
+Adjust spawn timing, fall speed, max simultaneous Targets based on correct answers and/or score, as per CPSI, SIP, BMT, CPTI values. [User Refernce Guide | Word], [<File>Buil...ocx</File> | Word]
+
+
+Engine must remain cartridge‑agnostic:
+
+Works on abstract Targets & Challenges, not “asteroids” or any specific theme. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+
+
+3.4 hud.js
+
+Updates HUD elements:
+
+Score, accuracy %, shields, streaks, bonus indicators. [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+
+
+Theme‑neutral: exposes functions the cartridge can wire to specific DOM nodes (themed or not). [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word]
+
+3.5 ui.js
+
+Manages screen states:
+
+Start, Options, Game, Pause, Game Over, and returns to Arcade hub. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word]
+
+
+Hooks buttons from arcade.html and cartridge index.html:
+
+Start cartridge, change module/dataset, return to Main Menu, switch modes. [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+
+
+3.6 audio.js
+
+Load and control background music and FX:
+
+loadTrack(name), playMusic(), pauseMusic(), stopMusic(), setVolume(level). [<File>Buil...ocx</File> | Word]
+
+
+Default assumption: one default track (e.g., asteroid-command.mp3) for early cartridges, with extensibility for theme-specific tracks. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word]
+
+
+4. Empty Cartridge / “Blank” (Master Template)
+Defined in 1. Laws v1.6 1.docx and User Refernce Guide.docx as the neutral, unthemed base version. [1. Laws v1.6 1 | Word], [User Refernce Guide | Word], [Build Procedure 1 | Word]
+
+Contains:
+
+All core gameplay logic.
+Placeholder visuals:
+
+Targets = green
+Challenges = yellow
+Command input = blue [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+
+No dataset (no CSV usage in Blank play). [User Refernce Guide | Word], [1. Laws v1.6 1 | Word]
+
+
+
+Rules (from Laws/Overview): [1. Laws v1.6 1 | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+Claude must never modify the Empty Cartridge directly.
+To create a new cartridge, Claude must:
+
+Duplicate the Empty Cartridge folder into /cartridges/<new-cartridge-id>/.
+Apply theme only through allowed Theme Injection Points.
+Keep all core logic intact unless an explicit override is given.
+
+
+
+
+5. Cartridges & Themes
+A Cartridge = a themed version of the game created from a duplicated Empty Cartridge. [1. Laws v1.6 1 | Word], [User Refernce Guide | Word], [Build Procedure 1 | Word]
+Each cartridge must include:
+
+index.html – cartridge-specific container, but still wired to core engine. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word]
+style.css – theme visuals (backgrounds, HUD styling, Target/Challenge appearance). [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+script.js – integration with core engine (Target DOM binding, HUD wiring, local config overrides). [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word]
+Optional cartridge.json – metadata:
+
+id, name, description, themeColors, configOverrides. [<File>Buil...ocx</File> | Word], [Build Procedure 1 | Word]
+
+
+
+Theme Rules: [1. Laws v1.6 1 | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+Themes may change:
+
+Visuals, audio, fonts, glow effects, animations.
+
+
+Themes must not change:
+
+Scoring logic, dataset logic, challenge generation rules, core engine code.
+
+
+Target & Challenge relationship:
+
+Each Target always has a Challenge attached; they move as a single composite object. [User Refernce Guide | Word], [First Conv...Copilot) 1 | Word]
+
+
+
+
+6. Arcade Hub, Action Zone & Blank Module Access
+Defined in 2. Overview v1.6 1.docx and the Reference Guide. [Build Procedure 1 | Word], [User Refernce Guide | Word], [1. Laws v1.6 1 | Word]
+
+
+Arcade (Main Hub):
+
+Implemented in arcade.html.
+Presents main categories: Speed Drills, Action Zone, Head‑to‑Head, Strategy, etc. [Build Procedure 1 | Word]
+Each category leads to a submenu listing cartridges.
+
+
+
+Action Zone:
+
+Submenu for dynamic games with movement, jumping, aiming; distinct from pure typing drills. [Build Procedure 1 | Word]
+
+
+
+Blank Module:
+
+In demo builds, the “Blank” option can be visible for testing. [First Conv...Copilot) 1 | Word], [Build Procedure 1 | Word]
+In non‑demo / publish builds, it must be hidden for regular users and only accessible via developer input.
+
+
+
+Developer Access (Blank / Developer Mode):
+
+Developer Mode is activated via Ctrl + Shift + B. [1. Laws v1.6 1 | Word], [User Refernce Guide | Word], [First Conv...Copilot) 1 | Word]
+In your recent design, this keyboard combo is reused to:
+
+Trigger a short‑lived password prompt.
+If the correct password is entered within the time limit, unlock the Blank module for selection and testing. [First Conv...Copilot) 1 | Word], [User Refernce Guide | Word]
+
+
+
+
+
+Build Procedure requirement:
+
+ui.js and/or arcade.html must implement:
+
+Detection of Ctrl + Shift + B.
+Timed password prompt.
+Logic that toggles visibility of the Blank cartridge entry based on developer authentication. [First Conv...Copilot) 1 | Word], [User Refernce Guide | Word], [1. Laws v1.6 1 | Word]
+
+
+
+
+7. Dataset Handling (Excel → CSV → Game)
+As clarified in your user reference and prior conversations: [User Refernce Guide | Word], [First Conv...Copilot) 1 | Word]
+
+
+You maintain a human-friendly Excel workbook:
+
+Multiple sheets, each representing a Module / Challenge Set (e.g., POST_BASE, CALL_LIFECYCLE, TRANSPORT). [User Refernce Guide | Word]
+On each sheet: tables for Challenges, Commands, Primary Target type, Additional Detail type, and Data Pools. [User Refernce Guide | Word]
+
+
+
+For game use:
+
+Save each relevant sheet (or a combined sheet) as one or more CSV files in /assets/datasets/.
+data.js loads these CSVs and builds the runtime data structures. [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word], [First Conv...Copilot) 1 | Word]
+
+
+
+Modules/Challenge Sets:
+
+In UI, you may label them user‑friendly (e.g., “Challenge Set”, “Scenario Group”), but internally they remain Modules/Challenge Sets as defined in the docs. [User Refernce Guide | Word], [First Conv...Copilot) 1 | Word]
+
+
+
+
+8. Target, Challenge, Command – Object Behavior
+From your clarified glossary and spec: [User Refernce Guide | Word], [Build Procedure 1 | Word], [First Conv...Copilot) 1 | Word]
+
+
+Target:
+
+Visual object (asteroid, zombie, ambulance, balloon, etc.).
+Always has an attached Challenge; they move together as one unit.
+
+
+
+Challenge:
+
+Plain-language request describing what the player must do.
+Rendered as a speech bubble or text positioned relative to the Target (above, below, left, right, depending on theme). [First Conv...Copilot) 1 | Word], [User Refernce Guide | Word]
+
+
+
+Command:
+
+Correct PowerLine syntax the player must type to clear the Target.
+Uses the Command Template and Data Pools from the dataset. [User Refernce Guide | Word], [Build Procedure 1 | Word]
+
+
+
+Hit / Miss / Impact:
+
+Hit (Clear): correct Command; Target is removed.
+Miss: incorrect Command; Target remains; shield may be lost.
+Impact: Target reaches the impact zone without being cleared. [User Refernce Guide | Word], [Build Procedure 1 | Word]
+
+
+9. Visual Motion & Glow (Themed Targets)
+When a cartridge introduces rotating, glowing Targets (e.g., asteroid theme): [Build Procedure 1 | Word], [First Conv...Copilot) 1 | Word]
+
+
+On spawn for each Target:
+
+rotationSpeed = randomFloat(-2.0, 2.0)
+fallSpeed = abs(rotationSpeed) + randomFloat(0.2, 0.5)
+
+
+
+Per frame:
+
+target.rotation += rotationSpeed
+target.y       += fallSpeed
+
+
+
+Glow:
+
+Must follow the actual silhouette of the PNG, not its bounding box.
+Must rotate with the object and stay aligned to its edges. [Build Procedure 1 | Word], [User Refernce Guide | Word], [First Conv...Copilot) 1 | Word]
+
+
+
+Build Procedure requirement:
+
+This behavior lives in the cartridge’s theme logic (e.g., asteroid-command/script.js), not in the core engine, to keep the Empty Cartridge neutral. [Build Procedure 1 | Word], [1. Laws v1.6 1 | Word], [<File>Buil...ocx</File> | Word]
+
+
+10. Modes, Holodeck, and Publish Behavior
+From 1. Laws v1.6 1.docx and 2. Overview v1.6 1.docx: [1. Laws v1.6 1 | Word], [Build Procedure 1 | Word]
+
+
+Demo Mode:
+
+Default during development.
+Holodeck disabled.
+Cartridges treated as demo cartridges.
+
+
+
+Publish Mode:
+
+Only enabled when you explicitly instruct it.
+Holodeck (backdoor demo mode) enabled, with “Return to Program” button. [1. Laws v1.6 1 | Word], [Build Procedure 1 | Word]
+
+
+
+Build Procedure must:
+
+Respect the mode flags from Laws/Overview.
+Ensure Holodeck and Blank module behaviors only appear under the correct mode conditions. [1. Laws v1.6 1 | Word], [Build Procedure 1 | Word], [User Refernce Guide | Word]
+
+
+11. Build Workflow for Claude
+As summarized in your Reference Guide: [User Refernce Guide | Word], [1. Laws v1.6 1 | Word], [Build Procedure 1 | Word]
+When you ask Claude to build or update anything, you should load in this order:
+
+Laws v1.6 (1. Laws v1.6 1.docx) – non‑negotiable rules.
+Overview v1.6 (2. Overview v1.6 1.docx) – conceptual design & structures.
+Build Procedure v1.6 (this document) – technical implementation blueprint.
+Current working game version (e.g., latest Blank or Cartridge).
+Your instructions (“Create a new theme…”, “Adjust speed logic…”, etc.).
+
+Claude’s responsibilities:
+
+Follow Laws without deviation. [User Refernce Guide | Word], [1. Laws v1.6 1 | Word]
+Use Overview for system context. [Build Procedure 1 | Word], [User Refernce Guide | Word]
+Apply Build Procedure when generating code and assets. [<File>Buil...ocx</File> | Word], [User Refernce Guide | Word]
+Never rewrite Laws or Overview unless you explicitly authorize it. [User Refernce Guide | Word], [1. Laws v1.6 1 | Word]

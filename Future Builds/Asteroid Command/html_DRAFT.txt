@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Asteroid Command</title>
+    style.css
+</head>
+<body>
+
+    <!-- Game Container -->
+    <div id="game-container">
+
+        <!-- HUD -->
+        <div id="hud">
+            <div id="score">Score: 0</div>
+            <div id="streak">Streak: 0</div>
+            <div id="tower-health">Tower Health: 4</div>
+        </div>
+
+        <!-- Playfield -->
+        <div id="playfield">
+            <div id="zone-north" class="zone"></div>
+            <div id="zone-south" class="zone"></div>
+            <div id="zone-east" class="zone"></div>
+            <div id="tower"></div>
+        </div>
+
+        <!-- Challenge & Command -->
+        <div id="challenge"></div>
+        <input id="command-input" type="text" placeholder="Enter Command…" autocomplete="off" />
+
+    </div>
+
+    ../../core/config.js</script>
+    ../../core/data.js</script>
+    ../../core/engine.js</script>
+    ../../core/hud.js</script>
+    ../../core/ui.js</script>
+    ../../core/audio.js</script>
+    script.js</script>
+
+</body>
+</html>

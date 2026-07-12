@@ -1,0 +1,478 @@
+/* ============================================================
+   main-menu.css — PowerLine Challenge Main Menu & Submenu
+
+   Layout strategy:
+     • Main menu: Computer illustration with cassette tray
+     • Submenu: Full-screen cassette selection interface
+     • CRT transition: Flicker effect between screens
+   ============================================================ */
+
+
+/* ============================================================
+   1. RESET & BASE
+   ============================================================ */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+
+/* ============================================================
+   2. BODY — Black canvas, flex-centers content
+   ============================================================ */
+body {
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ============================================================
+   3. CRT FLICKER TRANSITION
+   
+   Full-screen overlay that appears when transitioning from
+   main menu to submenu. Shows animated static/noise effect.
+   ============================================================ */
+#crt-transition {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+}
+
+#crt-transition.active {
+    opacity: 1;
+    animation: crt-flicker 0.5s steps(8) forwards;
+}
+
+@keyframes crt-flicker {
+    0%   { background: #000; }
+    10%  { background: #333; }
+    20%  { background: #666; }
+    30%  { background: #999; }
+    40%  { background: #ccc; }
+    50%  { background: #fff; }
+    60%  { background: #999; }
+    70%  { background: #555; }
+    80%  { background: #222; }
+    90%  { background: #000; }
+    100% { background: #000; }
+}
+
+
+/* ============================================================
+   CASSETTE LOAD SCREEN
+   
+   PET/Commodore-style loading screen overlay
+   ============================================================ */
+#cassette-load-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    z-index: 10000;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+#cassette-load-screen.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.cassette-load-content {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 18px;
+    color: #39ff14;
+    text-shadow: 0 0 5px rgba(57, 255, 20, 0.5);
+    line-height: 1.8;
+}
+
+.cassette-load-content p {
+    margin: 0.5rem 0;
+}
+
+
+/* ============================================================
+   4. MAIN MENU CONTAINER (Computer Illustration)
+   ============================================================ */
+#plc-container {
+    position: relative;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#plc-container.hidden {
+    opacity: 0;
+    transform: scale(0.95);
+    pointer-events: none;
+}
+
+#bg-image {
+    display: block;
+    max-width: 66.67vw;
+    max-height: 66.67vh;
+}
+
+
+/* ============================================================
+   5. CASSETTE TRAY CLICK ZONE
+   ============================================================ */
+#tray-click-zone {
+    position: absolute;
+    left:   70%;
+    top:    24%;
+    width:  20%;
+    height: 58%;
+
+    cursor: pointer;
+    z-index: 1;
+    border-radius: 6px;
+    transition: box-shadow 0.3s ease;
+}
+
+#tray-click-zone::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border: 1px solid rgba(57, 255, 20, 0.18);
+    border-radius: 8px;
+    pointer-events: none;
+    animation: tray-pulse 3s ease-in-out infinite;
+}
+
+@keyframes tray-pulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1;    }
+}
+
+#tray-click-zone:hover {
+    box-shadow: 0 0 24px rgba(57, 255, 20, 0.22),
+                inset 0 0 32px rgba(57, 255, 20, 0.07);
+}
+
+#tray-click-zone:hover::after {
+    animation: none;
+    border-color: rgba(57, 255, 20, 0.45);
+}
+
+#tray-click-zone:focus {
+    outline: 2px solid rgba(57, 255, 20, 0.5);
+    outline-offset: 3px;
+}
+
+
+/* ============================================================
+   6. CARTRIDGE SUBMENU
+   
+   Full-screen cassette selection interface.
+   Hidden by default, revealed after CRT transition.
+   ============================================================ */
+#cartridge-submenu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    
+    display: flex;
+    flex-direction: column;
+    
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    z-index: 100;
+}
+
+#cartridge-submenu.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+
+/* ============================================================
+   7. SUBMENU HEADER
+   ============================================================ */
+#submenu-header {
+    padding: 20px 40px;
+    background: linear-gradient(to bottom, #0a0a0a, #000);
+    border-bottom: 2px solid #39ff14;
+    box-shadow: 0 4px 12px rgba(57, 255, 20, 0.15);
+}
+
+#submenu-title {
+    font-size: 24px;
+    color: #39ff14;
+    text-align: center;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    font-weight: normal;
+}
+
+
+/* ============================================================
+   8. SUBMENU CONTENT (3-Panel Layout)
+   
+   Layout:
+     [Screenshot Panel]  [Cassette Row]  [Info Panel]
+   ============================================================ */
+#submenu-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 30px;
+    padding: 30px 40px;
+    overflow: hidden;
+}
+
+
+/* ============================================================
+   9. SCREENSHOT PANEL (Left)
+   ============================================================ */
+#game-screenshot-panel {
+    background: rgba(20, 20, 20, 0.8);
+    border: 2px solid #33ff33;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(51, 255, 51, 0.2);
+}
+
+#game-screenshot {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+
+/* ============================================================
+   10. CASSETTE ROW CONTAINER (Center)
+   ============================================================ */
+#cassette-row-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+#cassette-row {
+    display: flex;
+    gap: 30px;
+    overflow-x: auto;
+    padding: 20px;
+    scroll-behavior: smooth;
+    
+    /* Hide scrollbar but keep functionality */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#cassette-row::-webkit-scrollbar {
+    display: none;
+}
+
+
+/* ============================================================
+   11. CASSETTE BUTTON
+   
+   Individual cassette in the horizontal row.
+   ============================================================ */
+.cassette-item {
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    position: relative;
+}
+
+.cassette-item img {
+    width: 200px;
+    height: auto;
+    display: block;
+    filter: brightness(0.7);
+    transition: filter 0.3s ease;
+}
+
+.cassette-item:hover img {
+    filter: brightness(1) drop-shadow(0 0 15px rgba(57, 255, 20, 0.4));
+}
+
+.cassette-item.selected {
+    transform: translateY(-10px) scale(1.1);
+}
+
+.cassette-item.selected img {
+    filter: brightness(1.2) drop-shadow(0 0 20px rgba(57, 255, 20, 0.6));
+}
+
+/* Cassette label overlay */
+.cassette-label {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #39ff14;
+    white-space: nowrap;
+    letter-spacing: 1px;
+    opacity: 0.7;
+    text-shadow: 0 0 5px rgba(57, 255, 20, 0.3);
+}
+
+.cassette-item.selected .cassette-label {
+    opacity: 1;
+    font-weight: bold;
+}
+
+
+/* ============================================================
+   12. GAME INFO PANEL (Right)
+   ============================================================ */
+#game-info-panel {
+    background: rgba(20, 20, 20, 0.8);
+    border: 2px solid #33ff33;
+    border-radius: 8px;
+    padding: 25px;
+    color: #33ff33;
+    box-shadow: 0 0 20px rgba(51, 255, 51, 0.2);
+    
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#game-title {
+    font-size: 20px;
+    color: #39ff14;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+    border-bottom: 1px solid rgba(51, 255, 51, 0.3);
+    padding-bottom: 10px;
+}
+
+#game-synopsis {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #33ff33;
+    flex: 1;
+}
+
+#game-status {
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-align: center;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+#game-status.available {
+    background: rgba(57, 255, 20, 0.15);
+    border: 1px solid #39ff14;
+    color: #39ff14;
+}
+
+#game-status.coming-soon {
+    background: rgba(255, 87, 51, 0.15);
+    border: 1px solid #ff5733;
+    color: #ff5733;
+}
+
+
+/* ============================================================
+   13. CASSETTE DECK AREA (Bottom)
+   ============================================================ */
+#cassette-deck-area {
+    padding: 20px 40px 30px 40px;
+    background: linear-gradient(to top, #0a0a0a, #000);
+    border-top: 2px solid #39ff14;
+    box-shadow: 0 -4px 12px rgba(57, 255, 20, 0.15);
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+#cassette-deck {
+    width: 400px;
+    height: auto;
+    display: block;
+}
+
+#deck-controls {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+
+/* ============================================================
+   14. DECK CONTROL BUTTONS
+   ============================================================ */
+#back-to-main,
+#start-cartridge {
+    background: transparent;
+    border: 2px solid #33ff33;
+    color: #33ff33;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+#back-to-main:hover,
+#start-cartridge:not(:disabled):hover {
+    background: #33ff33;
+    color: #000;
+    box-shadow: 0 0 20px rgba(51, 255, 51, 0.5);
+}
+
+#start-cartridge:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+    border-color: #2a7a2a;
+    color: #2a7a2a;
+}
+
+#back-to-main {
+    border-color: #ff5733;
+    color: #ff5733;
+}
+
+#back-to-main:hover {
+    background: #ff5733;
+    color: #000;
+    box-shadow: 0 0 20px rgba(255, 87, 51, 0.5);
+}

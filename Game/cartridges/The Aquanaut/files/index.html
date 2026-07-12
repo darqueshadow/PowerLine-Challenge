@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>The Aquanaut — Below the Black</title>
+    <link rel="stylesheet" href="style.css" id="main-css">
+    <script>document.getElementById('main-css').href = 'style.css?t=' + Date.now();</script>
+</head>
+<body>
+    <div id="boot-overlay"><canvas id="boot-canvas"></canvas></div>
+    <div id="game-container">
+        <div id="holodeck-grid"></div>
+
+        <!-- HUD — Dive Computer Display + Command input -->
+        <div id="hud">
+            <div id="hud-center">
+                <div id="vds-row">
+                    <div id="vds-container">
+                        <span id="status-message"></span><span id="vds-cursor" class="hidden"></span>
+                    </div>
+                    <div id="vds2-container">
+                        <span id="status-message-2"></span><span id="vds2-cursor" class="hidden"></span>
+                    </div>
+                </div>
+                <div id="command-box">
+                    <span id="command-prompt">&gt;</span>
+                    <input type="text" id="command-input" autocomplete="off" spellcheck="false" placeholder="ENTER COMMAND">
+                    <span id="block-cursor"></span>
+                    <button id="cmd-ref-toggle" title="Command Reference">?</button>
+                    <button id="fullscreen-toggle" title="Toggle Fullscreen (F11 / Esc managed)">⛶</button>
+                    <div id="autocomplete-dropdown" class="hidden"></div>
+                    <div id="powerline-prompt" class="hidden">
+                        <div id="powerline-required"></div>
+                        <div id="powerline-description"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Area: Left Panel | Play Area | Right Panel -->
+        <div id="main-area">
+
+            <!-- Left Sidebar: Score / Depth / Streak -->
+            <div id="left-panel">
+                <div class="panel-stat">
+                    <span class="panel-label nameplate" id="score-label">SCORE</span>
+                    <div class="mini-vds">
+                        <span id="score-value">0</span>
+                    </div>
+                </div>
+                <div class="panel-stat">
+                    <span class="panel-label nameplate" id="tier-label">DEPTH</span>
+                    <div class="mini-vds">
+                        <span id="tier-value">BUBBLE HOPPER</span>
+                    </div>
+                </div>
+                <div class="panel-stat">
+                    <span class="panel-label nameplate" id="streak-label">STREAK</span>
+                    <div class="mini-vds">
+                        <span id="streak-value">0</span>
+                    </div>
+                </div>
+                <div class="panel-stat">
+                    <span class="panel-label nameplate" id="salvage-label">SALVAGE</span>
+                    <div class="mini-vds">
+                        <span id="salvage-value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Play Area -->
+            <div id="play-area">
+                <div id="canvas-wrapper">
+                    <canvas id="game-canvas"></canvas>
+                    <svg id="tether-layer"></svg>
+                    <div id="simulation-status"></div>
+
+                    <!-- Helmet interior shell — constructed (SVG/CSS) overlay, NOT an
+                         AI image. Armed at key moments only (deep-zone entry, hose
+                         damage); vignette + fog scale with depthRatio. Distinct from
+                         the kill-cam helmet POV. Driven by the Helmet controller in
+                         script.js via CSS custom properties. -->
+                    <div id="helmet-overlay" class="hidden" aria-hidden="true">
+                        <div id="helmet-fog"></div>
+                        <div id="helmet-vignette"></div>
+                        <svg id="helmet-frame" viewBox="0 0 1600 900" preserveAspectRatio="none">
+                            <!-- brass rim -->
+                            <rect x="34" y="34" width="1532" height="832" rx="120" ry="120"
+                                  fill="none" stroke="#caa86a" stroke-width="3"
+                                  vector-effect="non-scaling-stroke" opacity="0.55"/>
+                            <rect x="22" y="22" width="1556" height="856" rx="132" ry="132"
+                                  fill="none" stroke="#6f5a32" stroke-width="2"
+                                  vector-effect="non-scaling-stroke" opacity="0.45"/>
+                            <!-- corner brackets -->
+                            <g stroke="#caa86a" stroke-width="2.5" fill="none"
+                               vector-effect="non-scaling-stroke" opacity="0.6" stroke-linecap="round">
+                                <path d="M70 150 L70 70 L150 70"/>
+                                <path d="M1530 150 L1530 70 L1450 70"/>
+                                <path d="M70 750 L70 830 L150 830"/>
+                                <path d="M1530 750 L1530 830 L1450 830"/>
+                            </g>
+                            <!-- rivets along the top rim -->
+                            <g fill="#caa86a" opacity="0.5">
+                                <circle cx="500" cy="48" r="4"/><circle cx="700" cy="42" r="4"/>
+                                <circle cx="900" cy="42" r="4"/><circle cx="1100" cy="48" r="4"/>
+                            </g>
+                            <!-- HUD depth ticks on the left rim -->
+                            <g stroke="#7fd4ff" stroke-width="2" vector-effect="non-scaling-stroke" opacity="0.5">
+                                <line x1="58" y1="360" x2="92" y2="360"/>
+                                <line x1="58" y1="450" x2="100" y2="450"/>
+                                <line x1="58" y1="540" x2="92" y2="540"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar: Suit Integrity + Hose Status -->
+            <div id="right-panel">
+                <!-- Suit integrity — 5-block cumulative timer (Green/Blue/Yellow/Orange/Purple) -->
+                <div id="suit-status">
+                    <span class="nameplate">SUIT<br>INTEGRITY</span>
+                    <div id="suit-bar">
+                        <div class="suit-segment" data-level="5"></div>
+                        <div class="suit-segment" data-level="4"></div>
+                        <div class="suit-segment" data-level="3"></div>
+                        <div class="suit-segment" data-level="2"></div>
+                        <div class="suit-segment" data-level="1"></div>
+                    </div>
+                </div>
+
+                <!-- Hose status indicators -->
+                <div id="hose-status">
+                    <div class="hose-indicator" id="hose-gas">
+                        <span class="nameplate">GAS</span>
+                        <span class="hose-dot gas-color"></span>
+                    </div>
+                    <div class="hose-indicator" id="hose-liquid">
+                        <span class="nameplate">H₂O</span>
+                        <span class="hose-dot liquid-color"></span>
+                    </div>
+                    <div class="hose-indicator" id="hose-electrical">
+                        <span class="nameplate">COMMS</span>
+                        <span class="hose-dot electrical-color"></span>
+                    </div>
+                </div>
+
+                <!-- Depth gauge -->
+                <div id="depth-gauge">
+                    <span id="depth-label">DEPTH</span>
+                    <span id="depth-value">30m</span>
+                    <!-- Pressure meter: creeps green → red with depth -->
+                    <div id="pressure-meter">
+                        <span id="pressure-label">PRESSURE</span>
+                        <div id="pressure-track"><div id="pressure-fill"></div></div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /main-area -->
+
+        <!-- Command Reference — draggable floating overlay -->
+        <div id="cmd-ref-overlay" class="hidden">
+            <div id="cmd-ref-titlebar">
+                <span id="cmd-ref-title">COMMAND REFERENCE</span>
+                <button id="cmd-ref-close">&times;</button>
+            </div>
+            <div id="cmd-ref-body">
+                <div id="cmd-ref-required"></div>
+                <div id="cmd-ref-description"></div>
+            </div>
+        </div>
+
+        <!-- Diver-attack alarm: creature on the diver — flashing 3-second window
+             that SHOWS the exact command to type. Replaces the old cumulative
+             suit-drain; surviving refills the suit. -->
+        <div id="grapple-popup" class="hidden">
+            <div id="grapple-label">⚠ CREATURE ON YOU ⚠</div>
+            <div id="grapple-command"></div>
+            <div id="grapple-blocks">
+                <div class="grapple-block" data-level="5"></div>
+                <div class="grapple-block" data-level="4"></div>
+                <div class="grapple-block" data-level="3"></div>
+                <div class="grapple-block" data-level="2"></div>
+                <div class="grapple-block" data-level="1"></div>
+            </div>
+            <div id="grapple-warning">TYPE COMMAND TO REPEL</div>
+        </div>
+
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="hidden">
+            <!-- Greyscale freeze-frame on its own layer, so the paw trail and
+                 menu above it render in full colour (a child filter can't undo
+                 an ancestor's grayscale). Mirrors the game-over bg-layer. -->
+            <div id="pause-bg-layer"></div>
+            <!-- Cat paw prints generated at runtime (a fresh random cat-walk
+                 trail each time the game is paused) — see scatterPawPrints(). -->
+            <div id="pause-paws" aria-hidden="true"></div>
+            <div id="pause-content">
+                <h1>DIVE PAUSED</h1>
+                <div class="menu-buttons">
+                    <button id="resume-btn">RESUME DIVE</button>
+                    <button id="restart-pause-btn">RESTART DIVE</button>
+                    <button id="quit-btn">ABORT TO SURFACE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAT Login Terminal (Dive Computer style) -->
+        <div id="cat-login-overlay" class="hidden">
+            <div id="cat-monitor">
+                <div id="cat-bezel">
+                    <div id="cat-header">*** DEEP DIVE OPERATIONS TERMINAL ***</div>
+                    <div id="cat-screen">
+                        <div id="cat-output"></div>
+                        <div id="cat-input-line">
+                            <span id="cat-prompt"></span>
+                            <input type="text" id="cat-input" autocomplete="off" spellcheck="false" maxlength="30">
+                            <span id="cat-cursor">&block;</span>
+                        </div>
+                    </div>
+                    <div id="cat-leaderboard" class="hidden">
+                        <div id="cat-lb-title">═══ TOP 10 DIVE RECORDS ═══</div>
+                        <div id="cat-lb-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kill Cam Overlay (first-person helmet view) — the canvas draws
+             the attack scene AND composites the helmet frame over it -->
+        <div id="kill-cam-overlay" class="hidden">
+            <canvas id="kill-cam-canvas"></canvas>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-overlay" class="hidden">
+            <!-- Greyscale flooded-room backdrop sits on its own layer so the
+                 menu above it stays full colour (a child filter can't undo an
+                 ancestor's grayscale). Mirrors the scoring/settings bg-layers. -->
+            <div id="game-over-bg-layer"></div>
+            <div id="game-over-content">
+                <h1 id="game-over-title">DIVER LOST</h1>
+                <p id="game-over-sub">All systems severed. No life signs detected.</p>
+                <p>FINAL SCORE: <span id="final-score">0</span></p>
+                <div id="final-stats"></div>
+                <button id="submit-score-btn">LOG DIVE RECORD</button>
+                <span id="score-submit-status" class="dataset-status"></span>
+                <button id="restart-btn">NEW DIVE</button>
+                <button id="main-menu-btn">SURFACE</button>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-overlay" class="title-screen-bg">
+            <!-- Main Menu Page -->
+            <div id="start-content" class="menu-page">
+                <div id="title-top">
+                    <h1>THE AQUANAUT</h1>
+
+                    <button id="title-press-prompt">BENEATH THE BLACK</button>
+
+                <div id="normal-menu-buttons" class="menu-buttons hidden">
+                    <button id="start-btn">BEGIN DESCENT</button>
+                    <button id="scoring-btn">SCORING &amp; DEPTH CHART</button>
+                    <div class="menu-buttons-row">
+                        <button id="settings-btn">SETTINGS</button>
+                        <button id="highscores-btn">DIVE LOG</button>
+                    </div>
+                    <button id="change-player-btn">CHANGE DIVER</button>
+                    <button id="quit-game-btn">POWER DOWN</button>
+                </div>
+
+                <div id="holodeck-menu-buttons" class="menu-buttons hidden">
+                    <div class="menu-buttons-row">
+                        <button id="holodeck-btn">ENTER SIMULATION</button>
+                        <button id="exit-holodeck-btn">EXIT HOLODECK</button>
+                    </div>
+                </div>
+
+                <div id="god-mode-menu" class="hidden">
+                    <div class="gm-header">GOD MODE</div>
+                    <div class="gm-columns">
+                        <div id="gm-col-toggles" class="gm-col"></div>
+                        <div id="gm-col-challenges" class="gm-col"></div>
+                        <div id="gm-col-data" class="gm-col"></div>
+                    </div>
+                    <div class="gm-footer-actions">
+                        <button id="update-datasets-btn" class="gm-dataset-btn">UPDATE DATASETS</button>
+                        <span id="dataset-status" class="dataset-status"></span>
+                    </div>
+                </div>
+                </div><!-- /title-top -->
+            </div>
+
+            <div id="scoring-bg-layer" class="hidden"></div>
+            <!-- Scoring & Depth Chart Submenu -->
+            <div id="scoring-page" class="menu-page hidden">
+                <h1>THE AQUANAUT</h1>
+                <p class="subtitle">SCORING &amp; DEPTH CHART</p>
+
+                <div id="scoring-info">
+                    <h3>SCALING DIFFICULTY STAKES</h3>
+                    <div class="score-row"><span>Base Hit:</span><span>Depth-based (100 — 1,200)</span></div>
+                    <div class="score-row"><span>Clean Pulse (0 BS):</span><span>+25% of Base Hit</span></div>
+                    <div class="score-row"><span>Deep Intercept:</span><span>+50% of Base Hit</span></div>
+                    <div class="score-row"><span>Reflex Save (&lt;1.5s):</span><span>+15% of Base Hit</span></div>
+                    <div class="score-row penalty"><span>Finger Slip (1-2 BS):</span><span>-10% of Base Hit</span></div>
+                    <div class="score-row penalty"><span>Signal Garble (3-4 BS):</span><span>-20% of Base Hit</span></div>
+                    <div class="score-row penalty"><span>Pressure Fog (5-6 BS):</span><span>Flat -30</span></div>
+                    <div class="score-row penalty"><span>Nitrogen Narcosis (7+ BS):</span><span>Flat -50</span></div>
+                    <div class="score-row penalty"><span>Misfire:</span><span>Flat -50</span></div>
+                    <div class="score-row penalty"><span>Hose Impact:</span><span>Depth penalty (-50 to -600)</span></div>
+                    <div class="score-row bonus"><span>Clean Streak:</span><span>+75 / +150 / +400 / +1,000 (flat)</span></div>
+                </div>
+
+                <div id="tier-info">
+                    <h3>DEPTH PROGRESSION</h3>
+                    <div class="tier-row"><span>0 — 5,000:</span><span>BUBBLE HOPPER — 30m</span></div>
+                    <div class="tier-row"><span>5,001 — 20,000:</span><span>RIG WALKER — 150m</span></div>
+                    <div class="tier-row"><span>20,001 — 50,000:</span><span>CRUSH DEPTH OPERATOR — 500m</span></div>
+                    <div class="tier-row"><span>50,001+:</span><span>THE AQUANAUT — 1,000m</span></div>
+                </div>
+
+                <div class="menu-buttons">
+                    <button id="back-to-menu-btn">BACK TO SURFACE</button>
+                </div>
+            </div>
+
+            <!-- Settings Submenu -->
+            <div id="settings-bg-layer" class="hidden"></div>
+            <div id="settings-page" class="menu-page hidden">
+                <h1>THE AQUANAUT</h1>
+                <p class="subtitle">SETTINGS</p>
+
+                <div id="settings-panel">
+                    <div class="settings-row">
+                        <span class="settings-label">MUSIC</span>
+                        <button id="music-toggle-btn" class="toggle-btn on">ON</button>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">SFX</span>
+                        <button id="sfx-toggle-btn" class="toggle-btn on">ON</button>
+                    </div>
+                </div>
+
+                <div class="menu-buttons">
+                    <button id="settings-back-btn">BACK TO SURFACE</button>
+                </div>
+            </div>
+
+            <!-- Dive Log (High Scores) Submenu -->
+            <div id="highscores-bg-layer" class="hidden"></div>
+            <div id="highscores-page" class="menu-page hidden">
+                <h1>THE AQUANAUT</h1>
+                <p class="subtitle">DIVE LOG</p>
+
+                <div id="highscores-panel">
+                    <h3>═══ TOP 10 DIVE RECORDS ═══</h3>
+                    <div id="highscores-list"></div>
+                </div>
+
+                <div class="menu-buttons">
+                    <button id="highscores-back-btn">BACK TO SURFACE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dev Mode Password Prompt -->
+        <div id="dev-mode-prompt" class="hidden">
+            <div id="dev-mode-content">
+                <p>ENTER DEV ACCESS CODE:</p>
+                <input type="password" id="dev-password-input" maxlength="20" autocomplete="off">
+                <div id="dev-timer">10</div>
+            </div>
+        </div>
+
+        <!-- Holodeck Password Prompt -->
+        <div id="holodeck-prompt" class="hidden">
+            <div id="holodeck-prompt-content">
+                <p>ENTER ACCESS KEY:</p>
+                <input type="password" id="holodeck-password-input" maxlength="20" autocomplete="off">
+                <div id="holodeck-timer">15</div>
+            </div>
+        </div>
+
+        <!-- Window Size Prompt -->
+        <div id="size-prompt" class="hidden">MAXIMIZE WINDOW FOR BEST EXPERIENCE</div>
+
+    </div><!-- /game-container -->
+
+    <script>
+        // Dynamic loading prevents file:// caching issues
+        var t = Date.now();
+        document.write('<script src="core/config.js?t=' + t + '"><\/script>');
+        document.write('<script src="core/data.js?t=' + t + '"><\/script>');
+        document.write('<script src="core/audio.js?t=' + t + '"><\/script>');
+        document.write('<script src="script.js?t=' + t + '"><\/script>');
+    </script>
+</body>
+</html>

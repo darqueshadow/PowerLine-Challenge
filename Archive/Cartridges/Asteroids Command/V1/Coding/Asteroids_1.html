@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Line Challenge - Asteroids</title>
+    <style>
+        /* Base styles */
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .challenge-box {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: #fff;
+            white-space: pre-line; /* Ensures line breaks display correctly */
+        }
+        .command-box {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            font-size: 18px;
+            color: #0f0;
+            transform: none !important; /* Prevent rotation */
+        }
+        /* Asteroid target styling */
+        .target-asteroid {
+            background-image: url('data:image/png;base64,PUT-YOUR-BASE64-HERE');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-color: transparent;
+            width: 80px;
+            height: 80px;
+            animation: rotateAsteroid 6s linear infinite;
+        }
+        @keyframes rotateAsteroid {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="challenge-box" class="challenge-box"></div>
+        <div id="command-box" class="command-box"></div>
+        <canvas id="game-canvas"></canvas>
+    </div>
+    <script>
+        // Basic game setup
+        const gameContainer = document.getElementById('game-container');
+        const challengeBox = document.getElementById('challenge-box');
+        const commandBox = document.getElementById('command-box');
+
+        // Example challenge and command generation
+        function generateChallenge() {
+            const challenge = "Enroute 2120 Niagara Falls";
+            const command = "AP 2120 72103";
+
+            // Format challenge with line breaks
+            challengeBox.innerHTML = challenge.split(" ").join("<br>");
+            commandBox.innerText = command;
+        }
+
+        // Create asteroid target
+        function createAsteroid() {
+            const asteroid = document.createElement('div');
+            asteroid.className = "target target-asteroid";
+            asteroid.style.position = "absolute";
+            asteroid.style.top = "0px";
+            asteroid.style.left = Math.random() * (window.innerWidth - 80) + "px";
+
+            // Attach command box on top (fixed, no rotation)
+            const cmdOverlay = document.createElement('div');
+            cmdOverlay.className = "command-box";
+            cmdOverlay.innerText = "CMD";
+            asteroid.appendChild(cmdOverlay);
+
+            gameContainer.appendChild(asteroid);
+
+            // Animate falling
+            let position = 0;
+            const fallInterval = setInterval(() => {
+                position += 2;
+                asteroid.style.top = position + "px";
+                if (position > window.innerHeight) {
+                    clearInterval(fallInterval);
+                    asteroid.remove();
+                }
+            }, 16);
+        }
+
+        // Initialize game
+        generateChallenge();
+        setInterval(createAsteroid, 2000);
+    </script>
+</body>
+</html>

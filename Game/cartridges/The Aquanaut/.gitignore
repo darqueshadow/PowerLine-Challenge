@@ -1,0 +1,6 @@
+node_modules/
+Help Files/
+*.mp4
+*.mov
+*.avi
+.claude/

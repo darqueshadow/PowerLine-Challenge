@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asteroid Command</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #000000;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Full-screen canvas — the only visible element */
+        #boot-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* Rainbow border overlay */
+        #boot-border {
+            position: fixed;
+            inset: 0;
+            border: 0px solid transparent;
+            pointer-events: none;
+            z-index: 2;
+            transition: border-width 0.3s;
+        }
+        #boot-border.flicker {
+            animation: c64-border 0.5s steps(1) infinite;
+        }
+        @keyframes c64-border {
+            0%      { border-color: #880000; }
+            6.25%   { border-color: #aaffee; }
+            12.5%   { border-color: #cc44cc; }
+            18.75%  { border-color: #00cc55; }
+            25%     { border-color: #0000aa; }
+            31.25%  { border-color: #eeee77; }
+            37.5%   { border-color: #dd8855; }
+            43.75%  { border-color: #664400; }
+            50%     { border-color: #ff7777; }
+            56.25%  { border-color: #333333; }
+            62.5%   { border-color: #777777; }
+            68.75%  { border-color: #aaff66; }
+            75%     { border-color: #0088ff; }
+            81.25%  { border-color: #bbbbbb; }
+            87.5%   { border-color: #ffffff; }
+            93.75%  { border-color: #880000; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="boot-canvas"></canvas>
+    <div id="boot-border"></div>
+
+    <script>
+        // ── Clear browser cache on every launch ──
+        // Preserve keys related to high scores and progression
+        const PRESERVE_KEYS = ['highScore', 'bestScore', 'progression', 'careerRank', 'asteroidCommand_'];
+        function shouldPreserve(key) {
+            return PRESERVE_KEYS.some(k => key.startsWith(k) || key.includes(k));
+        }
+
+        // Clear localStorage except preserved keys
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!shouldPreserve(key)) keysToRemove.push(key);
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+
+        // Clear sessionStorage entirely (boot flags etc.)
+        sessionStorage.clear();
+
+        // Clear browser caches (Service Workers, Cache API)
+        if ('caches' in window) {
+            caches.keys().then(names => names.forEach(name => caches.delete(name)));
+        }
+
+        const C64_PALETTE = [
+            '#000000', '#ffffff', '#880000', '#aaffee',
+            '#cc44cc', '#00cc55', '#0000aa', '#eeee77',
+            '#dd8855', '#664400', '#ff7777', '#333333',
+            '#777777', '#aaff66', '#0088ff', '#bbbbbb'
+        ];
+        const C64_VISIBLE = C64_PALETTE.slice(1);
+        const PETSCII_CHARS = '░▒▓█▄▀■□▪▫▌▐▬▲►▼◄◆●○☻☺♠♣♥♦'.split('');
+
+        // PET Boot Lines
+        const BOOT_LINES = [
+            '*** NIAGARA DEFENSE SYSTEM V2.0 ***',
+            '',
+            '64K RAM SYSTEM  38911 BASIC BYTES FREE',
+            '',
+            'POWERLINE TELEMETRY LINK . . . OK',
+            'SYS 49152: LOADING DISPATCH MATRIX',
+            'SYS 49408: UNIT ROSTER . . . 54 UNITS LOADED',
+            'SYS 49664: BASE CODES . . . 21 LOCATIONS MAPPED',
+            'SYS 49920: ACTION TABLE . . . 4 COMMAND TYPES',
+            'INIT ASTEROID TRACKING ARRAY . . . OK',
+            'CALIBRATING SHIELD GENERATOR [9/9 HP] . . . OK',
+            'DEFENSE GRID ONLINE: 4 ZONES + COMMAND TOWER',
+            'LINKING COMMAND FREQUENCIES . . . OK',
+            'SCORING ENGINE V2 LOADED FROM TELEMETRY',
+            'RANK PROGRESSION: 8 TIERS [TRAINEE -> O.A.S]',
+            'SPAWN CONTROLLER INITIALIZED',
+            'TETHER PHYSICS ENGINE . . . NOMINAL',
+            'NANOMEDIC REPAIR PROTOCOL . . . STANDING BY',
+            'WELLAND CANAL BRIDGE CONTROLLER . . . OK',
+            'FREIGHTER FLEET: 13 SPRITES / 5 CLASSES',
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('boot-canvas');
+            const border = document.getElementById('boot-border');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const FONT_SIZE = Math.max(12, Math.min(16, Math.floor(canvas.height / 45)));
+            const LINE_HEIGHT = FONT_SIZE + 4;
+            const LEFT_PAD = 20;
+            const START_Y = 20;
+            const GREEN = '#33ff33';
+            const DIM_GREEN = '#22cc22';
+
+            let bootLines = [];
+            let bootIndex = 0;
+            let chaosElements = [];
+
+            // ═══════════════════════════════════════
+            //  GESTURE GATE — PET header + "PRESS ENTER TO LOAD"
+            //  Unlocks AudioContext for the entire session
+            // ═══════════════════════════════════════
+            const HEADER_LINES = [
+                BOOT_LINES[0],  // *** NIAGARA DEFENSE SYSTEM V2.0 ***
+                BOOT_LINES[1],  // (blank)
+                BOOT_LINES[2],  // 64K RAM SYSTEM  38911 BASIC BYTES FREE
+                BOOT_LINES[3],  // (blank)
+            ];
+
+            const PROMPT_TEXT = 'PRESS ENTER TO LOAD';
+            let typedChars = 0;
+            let typingDone = false;
+            let blinkOn = true;
+            let blinkInterval = null;
+
+            function drawInitPrompt() {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = `bold ${FONT_SIZE}px Consolas, "Courier New", monospace`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+
+                // Draw header lines
+                for (let i = 0; i < HEADER_LINES.length; i++) {
+                    ctx.fillStyle = GREEN;
+                    ctx.fillText(HEADER_LINES[i], LEFT_PAD, START_Y + i * LINE_HEIGHT);
+                }
+
+                // Static "READY." label
+                ctx.fillStyle = GREEN;
+                ctx.fillText('READY.', LEFT_PAD, START_Y + HEADER_LINES.length * LINE_HEIGHT);
+
+                // Typed-out prompt text + cursor (flashes after typing completes)
+                const promptY = START_Y + (HEADER_LINES.length + 1) * LINE_HEIGHT;
+                const visibleText = PROMPT_TEXT.substring(0, typedChars);
+                const showLine = typingDone ? blinkOn : true;
+                if (showLine) {
+                    if (visibleText) {
+                        ctx.fillStyle = GREEN;
+                        ctx.fillText(visibleText, LEFT_PAD, promptY);
+                    }
+                    const cursorX = LEFT_PAD + ctx.measureText(visibleText).width + 2;
+                    ctx.fillStyle = GREEN;
+                    ctx.fillRect(cursorX, promptY, FONT_SIZE * 0.6, FONT_SIZE);
+                }
+
+                // CRT scanlines
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+                for (let sy = 0; sy < canvas.height; sy += 3) {
+                    ctx.fillRect(0, sy, canvas.width, 1);
+                }
+            }
+
+            // Type out the prompt one character at a time
+            const typeInterval = setInterval(() => {
+                if (typedChars < PROMPT_TEXT.length) {
+                    typedChars++;
+                    drawInitPrompt();
+                } else {
+                    clearInterval(typeInterval);
+                    typingDone = true;
+                    // Start blinking cursor after typing completes
+                    blinkInterval = setInterval(() => { blinkOn = !blinkOn; drawInitPrompt(); }, 500);
+                }
+            }, 60);
+            drawInitPrompt();
+
+            function onInitGesture(e) {
+                // Don't consume modifier combos (Ctrl+Shift etc.)
+                if (e && e.type === 'keydown' && (e.ctrlKey || e.metaKey || e.altKey)) return;
+                clearInterval(typeInterval);
+                clearInterval(blinkInterval);
+                document.removeEventListener('keydown', onInitGesture);
+                document.removeEventListener('click', onInitGesture);
+                document.removeEventListener('touchstart', onInitGesture);
+
+                // Unlock AudioContext with this gesture — persists for page lifetime
+                try {
+                    const actx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (actx.state === 'suspended') actx.resume();
+                    const buf = actx.createBuffer(1, 1, 22050);
+                    const src = actx.createBufferSource();
+                    src.buffer = buf;
+                    src.connect(actx.destination);
+                    src.start();
+                } catch (ignore) {}
+
+                // Pre-populate header lines so boot continues from where we left off
+                bootLines = HEADER_LINES.slice();
+                bootIndex = HEADER_LINES.length;
+
+                // Start boot sequence
+                bootRenderLoop();
+                setTimeout(typeNextLine, 300);
+            }
+            document.addEventListener('keydown', onInitGesture);
+            document.addEventListener('click', onInitGesture);
+            document.addEventListener('touchstart', onInitGesture);
+
+            // ═══════════════════════════════════════
+            //  PHASE 1: PET Boot Text (clean green)
+            // ═══════════════════════════════════════
+
+            function drawBoot() {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = `bold ${FONT_SIZE}px Consolas, "Courier New", monospace`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+
+                for (let i = 0; i < bootLines.length; i++) {
+                    ctx.fillStyle = (i === bootLines.length - 1) ? GREEN : DIM_GREEN;
+                    ctx.fillText(bootLines[i], LEFT_PAD, START_Y + i * LINE_HEIGHT);
+                }
+
+                // Blinking cursor
+                if (bootLines.length > 0) {
+                    const lastLine = bootLines[bootLines.length - 1];
+                    const cursorX = LEFT_PAD + ctx.measureText(lastLine).width + 4;
+                    const cursorY = START_Y + (bootLines.length - 1) * LINE_HEIGHT;
+                    if (Math.floor(Date.now() / 400) % 2 === 0) {
+                        ctx.fillStyle = GREEN;
+                        ctx.fillRect(cursorX, cursorY, FONT_SIZE * 0.6, FONT_SIZE);
+                    }
+                }
+
+                // CRT scanlines
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+                for (let sy = 0; sy < canvas.height; sy += 3) {
+                    ctx.fillRect(0, sy, canvas.width, 1);
+                }
+            }
+
+            // Render loop for cursor blink during typing (started by onInitGesture)
+            let bootDone = false;
+            function bootRenderLoop() {
+                if (bootDone) return;
+                drawBoot();
+                requestAnimationFrame(bootRenderLoop);
+            }
+
+            function typeNextLine() {
+                if (bootIndex >= BOOT_LINES.length) {
+                    // All lines printed — pause, then start jitter
+                    bootDone = true;
+                    setTimeout(startJitter, 800);
+                    return;
+                }
+                bootLines.push(BOOT_LINES[bootIndex]);
+                bootIndex++;
+
+                let baseDelay;
+                if (bootIndex <= 4) baseDelay = 220;
+                else if (bootIndex <= 10) baseDelay = 150;
+                else baseDelay = 110;
+
+                setTimeout(typeNextLine, baseDelay + Math.random() * 60);
+            }
+
+            // Boot starts on user gesture (see onInitGesture above)
+
+            // ═══════════════════════════════════════
+            //  PHASE 2: Jitter (text starts glitching)
+            // ═══════════════════════════════════════
+
+            function drawBootWithJitter(jitterFrame) {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = `bold ${FONT_SIZE}px Consolas, "Courier New", monospace`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+
+                for (let i = 0; i < bootLines.length; i++) {
+                    let line = bootLines[i];
+                    let x = LEFT_PAD;
+                    let y = START_Y + i * LINE_HEIGHT;
+                    ctx.fillStyle = GREEN;
+
+                    if (i >= 14) {
+                        const intensity = Math.min(1.0, (jitterFrame / 30) * ((i - 13) / 7));
+                        x += (Math.random() - 0.5) * intensity * 20;
+                        y += (Math.random() - 0.5) * intensity * 6;
+                        if (intensity > 0.3) {
+                            const chars = line.split('');
+                            const scrambleCount = Math.floor(chars.length * intensity * 0.4);
+                            for (let s = 0; s < scrambleCount; s++) {
+                                const pos = Math.floor(Math.random() * chars.length);
+                                chars[pos] = PETSCII_CHARS[Math.floor(Math.random() * PETSCII_CHARS.length)];
+                            }
+                            line = chars.join('');
+                            ctx.fillStyle = C64_VISIBLE[Math.floor(Math.random() * C64_VISIBLE.length)];
+                        }
+                    }
+                    ctx.fillText(line, x, y);
+                }
+
+                // CRT scanlines
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+                for (let sy = 0; sy < canvas.height; sy += 3) {
+                    ctx.fillRect(0, sy, canvas.width, 1);
+                }
+            }
+
+            function startJitter() {
+                let jitterFrame = 0;
+                function jitterTick() {
+                    jitterFrame++;
+                    drawBootWithJitter(jitterFrame);
+                    if (jitterFrame < 40) {
+                        requestAnimationFrame(jitterTick);
+                    } else {
+                        startChaos();
+                    }
+                }
+                jitterTick();
+            }
+
+            // ═══════════════════════════════════════
+            //  PHASE 3: Chaos (multicolored shapes flood screen)
+            // ═══════════════════════════════════════
+
+            function startChaos() {
+                // Rainbow border starts — thick and fast
+                border.style.borderWidth = '10px';
+                border.classList.add('flicker');
+
+                const CHAOS_MS = 10000;  // 10 seconds
+                const chaosStart = performance.now();
+                let chaosFrame = 0;
+                chaosElements = [];
+
+                function chaosTick() {
+                    chaosFrame++;
+
+                    const elapsed = performance.now() - chaosStart;
+                    const progress = Math.min(1, elapsed / CHAOS_MS);
+                    // Intensity curve: slow build first 30%, then accelerates hard
+                    const intensity = Math.min(1.0, Math.pow(progress, 0.6) * 1.2);
+
+                    // Draw jittering boot text as base (fades under the flood early)
+                    if (progress < 0.3) {
+                        drawBootWithJitter(40 + chaosFrame * 2);
+                    } else if (progress < 0.5) {
+                        // Dissolving — boot text barely visible under noise
+                        drawBootWithJitter(40 + chaosFrame * 2);
+                        ctx.fillStyle = '#000000';
+                        ctx.globalAlpha = (progress - 0.3) * 3;  // 0→0.6
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.globalAlpha = 1.0;
+                    } else {
+                        // Pure noise color wash — multiple layers
+                        for (let w = 0; w < 3; w++) {
+                            ctx.fillStyle = C64_VISIBLE[Math.floor(Math.random() * C64_VISIBLE.length)];
+                            ctx.globalAlpha = 0.08 + Math.random() * 0.12;
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        }
+                        ctx.globalAlpha = 1.0;
+                    }
+
+                    // Ramp up border thickness — gets massive
+                    const bw = Math.floor(10 + intensity * 50);
+                    border.style.borderWidth = bw + 'px';
+
+                    // Exponential ramp — starts manageable, becomes absolutely overwhelming
+                    const newPerFrame = Math.floor(6 + intensity * intensity * intensity * 150);
+
+                    // Cap stored elements to prevent performance collapse — purge oldest
+                    if (chaosElements.length > 4000) {
+                        chaosElements.splice(0, chaosElements.length - 3000);
+                    }
+
+                    for (let i = 0; i < newPerFrame; i++) {
+                        const color = C64_VISIBLE[Math.floor(Math.random() * C64_VISIBLE.length)];
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        const type = Math.random();
+                        // Elements get MUCH bigger as chaos progresses
+                        const sizeBoost = 1 + intensity * 5;
+
+                        if (type < 0.30) {
+                            const size = (6 + Math.random() * 16) * sizeBoost;
+                            chaosElements.push({ kind: 'char', x, y, color, size,
+                                ch: PETSCII_CHARS[Math.floor(Math.random() * PETSCII_CHARS.length)] });
+                        } else if (type < 0.52) {
+                            const w = (3 + Math.random() * 35) * sizeBoost;
+                            const h = (3 + Math.random() * 25) * sizeBoost;
+                            chaosElements.push({ kind: 'rect', x, y, w, h, color });
+                        } else if (type < 0.66) {
+                            const size = (4 + Math.random() * 14) * sizeBoost;
+                            chaosElements.push({ kind: 'tri', x, y, size, color,
+                                dir: Math.floor(Math.random() * 4) });
+                        } else if (type < 0.78) {
+                            const r = (2 + Math.random() * 10) * sizeBoost;
+                            chaosElements.push({ kind: 'circle', x, y, r, color,
+                                filled: Math.random() > 0.15 });
+                        } else if (type < 0.85) {
+                            const size = (6 + Math.random() * 14) * sizeBoost;
+                            chaosElements.push({ kind: 'smiley', x, y, size, color });
+                        } else {
+                            // Huge color bars — full-width horizontal stripes
+                            const h = (4 + Math.random() * 40) * sizeBoost;
+                            chaosElements.push({ kind: 'rect', x: 0, y, w: canvas.width, h, color });
+                        }
+                    }
+
+                    // Aggressively mutate existing elements — drift, recolor, teleport
+                    if (intensity > 0.2) {
+                        const mutateCount = Math.floor(chaosElements.length * (0.01 + intensity * 0.04));
+                        for (let m = 0; m < mutateCount; m++) {
+                            const el = chaosElements[Math.floor(Math.random() * chaosElements.length)];
+                            if (intensity > 0.7 && Math.random() < 0.3) {
+                                // Teleport to random position
+                                el.x = Math.random() * canvas.width;
+                                el.y = Math.random() * canvas.height;
+                            } else {
+                                el.x += (Math.random() - 0.5) * 60 * intensity;
+                                el.y += (Math.random() - 0.5) * 45 * intensity;
+                            }
+                            el.color = C64_VISIBLE[Math.floor(Math.random() * C64_VISIBLE.length)];
+                            if (el.size) el.size *= 0.9 + Math.random() * 0.3;
+                        }
+                    }
+
+                    // Draw all chaos on top
+                    for (const el of chaosElements) {
+                        ctx.fillStyle = el.color;
+                        ctx.strokeStyle = el.color;
+                        ctx.lineWidth = 1.5 + intensity * 3;
+
+                        if (el.kind === 'char') {
+                            ctx.font = `bold ${el.size}px Consolas, monospace`;
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'top';
+                            ctx.fillText(el.ch, el.x, el.y);
+                        } else if (el.kind === 'rect') {
+                            Math.random() > 0.25 ? ctx.fillRect(el.x, el.y, el.w, el.h) : ctx.strokeRect(el.x, el.y, el.w, el.h);
+                        } else if (el.kind === 'tri') {
+                            ctx.beginPath();
+                            const s = el.size;
+                            if (el.dir === 0) { ctx.moveTo(el.x, el.y-s); ctx.lineTo(el.x-s*0.7, el.y+s*0.5); ctx.lineTo(el.x+s*0.7, el.y+s*0.5); }
+                            else if (el.dir === 1) { ctx.moveTo(el.x, el.y+s); ctx.lineTo(el.x-s*0.7, el.y-s*0.5); ctx.lineTo(el.x+s*0.7, el.y-s*0.5); }
+                            else if (el.dir === 2) { ctx.moveTo(el.x+s, el.y); ctx.lineTo(el.x-s*0.5, el.y-s*0.7); ctx.lineTo(el.x-s*0.5, el.y+s*0.7); }
+                            else { ctx.moveTo(el.x-s, el.y); ctx.lineTo(el.x+s*0.5, el.y-s*0.7); ctx.lineTo(el.x+s*0.5, el.y+s*0.7); }
+                            ctx.closePath();
+                            ctx.fill();
+                        } else if (el.kind === 'circle') {
+                            ctx.beginPath();
+                            ctx.arc(el.x, el.y, el.r, 0, Math.PI * 2);
+                            el.filled ? ctx.fill() : ctx.stroke();
+                        } else if (el.kind === 'smiley') {
+                            const s = el.size;
+                            ctx.beginPath(); ctx.arc(el.x, el.y, s, 0, Math.PI*2); ctx.stroke();
+                            ctx.fillRect(el.x-s*0.35, el.y-s*0.3, s*0.15, s*0.2);
+                            ctx.fillRect(el.x+s*0.2, el.y-s*0.3, s*0.15, s*0.2);
+                            ctx.beginPath(); ctx.arc(el.x, el.y+s*0.1, s*0.4, 0.1*Math.PI, 0.9*Math.PI); ctx.stroke();
+                        }
+                    }
+
+                    // Violent full-screen color strobing — more frequent, more opaque
+                    if (intensity > 0.25 && Math.random() < intensity * 0.2) {
+                        ctx.fillStyle = C64_VISIBLE[Math.floor(Math.random() * C64_VISIBLE.length)];
+                        ctx.globalAlpha = 0.15 + Math.random() * 0.45 * intensity;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.globalAlpha = 1.0;
+                    }
+
+                    // Double-flash at high intensity — rapid white/black strobe
+                    if (intensity > 0.7 && Math.random() < (intensity - 0.7) * 0.25) {
+                        ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000';
+                        ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.globalAlpha = 1.0;
+                    }
+
+                    // Screen shake — starts early, gets absolutely violent
+                    const shake = Math.min(40, intensity * 45);
+                    const sx = (Math.random() - 0.5) * shake * 2;
+                    const sy = (Math.random() - 0.5) * shake * 2;
+                    const rot = (Math.random() - 0.5) * shake * 0.2;
+                    const scale = 1 + (Math.random() - 0.5) * intensity * 0.06;
+                    canvas.style.transform = `translate(${sx}px, ${sy}px) rotate(${rot}deg) scale(${scale})`;
+
+                    if (elapsed < CHAOS_MS) {
+                        requestAnimationFrame(chaosTick);
+                    } else {
+                        // Final violent white flash — hold longer
+                        setTimeout(() => {
+                            canvas.style.transform = '';
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            border.style.borderWidth = '50px';
+                            border.style.borderColor = '#ffffff';
+                            setTimeout(() => {
+                                ctx.fillStyle = '#000000';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                border.style.borderColor = '#000000';
+                                border.style.borderWidth = '0';
+                                border.classList.remove('flicker');
+                                setTimeout(() => {
+                                    sessionStorage.setItem('bootDone', '1');
+                                    window.location.href = 'files/index.html';
+                                }, 400);
+                            }, 150);
+                        }, 600);
+                    }
+                }
+                chaosTick();
+            }
+        });
+    </script>
+</body>
+</html>

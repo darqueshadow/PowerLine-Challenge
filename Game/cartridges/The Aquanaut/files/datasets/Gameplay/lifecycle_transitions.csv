@@ -1,0 +1,9 @@
+from_stage,to_stage,weight
+NTF,ENR,1
+ENR,ARR,1
+ARR,DPT,0.95
+ARR,PTC,0.05
+PTC,DPT,1
+DPT,ARD,1
+ARD,TOC,1
+TOC,AVA,1

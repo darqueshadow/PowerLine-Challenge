@@ -1,0 +1,52 @@
+PowerLine Documentation Structure
+Reference Guide for Project File Organization and Usage
+1. Core Documents
+The Core Documents serve as the foundational rule set for PowerLine. These documents establish the operational framework and governance of the system. All Core Documents are located in /Documents/Core Documents/.
+* Laws v2.0
+* Overview v2.0
+* Build Procedure v2.0
+2. Gameplay & Engine Documents
+These documents provide technical specifications for individual cassettes and games. All files are stored in /Documents/Gameplay & Engine Documents/.
+* Blank Base Version Specification
+* Cartridge/Cassette Structure & Dataset Rules
+* Impact/Projectile Rules (where applicable)
+3. UI / UX Documents
+This section contains all user interface and user experience specifications for both the console and games. Files are stored in /Documents/UI & UX Documents/.
+* Main Menu UI Specification
+* Sub Menu UI Specification (Cassette Deck)
+* HUD Specification (optional)
+* Game UI Screens (Start, Pause, Game Over)
+4. Asset Packs
+Asset Pack guides define standards for preparing visual and audio assets for the project. All guides are located in /Documents/Asset Packs/.
+* Target Image Rules
+* Cassette Art Rules
+* Background Theme Guidelines
+* Sound/Music Folder Structure
+5. Build Reports
+The Build Reports folder contains logs, update summaries, patch notes, and testing checklists. These files are generated to document development history, track changes, and provide instructions for testing and debugging. Store these reports in /Documents/Build Reports/.
+* CASSETTE_SYSTEM_COMPLETE.txt � Comprehensive update and testing instructions
+* Build_Report_v1.txt
+* Update_Log_v1.1.txt
+* Other build-related reports
+Build Reports are essential for:
+* Organizing the project�s development history
+* Tracking changes and their implementation dates
+* Storing testing protocols for each build
+* Supporting debugging and onboarding of new developers
+* Maintaining a clean /Game folder (code only)
+Folder Structure Example:
+(PLC)
+??? Documents
+??? Build Reports
+CASSETTE_SYSTEM_COMPLETE.txt
+Build_Report_v1.txt
+Update_Log_v1.1.txt
+...
+Retention of AI-Generated Build Reports
+All future AI-generated text files (e.g., CASSETTE_SYSTEM_COMPLETE.txt) should be saved. These documents typically include:
+* Descriptions of changes made
+* Details on file updates
+* Testing checklists
+* Navigation flow information
+* Next steps for development
+

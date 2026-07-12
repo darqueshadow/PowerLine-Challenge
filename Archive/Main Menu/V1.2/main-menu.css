@@ -1,0 +1,338 @@
+/* ============================================================
+   main-menu.css — PowerLine Challenge Main Menu
+
+   Layout strategy:
+     • <body> is a flex container that centers everything on a
+       black background.  It never scrolls.
+     • #plc-container is sized by the <img> inside it.  It is
+       always exactly as large as the rendered image — no more.
+       It is also position: relative, so every overlay inside
+       positions itself against the image, not the viewport.
+     • The <img> itself uses max-width/max-height to shrink
+       down until it fits the viewport, while keeping its
+       natural aspect ratio (2000×1341, ≈ 3:2).
+     • Overlays (tray zone, panel) use percentages that were
+       calibrated against the image composition.  Because they
+       live inside #plc-container, those percentages stay
+       locked to the image at any rendered size.
+   ============================================================ */
+
+
+/* ============================================================
+   1. RESET & BASE
+   ============================================================ */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+
+/* ============================================================
+   2. BODY — Black canvas, flex-centers the container
+   ============================================================ */
+body {
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ============================================================
+   3. PLC CONTAINER — Wraps the image and all overlays
+
+   position: relative  →  overlays position against this box.
+   The container has no explicit size; it collapses tightly
+   around the <img> inside it.
+   ============================================================ */
+#plc-container {
+    position: relative;
+}
+
+
+/* ============================================================
+   4. BACKGROUND IMAGE
+
+   max-width: 100vw  }  Together these shrink the image just
+   max-height: 100vh }  enough to fit inside the viewport
+                         while keeping its aspect ratio.
+                         On a screen larger than 2000×1341 the
+                         image stays at its native size.
+
+   display: block     →  kills the default inline gap below <img>.
+   ============================================================ */
+#bg-image {
+    display: block;
+    max-width: 66.67vw;
+    max-height: 66.67vh;
+}
+
+
+/* ============================================================
+   5. CASSETTE TRAY CLICK ZONE
+
+   An invisible rectangle over the cassette tray in the image.
+   Percentages calibrated against the 2000×1341 image:
+
+       Tray left edge  ≈ 72%  →  zone starts at 70%
+       Tray right edge ≈ 88%  →  zone width  = 20%
+       Tray top        ≈ 27%  →  zone starts at 24%
+       Tray bottom     ≈ 80%  →  zone height = 58%
+
+   Because this is inside #plc-container (which is exactly as
+   big as the rendered image), these percentages always land on
+   the tray no matter how the image is scaled.
+
+   Visual feedback:
+     • Default   — ::after draws a faint pulsing green border.
+     • Hover     — pulse stops, border and glow brighten.
+     • .tray-active — same as hover, locked on while panel is open.
+   ============================================================ */
+#tray-click-zone {
+    position: absolute;
+    left:   70%;
+    top:    24%;
+    width:  20%;
+    height: 58%;
+
+    cursor: pointer;
+    z-index: 1;
+    border-radius: 6px;
+    transition: box-shadow 0.3s ease;
+}
+
+/* Pulsing border hint */
+#tray-click-zone::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border: 1px solid rgba(57, 255, 20, 0.18);
+    border-radius: 8px;
+    pointer-events: none;
+    animation: tray-pulse 3s ease-in-out infinite;
+}
+
+@keyframes tray-pulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1;    }
+}
+
+/* Hover */
+#tray-click-zone:hover {
+    box-shadow: 0 0 24px rgba(57, 255, 20, 0.22),
+                inset 0 0 32px rgba(57, 255, 20, 0.07);
+}
+#tray-click-zone:hover::after {
+    animation: none;
+    border-color: rgba(57, 255, 20, 0.45);
+}
+
+/* Keyboard focus */
+#tray-click-zone:focus {
+    outline: 2px solid rgba(57, 255, 20, 0.5);
+    outline-offset: 3px;
+}
+
+/* Panel-open state */
+#tray-click-zone.tray-active {
+    box-shadow: 0 0 24px rgba(57, 255, 20, 0.22),
+                inset 0 0 32px rgba(57, 255, 20, 0.07);
+}
+#tray-click-zone.tray-active::after {
+    animation: none;
+    border-color: rgba(57, 255, 20, 0.4);
+    opacity: 1;
+}
+
+
+/* ============================================================
+   6. CARTRIDGE SELECTION PANEL
+
+   Positioned in the dark area above the cassette tray.
+   top: 2%  / right: 2%  — these percentages are relative to
+   #plc-container (= the image), so the panel stays in the
+   black upper-right corner regardless of how the image scales.
+
+   width is set in px for readability consistency; on very small
+   viewports this could be made responsive later.
+
+   Visibility toggle:
+     Default         → opacity 0, shifted up, pointer-events none.
+     .panel-visible  → opacity 1, in place, pointer-events auto.
+   ============================================================ */
+#cartridge-panel {
+    position: absolute;
+    top:   2%;
+    right: 2%;
+    width: 240px;
+
+    background: rgba(8, 14, 8, 0.95);
+    border: 1px solid #33ff33;
+    border-radius: 5px;
+    padding: 16px 18px 20px 18px;
+
+    box-shadow: 0 0 18px rgba(51, 255, 51, 0.18),
+                0 6px 28px rgba(0, 0, 0, 0.65);
+
+    color: #33ff33;
+    z-index: 10;
+
+    /* Hidden by default */
+    opacity: 0;
+    transform: translateY(-14px);
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+#cartridge-panel.panel-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+
+/* ============================================================
+   7. PANEL INTERNALS
+
+   7a  Header (title + close button)
+   7b  Cartridge list + individual buttons
+   7c  No-cartridges placeholder
+   7d  Start / Play button
+   ============================================================ */
+
+/* --- 7a  Header --- */
+#panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(51, 255, 51, 0.2);
+    margin-bottom: 14px;
+}
+
+#panel-title {
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    color: #39ff14;
+    text-shadow: 0 0 6px rgba(57, 255, 20, 0.35);
+}
+
+#panel-close {
+    background: none;
+    border: none;
+    color: #2a7a2a;
+    font-size: 15px;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s, background 0.15s;
+}
+
+#panel-close:hover {
+    color: #39ff14;
+    background: rgba(57, 255, 20, 0.08);
+}
+
+
+/* --- 7b  Cartridge list --- */
+#cartridge-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cartridge-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    background: transparent;
+    border: 1px solid rgba(51, 255, 51, 0.3);
+    color: #33ff33;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    padding: 9px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    text-align: left;
+
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.cartridge-btn:hover {
+    background:   rgba(51, 255, 51, 0.07);
+    border-color: rgba(51, 255, 51, 0.55);
+    box-shadow:   0 0 8px rgba(51, 255, 51, 0.2);
+}
+
+.cartridge-btn.selected {
+    background:   rgba(51, 255, 51, 0.12);
+    border-color: #39ff14;
+    box-shadow:   0 0 10px rgba(51, 255, 51, 0.3);
+}
+
+/* Cassette image slot — ready for when the PNG arrives */
+.cassette-img {
+    width: 44px;
+    height: 30px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.cassette-label {
+    flex: 1;
+}
+
+
+/* --- 7c  No-cartridges placeholder --- */
+#no-cartridges {
+    text-align: center;
+    color: #2a7a2a;
+    font-size: 12px;
+    line-height: 2.2;
+    padding: 2px 0;
+}
+
+
+/* --- 7d  Start / Play button --- */
+#start-cartridge {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+
+    background: transparent;
+    border: 1px solid #33ff33;
+    color: #33ff33;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 0;
+    border-radius: 3px;
+
+    cursor: not-allowed;
+    opacity: 0.3;
+    transition: background 0.2s, box-shadow 0.2s, opacity 0.2s, color 0.2s;
+}
+
+#start-cartridge:not(:disabled) {
+    cursor: pointer;
+    opacity: 1;
+}
+
+#start-cartridge:not(:disabled):hover {
+    background: #33ff33;
+    color: #0a1a0a;
+    box-shadow: 0 0 16px rgba(51, 255, 51, 0.45);
+}

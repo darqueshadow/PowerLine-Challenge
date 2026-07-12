@@ -1,0 +1,596 @@
+/* ============================================
+   ASTEROID COMMAND — STYLE.CSS
+   v1.7 — Kinetic Shield Feedback & Visual Bruising
+   FULLSCREEN VERSION
+   ============================================ */
+
+/* --- CSS Variables --- */
+:root {
+    --color-bg-deep: #0a0a12;
+    --color-bg-space: #0d0d1a;
+    --color-primary: #00ffff;
+    --color-secondary: #ff6600;
+    --color-accent: #ffd700;
+    --color-danger: #ff3366;
+    --color-success: #00ff88;
+    --color-text: #e0e0ff;
+    --color-text-dim: #6688aa;
+    --color-zone: #00aaff;
+    --color-tower: #ffd700;
+    --font-arcade: 'Courier New', monospace;
+    --glow-primary: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+    --glow-danger: 0 0 10px var(--color-danger), 0 0 20px var(--color-danger);
+    --glow-accent: 0 0 10px var(--color-accent), 0 0 20px var(--color-accent);
+    --glow-success: 0 0 10px var(--color-success), 0 0 20px var(--color-success);
+    
+    /* v1.7 — Shield State Colors */
+    --color-shield-100: #00ff88;  /* Green - Full */
+    --color-shield-75: #00ff88;   /* Green - Good */
+    --color-shield-50: #ff6600;   /* Orange - Warning */
+    --color-shield-25: #9d00ff;   /* Purple - Critical */
+    --color-misfire: #ff3366;     /* Red - Misfire */
+    --color-text-static: #008844; /* Non-glowing Green for Labels */
+}
+
+/* --- Reset & Base --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: var(--color-bg-deep);
+    color: var(--color-text);
+    font-family: var(--font-arcade);
+}
+
+/* --- Game Container (FULLSCREEN) --- */
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #0a0a18 0%, #0d0d24 50%, #0a0a18 100%);
+    position: relative;
+}
+
+/* --- HUD (Scaled Typography) --- */
+#hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: rgba(0, 0, 0, 0.6);
+    border-bottom: 1px solid var(--color-primary);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+}
+
+#hud-left, #hud-center, #hud-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#hud-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 14px;
+}
+
+/* v1.7 — HUD Labels: Static Green, No Glow */
+#score-label, #shields-label, #streak-label, #tower-shield-label, #tier-label {
+    color: var(--color-text-static);
+    font-size: 14px;
+    text-shadow: none;
+}
+
+#score-value {
+    color: var(--color-accent);
+    text-shadow: var(--glow-accent);
+    font-size: 20px;
+    font-weight: bold;
+    min-width: 70px;
+}
+
+#multiplier-value {
+    color: var(--color-success);
+    text-shadow: var(--glow-success);
+    font-weight: bold;
+    font-size: 18px;
+    margin-left: 8px;
+}
+
+#tier-value {
+    color: var(--color-primary);
+    text-shadow: var(--glow-primary);
+    font-weight: bold;
+    font-size: 20px;
+}
+
+/* v1.7 — Tower Shield Value with Transition */
+#tower-shield-value {
+    color: var(--color-primary);
+    text-shadow: var(--glow-primary);
+    font-size: 18px;
+    letter-spacing: 3px;
+    transition: all 0.3s ease;
+}
+
+/* v1.7 — Shields Value with Transition */
+#shields-value {
+    color: var(--color-success);
+    text-shadow: 0 0 8px var(--color-success);
+    font-size: 18px;
+    letter-spacing: 1px;
+    transition: color 0.3s ease;
+}
+
+/* Legacy shield states (kept for backwards compatibility) */
+#shields-value.warning {
+    color: var(--color-secondary);
+    text-shadow: 0 0 8px var(--color-secondary);
+}
+
+#shields-value.critical {
+    color: var(--color-danger);
+    text-shadow: var(--glow-danger);
+    animation: pulse-critical 0.5s infinite;
+}
+
+/* v1.7 — Dynamic Shield State Classes */
+.shield-100 {
+    color: var(--color-shield-100) !important;
+    text-shadow: 0 0 10px var(--color-shield-100) !important;
+}
+
+.shield-75 {
+    color: var(--color-shield-75) !important;
+    text-shadow: none !important;
+}
+
+.shield-50 {
+    color: var(--color-shield-50) !important;
+    text-shadow: 0 0 8px var(--color-shield-50) !important;
+}
+
+.shield-25 {
+    color: var(--color-shield-25) !important;
+    text-shadow: 0 0 12px var(--color-shield-25) !important;
+    animation: purple-pulse 0.6s infinite alternate !important;
+}
+
+/* v1.7 — Purple Pulsating Critical State */
+@keyframes purple-pulse {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0.6; transform: scale(1.05); }
+}
+
+#streak-value {
+    color: var(--color-primary);
+    text-shadow: var(--glow-primary);
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* --- Command Box (TOP CENTER - Prominent Input) --- */
+#command-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 28px;
+    background: rgba(0, 0, 0, 0.85);
+    border-bottom: 2px solid var(--color-primary);
+    box-shadow: 0 4px 20px rgba(0, 255, 255, 0.2);
+    z-index: 50;
+    flex-shrink: 0;
+}
+
+#command-prompt {
+    color: var(--color-primary);
+    text-shadow: var(--glow-primary);
+    font-size: 24px;
+    margin-right: 14px;
+}
+
+#command-input {
+    width: 450px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-primary);
+    text-shadow: var(--glow-primary);
+    font-family: var(--font-arcade);
+    font-size: 24px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    caret-color: var(--color-primary);
+}
+
+#command-input::placeholder {
+    color: var(--color-text-dim);
+    text-shadow: none;
+    opacity: 0.5;
+}
+
+#command-input.error {
+    color: var(--color-danger);
+    text-shadow: var(--glow-danger);
+    animation: shake 0.3s ease;
+}
+
+#command-input.success {
+    color: var(--color-success);
+    text-shadow: var(--glow-success);
+}
+
+/* --- Status Area --- */
+#status-area {
+    text-align: center;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    min-height: 32px;
+    flex-shrink: 0;
+}
+
+#status-message {
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 16px;
+}
+
+#status-message:empty {
+    visibility: hidden;
+}
+
+#status-message.hit {
+    color: var(--color-success);
+    text-shadow: var(--glow-success);
+}
+
+#status-message.miss {
+    color: var(--color-danger);
+    text-shadow: var(--glow-danger);
+}
+
+#status-message.impact {
+    color: var(--color-secondary);
+    text-shadow: 0 0 8px var(--color-secondary);
+}
+
+#status-message.commendation {
+    color: var(--color-accent);
+    text-shadow: var(--glow-accent);
+    font-size: 18px;
+    font-weight: bold;
+    animation: commendation-flash 0.5s ease infinite;
+}
+
+/* v1.7 — Color-Coded Feedback Messages */
+#status-message.misfire {
+    color: var(--color-misfire);
+    text-shadow: 0 0 10px var(--color-misfire);
+    font-weight: bold;
+}
+
+#status-message.tax {
+    color: var(--color-shield-50);
+    text-shadow: 0 0 8px var(--color-shield-50);
+}
+
+#status-message.bonus {
+    color: var(--color-shield-100);
+    text-shadow: 0 0 10px var(--color-shield-100);
+}
+
+@keyframes commendation-flash {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+/* --- Play Area --- */
+#play-area {
+    flex: 1;
+    position: relative;
+    background: radial-gradient(ellipse at center, #0d0d24 0%, #0a0a12 100%);
+    overflow: hidden;
+    min-height: 0;
+}
+
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* --- Zone Labels (Bold, 12px) --- */
+#zone-labels {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    pointer-events: none;
+    padding: 0 20px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+.zone-label {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--color-zone);
+    text-shadow: 0 0 6px var(--color-zone);
+    padding: 5px 10px;
+    background: rgba(0, 170, 255, 0.15);
+    border: 1px solid rgba(0, 170, 255, 0.4);
+    border-radius: 3px;
+    margin-bottom: 8px;
+}
+
+.zone-label[data-zone="tower"] {
+    color: var(--color-tower);
+    text-shadow: var(--glow-accent);
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.zone-label.destroyed {
+    color: var(--color-danger);
+    text-shadow: none;
+    opacity: 0.4;
+    text-decoration: line-through;
+    background: rgba(255, 51, 102, 0.1);
+    border-color: rgba(255, 51, 102, 0.3);
+}
+
+.zone-label.disabled {
+    color: var(--color-secondary);
+    text-shadow: 0 0 6px var(--color-secondary);
+    animation: pulse-disabled 1s infinite;
+}
+
+/* --- Overlays --- */
+#start-overlay,
+#game-over-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 18, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    overflow-y: auto;
+}
+
+#start-content,
+#game-over-content {
+    text-align: center;
+    padding: 30px;
+    max-width: 650px;
+}
+
+#start-content h1,
+#game-over-content h1 {
+    font-size: 32px;
+    color: var(--color-primary);
+    text-shadow: var(--glow-primary);
+    margin-bottom: 8px;
+    letter-spacing: 4px;
+}
+
+#game-over-content h1 {
+    color: var(--color-danger);
+    text-shadow: var(--glow-danger);
+}
+
+.subtitle {
+    font-size: 12px;
+    color: var(--color-secondary);
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+}
+
+/* --- Scoring Info Panel --- */
+#scoring-info, #tier-info {
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 4px;
+    text-align: left;
+}
+
+#scoring-info h3, #tier-info h3 {
+    color: var(--color-primary);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.score-row, .tier-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--color-text-dim);
+}
+
+.score-row span:last-child {
+    color: var(--color-success);
+}
+
+.score-row.penalty span:last-child {
+    color: var(--color-danger);
+}
+
+.score-row.bonus span:last-child {
+    color: var(--color-accent);
+}
+
+.tier-row span:last-child {
+    color: var(--color-primary);
+}
+
+#instructions {
+    margin: 15px 0 20px;
+    line-height: 1.8;
+    color: var(--color-text-dim);
+    font-size: 12px;
+}
+
+/* --- Final Stats --- */
+#final-stats {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--color-text-dim);
+}
+
+#final-stats div {
+    padding: 4px 0;
+}
+
+/* --- Buttons --- */
+#start-btn,
+#restart-btn,
+#eject-btn {
+    background: transparent;
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+    font-family: var(--font-arcade);
+    font-size: 14px;
+    padding: 12px 30px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    margin: 5px;
+}
+
+#start-btn:hover,
+#restart-btn:hover {
+    background: var(--color-primary);
+    color: var(--color-bg-deep);
+    box-shadow: var(--glow-primary);
+}
+
+#eject-btn {
+    border-color: var(--color-secondary);
+    color: var(--color-secondary);
+}
+
+#eject-btn:hover {
+    background: var(--color-secondary);
+    color: var(--color-bg-deep);
+    box-shadow: 0 0 20px var(--color-secondary);
+}
+
+/* --- Utility Classes --- */
+.hidden {
+    display: none !important;
+}
+
+/* --- Animations --- */
+@keyframes pulse-critical {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes pulse-disabled {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* --- Star Field Background --- */
+#play-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(1px 1px at 20px 30px, white, transparent),
+        radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 90px 40px, white, transparent),
+        radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 160px 120px, white, transparent),
+        radial-gradient(1px 1px at 200px 50px, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 250px 90px, white, transparent),
+        radial-gradient(1px 1px at 300px 150px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 350px 30px, white, transparent),
+        radial-gradient(1px 1px at 400px 100px, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1px 1px at 450px 180px, white, transparent),
+        radial-gradient(1px 1px at 500px 60px, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 550px 130px, white, transparent),
+        radial-gradient(1px 1px at 600px 40px, rgba(255,255,255,0.5), transparent);
+    background-size: 650px 200px;
+    animation: twinkle 8s ease-in-out infinite;
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.6; }
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    #command-input {
+        width: 300px;
+        font-size: 20px;
+    }
+
+    #start-content h1 {
+        font-size: 24px;
+    }
+
+    #hud {
+        font-size: 14px;
+        padding: 12px 20px;
+    }
+
+    #score-value, #streak-value, #tier-value {
+        font-size: 16px;
+    }
+
+    #shields-value {
+        font-size: 14px;
+    }
+
+    #hud-center {
+        display: none;
+    }
+}

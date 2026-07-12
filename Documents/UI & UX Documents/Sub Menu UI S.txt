@@ -1,0 +1,270 @@
+PowerLine Challenge – Sub Menu UI Spec v1.0
+(Cassette Deck + CRT Transition)
+Last Updated: v1.0
+Purpose: Defines the visual behavior, structure, and data model for the cartridge-selection submenu within the PowerLine Challenge system.
+
+1. Purpose of This Document
+This specification defines the Cartridge Selection Sub Menu, accessible from the Main Menu (Arcade Hub).
+It introduces:
+
+A CRT-style flicker transition animation
+A cassette deck visualization
+A horizontally scrolling cassette-row used to select game cartridges
+A screenshot & synopsis panel
+A “Start Cartridge” launch flow
+
+This document explains exactly how the submenu should look, behave, and connect back to the Main Menu and core UI system.
+This document is NOT theme-specific and should be used for all future themes.
+
+2. Relationship to Other Documents
+This UI Spec should be used after the following:
+
+Laws v1.x – unbreakable rules
+Overview v1.x – structure, Arcade Hub, Action Zones, cartridge definitions
+Build Procedure v1.x – technical instructions, modular game structure
+
+This UI Spec does not override any of those documents.
+This adds a new visual UI layer that plugs cleanly into the existing system.
+
+3. Navigation Flow: Main Menu → Sub Menu → Game
+This submenu fits into the PowerLine navigation flow as follows:
+[Main Menu / Arcade Hub]
+        |
+        |-- Player selects "Game Library" / "Cartridges" / "Action Zone"
+        |
+        V
+[CRT Flicker Transition]
+        |
+        V
+[Cartridge Sub Menu (Cassette UI)]
+        |
+        |-- Player selects cassette (game cartridge)
+        |-- Player presses "Start Cartridge"
+        |
+        V
+[Selected Cartridge Game Loads]
+
+The submenu does not replace any existing menus; it is an additional screen/state in the UI system.
+
+4. CRT Flicker Transition (Entering Sub Menu)
+Add an overlay:
+<div id="crtTransition"></div>
+
+Required behavior:
+
+Triggered ONLY when leaving Main Menu → entering Sub Menu.
+Shows animated “CRT static” for 300–600ms.
+Then hides automatically, revealing the Sub Menu.
+
+Animation style:
+
+Quick white/grey flashes
+Optional scanline/noise effect
+CSS animation is acceptable
+No user interaction required
+Must never block input after it finishes
+
+
+5. Sub Menu Structure (Cassette-Based Cartridge Selector)
+Create a dedicated Sub Menu container:
+<section id="cartridge-submenu">
+    ...
+</section>
+
+This container must support show/hide using the existing UI manager (ui.js).
+Inside this container, implement the following elements:
+
+5.1 Header / Title Area
+
+Simple title text such as:
+
+“Select a Game Cartridge”
+Title can be styled/updated by future themes.
+
+
+
+
+5.2 Cassette Row (Horizontal Scrolling List)
+Container:
+<div id="cassette-row"></div>
+
+Each cassette:
+
+Has a placeholder cassette image (real art added later)
+Contains:
+
+Internal ID (e.g., cartridgeId)
+displayName reference
+
+
+May be navigated by:
+
+Left/Right arrow keys
+A/D keys
+Mouse click
+
+
+Only ONE cassette may have the class .selected
+
+Selected cassette visual behavior:
+
+Slight scale-up OR
+Soft glow OR
+Small upward offset
+(Exact effect can be refined later.)
+
+Scrolling behavior:
+
+Must support more cassettes added in the future
+Row layout should not break when list grows
+Selected item always remains visible
+
+
+5.3 Game Screenshot Panel
+Container:
+<div id="game-screenshot-panel"></div>
+
+Behavior:
+
+On cassette selection:
+
+Update with that cassette’s screenshot image
+
+
+If screenshot unavailable:
+
+Show “COMING SOON” placeholder
+
+
+
+
+5.4 Game Info Panel
+Container:
+<div id="game-info-panel"></div>
+
+Shows:
+
+Cartridge Title
+Short synopsis (how to play / what the game is)
+Status:
+
+available → can start
+coming-soon → disabled Start button
+
+
+
+
+5.5 Cassette Deck (Bottom Center)
+A static decorative element:
+assets/ui/cassette-deck.png
+
+Placement:
+
+Fixed to lower center of screen
+Always visible
+Does not scroll
+Takes no gameplay input
+
+Two buttons must be placed near/on the deck:
+Start Cartridge Button
+
+Starts the selected cartridge
+Disabled when cartridge.status = "coming-soon"
+
+Back to Main Menu Button
+
+Returns to Main Menu using the existing UI routing system
+Must NOT bypass the hierarchy (use proper screen transitions)
+
+
+6. Cartridge Data Structure (Required)
+Create a JS array for cartridge definitions:
+JavaScriptconst cartridges = [  {    id: "asteroid-command",    displayName: "Asteroid Command",    status: "available",    screenshot: "assets/screenshots/asteroid-command-placeholder.png",    synopsis: "Space-themed PLC training mission with falling command asteroids."  },  {    id: "zombie-defense",    displayName: "Zombie Defense",    status: "coming-soon",    screenshot: "assets/screenshots/coming-soon.png",    synopsis: "This cartridge is not available yet. Coming soon."  }];Show more lines
+Claude can add more later.
+Rules:
+
+
+When cassette selected:
+
+Update screenshot panel
+Update info panel
+Update Start button state
+
+
+
+id must match the folder name in /cartridges/<id>/ once implemented.
+
+
+
+7. Wiring Behavior
+The Sub Menu must:
+
+Use a small controller module (JS) that:
+
+Populates #cassette-row dynamically using cartridges[]
+Tracks selectedIndex
+Updates info + screenshot panels on every selection change
+
+
+
+Keyboard behavior:
+Left Arrow / A  → select previous cassette
+Right Arrow / D → select next cassette
+Enter / Space   → activate Start (if available)
+Escape          → return to Main Menu (optional)
+
+Mouse behavior:
+Click cassette → select cassette
+Click Start    → launch game
+Click Back     → return to Main Menu
+
+
+8. Integration With Existing Main Menu / Arcade Hub
+This submenu:
+
+Must be registered as a UI state in ui.js
+Must NOT replace or rewrite existing main menu logic
+Must be accessed from a button/menu option in Main Menu (e.g., “Game Library”)
+Should not modify:
+
+Score logic
+Shield logic
+Engine logic
+Impact mechanics
+Any Laws-defined system
+
+
+
+
+9. Style & Theming Notes
+This is a neutral UI specification, not a theme.
+Therefore:
+
+Colors, fonts, borders should be simple and unobtrusive
+Avoid stylized graphics or animations
+Theming will happen per cartridge or in dedicated Theme files
+This Sub Menu should always remain functional even under Blank Mode
+
+
+10. Future Enhancements (Optional)
+These may be added later but are NOT required in v1.0:
+
+Cassette insertion animation into the deck
+Sound effect when changing cassettes
+Hover/focus animations
+Thumbnails for each cassette
+“Developer/Blank Cartridge” hidden access mode
+Theme-specific color treatments
+
+
+11. Summary
+This Sub Menu is:
+
+A standalone UI screen
+Entered via CRT transition
+Uses cassette graphics to select cartridges
+Updates info & screenshot panels dynamically
+Integrates cleanly into existing Main Menu
+Uses a consistent cartridges[] data structure
+
+This document ensures Claude builds the submenu correctly, predictably, and repeatedly.

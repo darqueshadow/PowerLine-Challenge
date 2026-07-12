@@ -1,0 +1,14 @@
+stage_id,voice,phrase
+NTF,cad,New Call {inc_numbers}
+ENR,radio,En Route
+ENR,radio,Switching to OPS2
+ENR,radio,On OPS2
+ENR,radio,Mobile to call
+ARR,radio,Arriving Scene
+ARR,radio,Switching to OPS3
+ARR,radio,On OPS3
+ARR,radio,On scene
+PTC,radio,Patient Contact
+DPT,radio,Departing {hospitals}
+ARD,radio,Arriving {hospitals}
+TOC,cad,TOC Completed

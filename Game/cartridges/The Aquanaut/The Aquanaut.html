@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Aquanaut — Below the Black</title>
+    <link rel="icon" href="data:,">   <!-- empty icon: no favicon.ico ships, so this suppresses the default 404 fetch -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #000000;
+            font-family: 'Courier New', monospace;
+        }
+        /* Full-screen sonar scope — the only visible element */
+        #boot-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="boot-canvas"></canvas>
+
+    <script>
+        // ── Total blank slate on every launch ──
+        // Wipe ALL persisted state — high scores, progression, prefs, caches —
+        // so a relaunch never carries anything from a previous session.
+        try { localStorage.clear(); } catch (e) {}
+        try { sessionStorage.clear(); } catch (e) {}
+        if ('caches' in window) {
+            caches.keys().then(names => names.forEach(name => caches.delete(name)));
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  SONAR ACQUISITION INTRO  (all one glowing sonar green)
+        //  1. Standby scope — NO sweep arm — "PRESS ENTER / CLICK".
+        //  2. On engage the arm circles. A contact sits at the 20-min
+        //     bearing; each pass it grows, and on passes 1-3 it dissolves —
+        //     flaring on the cross then fading to nothing by the time the arm
+        //     sweeps back to 12 o'clock (360°):
+        //       pass 1 → 1 pixel          — dissolves by 12 o'clock (360°)
+        //       pass 2 → 5-pixel clump     — dissolves by 12 o'clock (360°)
+        //       pass 3 → imperfect oval    — dissolves by 12 o'clock (360°)
+        //       pass 4 → ill-shaped blob   — won't fade
+        //       pass 5 → the arm JAMS: blob flickers + static, blink, stutter.
+        //  3. Cut to black.
+        //  4. Blank boot screen, a lone cursor flashes, then the
+        //     existing load screen runs (files/index.html).
+        // ═══════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('boot-canvas');
+            const ctx = canvas.getContext('2d');
+
+            let W, H, cx, cy, R;
+            function layout() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                W = canvas.width; H = canvas.height;
+                cx = W / 2; cy = H / 2;
+                R = Math.min(W, H) * 0.38;
+            }
+            layout();
+            window.addEventListener('resize', layout);
+
+            // ── Palette — one glowing sonar green (#00FF41) for everything ──
+            const GREEN  = '#00FF41';
+            const RING   = 'rgba(0, 255, 65, 0.18)';
+            const RINGB  = 'rgba(0, 255, 65, 0.45)';
+            const fs   = () => Math.max(13, Math.min(20, Math.floor(H / 40)));
+            const FONT = (px) => `bold ${px}px Consolas, "Courier New", monospace`;
+
+            // ── Contact geometry ──
+            const SWEEP_START = -Math.PI / 2;                       // arm begins pointing "north" (12 o'clock)
+            const blipAng     = SWEEP_START + (20 / 60) * 2 * Math.PI;  // contact at the 20-minute bearing
+            const blipRf      = 0.60;                               // contact range (fraction of R)
+
+            function blipPos() {
+                return { bx: cx + Math.cos(blipAng) * R * blipRf,
+                         by: cy + Math.sin(blipAng) * R * blipRf };
+            }
+
+            // ── Audio (sonar tones) — unlocked by the start gesture ──
+            let actx = null;
+            function ping(freq, dur, vol, type) {
+                if (!actx) return;
+                try {
+                    const o = actx.createOscillator(), g = actx.createGain();
+                    o.type = type || 'sine';
+                    o.frequency.value = freq;
+                    o.connect(g); g.connect(actx.destination);
+                    const t = actx.currentTime;
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(vol, t + 0.01);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+                    o.start(t); o.stop(t + dur + 0.02);
+                } catch (e) { /* ignore */ }
+            }
+
+            // ── Cold-war sonar console frames (replaces the standby gate) ──
+            const CONSOLE_NAMES = ['switch_closed', 'switch_mid_closed', 'switch_mid_open', 'switch_on'];
+            const consoleImgs = {};
+            let consoleLoaded = 0;    // settled (load OR error)
+            let consoleDecoded = 0;   // actually decoded (naturalWidth > 0)
+            CONSOLE_NAMES.forEach(function (n) {
+                const im = new Image();
+                im.onload = function () { consoleLoaded++; if (im.naturalWidth) consoleDecoded++; };
+                im.onerror = function () { consoleLoaded++; };
+                im.src = 'files/assets/Boot Screen/' + n + '.png';
+                consoleImgs[n] = im;
+            });
+            // Grace timer so a missing/corrupt frame degrades (boot proceeds) instead of
+            // stranding the gate on 'INITIALIZING…' forever.
+            let consoleTimedOut = false;
+            setTimeout(function () { consoleTimedOut = true; }, 6000);
+            const consoleReady = function () {
+                // Ready when every frame has actually DECODED (not merely settled), or after
+                // the grace period once all have settled.
+                return consoleDecoded >= CONSOLE_NAMES.length
+                    || (consoleTimedOut && consoleLoaded >= CONSOLE_NAMES.length);
+            };
+            const SONAR_RECT = { x: 0.135, y: 0.27, w: 0.13, h: 0.31 };   // SONAR switch as a fraction of the art
+            // "On/Off" nameplate placement, as fractions of the fitted console.
+            // Centred in the gap between the SONAR switch (bottom ~0.48) and the
+            // red ERROR lamp below it (core ~0.71) — clears both. The plate PNG
+            // shares the console's 2752×1536 aspect, so its width and height are
+            // the same fraction (fw) of the fitted dw/dh respectively.
+            const PLATE = { cx: 0.19, cy: 0.59, fw: 0.16 };
+
+            function drawConsoleCover(img) {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, W, H);
+                if (!img || !img.complete || !img.naturalWidth) return null;
+                const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+                const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+                const dx = (W - dw) / 2, dy = (H - dh) / 2;
+                ctx.drawImage(img, dx, dy, dw, dh);
+                const fit = { dx: dx, dy: dy, dw: dw, dh: dh };
+                drawPlate(fit);   // overlay the nameplate on every console frame
+                return fit;
+            }
+
+            // Pre-rendered engraved "SONAR POWER" nameplate (transparent PNG),
+            // themed to match the console's other plaques. Loaded once here.
+            const plateImg = new Image();
+            let plateReady = false;
+            plateImg.onload = function () { plateReady = true; };
+            plateImg.onerror = function () { plateReady = true; };
+            plateImg.src = 'files/assets/Boot Screen/sonar_power_plate.png';
+
+            // Draw the "On/Off" nameplate onto a fitted console (the rect returned
+            // by drawConsoleCover), positioned by the PLATE fractions. The plate PNG
+            // shares the console's aspect, so width and height are the same fraction
+            // of dw/dh.
+            function drawPlate(fit) {
+                if (!fit || !plateImg.complete || !plateImg.naturalWidth) return;
+                const w = PLATE.fw * fit.dw, h = PLATE.fw * fit.dh;
+                const x = fit.dx + PLATE.cx * fit.dw - w / 2;
+                const y = fit.dy + PLATE.cy * fit.dh - h / 2;
+                ctx.drawImage(plateImg, x, y, w, h);
+            }
+
+            // Heavy mechanical toggle — a sharp lever snap over a solid low thunk.
+            function clunk() {
+                ping(1150, 0.022, 0.12, 'square');   // contact snap — lever hits the detent
+                ping(620,  0.04,  0.10, 'square');   // bright body of the click
+                ping(150,  0.12,  0.20, 'triangle'); // solid mechanical thunk
+                ping(70,   0.18,  0.18, 'sine');     // low weight
+            }
+
+            // Electronic power-on hum — the old console's transformer / CRT waking
+            // up. A low mains-style hum swells in, with a faint coil whine that
+            // rises in pitch as it energises then settles. Sustains under the rest
+            // of the intro (the nodes are torn down when the page navigates away).
+            let humStarted = false;
+            function powerOnHum() {
+                if (!actx || humStarted) return;
+                humStarted = true;
+                try {
+                    const t = actx.currentTime;
+                    const out = actx.createGain();
+                    out.gain.setValueAtTime(0.0001, t);
+                    out.gain.exponentialRampToValueAtTime(0.09, t + 0.9);   // swell as it powers up
+                    out.connect(actx.destination);
+
+                    // 60Hz mains hum + 120Hz harmonic (transformer buzz)
+                    const o1 = actx.createOscillator(); o1.type = 'sine';     o1.frequency.value = 60;
+                    const o2 = actx.createOscillator(); o2.type = 'triangle'; o2.frequency.value = 120;
+                    o1.connect(out); o2.connect(out);
+
+                    // Faint high coil whine — surges up in pitch as it energises,
+                    // then drops back to a quiet steady idle.
+                    const whineGain = actx.createGain();
+                    whineGain.gain.setValueAtTime(0.001, t);
+                    whineGain.gain.linearRampToValueAtTime(0.03, t + 0.6);
+                    whineGain.gain.linearRampToValueAtTime(0.008, t + 1.6);
+                    const o3 = actx.createOscillator(); o3.type = 'sawtooth';
+                    o3.frequency.setValueAtTime(420, t);
+                    o3.frequency.exponentialRampToValueAtTime(900, t + 1.0);
+                    o3.connect(whineGain); whineGain.connect(out);
+
+                    o1.start(t); o2.start(t); o3.start(t);
+                } catch (e) { /* ignore */ }
+            }
+
+            // ── The thing that hauls itself out of the jammed contact ──
+            //   No body — one or two squid tentacle arms uncurl from the
+            //   contact and reach outward (along blipAng) as the array jams.
+            function drawCreature(t) {
+                const b = blipPos();
+                const ease = t * t * (3 - 2 * t);             // smoothstep emerge 0→1
+                if (ease <= 0.001) return;
+                const now = performance.now();
+
+                ctx.save();
+                ctx.translate(b.bx, b.by);
+                ctx.rotate(blipAng);                          // +x local = outward (away from scope centre)
+                ctx.shadowColor = GREEN;
+                ctx.shadowBlur = 14;
+
+                // One tapering tentacle: a curling centreline filled with a
+                // width that shrinks to a point at the tip, plus a row of suckers.
+                function tentacle(side, phase, lenMul, curlMul, widthMul, baseAng) {
+                    ctx.save();
+                    ctx.rotate(baseAng || 0);              // splay each arm in its own direction
+                    const SEG   = 22;
+                    const reach = R * 0.45 * lenMul * ease;                 // grows as it hauls out
+                    const baseW = R * 0.022 * widthMul * (0.5 + 0.5 * ease);
+                    const ptx = [], pty = [], ptw = [];
+                    for (let i = 0; i <= SEG; i++) {
+                        const u    = i / SEG;
+                        const curl = side * curlMul * reach * (u * u);                       // curls harder toward the tip
+                        const wave = Math.sin(u * 3.2 + now / 320 + phase) * R * 0.05 * u * ease; // travelling wiggle
+                        ptx[i] = u * reach;
+                        pty[i] = curl + wave;
+                        ptw[i] = baseW * Math.pow(1 - u, 0.85);                              // taper to ~0 at the tip
+                    }
+                    // unit normal to the centreline at sample i (for offsetting the edges)
+                    const norm = (i) => {
+                        const i0 = Math.max(0, i - 1), i1 = Math.min(SEG, i + 1);
+                        const tx = ptx[i1] - ptx[i0], ty = pty[i1] - pty[i0];
+                        const tl = Math.hypot(tx, ty) || 1;
+                        return { nx: -ty / tl, ny: tx / tl };
+                    };
+
+                    // Outline: walk one edge out, the other edge back, meeting at the tip
+                    ctx.beginPath();
+                    for (let i = 0; i <= SEG; i++) {
+                        const n = norm(i);
+                        const x = ptx[i] + n.nx * ptw[i], y = pty[i] + n.ny * ptw[i];
+                        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    for (let i = SEG; i >= 0; i--) {
+                        const n = norm(i);
+                        ctx.lineTo(ptx[i] - n.nx * ptw[i], pty[i] - n.ny * ptw[i]);
+                    }
+                    ctx.closePath();
+                    ctx.fillStyle   = 'rgba(0, 255, 65, ' + (0.10 + 0.30 * ease).toFixed(3) + ')';
+                    ctx.fill();
+                    ctx.lineWidth   = 1.2;
+                    ctx.strokeStyle = 'rgba(0, 255, 65, ' + (0.30 + 0.45 * ease).toFixed(3) + ')';
+                    ctx.stroke();
+
+                    // Suckers — small dots down the inner (curl) edge
+                    ctx.fillStyle = 'rgba(0, 255, 65, ' + (0.45 * ease).toFixed(3) + ')';
+                    for (let i = 3; i < SEG - 1; i += 2) {
+                        const r = ptw[i] * 0.42;
+                        if (r < 0.4) continue;
+                        const n   = norm(i);
+                        const off = -side * ptw[i] * 0.45;     // ride the inner edge
+                        ctx.beginPath();
+                        ctx.arc(ptx[i] + n.nx * off, pty[i] + n.ny * off, r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+
+                // Four arms reaching out in different directions — varied length /
+                // curl / phase / splay-angle so they read as a writhing cluster.
+                tentacle(+1, 0.0, 1.00, 0.45, 1.00,  0.00);   // straight outward, curling up
+                tentacle(-1, 1.7, 0.78, 0.62, 0.80,  0.00);   // straight outward, curling down
+                tentacle(+1, 0.8, 0.90, 0.52, 0.85, -0.95);   // reaching up-and-out
+                tentacle(-1, 2.4, 0.72, 0.58, 0.72,  1.15);   // reaching down-and-out
+
+                ctx.restore();
+            }
+
+            // ── TV warm-up static (between the cut-to-black and the cursor) ──
+            function drawTVStatic(y0, hgt, intensity) {
+                const count = Math.floor(intensity * (W * hgt) / 1400);
+                for (let i = 0; i < count; i++) {
+                    const x = Math.random() * W, y = y0 + Math.random() * hgt;
+                    const s = 1 + Math.random() * 2;
+                    const v = 120 + Math.floor(Math.random() * 135);
+                    ctx.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',' + (0.10 + Math.random() * 0.40).toFixed(2) + ')';
+                    ctx.fillRect(x, y, s, s);
+                }
+                const lines = Math.floor(intensity * 8);
+                for (let i = 0; i < lines; i++) {
+                    const y = y0 + Math.random() * hgt;
+                    ctx.fillStyle = 'rgba(200, 200, 200, ' + (0.05 + Math.random() * 0.15).toFixed(2) + ')';
+                    ctx.fillRect(0, y, W, 1 + Math.random() * 2);
+                }
+            }
+
+            function tvWarmup() {
+                const t0 = performance.now();
+                const TURN_ON = 180, STATIC = 1100, SETTLE = 220;
+                const TOTAL = TURN_ON + STATIC + SETTLE;
+                let rollY = 0;
+                function loop(ts) {
+                    const el = ts - t0;
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(0, 0, W, H);
+                    if (el <= TURN_ON) {
+                        const p = el / TURN_ON;
+                        const h = Math.max(2, H * p);
+                        drawTVStatic(cy - h / 2, h, 1);
+                        ctx.fillStyle = 'rgba(220, 255, 225, ' + (1 - p).toFixed(3) + ')';
+                        ctx.fillRect(0, cy - 1, W, 2);
+                    } else if (el <= TURN_ON + STATIC) {
+                        const sp = (el - TURN_ON) / STATIC;
+                        drawTVStatic(0, H, 1);
+                        rollY = (rollY + 7) % (H + 120);
+                        const g = ctx.createLinearGradient(0, rollY - 60, 0, rollY + 60);
+                        g.addColorStop(0, 'rgba(0,0,0,0)');
+                        g.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+                        g.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = g;
+                        ctx.fillRect(0, rollY - 60, W, 120);
+                        if ((Math.floor(el) % 140) < 16) {
+                            ctx.fillStyle = 'rgba(230, 255, 230, 0.5)';
+                            ctx.fillRect(0, Math.random() * H, W, 1 + Math.random() * 2);
+                        }
+                        ctx.fillStyle = 'rgba(0, 40, 15, ' + (sp * 0.5).toFixed(3) + ')';
+                        ctx.fillRect(0, 0, W, H);
+                    } else if (el <= TOTAL) {
+                        const p = (el - TURN_ON - STATIC) / SETTLE;
+                        drawTVStatic(0, H, 1 - p);
+                        ctx.fillStyle = 'rgba(0, 20, 8, ' + (0.4 + 0.6 * p).toFixed(3) + ')';
+                        ctx.fillRect(0, 0, W, H);
+                    } else {
+                        cursorThenBoot();
+                        return;
+                    }
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.10)';
+                    for (let sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+                    requestAnimationFrame(loop);
+                }
+                requestAnimationFrame(loop);
+            }
+
+            // ── Scope face: glass, range rings, crosshair, bearing ticks ──
+            function drawScope() {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, W, H);
+
+                const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+                g.addColorStop(0,   'rgba(0, 46, 16, 0.55)');
+                g.addColorStop(0.7, 'rgba(0, 24, 9, 0.32)');
+                g.addColorStop(1,   'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+
+                ctx.lineWidth = 1;
+                for (let i = 1; i <= 4; i++) {
+                    ctx.strokeStyle = (i === 4) ? RINGB : RING;
+                    ctx.beginPath(); ctx.arc(cx, cy, R * i / 4, 0, Math.PI * 2); ctx.stroke();
+                }
+                ctx.strokeStyle = RING;
+                ctx.beginPath();
+                ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy);
+                ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R);
+                ctx.stroke();
+
+                for (let a = 0; a < 360; a += 15) {
+                    const rad = a * Math.PI / 180;
+                    const long = (a % 45 === 0);
+                    const r0 = R * (long ? 0.92 : 0.965);
+                    ctx.strokeStyle = long ? RINGB : RING;
+                    ctx.beginPath();
+                    ctx.moveTo(cx + Math.cos(rad) * r0, cy + Math.sin(rad) * r0);
+                    ctx.lineTo(cx + Math.cos(rad) * R,  cy + Math.sin(rad) * R);
+                    ctx.stroke();
+                }
+
+                ctx.fillStyle = GREEN;
+                ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill();
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.10)';
+                for (let sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+            }
+
+            // ── Rotating arm with a fading afterglow wedge trailing behind ──
+            function drawSweepArm(angle) {
+                const steps = 42, fan = Math.PI * 0.6;
+                ctx.save();
+                ctx.translate(cx, cy);
+                for (let i = steps; i >= 1; i--) {
+                    const a0 = angle - fan * (i) / steps;
+                    const a1 = angle - fan * (i - 1) / steps;
+                    const alpha = 0.16 * (1 - i / steps);
+                    ctx.fillStyle = `rgba(0, 255, 65, ${alpha.toFixed(3)})`;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, R, a0, a1);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                const lg = ctx.createLinearGradient(0, 0, Math.cos(angle) * R, Math.sin(angle) * R);
+                lg.addColorStop(0, 'rgba(0, 255, 65, 0)');
+                lg.addColorStop(1, 'rgba(0, 255, 65, 0.95)');
+                ctx.strokeStyle = lg;
+                ctx.lineWidth = 2;
+                ctx.shadowColor = GREEN; ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(angle) * R, Math.sin(angle) * R);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // ── Contact returns — abstract, never literal ──
+            //   'pixel'   single point        'cluster'  5 touching pixels (a plus)
+            //   'oval'    imperfect oval       'blob'     large ill-shaped mass
+            function wobbleShape(bx, by, baseR, irregularity, elong, rot, pts, seed) {
+                ctx.beginPath();
+                for (let i = 0; i <= pts; i++) {
+                    const a = (i / pts) * Math.PI * 2;
+                    const noise = 1 + irregularity *
+                        (Math.sin(a * 3 + seed) * 0.5 + Math.cos(a * 5 + seed * 1.7) * 0.5);
+                    const rr = baseR * noise;
+                    const lx = Math.cos(a) * rr * elong;
+                    const ly = Math.sin(a) * rr;
+                    const x = bx + lx * Math.cos(rot) - ly * Math.sin(rot);
+                    const y = by + lx * Math.sin(rot) + ly * Math.cos(rot);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            function drawBlip(kind, alpha) {
+                if (!kind || alpha <= 0.001) return;
+                const { bx, by } = blipPos();
+                ctx.save();
+                ctx.shadowColor = GREEN;
+                ctx.shadowBlur = 6 + 14 * alpha;
+                ctx.fillStyle = GREEN;
+                ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+                if (kind === 'pixel') {
+                    ctx.fillRect(bx - 1.3, by - 1.3, 2.6, 2.6);                  // single pixel
+                } else if (kind === 'cluster') {
+                    const P = 2.6;                                               // 5 touching pixels (a plus)
+                    [[0, 0], [0, -P], [0, P], [-P, 0], [P, 0]].forEach(function (o) {
+                        ctx.fillRect(bx + o[0] - P / 2, by + o[1] - P / 2, P, P);
+                    });
+                } else if (kind === 'oval') {
+                    wobbleShape(bx, by, R * 0.045, 0.18, 1.6, 0.5, 18, 1.3);     // imperfect oval
+                } else {
+                    wobbleShape(bx, by, R * 0.10, 0.55, 1.12, 0.2, 24, 3.7);     // large ill-shaped blob
+                }
+                ctx.restore();
+            }
+
+            function header(txt) {
+                ctx.save();
+                ctx.fillStyle = GREEN;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'alphabetic';
+                ctx.font = FONT(fs());
+                ctx.shadowColor = GREEN;
+                ctx.shadowBlur = 8;
+                ctx.fillText(txt, cx, cy - R - fs() * 1.1);
+                ctx.restore();
+            }
+
+            let raf = null;
+
+            // ── PHASE 1: console standby — flick the SONAR switch to engage ──
+            let gateT = 0, gateLast = null;
+            let flicking = false;
+            let pendingFlick = false;
+
+            // The switch can't be drawn in isolation (it's baked into the console
+            // art), but the four flick frames differ only in the lever's position —
+            // so a quick double-tap toward `switch_mid_closed` reads as the lever
+            // "jiggling" to invite a flick, with no seams.
+            function gateSwitchImg() {
+                if (!consoleReady()) return consoleImgs.switch_closed;
+                const CYCLE = 1.5;                       // seconds between twitches
+                const ph = gateT % CYCLE;
+                const tap = (ph < 0.06) || (ph >= 0.14 && ph < 0.20);
+                return tap ? consoleImgs.switch_mid_closed : consoleImgs.switch_closed;
+            }
+
+            function gateLoop(ts) {
+                if (gateLast == null) gateLast = ts;
+                gateT += (ts - gateLast) / 1000; gateLast = ts;
+
+                if (pendingFlick && consoleReady()) { beginFlick(); return; }
+
+                // drawConsoleCover overlays the nameplate on the frame itself.
+                const fit = drawConsoleCover(gateSwitchImg());
+                if (!fit) {
+                    ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, W, H);
+                    ctx.save();
+                    ctx.fillStyle = GREEN; ctx.textAlign = 'center'; ctx.font = FONT(fs());
+                    ctx.fillText('INITIALIZING…', cx, cy);
+                    ctx.restore();
+                }
+                raf = requestAnimationFrame(gateLoop);
+            }
+            canvas.style.cursor = 'pointer';            // hand cursor while waiting at the standby gate
+            raf = requestAnimationFrame(gateLoop);
+
+            // Animate the four-frame flick, clunk twice, then start the sweep.
+            function beginFlick() {
+                flicking = true;
+                canvas.style.cursor = 'none';           // hide the cursor for the (non-interactive) cinematic
+                cancelAnimationFrame(raf);
+                const seq = CONSOLE_NAMES;
+                let i = 0;
+                (function step() {
+                    drawConsoleCover(consoleImgs[seq[Math.min(i, seq.length - 1)]]);
+                    if (i === 0) clunk();
+                    if (i === seq.length - 1) { clunk(); powerOnHum(); }  // switch hits "on" — clunk + machine powers up
+                    i++;
+                    if (i < seq.length) setTimeout(step, 110);
+                    // Hold on the lit "switch on" console for a beat (3s) before
+                    // the sonar sweep begins.
+                    else setTimeout(startSweep, 3000);
+                })();
+            }
+
+            function onGesture(e) {
+                if (flicking) return;
+                if (e && e.type === 'keydown') {
+                    if (e.ctrlKey || e.metaKey || e.altKey) return;
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                }
+                document.removeEventListener('keydown', onGesture);
+                document.removeEventListener('click', onGesture);
+                document.removeEventListener('touchstart', onGesture);
+                try {
+                    actx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (actx.state === 'suspended') actx.resume();
+                } catch (_) { /* ignore */ }
+                if (consoleReady()) beginFlick();
+                else pendingFlick = true;   // art still decoding — flick the instant it's ready
+            }
+            document.addEventListener('keydown', onGesture);
+            document.addEventListener('click', onGesture);
+            document.addEventListener('touchstart', onGesture);
+
+            // ── PHASE 2: active sweep — five passes; the contact clings longer
+            //    each time, until it won't fade and the array jams. ──
+            function startSweep() {
+                const omega = (2 * Math.PI) / 1.6;          // one rotation ≈ 1.6s
+                // absolute arm angle at clock-minute `min` on revolution `rev`
+                const clockAng = (min, rev) => SWEEP_START + (min / 60) * 2 * Math.PI + rev * 2 * Math.PI;
+
+                // Each pass crosses the 20-min contact and sets how long it holds
+                // (full) and the bearing by which it has faded to nothing.
+                // Passes 1–3: the contact flares as the arm crosses it, then slowly
+                // dissolves — fully gone by the time the arm sweeps back round to
+                // 12 o'clock (the 360° position). Pass 4: the blob won't fade.
+                // Pass 5 (failCross): the array jams.
+                const passes = [
+                    { cross: clockAng(20, 0), kind: 'pixel',   hold: clockAng(20, 0), zero: clockAng(60, 0), tone: [1500, 0.10, 0.16] },
+                    { cross: clockAng(20, 1), kind: 'cluster', hold: clockAng(20, 1), zero: clockAng(60, 1), tone: [1150, 0.12, 0.16] },
+                    { cross: clockAng(20, 2), kind: 'oval',    hold: clockAng(20, 2), zero: clockAng(60, 2), tone: [820,  0.14, 0.17] },
+                    { cross: clockAng(20, 3), kind: 'blob',    hold: Infinity,        zero: Infinity,        tone: [480,  0.22, 0.18] },
+                ];
+                const failCross = clockAng(20, 4);
+
+                let idx = 0;
+                let blip = null;          // active contact: { size, hold, zero }
+                let t0 = null;
+                ping(520, 0.09, 0.10, 'sine');   // engage chirp
+
+                function loop(ts) {
+                    if (t0 == null) t0 = ts;
+                    const el = (ts - t0) / 1000;
+                    const ang = SWEEP_START + omega * el;
+
+                    // (re)acquire the contact each time the arm reaches its bearing
+                    while (idx < passes.length && ang >= passes[idx].cross) {
+                        const p = passes[idx]; idx++;
+                        blip = { kind: p.kind, hold: p.hold, zero: p.zero };
+                        ping(p.tone[0], p.tone[1], p.tone[2], 'sine');
+                    }
+
+                    // pass 5 — the array jams on the contact
+                    if (ang >= failCross) {
+                        ping(120, 0.70, 0.22, 'sawtooth');
+                        ping(70, 0.90, 0.18, 'sine');
+                        startFailure();
+                        return;
+                    }
+
+                    // contact alpha — holds full, then fades toward its "gone" bearing
+                    let alpha = 0;
+                    if (blip) {
+                        if (blip.zero === Infinity)      alpha = 1;
+                        else if (ang <= blip.hold)       alpha = 1;
+                        else if (ang >= blip.zero)       alpha = 0;
+                        else alpha = 1 - (ang - blip.hold) / (blip.zero - blip.hold);
+                    }
+
+                    drawScope();
+                    drawSweepArm(ang);
+                    drawBlip(blip ? blip.kind : null, alpha);
+                    header('SONAR ARRAY — ACTIVE');
+
+                    raf = requestAnimationFrame(loop);
+                }
+                raf = requestAnimationFrame(loop);
+            }
+
+            // ── PHASE 3: array jam — arm stuck, static, blink, stutter, then black ──
+            function startFailure() {
+                const t0 = performance.now();
+                const DUR = 1600;
+                let nextGlitch = 0;
+
+                function loop(ts) {
+                    const el = ts - t0;
+                    const p = Math.min(1, el / DUR);
+
+                    // STUTTER — the whole image judders and jumps
+                    const jx = (Math.random() < 0.45) ? (Math.random() - 0.5) * 20 * p : 0;
+                    const jy = (Math.random() < 0.45) ? (Math.random() - 0.5) * 14 * p : 0;
+                    ctx.save();
+                    ctx.translate(jx, jy);
+                    drawScope();
+                    drawSweepArm(blipAng + (Math.random() - 0.5) * 0.14 * p);  // arm stuck, twitching
+                    // contact jammed on-screen but flickering — mostly bright, with
+                    // random dropouts as the return breaks up; it never fully clears.
+                    const flick = (Math.random() < 0.18) ? (0.12 + Math.random() * 0.28)
+                                                         : (0.70 + Math.random() * 0.30);
+                    drawBlip('blob', flick);                                   // contact jammed, flickering
+                    drawStatic(p);                                            // green sonar static
+                    drawCreature(p);                                          // the thing hauls itself out of the blob
+                    header(scramble('SONAR ARRAY — '));
+                    ctx.restore();
+
+                    // BLINK — random black-outs
+                    if (Math.random() < 0.05 + p * 0.20) {
+                        ctx.fillStyle = '#000000';
+                        ctx.fillRect(0, 0, W, H);
+                    }
+                    // green signal flash
+                    if (Math.random() < 0.07 + p * 0.14) {
+                        ctx.fillStyle = `rgba(0, 255, 65, ${(0.05 + Math.random() * 0.12 * p).toFixed(3)})`;
+                        ctx.fillRect(0, 0, W, H);
+                    }
+                    // glitch chatter
+                    if (el > nextGlitch) {
+                        ping(80 + Math.random() * 70, 0.06, 0.10, 'square');
+                        nextGlitch = el + 90 + Math.random() * 150;
+                    }
+
+                    if (el < DUR) raf = requestAnimationFrame(loop);
+                    else goBlack();
+                }
+                raf = requestAnimationFrame(loop);
+            }
+
+            function scramble(prefix) {
+                const junk = '▖▘▝▗▚▞█▓▒░╪╫┼≡≈';
+                let s = prefix;
+                for (let i = 0; i < 6; i++) s += junk[Math.floor(Math.random() * junk.length)];
+                return s;
+            }
+
+            function drawStatic(intensity) {
+                const count = Math.floor(intensity * intensity * 1400);
+                for (let i = 0; i < count; i++) {
+                    const x = Math.random() * W, y = Math.random() * H;
+                    const s = 1 + Math.random() * 3;
+                    ctx.fillStyle = `rgba(0, 255, 65, ${(0.12 + Math.random() * 0.5).toFixed(2)})`;
+                    ctx.fillRect(x, y, s, s);
+                }
+            }
+
+            // ── PHASE 4: cut to black ──
+            function goBlack() {
+                const t0 = performance.now(), DUR = 450;
+                function loop(ts) {
+                    const el = ts - t0;
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(0, 0, W, H);
+                    if (el < DUR) requestAnimationFrame(loop);
+                    else tvWarmup();
+                }
+                requestAnimationFrame(loop);
+            }
+
+            // ── PHASE 5: blank boot screen, lone cursor flashes → run load screen ──
+            function cursorThenBoot() {
+                const t0 = performance.now(), DUR = 1500;
+                const px = fs();
+                function loop(ts) {
+                    const el = ts - t0;
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(0, 0, W, H);
+                    const on = (Math.floor(el / 380) % 2) === 0;
+                    if (on) {
+                        ctx.save();
+                        ctx.fillStyle = GREEN;
+                        ctx.shadowColor = GREEN; ctx.shadowBlur = 8;
+                        ctx.fillRect(24, 22, px * 0.6, px);   // lone block cursor, top-left
+                        ctx.restore();
+                    }
+                    if (el < DUR) requestAnimationFrame(loop);
+                    else {
+                        sessionStorage.setItem('bootDone', '1');
+                        window.location.href = 'files/index.html';
+                    }
+                }
+                requestAnimationFrame(loop);
+            }
+        });
+    </script>
+</body>
+</html>

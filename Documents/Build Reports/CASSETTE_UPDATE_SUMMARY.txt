@@ -1,0 +1,99 @@
+UPDATES COMPLETED - PowerLine Challenge Cassette System
+=======================================================
+
+✓ COMPLETED UPDATES
+===================
+
+1. index.html - UI Terminology Updated
+   - "Select a Game Cartridge" → "Select a Game Cassette"
+   - "Select a cartridge to view details" → "Select a cassette to view details"
+   - "Select a cartridge to begin" → "Select a cassette to begin"
+   - Internal variable names (cartridges, start-cartridge ID) kept the same
+
+2. submenu.js - Blank Cassette Entry & Navigation
+   - Updated loadCartridges() function:
+     * id: "blank-cassette"
+     * displayName: "Blank Cassette"
+     * status: "available" (Play button now enabled!)
+     * screenshot: "assets/images/coming-soon-placeholder.svg"
+     * synopsis: "Blank cassette used to test core game mechanics..."
+     * cassetteImage: "assets/images/Cassette_BLANK.png"
+   
+   - Updated handleStart() function:
+     * When blank-cassette is selected → navigates to "cartridges/blank/index.html"
+     * Future cassettes → shows placeholder alert
+
+
+⚠ NEXT STEP REQUIRED
+=====================
+
+To complete the integration, I need the actual Blank Cassette game file.
+
+Please provide the content of:
+  Archive/Cartridges/Proof of Concept/Demo (PLC) v1.4.html
+
+OR upload the file so I can make these modifications:
+
+1. Change title to "BLANK CASSETTE"
+2. Reduce menu to 2 options:
+   - "1. START GAME" → calls startGame()
+   - "2. EJECT CASSETTE" → calls new ejectCassette() function
+3. Add ejectCassette() function:
+   function ejectCassette() {
+     window.location.href = "../../index.html";
+   }
+4. Update keyboard shortcuts (1 = start, 2 = eject)
+5. Modify endGame() to call goToMainMenu() instead of showing game over screen
+
+
+CURRENT BEHAVIOR
+=================
+
+Main Console (index.html):
+✓ Shows cassette terminology throughout
+✓ Displays Blank Cassette in the cassette row
+✓ Screenshot panel shows placeholder SVG
+✓ Info panel shows:
+  - Title: "Blank Cassette"
+  - Synopsis: "Blank cassette used to test core game mechanics..."
+  - Status: "Ready to Play" (green badge)
+✓ Play button is ENABLED and clickable
+
+When Play is clicked:
+✓ Navigates to cartridges/blank/index.html
+⚠ Need to create/update this file (requires your Demo v1.4 file)
+
+
+FOLDER STRUCTURE READY
+=======================
+
+/Game/
+├── index.html                           ✓ Updated
+├── assets/images/
+│   ├── Main_Menu.png                    ✓ Ready
+│   ├── Cassette_Deck.png               ✓ Ready
+│   ├── Cassette_BLANK.png              ✓ Ready
+│   └── coming-soon-placeholder.svg     ✓ Ready
+├── core/
+│   ├── main-menu.js                     ✓ Ready
+│   └── submenu.js                       ✓ Updated
+├── styles/
+│   └── main-menu.css                    ✓ Ready
+└── cartridges/
+    └── blank/
+        └── index.html                   ⚠ NEEDS YOUR DEMO FILE
+
+
+WHAT TO DO NOW
+===============
+
+1. Upload or paste the content of "Demo (PLC) v1.4.html"
+2. I'll modify it according to the requirements:
+   - Change to "BLANK CASSETTE" menu
+   - Add "EJECT CASSETTE" option
+   - Update endGame() behavior
+   - Add keyboard shortcuts
+3. Save it as /Game/cartridges/blank/index.html
+
+Then your complete flow will work:
+  Main Console → Select Blank Cassette → Play → Blank Game → Eject → Back to Console

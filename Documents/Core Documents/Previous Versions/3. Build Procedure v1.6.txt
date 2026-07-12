@@ -1,0 +1,117 @@
+You are my coding assistant. We are rebuilding my PowerLine Command (PLC) training game from scratch in a clean, modular way.
+
+Context from my design document:
+- The project is called "PowerLine Command Training System".
+- It currently exists as a single huge HTML file (~11 MB, ~120k lines) with embedded CSS, JS, and base64 MP3 music. The build is called "PLC v1.5 Asteroid Command (Music)". It’s a space / asteroid command theme.
+- The game uses a 3-file formula dataset:
+  - 3 command types (AP, ENP, BSEH)
+  - 106 units (2100–2126, 2040–2046, etc., including CARE1–CARE8, FIT, MHRT)
+  - 21 bases (Niagara Falls 72100, Pelham 72111, HQ 72120, etc.)
+  - Total combinations = 6,678 (3 × 106 × 21).
+- Mechanics:
+  - Falling targets (commands) with BASE_FALL_DURATION = 25000ms, BASE_SPAWN_DELAY = 2500ms, DIFFICULTY_INCREASE_RATE = 0.05, SPAWN_REDUCTION_RATE = 0.04, MAX_SIMULTANEOUS_TARGETS, MAX_SHIELDS, etc.
+  - Scoring for correct answers, perfect timing (no backspace), streak bonuses, multi-kill bonus.
+  - Difficulty increases as you answer correctly; spawn delay decreases; more simultaneous targets; fall speed increases.
+- UI:
+  - Screens: Start, Options, Game, Pause, Game Over.
+  - HUD: score, accuracy, shields, streak, bonus notifications, command input panel.
+- Audio:
+  - Background track “Asteroid Command”, MP3, loops continuously; starts at game start, stops on menu, restarts on replay.
+
+Goal:
+I want a fresh, clean architecture that separates:
+1. A "console" / main menu (music and graphics controls, cartridge selection)
+2. Individual "cartridges" (like Asteroid Command) which plug into a shared core engine and dataset.
+
+Please create a modular project with this structure:
+
+/PLC/
+  index.html          # Main menu / console UI
+  /core/
+    config.js         # Shared constants (timings, scoring, difficulty, etc.)
+    data.js           # Dataset: command types, units, bases, and generateChallenge()
+    engine.js         # Core game loop, target lifecycle, difficulty progression
+    hud.js            # HUD update functions (score, accuracy, shields, streak, bonuses)
+    ui.js             # Screen management (start, options, game, pause, game over)
+    audio.js          # Music control (play/pause/loop background track)
+  /cartridges/
+    /asteroid-command/
+      cartridge.json  # Metadata: name, description, theme colors, default config overrides
+      asteroid.css    # Visual theme: space background, neon colors, HUD styling
+      asteroid.js     # Cartridge-specific integration with core engine + HUD
+  /assets/
+    /images/
+    /fonts/
+  /audio/
+    asteroid-command.mp3  # For now, assume a placeholder file, I’ll replace it later
+
+Important requirements:
+
+1. Start with index.html
+   - Create a simple "console" UI with:
+     - Title/logo area (“PowerLine Command Console”).
+     - Music toggle (on/off).
+     - A list of cartridges (for now, just “Asteroid Command”).
+     - A "Start Cartridge" button.
+   - Include <script> tags that load the core/*.js files and can dynamically load a cartridge from /cartridges/.
+
+2. Implement core/config.js
+   - Export an object or global with the main constants taken from my design (BASE_FALL_DURATION, BASE_SPAWN_DELAY, DIFFICULTY_INCREASE_RATE, SPAWN_REDUCTION_RATE, MAX_SIMULTANEOUS_TARGETS, MAX_SHIELDS, scoring values, etc.).
+   - Make it easy to override some of these per cartridge.
+
+3. Implement core/data.js
+   - Implement data structures for:
+     - commandTypes: 3 entries (AP, ENP, BSEH) with both “challenge” and “command” strings.
+     - units: the 106 unit codes.
+     - bases: the 21 bases with “challenge” name and “command” numeric code.
+   - Implement a function generateChallenge() that returns { challenge, command } exactly like my current game does:
+     - challenge string: “[Command Type challenge] [Unit] [Base challenge]”
+     - command string: “[Command Type command] [Unit] [Base command]”
+
+4. Implement core/engine.js
+   - Implement:
+     - Game state (current score, streak, shields, accuracy, difficultyMultiplier, etc.).
+     - Target lifecycle: spawn → fall → validate on input → result (hit/miss) → cleanup.
+     - Difficulty scaling: increase difficultyMultiplier, adjust spawn timing, fall speed, and max simultaneous targets as described.
+   - The engine should be cartridge-agnostic: it should not hardcode “asteroids”, just “targets” and “challenges”.
+
+5. Implement core/hud.js
+   - Functions to:
+     - Update score display.
+     - Update accuracy percentage.
+     - Update shields.
+     - Update streak and bonuses.
+   - These should be driven by the engine but be theme-neutral so a cartridge can style the DOM however it wants.
+
+6. Implement core/ui.js
+   - Functions to:
+     - Show/hide main screens: start, options, game, pause, game over.
+     - Hook up buttons from index.html (start game, pause, resume, back to menu).
+   - For now, just create simple placeholder implementations; we will refine visuals in the cartridges.
+
+7. Implement core/audio.js
+   - Provide functions: loadTrack(name), playMusic(), pauseMusic(), stopMusic(), setVolume(level).
+   - For now, assume `asteroid-command.mp3` is the only track and is used by the Asteroid Command cartridge.
+
+8. Implement cartridges/asteroid-command/cartridge.json
+   - Include:
+     - id: "asteroid-command"
+     - name: "Asteroid Command"
+     - description: "Space-themed PLC training mission with falling command asteroids."
+     - themeColors: include the main colors from my design (background dark, cyan text, yellow challenges, etc.)
+     - configOverrides: allow tweaks to things like BASE_FALL_DURATION, spawn rate, etc. if needed.
+
+9. Implement cartridges/asteroid-command/asteroid.css
+   - Style the game area with a dark space background, neon/glow text effects, colored zones, and HUD visuals matching my Asteroid Command theme (cyan text, yellow challenge text, etc.).
+
+10. Implement cartridges/asteroid-command/asteroid.js
+    - Integrate with the core engine:
+      - Register this cartridge with the console.
+      - Tell the engine what DOM elements to use for targets, HUD, etc.
+      - Apply visual effects appropriate for an asteroid/space theme.
+    - For now, focus on wiring it correctly; fancy effects can be added later.
+
+Please:
+- Show me the full code for each file, one by one, starting with index.html, then core/*.js, then the Asteroid Command cartridge files.
+- Keep the code well-commented so I can understand and modify it later.
+- Do NOT use any external libraries; this should be pure HTML, CSS, and vanilla JavaScript.

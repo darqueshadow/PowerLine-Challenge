@@ -1,0 +1,157 @@
+Here's a comprehensive handoff document:
+
+---
+
+# ASTEROID COMMAND — Game Design Reference Document
+
+## For Cross-AI Collaboration on New Game Development
+
+---
+
+## WHAT IS ASTEROID COMMAND?
+
+Asteroid Command is a browser-based typing defense game built as a training tool for emergency medical services (EMS) dispatchers. Players type real Computer-Aided Dispatch (CAD) commands to intercept falling asteroids before they destroy landmarks in the Niagara Region of Ontario, Canada.
+
+It runs entirely in the browser — no server, no build system, no frameworks. Just HTML, CSS, JavaScript, Canvas, SVG, and the Web Audio API.
+
+---
+
+## CORE GAMEPLAY LOOP
+
+1. Asteroids spawn at the top of the screen, each carrying a **challenge phrase** (e.g., "Post to Niagara Falls") and a **command code** (e.g., "AP 2101 72100")
+2. Asteroids fall toward one of four defense zones (real Niagara Region landmarks)
+3. The player types the command code into a text input and presses Enter
+4. A correct command fires a projectile from a central radio tower to intercept the asteroid
+5. Incorrect commands (misfires) damage the tower's shield
+6. If an asteroid reaches a zone, that zone is destroyed
+7. When all four zones are destroyed, the game ends
+
+**The core skill tested is typing accuracy and speed under pressure.** The game is not about reflexes or mouse control — it's about reading, parsing, and accurately reproducing text commands while managing time pressure from multiple simultaneous threats.
+
+---
+
+## KEY DESIGN SYSTEMS
+
+### 1. Data-Driven Challenge Generation
+- All game content (commands, unit IDs, base codes, station names) is loaded from **CSV files**
+- Challenges are assembled dynamically: `[Action Code] [Unit ID] [Base Code]`
+- 4 action types: AP (Assign/Post), ENP (Enroute), BSE (Base/Arriving), LA (Local Area)
+- This makes the game trivially re-skinnable — swap the CSVs and the game becomes about a completely different domain
+
+### 2. Eight-Tier Career Progression
+- Players progress through 8 ranks: TRAINEE → MENTORING → SIGNED OFF → OUT OF PROBATION → 2 YEARS IN → FULL TIME → VETERAN → O.A.S
+- Each rank increases: asteroid speed, spawn rate, max simultaneous targets, scoring stakes
+- Each rank decreases: asteroid size, spawn intervals
+- Progression is score-based with clear thresholds (0 → 2,000 → 5,000 → 10,000 → 20,000 → 35,000 → 55,000 → 80,000+)
+
+### 3. Nuanced Scoring Pipeline
+Scoring isn't just "hit = points." It's a multi-stage pipeline:
+- **Base Hit**: Rank-dependent (100 at Trainee → 1,200 at O.A.S)
+- **Multiplier Bonuses**: Perfect shot (0 backspaces, +25%), early intercept (top 25% of screen, +50%), speed demon (<1.5s, +15%)
+- **Kill-Streak Multiplier**: Consecutive hits multiply score (1.0x → 1.75x at 25+ streak)
+- **Perfect Streak Milestones**: Flat bonuses at 5/8/15/25 consecutive perfect shots
+- **Typing Penalties**: Tiered by backspace count — Key Dust (1-2), Signal Noise (3-4), Comms Drift (5-6), Static Jam (7+)
+- **Micro-Rewards**: First Blood, Comeback, Near-Miss Save, Calibration Bonus, Rank-Up Bonus
+- **Impact Penalties**: Rank-scaled negative scores when asteroids reach zones
+
+**The scoring system rewards clean, accurate, fast typing — not just correct answers.**
+
+### 4. Shield & Repair System
+- The central radio tower has a 9 HP energy shield (3 layers × 3 HP)
+- Misfires deal 1 HP; direct impacts deal 3 HP
+- Shield color degrades: green → orange → purple → exposed
+- When shields hit 0 and the tower is hit, it's destroyed — firing is disabled
+- An ambulance (NanoMedic) autonomously flies in, repairs the tower, and restores partial shields
+- Music degrades to broken radio static while the tower is down
+
+### 5. Tractor Beam Tethering (Physics)
+- When a player starts typing a command that matches an asteroid, a **tractor beam** tethers from the asteroid to the command input
+- The beam uses spring physics (spring constant, friction, repulsion) to create a satisfying visual connection
+- This gives immediate feedback that the player is "locked on" to the right target
+
+### 6. Defense Zones as Real Landmarks
+- Sir Adam Beck Hydroelectric Dam (NOTL)
+- Skylon Tower (Niagara Falls) — with aircraft warning light, elevator bug ejector VFX
+- Welland Canal Lift Bridge (Thorold) — with animated ship transits (13 unique freighters)
+- Robin Hood Flour Mill (Port Colborne) — with flour workers, ice VFX
+- Each zone has unique destruction animations and visual effects
+
+### 7. Dual Audio Modes
+- **Standard Mode**: Synthesized sci-fi sound effects (Web Audio API, no audio files for SFX)
+- **Holodeck Mode**: Star Trek LCARS-style button sounds, different tonal palette
+- Music system with shuffle playlist, crossfade, and degradation to radio static on tower damage
+
+### 8. Boot Sequence
+- Retro Commodore PET-style boot animation
+- Green monospace text types out system initialization messages
+- Transitions through jitter phase → full-screen multicolored chaos/corruption → white flash → title reveal
+- Sets the tone and aesthetic before gameplay begins
+
+### 9. CAT Login Terminal
+- Commodore Automated Terminal — retro green-on-black terminal
+- Players enter their name and OASIS number
+- Displays top 10 leaderboard
+- LocalStorage-backed score persistence
+
+### 10. Holodeck Mode (Sandbox/Admin)
+- Hidden mode accessed via password (Ctrl+Shift+H)
+- God Mode panel with toggleable features: click-to-destroy, zone destruction, asteroid redirect
+- Data filters: select which command types, units, bases, and target zones are active
+- Different visual theme (LCARS-style UI, holodeck grid overlay)
+
+---
+
+## TECHNICAL ARCHITECTURE
+
+```
+asteroid-command/
+  files/
+    index.html          — Single HTML entry point
+    script.js           — Main game logic (6,000+ lines)
+    style.css           — All styling
+    core/
+      config.js         — All constants: CONFIG, SCORING, TIERS, TETHER, COORD_SYSTEM
+      data.js           — CSV parser, data loader, challenge generation
+      audio.js          — Web Audio synthesizer, music system
+    datasets/           — CSV files (bases, commands, units, progression, scoring)
+    assets/             — PNG sprites, background images
+    music/              — MP3 tracks
+```
+
+**Key technical decisions:**
+- **Virtual coordinate system** (1600×900) — all game logic runs in virtual space, scaled to any screen size
+- **No build system** — plain browser JS, instant edit-and-refresh development
+- **CSV-driven data** — swap content without touching code
+- **Synthesized SFX** — no audio file dependencies for sound effects
+- **Single-page cartridge** — designed to slot into a parent arcade system
+
+---
+
+## WHAT MAKES IT WORK (Design Philosophy)
+
+1. **Real-world relevance**: The commands players type are actual EMS dispatch codes, making gameplay double as training
+2. **Progressive difficulty**: The 8-tier system ensures the game is approachable at first but scales to genuinely challenging
+3. **Typing quality matters**: The backspace penalty system means mashing keys and correcting is actively punished — you need to type clean
+4. **Multiple simultaneous threats**: Having 6-25 asteroids on screen at once forces prioritization and time management
+5. **Immediate feedback loops**: Tether beams, VDS score popups, streak counters, shield degradation — every action has visible consequences
+6. **Aesthetic commitment**: The retro terminal aesthetic (PET boot, green phosphor, LCARS holodeck) is consistent throughout and reinforces the "dispatch console" fantasy
+7. **Data-driven extensibility**: Everything configurable lives in CSVs or config.js — the game can be re-themed to any domain that involves reading and typing codes
+
+---
+
+## FOR THE NEW GAME
+
+The above should give Claude, Gemini, and Copilot a shared understanding of what Asteroid Command is, how it works, and what design principles drive it. When proposing the new game:
+
+- **Theme**: Deep sea, saturation diver with a hose. Slowly getting lowered to the abyss floor
+- **Core mechanic**: Same type of game play, but different challenges/commands
+- **Progression**: Same as Asteroid Command
+- **Scoring**: Same as Asteroid Command
+- **Data structure**: Unknown
+- **Aesthetic**: Deep sea diver, and scary looking sea creaters (jelly fish, sea spiders, kraken (giant squid)
+
+This document is the common reference point — all three AIs can build on it.
+
+---
+
+*Generated from the Asteroid Command codebase (March 2026)*

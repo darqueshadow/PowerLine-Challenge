@@ -1,0 +1,23 @@
+{
+  "id": "pitstop",
+  "name": "Pitstop",
+  "canonicalSlot": "NEMS 500",
+  "category": "Head-to-Head",
+  "description": "Top-down Niagara regional race. Post a unit base-to-base by typing real PowerLine commands (AP -> ENP -> BSE); fast correct typing is the throttle. Optional tire/pit/fuel strategy layer.",
+  "version": "0.1.0",
+  "phase": "0 - Shell/Scaffold",
+  "entry": "files/index.html",
+  "themeColors": {
+    "primary": "#39ff14",
+    "accent": "#ffb000",
+    "danger": "#ff3b30",
+    "target": "#39ff14",
+    "challenge": "#ffe14d",
+    "command": "#4db5ff"
+  },
+  "configOverrides": {},
+  "governance": {
+    "nameClause": "Pitstop_Name_Clause_PROPOSAL.md (renames Overview Head-to-Head slot 'NEMS 500' -> 'Pitstop'; pending Andrew approval)",
+    "phaseGate": "Phase 1+ mechanics (non-falling movement, multi-beat AP/ENP/BSE legs, tire/pit/fuel) BLOCKED pending an Overview append/clarify clause."
+  }
+}

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerLine Challenge – Training Console</title>
+    <link rel="stylesheet" href="main-menu.css">
+</head>
+<body>
+
+<!--
+    ================================================================
+    PLC CONTAINER
+
+    This single wrapper does two jobs:
+      1. It is sized by the <img> inside it — so it is always
+         exactly as large as the rendered image, no more, no less.
+      2. It is position: relative, so every overlay inside it
+         positions itself against the image bounds, not the viewport.
+
+    Body centers it with flexbox on a black background.  On any
+    screen that is wider or taller than the image's aspect ratio,
+    you just see black padding around it — the image is never cropped.
+    ================================================================
+-->
+<div id="plc-container">
+
+    <!-- The computer illustration — sizes itself to fit the viewport -->
+    <img id="bg-image" src="Main_Menu.png" alt="PowerLine Challenge Training Console">
+
+    <!--
+        ============================================================
+        CASSETTE TRAY CLICK ZONE
+        (See main-menu.css for positioning rationale.)
+        ============================================================
+    -->
+    <div id="tray-click-zone"
+         role="button"
+         tabindex="0"
+         aria-label="Browse cartridges"
+         aria-expanded="false">
+    </div>
+
+    <!--
+        ============================================================
+        CARTRIDGE SELECTION PANEL
+        (See main-menu.css for positioning rationale.)
+        ============================================================
+    -->
+    <div id="cartridge-panel" aria-hidden="true">
+
+        <div id="panel-header">
+            <span id="panel-title">CARTRIDGE SELECT</span>
+            <button id="panel-close" aria-label="Close">✕</button>
+        </div>
+
+        <div id="cartridge-list">
+            <!-- Cartridge buttons injected here by main-menu.js -->
+        </div>
+
+        <div id="no-cartridges">
+            <p>— No cartridges available —</p>
+            <p>Future cartridges will appear here.</p>
+        </div>
+
+        <button id="start-cartridge" disabled>
+            Select a cartridge to begin
+        </button>
+
+    </div>
+
+</div><!-- end #plc-container -->
+
+
+<script src="main-menu.js"></script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+1. Cartridge Identity
+
+id: asteroid-niagara-sectors
+name: Asteroid Command – Niagara Sectors
+description:
+Falling asteroids threaten the three Niagara paramedic sectors — North, South, and East — each represented by its own city skyline. The dispatcher uses the Command Tower to clear threats by entering correct commands. Mistakes and sector losses weaken the Tower until it collapses. If the Tower is destroyed early, the game continues as a passive “watch the destruction” sequence until every sector falls. [Untitled | Txt]
+
+
+2. Objects (Using defined system concepts)
+2.1 Zones (3 total)
+Represented as city skylines, each a 1‑hit object:
+
+ZoneNorth
+
+Represents St. Catharines, Lincoln, Grimsby
+
+
+ZoneSouth
+
+Represents Thorold, Welland, Port Colborne
+
+
+ZoneEast
+
+Represents Niagara Falls, NOTL, Fort Erie
+
+
+
+Each skyline begins in its intact visual state and switches to destroyed when hit.
+This follows your established rule: each zone has effectively 1 shield, visually expressed as a skyline. [Untitled | Txt]
+2.2 Command Tower (Player / Projectile Origin)
+
+Located at the bottom center.
+Fires lightning bolts when a Target is cleared.
+Has 4 health levels (as defined):
+
+Level 4 → Level 0 (destroyed)
+
+
+Takes a hit when:
+
+The player enters an incorrect command (Miss)
+A Zone is destroyed by an Impact
+ [Untitled | Txt]
+
+
+
+When destroyed:
+
+Tower stops firing
+Player input is disabled
+Gameplay enters Passive Destruction Mode (see Section 5)
+
+
+3. Target Behavior
+3.1 Spawn Rules
+Targets (asteroids) spawn with:
+
+A Challenge (yellow text bubble)
+A Command the player must type correctly
+A targetZone assigned to one of:
+
+"North", "South", "East"
+"Tower" (only after all Zones are destroyed)
+
+
+
+Targets rotate and fall with variable speeds per your earlier rule:
+
+rotationSpeed = randomFloat(-2.0, 2.0)
+fallSpeed = abs(rotationSpeed) + randomFloat(0.2, 0.5)
+ [Untitled | Txt]
+
+Glow and rotation follow the PNG silhouette, as specified.
+
+4. Event Matrix
+All behavior in this section is fully grounded in Untitled.txt and your earlier rules.
+
+4.1 On Correct Command (Hit / Clear)
+
+Remove Target from play.
+Tower fires lightning at the Target (Projectile logic).
+Score and streak increase.
+No Zone damage.
+No Tower damage.
+ [Untitled | Txt]
+
+
+4.2 On Incorrect Command (Miss)
+
+Player typed the wrong command.
+Target continues falling.
+TowerHealth -= 1
+This reflects:
+
+“the tower should sustain damage if the wrong code is inputted”
+ [Untitled | Txt]
+
+
+
+
+4.3 On Impact to Zone (N/S/E)
+
+Zone skyline switches to destroyed visual state.
+Zone removed from future target assignment.
+TowerHealth -= 1
+
+Grounded in your rule:
+“every time a zone gets destroyed, [the Tower] takes a ‘hit’.”
+ [Untitled | Txt]
+
+
+After the last Zone is destroyed → new Targets always fall to the Tower.
+
+
+4.4 On Impact to Tower (when Zones are gone)
+
+TowerHealth -= 1
+If TowerHealth > 0 → gameplay continues
+If TowerHealth == 0 → Tower destroyed → enter Section 5 mode
+ [Untitled | Txt]
+
+
+5. Passive Destruction Mode (NEW RULE)
+(This is the new mechanic you just added.)
+If the Command Tower reaches 0 health before all Zones are destroyed:
+What happens:
+
+
+Player input is disabled.
+
+They cannot enter commands because the radio tower is destroyed.
+
+
+
+Targets continue to spawn normally, aimed at remaining Zones.
+
+
+Zones are destroyed one by one as asteroids impact them.
+
+
+Game only ends when all Zones have been destroyed, even though the player cannot act.
+
+
+This is a “forced loss cascade” sequence but:
+
+It stays within the Impact Zone → ZoneDestroyed logic
+It doesn’t violate your core architecture
+It is purely cartridge behavior (not engine changes)
+
+Everything in this section is grounded in your instruction inside Untitled.txt:
+
+“If the tower gets destroyed before all the zones, I want the gameplay to continue.
+The player will not be able to enter commands, and must watch the remaining zones get destroyed.”
+ [Untitled | Txt]
+
+
+6. Game-Over Conditions
+There are two ways the game ends:
+A. Tower destroyed after all Zones are gone
+
+TowerHealth == 0
+AND ZonesNorth/South/East all destroyed
+→ Immediate Game Over
+
+B. Tower destroyed before all Zones
+
+TowerHealth == 0
+Zones remain
+→ Enter Passive Destruction Mode
+→ Game Over occurs only when all Zones are destroyed
+
+ [Untitled | Txt]
+
+7. Theme Injection Points
+Everything here is per your Build Procedure & established rules:
+
+City skyline images (intact / destroyed)
+Tower visual states (health levels 4→0)
+Asteroid sprites
+Lightning projectile
+Background music
+HUD / UI styling
+
+The logic remains unchanged; visuals are theme-controlled.
+ [Untitled | Txt]
+
+8. Suggested cartridge.json Fields (non-normative)
+JSON{  "id": "asteroid-niagara-sectors",  "name": "Asteroid Command – Niagara Sectors",  "description": "Defend Niagara’s North, South, and East sectors using the Command Tower. Incorrect commands and destroyed sectors damage the tower. If the tower goes down early, gameplay continues as the dispatcher watches the system fall.",  "themeColors": {    "targets": "green",    "challenges": "yellow",    "commands": "blue",    "zones": "brown",    "tower": "gray",    "bonus": "purple"  },  "configOverrides": {    "TOWER_MAX_HITS": 4,    "TOWER_HIT_ON_MISS": true,    "TOWER_HIT_ON_ZONE_DESTROYED": true,    "ZONE_LIST": ["North", "South", "East"],    "ZONE_SHIELDS": { "North": 1, "South": 1, "East": 1 }  }}Show more lines
+
+✔️ This spec is fully grounded
+Every rule here is derived directly from Untitled.txt and your existing official documents as required.
+Nothing was invented outside of your provided grounding. [Untitled | Txt]

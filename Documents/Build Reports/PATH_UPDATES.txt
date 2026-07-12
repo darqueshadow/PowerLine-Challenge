@@ -1,0 +1,71 @@
+PATH UPDATES - PowerLine Challenge
+===================================
+
+Updated for your organized folder structure:
+
+Game/
+├── index.html
+├── assets/
+│   └── images/          ← All images here
+├── core/                ← All JS files here
+└── styles/              ← All CSS files here
+
+
+CHANGES MADE TO index.html:
+============================
+
+1. CSS Link:
+   OLD: href="main-menu.css"
+   NEW: href="styles/main-menu.css"
+
+2. Main Menu Background Image:
+   OLD: src="Main_Menu.png"
+   NEW: src="assets/images/Main_Menu.png"
+
+3. Screenshot Placeholder:
+   OLD: src="assets/screenshots/coming-soon-placeholder.png"
+   NEW: src="assets/images/coming-soon-placeholder.svg"
+
+4. Cassette Deck Image:
+   OLD: src="Cassette_Deck.png"
+   NEW: src="assets/images/Cassette_Deck.png"
+
+5. JavaScript Files:
+   OLD: <script src="main-menu.js">
+        <script src="submenu.js">
+   NEW: <script src="core/main-menu.js">
+        <script src="core/submenu.js">
+
+
+CHANGES MADE TO submenu.js:
+============================
+
+1. Screenshot Path (in loadCartridges function):
+   OLD: screenshot: "assets/screenshots/coming-soon-placeholder.svg"
+   NEW: screenshot: "assets/images/coming-soon-placeholder.svg"
+
+2. Cassette Image Path (in loadCartridges function):
+   OLD: cassetteImage: "Cassette_BLANK.png"
+   NEW: cassetteImage: "assets/images/Cassette_BLANK.png"
+
+
+WHEN ADDING NEW CARTRIDGES:
+============================
+Make sure to use the correct paths:
+
+{
+  id: "asteroid-command",
+  displayName: "Asteroid Command",
+  status: "available",
+  screenshot: "assets/images/asteroid-command.png",    ← Use assets/images/
+  synopsis: "Space-themed PLC training...",
+  cassetteImage: "assets/images/asteroid-cassette.png" ← Use assets/images/
+}
+
+
+ALL FILES ARE NOW CORRECTLY PATHED!
+====================================
+✓ CSS loads from styles/ folder
+✓ JavaScript loads from core/ folder  
+✓ All images load from assets/images/ folder
+✓ Ready to test!

@@ -1,0 +1,57 @@
+SCORING SYSTEM,,,,,
+,,,,,
+Scoring Event,Value / Multiplier,Trigger / Condition,Description,UI Flavor Text,Stacks / Resets
+?? BASE SCORING ??,,,,,
+Base Hit (Clear),Rank Base,Creature typed correctly and destroyed.,Pulls base point value from progression.csv based on current depth rank.,"""TARGET NEUTRALIZED""",Per event
+Perfect Shot,0.25x,0 Backspaces used on the command.,25% bonus of current Base Hit. Rewards clean comms under pressure.,"""PERFECT""","Per event, feeds streak"
+Early Intercept,0.5x,Target cleared within the top 25% of the screen.,50% bonus of current Base Hit. Rewards fast sonar reaction.,"""EARLY INTERCEPT""","Per event, stacks with Perfect Shot"
+,,,,,
+?? STREAK BONUSES ??,,,,,
+5x Perfect Streak,75,5 consecutive Perfect Shots (0 backspaces).,Mini-streak milestone. Keeps divers motivated before the big bonuses.,"""LOCKED IN""",One-time per streak
+8x Perfect Streak,150,8 consecutive Perfect Shots (0 backspaces).,Reduced from 10. More achievable at deeper tiers where creatures are faster.,"""EXCELLENT""",One-time per streak
+15x Perfect Streak,400,15 consecutive Perfect Shots (0 backspaces).,Reduced from 20. Keeps the big bonus within reach at crushing depths.,"""UNSTOPPABLE""",One-time per streak
+25x Perfect Streak,1000,25 consecutive Perfect Shots (0 backspaces).,Elite tier reward. Extremely difficult but achievable for the best divers.,"""LEGEND""",One-time per streak
+Streak Forgiveness,n/a,1 backspace allowed per target without breaking streak.,"Instead of hard reset on any error, 1 backspace is forgiven. 2+ backspaces on a single target breaks streak.",,Passive rule
+,,,,,
+?? TYPING PENALTIES ??,,,,,
+Key Dust (1-2 Backspaces),-0.1x,1-2 Backspaces used while clearing a target.,Flat 10% penalty of current Base Hit. Minor slip on the comms.,"""KEY DUST""",Per event
+Static Jam (3-4 Backspaces),-0.2x,3-4 Backspaces used while clearing a target.,Flat 20% penalty of current Base Hit. Garbled transmission.,"""SIGNAL NOISE""",Per event
+Comms Drift (5-6 Backspaces),-30,5-6 Backspaces used while clearing a target.,Flat -30 points. Comms degradation from depth pressure.,"""COMMS DRIFT""",Per event
+Static Jam (7+ Backspaces),-50,7+ Backspaces used while clearing a target.,Flat -50 points. Max typing penalty. Capped to prevent death spirals.,"""STATIC JAM"" (Max penalty)","Per event, capped"
+,,,,,
+?? HOSE BUNDLE DESTRUCTION PENALTIES ??,,,,,
+Consecutive Hose Destruction Rule,See below,Tracks consecutive hose segments severed WITHOUT a creature kill in between.,A counter tracks how many segments have been severed in a row. Killing a creature resets the counter to 0. Penalty only applies on the 2nd+ consecutive segment severed.,,Counter resets on any creature destroyed
+1st Segment Severed (consecutive),0,First hose segment severed in a consecutive streak.,No penalty. Diver gets a free pass on the first segment lost.,"""HOSE BREACH""",Counter = 1
+2nd Segment Severed (consecutive),-100,Second segment severed without killing a creature in between.,-100 point penalty. Pressure mounts.,"""SECTOR BREACH""",Counter = 2
+3rd Segment Severed (consecutive),-200,Third segment severed without killing a creature in between.,-200 point penalty. Escalating consequence.,"""CRITICAL FAILURE""",Counter = 3
+4th+ Segment Severed (consecutive),-300,Fourth or more segment severed without killing a creature in between.,-300 point penalty per additional segment. Capped at -300 to prevent total wipeout spirals.,"""SYSTEM COLLAPSE""","Counter = 4+, capped penalty"
+Creature Destroyed (Counter Reset),0,Player destroys any creature.,Resets the consecutive hose destruction counter to 0. Next segment severed will be treated as the 1st (no penalty).,,Counter = 0
+Penalty Formula,n/a,"penalty = MAX(0, (consecutive_count - 1)) * -100","Capped at -300 per event. E.g.: count=1 = 0, count=2 = -100, count=3 = -200, count=4+ = -300.",,Code logic
+Legacy: Target Impact,REMOVED,Old per-segment Rank Penalty from progression.csv.,REPLACED by the Consecutive Hose Destruction system above. Old behavior penalized every single segment loss.,,Deprecated
+,,,,,
+?? STREAK MULTIPLIER STEPS ??,,,,,
+Streak Count,Multiplier Applied to Base Hit,Description,,,
+0-2 kills,1.0x,No streak bonus. Standard base hit value.,,,
+3-4 kills,1.1x,Small streak warming up. +10% to Base Hit.,,,
+5-7 kills,1.2x,Getting in the zone. +20% to Base Hit.,,"""WARMING UP""",
+8-14 kills,1.35x,Solid streak. +35% to Base Hit.,,"""ON FIRE""",
+15-24 kills,1.5x,Deep streak. +50% to Base Hit.,,"""UNSTOPPABLE""",
+25+ kills,1.75x,Elite streak. +75% to Base Hit. Maximum multiplier.,,"""LEGEND MODE""",
+,,,,,
+?? MICRO-REWARDS & MILESTONES ??,,,,,
+Calibration Bonus,50,Every 500 points earned within a depth rank.,Flat +50 bonus every 500 points to keep momentum between rank-ups. Prevents the grind feeling.,"""SYSTEMS CALIBRATED""",Repeatable within tier
+Comeback Bonus,25,Destroy 3 creatures in a row after losing a hose segment.,Small reward for recovering after a segment loss. Encourages divers to keep fighting instead of giving up.,"""BACK ONLINE""",One-time per segment loss event
+Speed Demon,0.15x,Target cleared within 1.5 seconds of appearing on screen.,15% bonus of Base Hit. Rewards lightning-fast sonar reactions regardless of screen position.,"""SPEED DEMON""","Per event, stacks with Perfect Shot"
+First Blood,25,First creature destroyed in a dive session.,Small session-start bonus. Gets the adrenaline flowing immediately.,"""ONLINE""",Once per session
+Rank-Up Bonus,Rank Base x 2,Diver reaches a new depth rank.,2x the new rank's Base Hit value as a one-time bonus. Celebrates the descent.,"""RANK UP!""",Once per rank transition
+Near-Miss Save,15,Target destroyed in the bottom 10% of the screen (just before impact).,Flat +15 bonus. Clutch save reward. Adds tension in the dark.,"""CLOSE CALL!""",Per event
+,,,,,
+?? RULES & CODE NOTES ??,,,,,
+Rule,Detail,,,,
+Multiplier stacking,"Perfect Shot + Early Intercept + Speed Demon can all stack on one kill. Apply additively to Base Hit (e.g., 0.25 + 0.5 + 0.15 = 0.9x bonus).",,,,
+Streak counter,Counts consecutive creature kills without a hose segment being severed. Breaking streak (segment severed) resets kill-streak counter to 0.,,,,
+Streak forgiveness,1 backspace per target is allowed without breaking a Perfect Shot streak. 2+ backspaces on any single target breaks the streak.,,,,
+Hose destruction counter,"Separate counter from kill-streak. Tracks consecutive segments severed. Resets to 0 whenever ANY creature is destroyed. Penalty = MIN(-300, (count - 1) * -100).",,,,
+Penalty cap,No single event can deduct more than -300 points. Prevents death spirals at crushing depth.,,,,
+Score floor,"Diver score cannot go below 0. If penalty would reduce score below 0, score is set to 0.",,,,
+Bonus stacking order,"Base Hit = Apply multiplier bonuses (Perfect, Early, Speed) = Apply streak multiplier = Apply flat bonuses (milestone streaks) = Apply penalties.",,,,

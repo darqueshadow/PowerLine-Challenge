@@ -1,0 +1,94 @@
+Overview v1.5 (Draft)
+VERSION HISTORY
+Version History
+* v1.0 – Initial draft
+* v1.1 – Added Zone and Player as core objects
+* v1.2 – Added Impact logic and Event Impact
+* v1.3 – Added Projectile logic and Bonus Target rules
+* v1.4 – Introduced dual naming convention for Impact (Initiator vs Receiver)
+* v1.5 – Draft updates, including: Blank Skin as master template, Barrier logic placeholder, Main Menu concept, renaming Game Theme to Game Skin, new notes for future mechanics, definitions for Demo vs Publish Mode, and a reference to Holodeck activation. Replaced “Tower” with “Player” throughout the documentation
+
+Purpose
+The PowerLine Challenge is an interactive, typing-based training game aimed at improving dispatchers’ proficiency with PowerLine commands. By offering repeated practice under real-time pressure, the game moves away from passive instruction, providing a hands-on, gamified environment where players can master core CAD functions until they become second nature.
+
+Core Elements
+* Challenges: Plain-language requests are displayed alongside Targets.
+* Command Input: The field where the player enters the correct PowerLine syntax.
+* Targets: Moving objects that are linked to challenges.
+* Zone: A designated area on the playfield. (For Barrier logic, see Developer Notes.)
+* Default Rule: By default, the Zone is located on the opposite side of the screen from where Targets spawn.
+* Skin Override: Depending on the selected skin, Zone placement can vary (e.g., centre, multiple Zones, etc.).
+* Player: The player-controlled element tied to Command Input. In certain game skins, the player can fire projectiles by entering correct commands.
+* Default Objects: Challenges, Targets, Command Input, Player, Zone.
+* Optional Objects: Bonus Target and Boss (these objects remain hidden unless enabled by the selected skin).
+
+Main Menu
+The Main Menu provides access to different game categories or modes. Upon selecting a category, the player is directed to a submenu where they can choose a Game Skin. The last option in each submenu always returns the player to the Main Menu.
+* Speed Drills: Space, Water, Land
+* Arcade: Asteroid Command, Zombie!, Bubble Clouds
+* Head to Head: NEMS 500, Rally Race, Summer Games
+* Strategy: Christmas Tree, Kobayashi Maru
+
+Gameplay Flow
+* Targets spawn on the playfield, each associated with a Challenge.
+* The player reads the Challenge and types the correct Command.
+* If the player enters the correct Command, the corresponding Target is cleared and, in some skins, the Player may fire a projectile.
+* If the Command is incorrect, the Target remains active and may retaliate by firing at the Zone or Player, depending on the skin.
+* If a Target reaches the Zone, an Impact Zone event occurs.
+* Bonus Targets may occasionally appear, offering opportunities for extra points.
+* Boss encounters occur based on the selected game type.
+
+Impact Logic
+* Impact Types: Target Impact, Zone Impact, Player Impact, Bonus Target Impact, Boss Impact.
+* Dual Naming Convention: The naming convention distinguishes between initiator and receiver: 
+o _____ Impact refers to the object initiating the impact.
+o Impact _____ refers to the object receiving the impact.
+* Event Impact: Defines the outcome that occurs at the collision point.
+
+Projectile Logic
+* Projectile Origin: The object that fires the projectile (Player, Zone, Target, or Boss).
+* Projectile Destination: The object being struck by the projectile.
+* Projectiles must travel from their origin to their destination and trigger an Event Impact upon collision.
+
+Colour Coding (Blank Version)
+* Targets = Green
+* Challenges = Yellow
+* Command Input = Blue
+* Zone = Brown
+* Player = Gray
+* Bonus Target = Purple
+* Round Boss = Orange
+* Final Boss = Red
+
+Gameplay Examples
+* Asteroid Skin: When the player enters a correct command, the Player fires a laser, resulting in a Target Impact and an Impact Target, with an explosion at the collision point. If the command is missed, the Target reaches the Zone, causing an Impact Zone event with a damage animation.
+* Space Invaders Style Skin: A Bonus Target (UFO) crosses the screen; if the player successfully clears it, they earn extra points.
+
+Developer Notes
+* Claude must adhere to Laws v1.6 for Holodeck activation and mode engagement.
+* A flicker effect is used for the Back Door password prompt.
+* A Barrier logic placeholder is included for the protection of Zone, Player, and Boss.
+* The naming convention for projectiles is established.
+* Contact logic has been considered but deferred for future development.
+* The Main Menu concept is defined.
+
+NEW SECTION: Dynamic Dataset Logic
+To support automated Challenge–Command generation for skins and training modes, Claude must follow these rules:
+Universal Formula
+Challenge: [Challenge PL] [Unit] [Verb] [Base Name]
+Command: [Command PL] [Unit] [Verb] [Base Number]
+ 
+Example
+Challenge: Assign Unit 2101 to Thorold
+Command: AP 2101 to 72103
+ 
+Randomization Rules
+* Select one PowerLine Command from the active command set (e.g., AP, ENP, BSEH).
+* Select one Unit from the Unit dataset.
+* Select one Base from the Base dataset when applicable.
+* Ensure Challenge and Command share the same Unit and Base pairing.
+Validation
+* No duplicate Challenge–Command pairs in the same dataset.
+* All mappings (Base Name ? Base Number) must be correct.
+* If any dataset is missing or incomplete, Claude must halt generation and request clarification.
+

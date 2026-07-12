@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLC - Demo v1.5</title>
+    <style>
+        /* ================================================
+           POWERLINE BLANK BASE VERSION v1.5
+           
+           This is the master template. 
+           NEVER modify this file directly.
+           ALWAYS duplicate before applying a theme.
+           ================================================ */
+        
+        :root {
+            /* Default neutral colors */
+            --bg-dark: #1a1a1a;
+            --bg-darker: #0d0d0d;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            
+            /* Placeholder object colors (per Laws v1.5) */
+            --target-color: #00ff00;        /* Green rectangles */
+            --challenge-color: #ffff00;     /* Yellow rectangles */
+            --command-color: #0000ff;       /* Blue rectangle */
+            --zone-color: #8b4513;          /* Brown horizontal line */
+            --tower-color: #808080;         /* Gray rectangle */
+            --bonus-color: #800080;         /* Purple rectangle */
+            --round-boss-color: #ffa500;    /* Orange rectangle */
+            --final-boss-color: #ff0000;    /* Red rectangle */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: monospace;
+            background: linear-gradient(to bottom, var(--bg-darker), var(--bg-dark));
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ================================================
+           SCREEN MANAGEMENT
+           ================================================ */
+        
+        #startScreen, #optionsScreen, #gameScreen, #gameOverScreen, #pauseScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        #optionsScreen, #gameScreen, #gameOverScreen, #pauseScreen {
+            display: none;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 300px;
+        }
+
+        .menu-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--text-primary);
+            padding: 1rem 2rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .menu-subtitle {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            font-weight: normal;
+        }
+
+        /* ================================================
+           GAME AREA
+           ================================================ */
+        
+        .game-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .play-area {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ================================================
+           HUD SYSTEM
+           ================================================ */
+        
+        .in-game-hud {
+            position: absolute;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border: 2px solid var(--text-primary);
+            z-index: 100;
+            font-size: 1rem;
+        }
+
+        .hud-left {
+            left: 20px;
+        }
+
+        .hud-right {
+            right: 20px;
+        }
+
+        .hud-item {
+            margin-bottom: 8px;
+        }
+
+        .hud-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .hud-label {
+            color: var(--text-secondary);
+            margin-right: 10px;
+        }
+
+        .hud-value {
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: ZONE
+           Default: Brown horizontal line at bottom (opposite from Target spawn)
+           ================================================ */
+        
+        .zone {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: var(--zone-color);
+            z-index: 5;
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: TOWER
+           Default: Gray rectangle at bottom center
+           ================================================ */
+        
+        .tower {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 80px;
+            background: var(--tower-color);
+            z-index: 150;
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: TARGETS
+           Default: Green rectangles that fall from top
+           ================================================ */
+        
+        .target {
+            position: absolute;
+            width: 120px;
+            height: 100px;
+            background: var(--target-color);
+            z-index: 200;
+        }
+
+        .target.falling {
+            animation: fall linear;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes fall {
+            from {
+                top: -120px;
+            }
+            to {
+                top: 100vh;
+            }
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: CHALLENGES
+           Default: Yellow rectangle text label on Target
+           ================================================ */
+        
+        .challenge-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--challenge-color);
+            color: #000;
+            padding: 5px 10px;
+            white-space: nowrap;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: BONUS TARGET (OPTIONAL)
+           Default: Purple rectangle (hidden unless theme enables)
+           ================================================ */
+        
+        .bonus-target {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: var(--bonus-color);
+            display: none; /* Hidden by default */
+            z-index: 200;
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: BOSSES (OPTIONAL)
+           Default: Orange (Round Boss) / Red (Final Boss) rectangles
+           ================================================ */
+        
+        .round-boss {
+            position: absolute;
+            width: 200px;
+            height: 150px;
+            background: var(--round-boss-color);
+            display: none; /* Hidden unless rounds mode enabled */
+            z-index: 200;
+        }
+
+        .final-boss {
+            position: absolute;
+            width: 300px;
+            height: 200px;
+            background: var(--final-boss-color);
+            display: none; /* Hidden unless rounds mode enabled */
+            z-index: 200;
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: COMMAND INPUT
+           Default: Blue rectangle input box at bottom
+           ================================================ */
+        
+        .input-area {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 200;
+        }
+
+        .input-area input {
+            background: var(--command-color);
+            color: var(--text-primary);
+            border: 2px solid var(--text-primary);
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-family: monospace;
+            font-weight: bold;
+            outline: none;
+            min-width: 250px;
+        }
+
+        .input-area input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: PROJECTILES
+           Projectiles fired by Tower/Zone/Targets/Bosses
+           ================================================ */
+        
+        .projectile-tower {
+            position: absolute;
+            width: 4px;
+            height: 20px;
+            background: #00ffff;
+            z-index: 70;
+        }
+
+        .projectile-target {
+            position: absolute;
+            width: 4px;
+            height: 20px;
+            background: #ff0000;
+            z-index: 80;
+        }
+
+        /* ================================================
+           THEME INJECTION POINT: EVENT IMPACTS
+           Visual/audio effects at collision points
+           ================================================ */
+        
+        .impact-explosion {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #ffff00, #ff6600, transparent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: explode 0.6s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .impact-ground {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, #ff6600, #ff0000, transparent);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            animation: ground-impact 2s ease-out forwards;
+            z-index: 50;
+        }
+
+        @keyframes ground-impact {
+            0% {
+                transform: translateX(-50%) scale(0.1);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(-50%) scale(1.5);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* ================================================
+           BONUS NOTIFICATIONS
+           ================================================ */
+        
+        .bonus-notification {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ffff00;
+            padding: 10px 20px;
+            z-index: 300;
+            animation: bonus-appear 1.5s ease-out forwards;
+        }
+
+        @keyframes bonus-appear {
+            0% { opacity: 0; transform: translateY(-20px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* ================================================
+           SCREEN SHAKE (for impacts)
+           ================================================ */
+        
+        .screen-shake {
+            animation: shake 0.6s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-5px, 5px); }
+            20%, 40%, 60%, 80% { transform: translate(5px, -5px); }
+        }
+
+        /* ================================================
+           PAUSE SCREEN
+           ================================================ */
+        
+        #pauseScreen {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        /* ================================================
+           GAME OVER SCREEN
+           ================================================ */
+        
+        .stats-display {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .stat-row {
+            margin: 1rem 0;
+            font-size: 1.2rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            margin-right: 1rem;
+        }
+
+        .stat-value {
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- START SCREEN -->
+    <div id="startScreen">
+        <h1>POWERLINE COMMAND</h1>
+        <p class="subtitle">Demo</p>
+        
+        <div class="menu-container">
+            <div class="menu-item" onclick="startGame()">
+                <span>1. START GAME</span>
+            </div>
+            <div class="menu-item" onclick="showOptionsScreen()">
+                <span>2. OPTIONS</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTIONS SCREEN -->
+    <div id="optionsScreen">
+        <h1>OPTIONS</h1>
+        <p class="subtitle">Select Module for Testing</p>
+        
+        <div class="menu-container">
+            <div class="menu-item" onclick="startBlankModule()">
+                <span>1. BLANK MODULE</span>
+                <span class="menu-subtitle">Empty dataset - Test game mechanics</span>
+            </div>
+            <div class="menu-item" onclick="goToMainMenu()">
+                <span>ESC. BACK TO MAIN MENU</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="gameScreen">
+        <div class="game-container">
+            <div class="play-area" id="playArea">
+                <!-- HUD -->
+                <div class="in-game-hud hud-left">
+                    <div class="hud-item">
+                        <span class="hud-label">SCORE:</span>
+                        <span class="hud-value" id="score">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">ACCURACY:</span>
+                        <span class="hud-value" id="accuracy">100%</span>
+                    </div>
+                </div>
+                
+                <div class="in-game-hud hud-right">
+                    <div class="hud-item">
+                        <span class="hud-label">SHIELDS:</span>
+                        <span class="hud-value" id="shields">3/3</span>
+                    </div>
+                </div>
+
+                <!-- Zone (brown line at bottom) -->
+                <div class="zone"></div>
+                
+                <!-- Tower (gray rectangle at bottom center) -->
+                <div class="tower"></div>
+                
+                <!-- Command Input (blue rectangle) -->
+                <div class="input-area">
+                    <input type="text" id="commandInput" autocomplete="off" placeholder="Enter command...">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAUSE SCREEN -->
+    <div id="pauseScreen">
+        <h1>PAUSED</h1>
+        <p class="subtitle">Press SPACE to Resume</p>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="gameOverScreen">
+        <h1>GAME OVER</h1>
+        
+        <div class="stats-display">
+            <div class="stat-row">
+                <span class="stat-label">FINAL SCORE:</span>
+                <span class="stat-value" id="finalScore">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">ACCURACY:</span>
+                <span class="stat-value" id="finalAccuracy">0%</span>
+            </div>
+        </div>
+        
+        <div class="menu-container">
+            <div class="menu-item" onclick="playAgain()">
+                <span>1. PLAY AGAIN</span>
+            </div>
+            <div class="menu-item" onclick="goToMainMenu()">
+                <span>ESC. MAIN MENU</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ================================================
+           POWERLINE COMMAND - BLANK BASE VERSION v1.4
+           
+           CORE GAME LOGIC - DO NOT MODIFY IN THEMES
+           
+           All game mechanics are preserved here.
+           Themes should ONLY modify visual/audio elements.
+           ================================================ */
+
+        // ================================================
+        // GAME CONFIGURATION
+        // ================================================
+        
+        const GAME_CONFIG = {
+            CORRECTS_PER_SPEED_INCREASE: 1,
+            SPEED_INCREASE_PERCENT: 0.07,
+            BASE_MAX_TARGETS: 3,
+            CORRECTS_PER_TARGET_INCREASE: 10,
+            BASE_POINTS: 7,
+            PERFECT_BONUS: 3,
+            STREAK_THRESHOLD: 25,
+            STREAK_BONUS: 25,
+            SUPER_STREAK_THRESHOLD: 4,
+            SUPER_STREAK_BONUS: 75,
+            MAX_SHIELDS: 3
+        };
+
+        // ================================================
+        // DATASET (Challenge/Command pairs)
+        // Dataset: Blank (empty challenges and commands)
+        // ================================================
+        
+        const gameData = [
+            { challenge: "I", command: "1", primaryTarget: "", additionalDetail: "" },
+            { challenge: "II", command: "2", primaryTarget: "", additionalDetail: "" },
+            { challenge: "III", command: "3", primaryTarget: "", additionalDetail: "" },
+            { challenge: "IV", command: "4", primaryTarget: "", additionalDetail: "" },
+            { challenge: "V", command: "5", primaryTarget: "", additionalDetail: "" },
+            { challenge: "VI", command: "6", primaryTarget: "", additionalDetail: "" },
+            { challenge: "VII", command: "7", primaryTarget: "", additionalDetail: "" },
+            { challenge: "VIII", command: "8", primaryTarget: "", additionalDetail: "" },
+            { challenge: "IX", command: "9", primaryTarget: "", additionalDetail: "" },
+            { challenge: "X", command: "10", primaryTarget: "", additionalDetail: "" }
+        ];
+
+        // ================================================
+        // GAME STATE
+        // ================================================
+        
+        let score = 0;
+        let totalAttempts = 0;
+        let correctAttempts = 0;
+        let shields = GAME_CONFIG.MAX_SHIELDS;
+        let activeTargets = [];
+        let currentStreak = 0;
+        let streakCount = 0;
+        let hadBackspace = false;
+        let currentBonusOffset = 0;
+        
+        let gameInterval;
+        let checkInterval;
+        let cleanupInterval;
+        let spawnRate = 1500;
+        let fallDuration = 15000;
+        let maxTargets = GAME_CONFIG.BASE_MAX_TARGETS;
+        
+        let currentScreen = 'start';
+        let isPaused = false;
+
+        // ================================================
+        // OBJECT CLASSES
+        // ================================================
+        
+        class Target {
+            constructor(element, data, spawnTime, fallDuration) {
+                this.element = element;
+                this.data = data;
+                this.spawnTime = spawnTime;
+                this.fallDuration = fallDuration;
+                this.destroyed = false;
+            }
+        }
+
+        class Challenge {
+            constructor(text) {
+                this.text = text;
+            }
+        }
+
+        class Command {
+            constructor(code) {
+                this.code = code;
+            }
+        }
+
+        // ================================================
+        // SCREEN MANAGEMENT
+        // ================================================
+        
+        function showScreen(screenId) {
+            ['startScreen', 'optionsScreen', 'gameScreen', 'pauseScreen', 'gameOverScreen'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            document.getElementById(screenId).style.display = 'flex';
+            currentScreen = screenId.replace('Screen', '');
+        }
+
+        function showOptionsScreen() {
+            showScreen('optionsScreen');
+        }
+
+        function startBlankModule() {
+            startGame();
+        }
+
+        function goToMainMenu() {
+            showScreen('startScreen');
+        }
+
+        // ================================================
+        // GAME LIFECYCLE
+        // ================================================
+        
+        function startGame() {
+            showScreen('gameScreen');
+            isPaused = false;
+            
+            // Reset game state
+            score = 0;
+            totalAttempts = 0;
+            correctAttempts = 0;
+            shields = GAME_CONFIG.MAX_SHIELDS;
+            activeTargets = [];
+            currentStreak = 0;
+            streakCount = 0;
+            hadBackspace = false;
+            currentBonusOffset = 0;
+            spawnRate = 1500;
+            fallDuration = 15000;
+            maxTargets = GAME_CONFIG.BASE_MAX_TARGETS;
+            
+            // Clear play area
+            const playArea = document.getElementById('playArea');
+            const toRemove = playArea.querySelectorAll('.target, .impact-explosion, .impact-ground, .projectile-tower, .projectile-target, .bonus-notification');
+            toRemove.forEach(el => el.remove());
+            
+            updateHUD();
+            document.getElementById('commandInput').focus();
+            
+            // Start game loop
+            clearInterval(gameInterval);
+            clearInterval(checkInterval);
+            clearInterval(cleanupInterval);
+            
+            gameInterval = setInterval(spawnTarget, spawnRate);
+            checkInterval = setInterval(checkTargetPositions, 200);
+            cleanupInterval = setInterval(cleanup, 2000);
+            
+            // Spawn initial targets
+            spawnTarget();
+            setTimeout(spawnTarget, 500);
+        }
+
+        function pauseGame() {
+            if (!isPaused && currentScreen === 'game') {
+                isPaused = true;
+                showScreen('pauseScreen');
+            }
+        }
+
+        function resumeGame() {
+            if (isPaused) {
+                isPaused = false;
+                showScreen('gameScreen');
+                document.getElementById('commandInput').focus();
+            }
+        }
+
+        function playAgain() {
+            startGame();
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            clearInterval(checkInterval);
+            clearInterval(cleanupInterval);
+            
+            const accuracy = totalAttempts === 0 ? 0 : Math.round((correctAttempts / totalAttempts) * 100);
+            
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalAccuracy').textContent = accuracy + '%';
+            
+            showScreen('gameOverScreen');
+        }
+
+        // ================================================
+        // SPAWN LOGIC
+        // ================================================
+        
+        function spawnTarget() {
+            if (activeTargets.length >= maxTargets || isPaused) return;
+            
+            const currentTime = Date.now();
+            const activeCodes = activeTargets.map(t => t.data.command);
+            const availableData = gameData.filter(d => !activeCodes.includes(d.command));
+            
+            let data;
+            if (availableData.length === 0) {
+                data = gameData[Math.floor(Math.random() * gameData.length)];
+            } else {
+                data = availableData[Math.floor(Math.random() * availableData.length)];
+            }
+            
+            const playArea = document.getElementById('playArea');
+            
+            // Create Target (green rectangle)
+            const targetElement = document.createElement('div');
+            targetElement.className = 'target falling';
+            targetElement.dataset.command = data.command;
+            
+            // Create Challenge label (yellow rectangle)
+            // NOTE: For Blank dataset, this will be empty (no text displayed)
+            const challengeLabel = document.createElement('div');
+            challengeLabel.className = 'challenge-label';
+            challengeLabel.textContent = data.challenge;
+            targetElement.appendChild(challengeLabel);
+            
+            // Set animation duration
+            targetElement.style.animationDuration = (fallDuration / 1000) + 's';
+            
+            // Position horizontally (avoid overlap)
+            const maxX = playArea.offsetWidth - 150;
+            const minSpacing = 170;
+            
+            let leftPos;
+            let attempts = 0;
+            let validPosition = false;
+            
+            while (!validPosition && attempts < 50) {
+                leftPos = Math.random() * maxX;
+                validPosition = true;
+                
+                for (let target of activeTargets) {
+                    const activeLeft = parseFloat(target.element.style.left);
+                    const distance = Math.abs(leftPos - activeLeft);
+                    
+                    if (distance < minSpacing) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                attempts++;
+            }
+            
+            if (!validPosition) {
+                leftPos = Math.random() * maxX;
+            }
+            
+            targetElement.style.left = leftPos + 'px';
+            targetElement.style.top = '-120px';
+            
+            playArea.appendChild(targetElement);
+            
+            const target = new Target(targetElement, data, currentTime, fallDuration);
+            activeTargets.push(target);
+        }
+
+        // ================================================
+        // COLLISION DETECTION
+        // ================================================
+        
+        function checkTargetPositions() {
+            if (isPaused) return;
+            
+            const currentTime = Date.now();
+            
+            for (let i = activeTargets.length - 1; i >= 0; i--) {
+                const target = activeTargets[i];
+                
+                if (target.destroyed) continue;
+                
+                if (!target.element || !target.element.parentElement) {
+                    target.destroyed = true;
+                    activeTargets.splice(i, 1);
+                    continue;
+                }
+                
+                const timeElapsed = currentTime - target.spawnTime;
+                
+                // Check if Target reached Zone (Impact Zone)
+                if (timeElapsed >= (target.fallDuration + 200)) {
+                    target.destroyed = true;
+                    shields--;
+                    
+                    // Hide Target
+                    target.element.style.opacity = '0';
+                    
+                    // Create Event Impact (Zone Impact = Zone was hit)
+                    createGroundImpact(target.element);
+                    
+                    setTimeout(() => {
+                        if (target.element && target.element.parentElement) {
+                            target.element.remove();
+                        }
+                    }, 300);
+                    
+                    activeTargets.splice(i, 1);
+                    updateHUD();
+                    
+                    if (shields <= 0) {
+                        setTimeout(() => endGame(), 1500);
+                    }
+                }
+            }
+        }
+
+        // ================================================
+        // INPUT HANDLING
+        // ================================================
+        
+        function checkCommand() {
+            const input = document.getElementById('commandInput');
+            const command = input.value.trim();
+            
+            // NOTE: For Blank dataset, empty command ("") is valid
+            // This allows testing by pressing Enter with no input
+            
+            totalAttempts++;
+            let found = false;
+            
+            // Search for matching Target
+            for (let i = activeTargets.length - 1; i >= 0; i--) {
+                const target = activeTargets[i];
+                
+                if (target.destroyed) continue;
+                
+                if (target.data.command === command) {
+                    found = true;
+                    correctAttempts++;
+                    target.destroyed = true;
+                    currentStreak++;
+                    
+                    // Calculate points
+                    let pointsEarned = GAME_CONFIG.BASE_POINTS;
+                    const bonuses = [];
+                    
+                    // Perfect entry bonus (no backspace)
+                    if (!hadBackspace) {
+                        pointsEarned += GAME_CONFIG.PERFECT_BONUS;
+                    }
+                    
+                    // Streak bonuses
+                    if (currentStreak > 0 && currentStreak % GAME_CONFIG.STREAK_THRESHOLD === 0) {
+                        pointsEarned += GAME_CONFIG.STREAK_BONUS;
+                        streakCount++;
+                        bonuses.push({ type: '25 STREAK', points: GAME_CONFIG.STREAK_BONUS });
+                        
+                        // Super streak
+                        if (streakCount >= GAME_CONFIG.SUPER_STREAK_THRESHOLD) {
+                            pointsEarned += GAME_CONFIG.SUPER_STREAK_BONUS;
+                            bonuses.push({ type: '100 STREAK', points: GAME_CONFIG.SUPER_STREAK_BONUS });
+                            streakCount = 0;
+                        }
+                    }
+                    
+                    score += pointsEarned;
+                    
+                    // Show bonuses
+                    bonuses.forEach(bonus => {
+                        showBonus(bonus.type, bonus.points);
+                    });
+                    
+                    // Fire projectile from Tower to Target (Tower Impact)
+                    fireTowerProjectile(target.element);
+                    
+                    hadBackspace = false;
+                    
+                    // Difficulty scaling
+                    if (correctAttempts % GAME_CONFIG.CORRECTS_PER_SPEED_INCREASE === 0) {
+                        spawnRate = Math.max(400, spawnRate * (1 - GAME_CONFIG.SPEED_INCREASE_PERCENT));
+                        fallDuration = Math.max(8000, fallDuration * (1 - GAME_CONFIG.SPEED_INCREASE_PERCENT));
+                        clearInterval(gameInterval);
+                        gameInterval = setInterval(spawnTarget, spawnRate);
+                    }
+                    
+                    if (correctAttempts % GAME_CONFIG.CORRECTS_PER_TARGET_INCREASE === 0) {
+                        maxTargets = Math.min(6, maxTargets + 1);
+                    }
+                    
+                    updateHUD();
+                    break;
+                }
+            }
+            
+            // Wrong command - Target fires back (Target Impact)
+            if (!found) {
+                if (activeTargets.length > 0 && activeTargets[0].element && !activeTargets[0].destroyed) {
+                    fireTargetProjectile(activeTargets[0].element);
+                }
+                
+                shields--;
+                currentStreak = 0;
+                hadBackspace = false;
+                streakCount = 0;
+                
+                if (shields <= 0) {
+                    setTimeout(() => endGame(), 600);
+                }
+            }
+            
+            input.value = '';
+            updateHUD();
+        }
+
+        // ================================================
+        // PROJECTILE LOGIC
+        // ================================================
+        
+        function fireTowerProjectile(targetElement) {
+            const playArea = document.getElementById('playArea');
+            const tower = document.querySelector('.tower');
+            
+            if (!targetElement || !tower) return;
+            
+            const targetRect = targetElement.getBoundingClientRect();
+            const towerRect = tower.getBoundingClientRect();
+            const playRect = playArea.getBoundingClientRect();
+            
+            // Origin = Tower top center
+            const startX = towerRect.left - playRect.left + (towerRect.width / 2);
+            const startY = towerRect.top - playRect.top;
+            
+            // Destination = Target center
+            const targetX = targetRect.left - playRect.left + (targetRect.width / 2);
+            const targetY = targetRect.top - playRect.top + (targetRect.height / 2);
+            
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+            
+            // Create projectile
+            const projectile = document.createElement('div');
+            projectile.className = 'projectile-tower';
+            projectile.style.left = startX + 'px';
+            projectile.style.top = startY + 'px';
+            projectile.style.transform = `rotate(${angle + 90}deg)`;
+            
+            playArea.appendChild(projectile);
+            
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const travelTime = Math.min(150, distance / 3);
+            
+            // Animate projectile travel
+            requestAnimationFrame(() => {
+                projectile.style.transition = `transform ${travelTime}ms linear`;
+                projectile.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle + 90}deg)`;
+            });
+            
+            // On arrival - Event Impact at collision point
+            setTimeout(() => {
+                projectile.remove();
+                
+                if (targetElement && targetElement.parentElement) {
+                    targetElement.remove();
+                }
+                
+                // Create Event Impact (explosion at Target)
+                createExplosion(targetX, targetY);
+                activeTargets = activeTargets.filter(t => t.element !== targetElement);
+                
+            }, travelTime);
+        }
+
+        function fireTargetProjectile(targetElement) {
+            const playArea = document.getElementById('playArea');
+            const tower = document.querySelector('.tower');
+            
+            if (!targetElement || !tower) return;
+            
+            const targetRect = targetElement.getBoundingClientRect();
+            const towerRect = tower.getBoundingClientRect();
+            const playRect = playArea.getBoundingClientRect();
+            
+            // Origin = Target center
+            const startX = targetRect.left - playRect.left + (targetRect.width / 2);
+            const startY = targetRect.top - playRect.top + (targetRect.height / 2);
+            
+            // Destination = Tower center
+            const targetX = towerRect.left - playRect.left + (towerRect.width / 2);
+            const targetY = towerRect.top - playRect.top + (towerRect.height / 4);
+            
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+            
+            // Create projectile
+            const projectile = document.createElement('div');
+            projectile.className = 'projectile-target';
+            projectile.style.left = startX + 'px';
+            projectile.style.top = startY + 'px';
+            projectile.style.transform = `rotate(${angle + 90}deg)`;
+            
+            playArea.appendChild(projectile);
+            
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const travelTime = Math.min(200, distance / 2.5);
+            
+            // Animate projectile travel
+            requestAnimationFrame(() => {
+                projectile.style.transition = `transform ${travelTime}ms linear`;
+                projectile.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle + 90}deg)`;
+            });
+            
+            // On arrival - Event Impact at Tower
+            setTimeout(() => {
+                projectile.remove();
+            }, travelTime);
+        }
+
+        // ================================================
+        // EVENT IMPACT (at collision points)
+        // ================================================
+        
+        function createExplosion(centerX, centerY) {
+            const playArea = document.getElementById('playArea');
+            const explosion = document.createElement('div');
+            explosion.className = 'impact-explosion';
+            explosion.style.left = centerX + 'px';
+            explosion.style.top = centerY + 'px';
+            
+            playArea.appendChild(explosion);
+            
+            setTimeout(() => explosion.remove(), 600);
+        }
+
+        function createGroundImpact(targetElement) {
+            const playArea = document.getElementById('playArea');
+            const targetRect = targetElement.getBoundingClientRect();
+            const playRect = playArea.getBoundingClientRect();
+            
+            const impactX = targetRect.left - playRect.left + (targetRect.width / 2);
+            
+            const impact = document.createElement('div');
+            impact.className = 'impact-ground';
+            impact.style.left = impactX + 'px';
+            impact.style.bottom = '0px';
+            
+            playArea.appendChild(impact);
+            
+            // Screen shake
+            playArea.classList.add('screen-shake');
+            setTimeout(() => {
+                playArea.classList.remove('screen-shake');
+            }, 600);
+            
+            setTimeout(() => impact.remove(), 2000);
+        }
+
+        // ================================================
+        // BONUS NOTIFICATIONS
+        // ================================================
+        
+        function showBonus(bonusType, points) {
+            const playArea = document.getElementById('playArea');
+            const bonus = document.createElement('div');
+            bonus.className = 'bonus-notification';
+            bonus.innerHTML = `
+                <div style="font-size: 0.8rem; margin-bottom: 3px;">${bonusType}</div>
+                <div style="font-size: 1.2rem; font-weight: bold;">+${points}</div>
+            `;
+            
+            bonus.style.top = `calc(70px + ${currentBonusOffset}px)`;
+            bonus.style.right = '30px';
+            
+            currentBonusOffset += 50;
+            
+            playArea.appendChild(bonus);
+            
+            setTimeout(() => {
+                bonus.remove();
+                currentBonusOffset = Math.max(0, currentBonusOffset - 50);
+            }, 1500);
+        }
+
+        // ================================================
+        // HUD UPDATE
+        // ================================================
+        
+        function updateHUD() {
+            document.getElementById('score').textContent = score;
+            
+            const accuracy = totalAttempts === 0 ? 100 : Math.round((correctAttempts / totalAttempts) * 100);
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            
+            document.getElementById('shields').textContent = shields + '/' + GAME_CONFIG.MAX_SHIELDS;
+        }
+
+        // ================================================
+        // CLEANUP
+        // ================================================
+        
+        function cleanup() {
+            activeTargets = activeTargets.filter(t => {
+                if (!t.element.parentElement) return false;
+                if (t.destroyed) return false;
+                return true;
+            });
+        }
+
+        // ================================================
+        // EVENT LISTENERS
+        // ================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('commandInput');
+            
+            // Track backspace usage
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' || e.key === 'Delete') {
+                    hadBackspace = true;
+                }
+            });
+            
+            // Submit command
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    checkCommand();
+                }
+            });
+            
+            // Global keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Start screen
+                if (currentScreen === 'start') {
+                    if (e.key === '1') {
+                        e.preventDefault();
+                        startGame();
+                    } else if (e.key === '2') {
+                        e.preventDefault();
+                        showOptionsScreen();
+                    }
+                }
+                
+                // Options screen
+                if (currentScreen === 'options') {
+                    if (e.key === '1') {
+                        e.preventDefault();
+                        startBlankModule();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        goToMainMenu();
+                    }
+                }
+                
+                // Game screen
+                if (currentScreen === 'game' && e.key === 'Escape') {
+                    e.preventDefault();
+                    pauseGame();
+                }
+                
+                // Pause screen
+                if (isPaused && e.key === ' ') {
+                    e.preventDefault();
+                    resumeGame();
+                }
+                
+                // Game over screen
+                if (currentScreen === 'gameOver') {
+                    if (e.key === '1') {
+                        e.preventDefault();
+                        playAgain();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        goToMainMenu();
+                    }
+                }
+            });
+            
+            // Focus input when clicking play area
+            document.getElementById('playArea').addEventListener('click', () => {
+                if (currentScreen === 'game') {
+                    input.focus();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

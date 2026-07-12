@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asteroid Command — PowerLine Challenge</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- HUD -->
+        <div id="hud">
+            <div id="hud-left">
+                <span id="score-label">SCORE:</span>
+                <span id="score-value">0</span>
+                <span id="multiplier-value"></span>
+            </div>
+            <div id="hud-center">
+                <span id="tier-label">RANK:</span>
+                <span id="tier-value">TRAINEE</span>
+                <span id="tower-shield-label">SHIELDS:</span>
+                <span id="tower-shield-value">◆◆◆</span>
+            </div>
+            <div id="hud-right">
+                <span id="shields-label">SHIELD STRENGTH:</span>
+                <span id="shields-value">████████████</span>
+                <span id="streak-label">STREAK:</span>
+                <span id="streak-value">0</span>
+            </div>
+        </div>
+
+        <!-- Command Input (TOP CENTER) -->
+        <div id="command-box">
+            <span id="command-prompt">&gt;</span>
+            <input type="text" id="command-input" autocomplete="off" spellcheck="false" placeholder="ENTER COMMAND">
+        </div>
+
+        <!-- Status Messages (below command box) -->
+        <div id="status-area">
+            <span id="status-message"></span>
+        </div>
+
+        <!-- Play Area -->
+        <div id="play-area">
+            <canvas id="game-canvas"></canvas>
+            
+            <!-- Zone Labels (Regional Realignment: Left to Right) -->
+            <div id="zone-labels">
+                <div class="zone-label" data-zone="1">NOTL</div>
+                <div class="zone-label" data-zone="2">NIAGARA FALLS</div>
+                <div class="zone-label" data-zone="tower">RADIO TOWER</div>
+                <div class="zone-label" data-zone="3">THOROLD</div>
+                <div class="zone-label" data-zone="4">PORT COLBORNE</div>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-overlay" class="hidden">
+            <div id="game-over-content">
+                <h1>REGION LOST</h1>
+                <p>All zones destroyed.</p>
+                <p>FINAL SCORE: <span id="final-score">0</span></p>
+                <div id="final-stats"></div>
+                <button id="restart-btn">RESTART MISSION</button>
+                <button id="eject-btn">EJECT TO ARCADE</button>
+            </div>
+        </div>
+
+        <!-- Start Screen Overlay -->
+        <div id="start-overlay">
+            <div id="start-content">
+                <h1>ASTEROID COMMAND</h1>
+                <p class="subtitle">NIAGARA REGION DEFENSE SYSTEM</p>
+
+                <div id="scoring-info">
+                    <h3>PRECISION SCORING</h3>
+                    <div class="score-row"><span>Base Hit:</span><span>+100</span></div>
+                    <div class="score-row"><span>Perfect Shot (no backspace):</span><span>+20</span></div>
+                    <div class="score-row"><span>Early Intercept (top 25%):</span><span>+50</span></div>
+                    <div class="score-row penalty"><span>1 backspace (KEY DUST):</span><span>-5</span></div>
+                    <div class="score-row penalty"><span>2 backspaces (SIGNAL NOISE):</span><span>-10</span></div>
+                    <div class="score-row penalty"><span>3 backspaces (INPUT LAG):</span><span>-15</span></div>
+                    <div class="score-row penalty"><span>4 backspaces (COMMS DRIFT):</span><span>-20</span></div>
+                    <div class="score-row penalty"><span>5+ backspaces (STATIC JAM):</span><span>-25</span></div>
+                    <div class="score-row bonus"><span>10x Perfect Commendation:</span><span>+500</span></div>
+                </div>
+
+                <div id="tier-info">
+                    <h3>CAREER PROGRESSION</h3>
+                    <div class="tier-row"><span>0 - 2,000:</span><span>TRAINEE</span></div>
+                    <div class="tier-row"><span>2,001 - 5,000:</span><span>MENTORING</span></div>
+                    <div class="tier-row"><span>5,001 - 10,000:</span><span>SIGNED OFF</span></div>
+                    <div class="tier-row"><span>10,001 - 20,000:</span><span>OUT OF PROBATION</span></div>
+                    <div class="tier-row"><span>20,001+:</span><span>SENIOR</span></div>
+                </div>
+
+                <div id="instructions">
+                    <p>Type accurate. Type clean. Earn your rank.</p>
+                </div>
+
+                <button id="start-btn">BEGIN MISSION</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

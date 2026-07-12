@@ -1,0 +1,5 @@
+﻿Command,Required Code,Descriptition 
+AP ,"AP <Unit> [Power/Station Code], [Comment]",Assign Unit to post
+ENP,"ENP <Unit> [Post/Station Code], [Comment]",Place vehicle in En Route status
+LA,"LA <Unit> [Post/Station Code], [Comment]",Local Area
+BSE,"BSE <Unit> [Post/Station Code], [Comment]",Place Unit at Base

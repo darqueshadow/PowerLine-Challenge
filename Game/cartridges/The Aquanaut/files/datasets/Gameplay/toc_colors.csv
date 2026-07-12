@@ -1,0 +1,4 @@
+state,color,hittable
+White,White / Black (#FFFFFF / #000000),FALSE
+Pink,Pink / Black (#F1B0B7 / #000000),FALSE
+Blue,Blue / Black (#2E90FF / #000000),TRUE

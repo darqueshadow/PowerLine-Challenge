@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Asteroid Command — PowerLine Challenge</title>
+    <link rel="stylesheet" href="style.css" id="main-css">
+    <script>document.getElementById('main-css').href = 'style.css?t=' + Date.now();</script>
+</head>
+<body>
+    <div id="boot-overlay"><canvas id="boot-canvas"></canvas></div>
+    <div id="game-container">
+        <div id="holodeck-grid"></div>
+
+        <!-- HUD — VDS + Command input only; stats live in sidebars -->
+        <div id="hud">
+            <div id="hud-center">
+                <div id="vds-row">
+                    <div id="vds-container">
+                        <span id="status-message"></span><span id="vds-cursor" class="hidden"></span>
+                    </div>
+                    <div id="vds2-container">
+                        <span id="status-message-2"></span><span id="vds2-cursor" class="hidden"></span>
+                    </div>
+                </div>
+                <div id="command-box">
+                    <span id="command-prompt">&gt;</span>
+                    <input type="text" id="command-input" autocomplete="off" spellcheck="false" placeholder="ENTER COMMAND">
+                    <span id="block-cursor"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Area: Left Panel | Play Area | Right Panel -->
+        <div id="main-area">
+
+            <!-- Left Sidebar: Score / Rank / Streak -->
+            <div id="left-panel">
+                <div class="panel-stat">
+                    <span class="panel-label nameplate" id="score-label">SCORE</span>
+                    <div class="mini-vds">
+                        <span id="score-value">0</span>
+                    </div>
+                </div>
+                <div class="panel-stat">
+                    <span class="panel-label nameplate" id="tier-label">RANK</span>
+                    <div class="mini-vds">
+                        <span id="tier-value">TRAINEE</span>
+                    </div>
+                </div>
+                <div class="panel-stat">
+                    <span class="panel-label nameplate" id="streak-label">STREAK</span>
+                    <div class="mini-vds">
+                        <span id="streak-value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Play Area -->
+            <div id="play-area">
+                <div id="canvas-wrapper">
+                    <canvas id="game-canvas"></canvas>
+                    <svg id="tether-layer"></svg>
+                    <div id="simulation-status"></div>
+
+                    <!-- Aircraft Warning Lights — CSS animated, JS-positioned -->
+                    <div id="skylon-light" class="aircraft-light"></div>
+                    <div id="canal-light" class="aircraft-light canal-light-orange"></div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar: Diamond Indicators + Shield Strength — vertical bar -->
+            <div id="right-panel">
+                <span id="diamonds-label-top">BREACH</span>
+                <div id="hit-diamonds" style="margin-bottom: 2px;">
+                    <span class="diamond shield-100" id="diamond-3">◆</span>
+                    <span class="diamond shield-100" id="diamond-2">◆</span>
+                    <span class="diamond shield-100" id="diamond-1">◆</span>
+                </div>
+                <span id="diamonds-label-bottom">TOLERANCE</span>
+
+                <div id="shields-bar-wrap">
+                    <span id="shields-value">█████████</span>
+                </div>
+                <span id="shields-label">SHIELD<br>STRENGTH</span>
+            </div>
+
+        </div><!-- /main-area -->
+
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="hidden">
+            <div id="pause-content">
+                <h1>MISSION PAUSED</h1>
+                <div class="menu-buttons">
+                    <button id="resume-btn">RESUME MISSION</button>
+                    <button id="restart-pause-btn">RESTART MISSION</button>
+                    <button id="quit-btn">QUIT TO MENU</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAT Login Terminal (Commodore PET style) -->
+        <div id="cat-login-overlay" class="hidden">
+            <div id="cat-monitor">
+                <div id="cat-bezel">
+                    <div id="cat-header">*** COMMODORE AUTOMATED TERMINAL ***</div>
+                    <div id="cat-screen">
+                        <div id="cat-output"></div>
+                        <div id="cat-input-line">
+                            <span id="cat-prompt"></span>
+                            <input type="text" id="cat-input" autocomplete="off" spellcheck="false" maxlength="30">
+                            <span id="cat-cursor">█</span>
+                        </div>
+                    </div>
+                    <div id="cat-leaderboard" class="hidden">
+                        <div id="cat-lb-title">═══ TOP 10 DISPATCHERS ═══</div>
+                        <div id="cat-lb-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-overlay" class="hidden">
+            <div id="game-over-content">
+                <h1>REGION LOST</h1>
+                <p>All zones destroyed.</p>
+                <p>FINAL SCORE: <span id="final-score">0</span></p>
+                <div id="final-stats"></div>
+                <button id="submit-score-btn">SUBMIT SCORE</button>
+                <span id="score-submit-status" class="dataset-status"></span>
+                <button id="restart-btn">RESTART MISSION</button>
+                <button id="main-menu-btn">MAIN MENU</button>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-overlay" class="title-screen-bg">
+            <!-- Main Menu Page -->
+            <div id="start-content" class="menu-page">
+                <div id="title-top">
+                    <h1>ASTEROID COMMAND</h1>
+                    <p class="subtitle">NIAGARA REGION DEFENSE SYSTEM</p>
+
+                    <div id="instructions">
+                        <p>Type accurate. Type clean. Earn your rank.</p>
+                    </div>
+
+                    <div id="title-press-prompt" class="start-prompt">PRESS ANY KEY</div>
+
+                <div id="normal-menu-buttons" class="menu-buttons hidden">
+                    <button id="start-btn">BEGIN MISSION</button>
+                    <button id="scoring-btn">SCORING &amp; PROGRESSION</button>
+                    <div class="menu-buttons-row">
+                        <button id="settings-btn">SETTINGS</button>
+                        <button id="highscores-btn">HIGH SCORES</button>
+                    </div>
+                    <button id="change-player-btn">CHANGE DISPATCHER</button>
+                </div>
+
+                <div id="holodeck-menu-buttons" class="menu-buttons hidden">
+                    <div class="menu-buttons-row">
+                        <button id="holodeck-btn">ENTER HOLODECK</button>
+                        <button id="exit-holodeck-btn">RETURN TO PROGRAM</button>
+                    </div>
+                </div>
+
+                <div id="god-mode-menu" class="hidden">
+                    <div class="gm-header">GOD MODE</div>
+                    <div class="gm-columns">
+                        <div id="gm-col-toggles" class="gm-col"></div>
+                        <div id="gm-col-data" class="gm-col"></div>
+                    </div>
+                    <div class="gm-footer-actions">
+                        <button id="update-datasets-btn" class="gm-dataset-btn">UPDATE DATASETS</button>
+                        <span id="dataset-status" class="dataset-status"></span>
+                    </div>
+                </div>
+                </div><!-- /title-top -->
+
+                <div id="title-credits">
+                    <span class="credit-line"><span class="credit-role">Creator &amp; Game Director:</span> Andrew Samitz</span>
+                    <span class="credit-sep">&#x2022;</span>
+                    <span class="credit-line"><span class="credit-role">Lead Engineer:</span> Claude A. Renaud</span>
+                    <span class="credit-sep">&#x2022;</span>
+                    <span class="credit-line"><span class="credit-role">Integration &amp; UX:</span> G.E. Minsky</span>
+                    <span class="credit-sep">&#x2022;</span>
+                    <span class="credit-line"><span class="credit-role">Technical Producer:</span> C.J. Vireo</span>
+                    <span class="credit-sep">&#x2022;</span>
+                    <span class="credit-line"><span class="credit-role">Composer:</span> Suno Vanta</span>
+                </div>
+            </div>
+
+            <div id="scoring-bg-layer" class="hidden"></div>
+            <!-- Scoring & Progression Submenu -->
+            <div id="scoring-page" class="menu-page hidden">
+                <h1>ASTEROID COMMAND</h1>
+                <p class="subtitle">SCORING &amp; PROGRESSION</p>
+
+                <div id="scoring-info">
+                    <h3>SCALING DIFFICULTY STAKES</h3>
+                    <div class="score-row"><span>Base Hit:</span><span>Rank-based (100 — 1,000)</span></div>
+                    <div class="score-row"><span>Perfect Shot (0 BS):</span><span>+25% of Base Hit</span></div>
+                    <div class="score-row"><span>Early Intercept:</span><span>+50% of Base Hit</span></div>
+                    <div class="score-row"><span>Speed Demon (&lt;1.5s):</span><span>+15% of Base Hit</span></div>
+                    <div class="score-row penalty"><span>Key Dust (1-2 BS):</span><span>-10% of Base Hit</span></div>
+                    <div class="score-row penalty"><span>Signal Noise (3-4 BS):</span><span>-20% of Base Hit</span></div>
+                    <div class="score-row penalty"><span>Comms Drift (5-6 BS):</span><span>Flat -30</span></div>
+                    <div class="score-row penalty"><span>Static Jam (7+ BS):</span><span>Flat -50</span></div>
+                    <div class="score-row penalty"><span>Misfire:</span><span>Flat -50</span></div>
+                    <div class="score-row penalty"><span>Zone Impact:</span><span>Rank penalty (-50 to -750)</span></div>
+                    <div class="score-row bonus"><span>Perfect Streak:</span><span>+75 / +150 / +400 / +1,000 (flat)</span></div>
+                </div>
+
+                <div id="tier-info">
+                    <h3>CAREER PROGRESSION</h3>
+                    <div class="tier-row"><span>0 — 2,000:</span><span>TRAINEE (100 / -50)</span></div>
+                    <div class="tier-row"><span>2,001 — 5,000:</span><span>MENTORING (100 / -50)</span></div>
+                    <div class="tier-row"><span>5,001 — 10,000:</span><span>SIGNED OFF (250 / -150)</span></div>
+                    <div class="tier-row"><span>10,001 — 20,000:</span><span>OUT OF PROBATION (250 / -150)</span></div>
+                    <div class="tier-row"><span>20,001 — 35,000:</span><span>2 YEARS IN (500 / -300)</span></div>
+                    <div class="tier-row"><span>35,001 — 55,000:</span><span>FULL TIME (500 / -300)</span></div>
+                    <div class="tier-row"><span>55,001 — 80,000:</span><span>VETERAN (1,000 / -750)</span></div>
+                    <div class="tier-row"><span>80,001+:</span><span>O.A.S (1,000 / -750)</span></div>
+                </div>
+
+                <div class="menu-buttons">
+                    <button id="back-to-menu-btn">BACK TO MAIN MENU</button>
+                </div>
+            </div>
+
+            <!-- Settings Submenu -->
+            <div id="settings-bg-layer" class="hidden"></div>
+            <div id="settings-page" class="menu-page hidden">
+                <h1>ASTEROID COMMAND</h1>
+                <p class="subtitle">SETTINGS</p>
+
+                <div id="settings-panel">
+                    <div class="settings-row">
+                        <span class="settings-label">MUSIC</span>
+                        <button id="music-toggle-btn" class="toggle-btn on">ON</button>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">SFX</span>
+                        <button id="sfx-toggle-btn" class="toggle-btn on">ON</button>
+                    </div>
+                </div>
+
+                <div class="menu-buttons">
+                    <button id="settings-back-btn">BACK TO MAIN MENU</button>
+                </div>
+            </div>
+
+            <!-- High Scores Submenu -->
+            <div id="highscores-bg-layer" class="hidden"></div>
+            <div id="highscores-page" class="menu-page hidden">
+                <h1>ASTEROID COMMAND</h1>
+                <p class="subtitle">HIGH SCORES</p>
+
+                <div id="highscores-panel">
+                    <h3>═══ TOP 10 DISPATCHERS ═══</h3>
+                    <div id="highscores-list"></div>
+                </div>
+
+                <div class="menu-buttons">
+                    <button id="highscores-back-btn">BACK TO MAIN MENU</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dev Mode Password Prompt (hidden by default) -->
+        <div id="dev-mode-prompt" class="hidden">
+            <div id="dev-mode-content">
+                <p>ENTER DEV ACCESS CODE:</p>
+                <input type="password" id="dev-password-input" maxlength="20" autocomplete="off">
+                <div id="dev-timer">10</div>
+            </div>
+        </div>
+
+        <!-- Holodeck Password Prompt — 15-second timed access gate -->
+        <div id="holodeck-prompt" class="hidden">
+            <div id="holodeck-prompt-content">
+                <p>ENTER ACCESS KEY:</p>
+                <input type="password" id="holodeck-password-input" maxlength="20" autocomplete="off">
+                <div id="holodeck-timer">15</div>
+            </div>
+        </div>
+
+        <!-- Window Size Prompt -->
+        <div id="size-prompt" class="hidden">MAXIMIZE WINDOW FOR BEST EXPERIENCE</div>
+
+    </div><!-- /game-container -->
+
+    <script>
+        // Dynamic loading prevents file:// caching issues
+        var t = Date.now();
+        document.write('<script src="core/config.js?t=' + t + '"><\/script>');
+        document.write('<script src="core/data.js?t=' + t + '"><\/script>');
+        document.write('<script src="core/audio.js?t=' + t + '"><\/script>');
+        document.write('<script src="script.js?t=' + t + '"><\/script>');
+    </script>
+</body>
+</html>

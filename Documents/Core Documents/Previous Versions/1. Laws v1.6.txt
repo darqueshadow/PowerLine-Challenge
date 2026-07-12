@@ -1,0 +1,189 @@
+0. Definitions (Immutable Glossary) 
+
+The following terms establish mandatory, unambiguous definitions governing all PowerLine game construction. These definitions are legally binding within the scope of the PowerLine Challenge system. 
+Claude must not reinterpret, alter, or override any definition in Section 0 unless Andrew explicitly instructs a temporary override. 
+If any instruction appears to conflict with a definition in this section, Claude must pause and request clarification before proceeding. 
+
+ 
+
+0.1 Empty Cartridge 
+
+The neutral, unthemed base version of the game containing all core gameplay logic and placeholder visuals. The Empty Cartridge must never be modified directly. Claude must always duplicate the Empty Cartridge before creating or modifying any Cartridge. 
+
+ 
+
+0.2 Cartridge 
+
+A themed version of the game created from a duplicated Empty Cartridge. Cartridges may modify appearance, audio, and theme-specific effects but must not modify or replace core gameplay logic. 
+
+ 
+
+0.3 Theme 
+
+A cosmetic layer defining the visual and audio style of a Cartridge. Themes must never alter rules, scoring, dataset logic, challenge generation, difficulty progression, impact logic, or any other core system. 
+
+ 
+
+0.4 Target 
+
+A game object representing an actionable item in the playfield. A Target must always contain an attached Challenge. Targets must follow the core movement and lifecycle rules defined in the engine. 
+
+ 
+
+0.5 Challenge 
+
+A plain-language instruction attached to a Target. Challenge generation must follow the rules defined in the Data Sheet and Overview unless explicitly overridden by Andrew. 
+
+ 
+
+0.6 Command 
+
+The exact PowerLine syntax required to clear a Target. Commands must comply with CAD rules and must reflect the Command Template associated with the Challenge Template. 
+
+ 
+
+0.7 Clear (Hit) 
+
+The state in which a Target is correctly removed from play due to a valid Command input. 
+
+ 
+
+0.8 Miss 
+
+The state in which a submitted Command is invalid. The Target remains active unless cleared or impacted. 
+
+ 
+
+0.9 Impact 
+
+The state in which a Target reaches the lower boundary without being cleared. Impact behaviour must follow engine rules and must not be altered by themes. 
+
+ 
+
+0.10 Data Sheet 
+
+The CSV dataset containing command types, units, bases, templates, and data pools. Claude must parse and apply Data Sheet content exactly as defined, unless Andrew explicitly authorizes changes. 
+
+ 
+
+0.11 Challenge Set 
+
+A defined group of Challenge Types used for structured training. Challenge Sets must be loaded according to user selection and must not alter core logic. 
+
+ 
+
+0.12 Challenge Template 
+
+A plain-language template used to construct a Challenge. Must follow the structure defined in the Data Sheet. 
+
+ 
+
+0.13 Command Template 
+
+The template governing the formation of a required Command. Must align with the corresponding Challenge Template. 
+
+ 
+
+0.14 Data Pool 
+
+A set of values (Units, Bases, Hospitals, Call Numbers) used to populate templates. Values must be drawn exactly as defined. 
+
+ 
+
+0.15 Developer Mode 
+
+A restricted-access mode enabling internal testing. Developer Mode is activated via Ctrl + Shift + B and must remain hidden from regular users in non-demo builds. 
+
+ 
+
+0.16 Blank Dataset Module 
+
+A test-only dataset used solely in Developer Mode. Must remain inaccessible during normal gameplay. 
+
+ 
+
+0.17 Glow Effect 
+
+A contour-following outline applied to themed Targets. Glow must adhere to the silhouette of the PNG, rotate with the object, and must never default to bounding-box behaviour. 
+
+ 
+
+0.18 Theme Injection Points 
+
+The exclusive locations Claude is permitted to modify when applying a theme. These include Target appearance, Challenge appearance, Command UI styling, backgrounds, and optional cosmetic effects. No other engine components may be changed unless Andrew explicitly authorizes a temporary override. 
+
+ 
+
+ 
+
+Laws v1.6 
+
+Version History 
+
+v1.6 – Renamed Blank Skin → Empty Cartridge, added modular development rules, clarified Arcade hub and Action Zone structure, enforced cartridge integration logic, and retained dataset integrity rules. 
+
+Shape 
+
+Definitions 
+
+Empty Cartridge = Master template for all cartridges. Claude must duplicate Empty Cartridge before creating a new game. Duplication is the working copy for cartridge development. 
+
+Arcade = Main hub housing the Main Menu and submenus. 
+
+Action Zone = Submenu for dynamic games with movement and aiming. 
+
+Holodeck = Backdoor feature for demo mode. Enabled only in Publish Mode. 
+
+Shape 
+
+Modes 
+
+Demo Mode = Default state during development. Holodeck disabled. All cartridges applied in this mode are demo cartridges. 
+
+Publish Mode = Activated when instructed. Holodeck enabled. Claude must finalize cartridges for release only when directly instructed. 
+
+Shape 
+
+Core Laws 
+
+Claude must duplicate Empty Cartridge before creating any new cartridge. 
+
+Claude must never modify core game logic in Empty Cartridge unless explicitly instructed in Overview v1.6. 
+
+Claude must apply themes and mechanics exactly as defined in Overview. No assumptions or omissions. 
+
+Claude must preserve all objects and mechanics unless a cartridge specifically overrides them. 
+
+Claude must maintain dataset integrity. All Challenge sets and data pools must match Overview specifications. 
+
+Claude must implement dual naming convention for Impact logic (e.g., “ZONE IMPACT” vs “IMPACT ZONE”). 
+
+Claude must keep Holodeck disabled until Publish Mode is engaged. 
+
+Claude must treat all cartridges applied before Publish Mode as demo cartridges. 
+
+Claude must not engage Publish Mode until directly instructed. 
+
+Claude must follow projectile naming convention as per Developer Notes in Overview. 
+
+Claude must never remove sections from Overview or Laws. Only append or clarify when instructed. 
+
+Claude must enforce Main Menu and submenu structure exactly as outlined in Overview (Arcade hub, Action Zone, etc.). 
+
+Claude must maintain modular development:  
+
+Separate files for HTML, CSS, JS, images, and music. 
+
+No embedding large assets unless explicitly instructed for standalone builds. 
+
+Claude must insert cartridges into Arcade hub only when instructed. 
+
+Claude must include “Return to Program” button in Holodeck mode. 
+
+Claude must preserve basic game logic in Empty Cartridge and only theme or expand when instructed. 
+
+Shape 
+
+Dataset Generation Rules 
+
+(Keep Laws 13–16 from v1.5 as they are still valid for Challenge–Command logic.) 

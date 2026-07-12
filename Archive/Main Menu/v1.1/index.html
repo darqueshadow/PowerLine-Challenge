@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerLine Challenge – Training Console</title>
+    <link rel="stylesheet" href="main-menu.css">
+</head>
+<body>
+
+<!--
+    ================================================================
+    Main_Menu.png is the entire visual layout — set as the full-
+    viewport background via CSS on <body>. It provides the computer
+    chassis, CRT screen (with boot text and instructions already
+    rendered), and the cassette tray.
+
+    Everything below is an invisible or semi-transparent overlay
+    positioned on top of that image. Nothing here draws the
+    computer itself.
+    ================================================================
+-->
+
+
+<!--
+    ============================================================
+    CASSETTE TRAY CLICK ZONE
+
+    An invisible hit-target positioned precisely over the cassette
+    tray in the background image. This is the player's single
+    entry point into cartridge selection.
+
+    - Click (or Enter/Space) toggles the selection panel.
+    - A subtle pulsing green border hints at interactivity.
+    - Hover brightens the glow.
+    - While the panel is open, JS adds .tray-active to hold
+      the glow steady.
+    ============================================================
+-->
+<div id="tray-click-zone"
+     role="button"
+     tabindex="0"
+     aria-label="Browse cartridges"
+     aria-expanded="false">
+</div>
+
+
+<!--
+    ============================================================
+    CARTRIDGE SELECTION PANEL
+
+    A terminal-style popup that slides in when the tray is
+    clicked. Positioned in the dark upper-right area of the
+    viewport (the black background above/beside the tray) so it
+    never obscures the computer image itself.
+
+    Visibility is driven by the .panel-visible class (toggled
+    by main-menu.js). Default state is hidden.
+
+    Three key containers — all future-proof:
+
+      #cartridge-list    Empty div. main-menu.js dynamically
+                         injects one .cartridge-btn per available
+                         cartridge. When the blank cassette image
+                         is provided, each button will also carry
+                         a cassette graphic.
+
+      #no-cartridges     Placeholder text shown whenever
+                         #cartridge-list has no entries.
+                         JS hides this the moment cartridges load.
+
+      #start-cartridge   The play button. Disabled and dimmed
+                         until a cartridge is selected. JS enables
+                         it and relabels it on selection.
+    ============================================================
+-->
+<div id="cartridge-panel" aria-hidden="true">
+
+    <div id="panel-header">
+        <span id="panel-title">CARTRIDGE SELECT</span>
+        <button id="panel-close" aria-label="Close">✕</button>
+    </div>
+
+    <div id="cartridge-list">
+        <!-- Cartridge buttons injected here by main-menu.js -->
+    </div>
+
+    <div id="no-cartridges">
+        <p>— No cartridges available —</p>
+        <p>Future cartridges will appear here.</p>
+    </div>
+
+    <button id="start-cartridge" disabled>
+        Select a cartridge to begin
+    </button>
+
+</div>
+
+
+<script src="main-menu.js"></script>
+</body>
+</html>

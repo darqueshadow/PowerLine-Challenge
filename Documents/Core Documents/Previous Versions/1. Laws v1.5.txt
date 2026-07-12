@@ -1,0 +1,51 @@
+THE LAWS v1.5
+VERSION HISTORY
+* v1.0 – Initial draft
+* v1.1 – Added enforcement for skin application
+* v1.2 – Added dataset integrity rules
+* v1.3 – Added dual-impact naming convention
+* v1.4 – Clarified template usage
+* v1.5 – Corrected Blank Skin definition; removed Blank Base; added Holodeck activation rule; added Demo vs Publish Mode section; reinforced directive tone for Claude.
+DEFINITIONS
+BLANK SKIN = MASTER TEMPLATE FOR ALL SKINS. CLAUDE MUST DUPLICATE BLANK SKIN BEFORE APPLYING ANY NEW SKIN. DUPLICATION IS THE WORKING COPY FOR SKIN APPLICATION.
+HOLODECK = BACK DOOR FEATURE THAT ENABLES HIDDEN ACCESS. CLAUDE MUST ONLY ENABLE HOLODECK WHEN PUBLISH MODE IS ENGAGED.
+MODES
+DEMO MODE = DEFAULT STATE DURING DEVELOPMENT. HOLODECK DISABLED. ALL SKINS APPLIED IN THIS MODE ARE DEMO SKINS.
+PUBLISH MODE = ACTIVATED WHEN INSTRUCTED. HOLODECK ENABLED. CLAUDE MUST ENGAGE SKIN FOR FINAL RELEASE ONLY WHEN DIRECTLY INSTRUCTED.
+LAW 1: CLAUDE MUST DUPLICATE BLANK SKIN BEFORE APPLYING ANY NEW SKIN.
+LAW 2: CLAUDE MUST NEVER MODIFY CORE GAME LOGIC UNLESS EXPLICITLY INSTRUCTED IN OVERVIEW v1.5.
+LAW 3: CLAUDE MUST APPLY SKINS EXACTLY AS DEFINED IN OVERVIEW. NO ASSUMPTIONS OR OMISSIONS.
+LAW 4: CLAUDE MUST PRESERVE ALL OBJECTS AND MECHANICS UNLESS A SKIN SPECIFICALLY OVERRIDES THEM.
+LAW 5: CLAUDE MUST MAINTAIN DATASET INTEGRITY. ALL CHALLENGE SETS AND DATA POOLS MUST MATCH OVERVIEW SPECIFICATIONS.
+LAW 6: CLAUDE MUST IMPLEMENT DUAL NAMING CONVENTION FOR IMPACT LOGIC (e.g., 'ZONE IMPACT' vs 'IMPACT ZONE').
+LAW 7: CLAUDE MUST KEEP HOLODECK DISABLED UNTIL PUBLISH MODE IS ENGAGED.
+LAW 8: CLAUDE MUST TREAT ALL SKINS APPLIED BEFORE PUBLISH MODE AS DEMO SKINS.
+LAW 9: CLAUDE MUST NOT ENGAGE PUBLISH MODE UNTIL DIRECTLY INSTRUCTED.
+LAW 10: CLAUDE MUST FOLLOW PROJECTILE NAMING CONVENTION AS PER DEVELOPER NOTES IN OVERVIEW.
+LAW 11: CLAUDE MUST NEVER REMOVE SECTIONS FROM OVERVIEW OR LAWS. ONLY APPEND OR CLARIFY WHEN INSTRUCTED.
+LAW 12: CLAUDE MUST ENFORCE MAIN MENU AND SUBMENU STRUCTURE EXACTLY AS OUTLINED IN OVERVIEW.
+DATASET GENERATION RULES
+LAW 13: Claude must generate Challenge–Command pairs dynamically when instructed, using the universal formula:
+[PowerLine Command] + [Unit] + [Verb] + [Base]
+ 
+PowerLine Command (PL): Selected from the active command set (e.g., AP, ENP, BSEH). 
+Challenge uses descriptive form (e.g., “Assign Unit”), Command uses abbreviation (e.g., “AP”).
+Unit: Randomly selected from the Unit dataset.
+Verb: Universal connector word (default: “to”).
+Base: Randomly selected from the Base dataset when applicable. 
+Challenge uses Base Name (e.g., “Thorold”), Command uses Base Number (e.g., “72103”).
+
+LAW 14: Claude must ensure Challenge and Command share the same Unit and Base pairing.
+Example:
+Challenge: Assign Unit 2101 to Thorold
+Command: AP 2101 to 72103
+ 
+LAW 15: Claude must preserve dataset integrity by validating:
+No duplicate Challenge–Command pairs in the same dataset.
+All generated entries follow the universal formula.
+All mappings (Base Name ? Base Number) are correct.
+LAW 16: Claude must never hardcode values; all selections must come from provided datasets.
+Randomization must occur only within defined lists for PL, Units, and Bases.
+If any dataset is missing or incomplete, Claude must halt generation and request clarification.
+
+REFERENCE: CLAUDE MUST USE OVERVIEW v1.5 AS PRIMARY CONTEXT FOR ALL SKIN APPLICATION AND GAME LOGIC.

@@ -1,0 +1,100 @@
+
+/* Base styles */
+body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.challenge-box {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 20px;
+    color: #fff;
+    white-space: pre-line; /* Ensures line breaks display correctly */
+}
+
+.command-box {
+    position: absolute;
+    top: 50px;
+    left: 10px;
+    font-size: 18px;
+    color: #0f0;
+    transform: none !important; /* Prevent rotation */
+}
+
+/* Asteroid target styling */
+.target-asteroid-1 {
+    background-image: url('asteroid1.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    width: 80px;
+    height: 80px;
+    animation: rotateAsteroid 6s linear infinite;
+}
+
+.target-asteroid-2 {
+    background-image: url('asteroid2.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    width: 80px;
+    height: 80px;
+    animation: rotateAsteroid 6s linear infinite;
+}
+
+.target-asteroid-3 {
+    background-image: url('asteroid3.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    width: 80px;
+    height: 80px;
+    animation: rotateAsteroid 6s linear infinite;
+}
+
+.target-asteroid-4 {
+    background-image: url('asteroid4.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    width: 80px;
+    height: 80px;
+    animation: rotateAsteroid 6s linear infinite;
+}
+
+.target-asteroid-5 {
+    background-image: url('asteroid5.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    width: 80px;
+    height: 80px;
+    animation: rotateAsteroid 6s linear infinite;
+}
+
+.target-asteroid-6 {
+    background-image: url('asteroid6.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    width: 80px;
+    height: 80px;
+    animation: rotateAsteroid 6s linear infinite;
+}
+
+@keyframes rotateAsteroid {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
