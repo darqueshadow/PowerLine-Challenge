@@ -315,14 +315,10 @@ function init() {
         document.removeEventListener('keydown', dismissTitleScreen);
         DOM.startOverlay.removeEventListener('click', dismissTitleScreen);
 
-        // If player already logged in (returning from game over), skip CAT login
-        if (player.name) {
-            showMainMenu();
-            return;
-        }
-        // Show CAT login terminal
-        DOM.startOverlay.classList.add('hidden');
-        showCATLogin();
+        // CAT login (dispatcher info) removed for now — go straight to the main menu.
+        // Default the dispatcher identity so scoring/leaderboard still work.
+        if (!player.name) player.name = 'DISPATCHER';
+        showMainMenu();
     }
 
     // Expose dismissTitleScreen so the boot-level onEnded callback can reach it
@@ -5623,6 +5619,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Boot sequence uses its own full-screen canvas overlay
     const bootOverlay = document.getElementById('boot-overlay');
     const canvas = document.getElementById('boot-canvas');
+    const powerSwitch = document.getElementById('power-switch');
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -5693,6 +5690,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let corruptFrame = 0;
     let dataReady = false;
     let bootDone = false;
+    let crtFlicker = false;   // subtle CRT flicker while the boot text loads
 
     // ── Gesture-First Architecture ──
     // Browsers block audio autoplay without a user gesture. We collect the gesture
@@ -5700,97 +5698,129 @@ document.addEventListener('DOMContentLoaded', () => {
     // session. When corruption ends, title screen + music fire simultaneously.
     let audioGestureCollected = false;
 
+    // The load screen's opening lines — shown "paused" during warm-up, then the
+    // rest of BOOT_LINES prints on top of them.
+    const HEADER_LINES = [
+        BOOT_LINES[0],  // *** NIAGARA DEFENSE SYSTEM V2.0 ***
+        BOOT_LINES[1],  // (blank)
+        BOOT_LINES[2],  // 64K RAM SYSTEM  38911 BASIC BYTES FREE
+        BOOT_LINES[3],  // (blank)
+    ];
+
+    // Pre-power-on: the screen is black and only the POWER switch is shown.
     function showInitPrompt() {
-        // Show PET header lines + blinking "PRESS ENTER TO LOAD" prompt
-        const HEADER_LINES = [
-            BOOT_LINES[0],  // *** NIAGARA DEFENSE SYSTEM V2.0 ***
-            BOOT_LINES[1],  // (blank)
-            BOOT_LINES[2],  // 64K RAM SYSTEM  38911 BASIC BYTES FREE
-            BOOT_LINES[3],  // (blank)
-        ];
-        const PROMPT_TEXT = 'PRESS ENTER TO LOAD';
-        let typedChars = 0;
-        let typingDone = false;
-        let blinkOn = true;
-        let blinkInterval = null;
-
-        function drawPrompt() {
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = `bold ${FONT_SIZE}px Consolas, "Courier New", monospace`;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-
-            // Draw header lines
-            for (let i = 0; i < HEADER_LINES.length; i++) {
-                ctx.fillStyle = GREEN;
-                ctx.fillText(HEADER_LINES[i], LEFT_PAD, START_Y + i * LINE_HEIGHT);
-            }
-
-            // Static "READY." label
-            ctx.fillStyle = GREEN;
-            ctx.fillText('READY.', LEFT_PAD, START_Y + HEADER_LINES.length * LINE_HEIGHT);
-
-            // Typed-out prompt text + cursor (flashes after typing completes)
-            const promptY = START_Y + (HEADER_LINES.length + 1) * LINE_HEIGHT;
-            const visibleText = PROMPT_TEXT.substring(0, typedChars);
-            const showLine = typingDone ? blinkOn : true;
-            if (showLine) {
-                if (visibleText) {
-                    ctx.fillStyle = GREEN;
-                    ctx.fillText(visibleText, LEFT_PAD, promptY);
-                }
-                const cursorX = LEFT_PAD + ctx.measureText(visibleText).width + 2;
-                ctx.fillStyle = GREEN;
-                ctx.fillRect(cursorX, promptY, FONT_SIZE * 0.6, FONT_SIZE);
-            }
-
-            // CRT scanlines
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
-            for (let sy = 0; sy < canvas.height; sy += 3) {
-                ctx.fillRect(0, sy, canvas.width, 1);
-            }
-        }
-
-        // Type out the prompt one character at a time
-        const typeInterval = setInterval(() => {
-            if (typedChars < PROMPT_TEXT.length) {
-                typedChars++;
-                drawPrompt();
-            } else {
-                clearInterval(typeInterval);
-                typingDone = true;
-                blinkInterval = setInterval(() => { blinkOn = !blinkOn; drawPrompt(); }, 500);
-            }
-        }, 60);
-        drawPrompt();
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        powerSwitch.classList.remove('hidden');
 
         function onInitGesture(e) {
             if (audioGestureCollected) return;
             // Don't consume modifier combos (Ctrl+Shift+B for dev mode, etc.)
             if (e && e.type === 'keydown' && (e.ctrlKey || e.metaKey || e.altKey)) return;
             audioGestureCollected = true;
-            clearInterval(typeInterval);
-            clearInterval(blinkInterval);
             document.removeEventListener('keydown', onInitGesture);
             document.removeEventListener('click', onInitGesture);
             document.removeEventListener('touchstart', onInitGesture);
 
-            // Unlock AudioContext — persists for the page lifetime
+            // Flip the switch off-screen and unlock AudioContext for the session.
+            powerSwitch.classList.add('hidden');
             AudioManager.init();
 
-            // Pre-populate header lines so boot continues from where we left off
-            bootLines = HEADER_LINES.slice();
-            bootIndex = HEADER_LINES.length;
-
-            // Start boot sequence — corruption end will reveal title + music
-            bootRenderLoop();
-            setTimeout(typeNextLine, 300);
+            // The tube slowly flickers to light (warm-up) revealing the paused load
+            // screen; once it's fully on, the load runs with the screen flickering.
+            powerOnWarmup(() => {
+                crtFlicker = true;
+                bootRenderLoop();
+                typeNextLine();
+            });
         }
 
         document.addEventListener('keydown', onInitGesture);
         document.addEventListener('click', onInitGesture);
         document.addEventListener('touchstart', onInitGesture);
+    }
+
+    // ── CRT warm-up / flicker helpers ──
+
+    // Random static "fuzz" specks scattered across the screen (0 = none).
+    function drawStatic(amount) {
+        if (amount <= 0) return;
+        const count = Math.floor(amount * canvas.width * canvas.height / 1000);
+        for (let i = 0; i < count; i++) {
+            const g = 40 + Math.floor(Math.random() * 180);
+            ctx.fillStyle = `rgba(${g},${g},${g},${(Math.random() * amount).toFixed(3)})`;
+            ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height,
+                         Math.random() < 0.85 ? 1 : 2, 1);
+        }
+    }
+
+    // Darken the whole screen to simulate reduced brightness (1 = full brightness).
+    function applyBrightness(level) {
+        if (level >= 1) return;
+        ctx.fillStyle = `rgba(0,0,0,${Math.max(0, 1 - level).toFixed(3)})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Subtle ongoing CRT flicker used while the boot text is loading.
+    function applyCrtFlicker() {
+        const r = Math.random();
+        let dip = 0;
+        if (r < 0.06) dip = 0.22 + Math.random() * 0.38;   // stronger, more frequent hard flicker
+        else if (r < 0.45) dip = Math.random() * 0.16;      // frequent brightness shimmer
+        if (dip > 0) applyBrightness(1 - dip);
+        drawStatic(0.07);
+    }
+
+    // Old-CRT power-on: brightness slowly blooms in with heavy flicker + static,
+    // revealing the paused load screen, then holds a beat before onDone() runs it.
+    function powerOnWarmup(onDone) {
+        // Load screen is present but paused — its opening lines sit frozen while the
+        // tube warms up. Pre-populate them so the type-out continues from here.
+        bootLines = HEADER_LINES.slice();
+        bootIndex = HEADER_LINES.length;
+
+        const DURATION = 3500;   // slow, moody 60s-style tube warm-up
+        let startT = null;
+
+        function drawFrozen() {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = `bold ${FONT_SIZE}px Consolas, "Courier New", monospace`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i < bootLines.length; i++) {
+                ctx.fillStyle = (i === bootLines.length - 1) ? GREEN : DIM_GREEN;
+                ctx.fillText(bootLines[i], LEFT_PAD, START_Y + i * LINE_HEIGHT);
+            }
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+            for (let sy = 0; sy < canvas.height; sy += 3) ctx.fillRect(0, sy, canvas.width, 1);
+        }
+
+        function tick(now) {
+            if (startT === null) startT = now;
+            const t = Math.min(1, (now - startT) / DURATION);
+
+            drawFrozen();
+
+            // A faint glow appears fast, the tube struggles with hard flickers and
+            // stutter-blackouts, then the picture blooms up late — a moody slow strike.
+            const glow = 0.08 * Math.min(1, t * 6);                // faint early glow
+            let bright = glow + Math.pow(t, 2.4);                   // lingering, late bloom
+            bright += (Math.random() - 0.5) * (1 - t) * 1.2;        // heavy flicker, fades out
+            if (t < 0.7 && Math.random() < 0.14) bright += 0.55;    // tube "strike" flashes
+            if (t < 0.5 && Math.random() < 0.08) bright -= 0.45;    // stutter-blackouts
+            applyBrightness(Math.max(0, Math.min(1, bright)));
+
+            // Static fuzz — dense at first, thinning as the screen settles.
+            drawStatic((1 - t) * 0.9 + 0.05);
+
+            if (t < 1) {
+                requestAnimationFrame(tick);
+            } else {
+                setTimeout(onDone, 500);   // hold a beat, "waiting", then load
+            }
+        }
+        requestAnimationFrame(tick);
     }
 
     // Seamless reveal — called at end of corruption. No prompts, no delay.
@@ -5837,6 +5867,9 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let sy = 0; sy < canvas.height; sy += 3) {
             ctx.fillRect(0, sy, canvas.width, 1);
         }
+
+        // CRT instability — screen flickers while the characters load
+        if (crtFlicker) applyCrtFlicker();
     }
 
     // Persistent chaos elements — accumulate over frames

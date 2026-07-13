@@ -1323,6 +1323,43 @@ body { background: var(--color-bg); color: var(--color-text); font-family: var(-
     height: 100%;
 }
 
+/* === Power switch (pre-power-on) === */
+/* Placeholder look until the physical-switch image is supplied. To use the image,
+   set `background-image` here, give it a width/height, and hide #power-switch-label. */
+#power-switch {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    background: transparent;
+    border: none;
+    padding: 24px;
+    cursor: pointer;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+#power-switch.hidden { display: none; }
+#power-switch-label {
+    display: inline-block;
+    font-family: Consolas, "Courier New", monospace;
+    font-weight: bold;
+    letter-spacing: 0.35em;
+    font-size: clamp(18px, 3vw, 34px);
+    color: #33ff33;
+    padding: 14px 28px;
+    border: 2px solid #33ff33;
+    border-radius: 6px;
+    text-shadow: 0 0 8px rgba(51, 255, 51, 0.8), 0 0 18px rgba(51, 255, 51, 0.45);
+    box-shadow: 0 0 10px rgba(51, 255, 51, 0.4), inset 0 0 14px rgba(51, 255, 51, 0.15);
+    animation: power-switch-pulse 1.6s ease-in-out infinite;
+}
+@keyframes power-switch-pulse {
+    0%, 100% { opacity: 0.55; box-shadow: 0 0 6px rgba(51, 255, 51, 0.3), inset 0 0 8px rgba(51, 255, 51, 0.1); }
+    50%      { opacity: 1;    box-shadow: 0 0 16px rgba(51, 255, 51, 0.6), inset 0 0 18px rgba(51, 255, 51, 0.25); }
+}
+
 /* === Dev Mode Password Prompt === */
 #dev-mode-prompt {
     position: fixed;

@@ -11,7 +11,14 @@
     <script>document.getElementById('main-css').href = 'style.css?t=' + Date.now();</script>
 </head>
 <body>
-    <div id="boot-overlay"><canvas id="boot-canvas"></canvas></div>
+    <div id="boot-overlay">
+        <canvas id="boot-canvas"></canvas>
+        <!-- Power switch. Placeholder text for now; drop the physical-switch image in
+             later by setting a background-image on #power-switch (and hiding the label). -->
+        <button id="power-switch" class="hidden" type="button" aria-label="Power on">
+            <span id="power-switch-label">POWER ON</span>
+        </button>
+    </div>
     <div id="game-container">
         <div id="holodeck-grid"></div>
 
@@ -158,7 +165,7 @@
                         <button id="settings-btn">SETTINGS</button>
                         <button id="highscores-btn">HIGH SCORES</button>
                     </div>
-                    <button id="change-player-btn">CHANGE DISPATCHER</button>
+                    <button id="change-player-btn" class="hidden">CHANGE DISPATCHER</button>
                 </div>
 
                 <div id="holodeck-menu-buttons" class="menu-buttons hidden">
