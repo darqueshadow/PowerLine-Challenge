@@ -42,6 +42,57 @@ Leg loop, impulse movement, command validation wired to play, laps/timer logic, 
 
 ## Changelog — gameplay refinements
 
+**v0.7.0 (2026-07-12) — Pit lane at start/finish, course/position fixes, map-as-
+challenge, speed/WPM model.** All directly requested by Andrew.
+- **Pit lane now branches around the START/FINISH base** (Linwell on Niagara Loop),
+  not the nearest base to Fleet. (`renderMap` junction = `course.startId`.)
+- **Niagara Loop reordered to 02 01 03 00 16** (order from Thorold = 03 00 16 02);
+  swapped NOTL/04 out for Niagara Falls/00. **St Paul (72116) placeholder coords
+  bumped** (lat 43.111→43.15, lon −79.11→−79.085) so it renders ABOVE Niagara Falls
+  (00), not to its left. (courses.csv, Bases_Coordinates_PLACEHOLDER.csv, data.js
+  fallback — coord marked APPROX-ADJUSTED.)
+- **Challenge box REMOVED — the minimap is now the challenge.** The base you're at /
+  just left glows amber (`from`), the base you're driving to glows cyan (`next`,
+  pulsing), other bases are dim green; a `#mapTarget` caption reads "▸ <name> · <code>"
+  so you know what to type. The unit marker is now white (was blue, clashed with the
+  cyan next). Minimap enlarged (44%→52%). The old centered command box stays; a slim
+  `#challengePrompt` status line now carries only transient cues (shift, BSEH hint).
+  The "Active" strip shows Unit + AP/ENP/BSE.
+- **Speed / WPM model (replaces the impulse model).** Gauge reads 0–50–100, driven by
+  typing WPM. Base 25; a correct command boosts (+25 at optimal WPM, scaled down for
+  slow typing), HOLDS ~1.2s, then decays gently (more allowance than before). Boosts
+  stack 25→50→75→100; past 100 the value OVERFLOWS (buffer to 150) — the bar pins at
+  100 but the hold extends (1.2→2.7s) so you stay at top speed longer. Config in
+  `config.js SPEED`; WPM measured from keystroke timing on the command input; 0-50-100
+  bar + WPM readout in the side gauges. Verified: 25→50→75→100→125(1.95s)→150(2.70s).
+  ⚠ FIRST PASS — numbers are made up (Andrew's own examples were too) and his spec cut
+  off at "…if I get enough"; the overflow payoff is inferred. Needs hands-on tuning.
+
+**v0.6.0 (2026-07-12) — Full-course multi-leg race + laps (Slice 2), game-screen
+layout rework, keyboard menus.** All three directly requested by Andrew.
+- **THE BIG FIX — the race now drives the WHOLE course.** Before, the build was a
+  single-leg slice: it drove `base[0] → base[1]` and then declared the race
+  finished — so on Niagara Loop (start 02) reaching 01 ended it. Now `startRace()`
+  builds a per-lap `stops` list (a LOOP re-appends the start so the last leg drives
+  back to Start/Finish), and `legComplete()` advances leg → leg, then lap → lap,
+  only calling `raceFinish()` after the final lap → Results screen. HUD shows real
+  `Lap L/T` + `Leg n/N` and a cumulative race clock. Verified: 15 legs across 3
+  laps (02→01→03→16→04→02 ×3) then finish. (`script.js`.)
+- **Niagara Loop course added** (`courses.csv` had only Niagara Central 5): 
+  `niagara-loop, loop, 3 laps, 72102|72101|72103|72116|72104` (02 start, then
+  01 03 16 04). Set as `DEFAULT_COURSE_ID`; also in the data.js embedded fallback.
+- **Game-screen layout reworked (Andrew's #1).** Challenge line is now a centered
+  callout in the **top third** (`top:33%`) over the road; the **command box is
+  centered and much bigger** (24px, min 560px). The old bottom bar is gone (grid is
+  now `44px 1fr`). Both live in a `.play-overlay` on the road view. While the Shift
+  Change board is open, a `.shift-active` class drops the command box to the bottom
+  so the board (which fills the middle) doesn't cover it — the input stays live.
+- **Keyboard-selectable menus (Andrew's #2).** Every screen auto-focuses its
+  `data-primary` button on show; arrow keys move between buttons, Enter/Space
+  activates (incl. PRESS START and the Pause overlay). Never hijacks a text field /
+  `<select>` or the in-race command input. Audio now also unlocks on first keydown.
+- Cache-bust: all `?v=` bumped 0.4.0 → 0.6.0; config version + visible stamps updated.
+
 **v0.5.0 (2026-07-12) — Base-code rule + "Home Start/Stop" (BSEH) + pit lane.**
 Both directly requested by Andrew.
 - **Base code (base number) required only for AP and BSE.** `ENP` is now a plain

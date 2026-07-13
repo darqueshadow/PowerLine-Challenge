@@ -33,8 +33,8 @@
     holodeckPassword: 'GREEN FLAG',
     holodeckTimeout: 15000,
 
-    version: '0.5.0',
-    versionLabel: 'PHASE 1 · HOME BSEH + PIT LANE'
+    version: '0.7.1',
+    versionLabel: 'PHASE 1 · MAP-CHALLENGE + SPEED/WPM'
   };
 
   /* ---- TUNABLES — config-driven (handoff §6) -------------------------------
@@ -56,6 +56,28 @@
     fuelBurnRate: 0.0
   };
 
+  /* ---- SPEED / WPM MODEL (Andrew, 2026-07-12) ------------------------------
+   * The gauge reads 0–50–100 and is DRIVEN by typing speed (WPM of the command
+   * you're entering). A correct command "boosts" the gauge; it HOLDS briefly, then
+   * slowly runs down — with more allowance between commands than the old impulse
+   * model. Boosts stack toward 100. At/above 100 the hold lasts longer and the
+   * value can OVERFLOW past 100 (a buffer) so you stay at top speed longer.
+   * These numbers are a FIRST PASS — meant to be tuned by feel.
+   * ⚠ Andrew's spec cut off ("…if I get enough") — the overflow-buffer payoff is
+   * inferred; confirm/adjust. */
+  const SPEED = {
+    base: 25,            // idle floor — the car never fully stops
+    max: 100,            // effective/display cap that drives motion
+    overflowMax: 150,    // accumulator ceiling (the buffer lives between 100 and here)
+    boost: 25,           // gauge points added by an optimally-typed correct command
+    optimalWpm: 45,      // type at/above this WPM to earn the full boost
+    minBoostFactor: 0.4, // boost multiplier when typing very slowly
+    holdBase: 1.2,       // seconds the gauge holds after a boost before it decays
+    holdOverflowPer: 0.03, // extra hold seconds per accumulator point above 100
+    decay: 12,           // gauge points/sec lost once the hold expires (gentle)
+    legRate: 0.6         // pos-units/sec at full (100) speed — sets how long a leg takes
+  };
+
   /* ---- CAR CONFIG — [PHASE 1+ — GATED] placeholder stat blocks (handoff §6)
    * "speed/handling/tire-durability/fuel-capacity stats per car type." */
   const CAR_TYPES = [
@@ -75,7 +97,7 @@
       laps: 3,
       carType: 'balanced',
       timeOfDay: 'day',         // 'day' | 'night' (lighting only)
-      startTime: '0800',        // shift-change schedule slot to begin at; 'NONE' = no Shift Changes
+      startTime: 'NONE',        // shift-change schedule slot to begin at; 'NONE' = no Shift Changes (default while in dev)
       raceType: 'computer',     // 'computer' (AI/ghost) | 'players' (DEFERRED)
       pit: 'on',                // 'on' | 'off' — 'off' disables the Phase 3 layer
       difficulty: 'med',        // 'easy' | 'med' | 'hard'
@@ -88,7 +110,7 @@
       { key: 'laps',        label: 'Laps',         type: 'int', min: 1, max: 20 },
       { key: 'carType',     label: 'Car',          values: CAR_TYPES.map(c => c.id) },
       { key: 'timeOfDay',   label: 'Time of Day',  values: ['day', 'night'] },
-      { key: 'startTime',   label: 'Shift Start',  values: ['NONE', '0530', '0600', '0630', '0700', '0730', '0800', '0900', '1000', '1100', '1200', '1400', '1730', '1800', '1830', '1900', '1930'] },
+      { key: 'startTime',   label: 'Shift Change', dev: true, values: ['NONE', '0530', '0600', '0630', '0700', '0730', '0800', '0900', '1000', '1100', '1200', '1400', '1730', '1800', '1830', '1900', '1930'] },
       { key: 'raceType',    label: 'Race Type',    values: ['computer', 'players'] /* players = DEFERRED */ },
       { key: 'pit',         label: 'Pit / No-Pit', values: ['on', 'off'] },
       { key: 'difficulty',  label: 'Difficulty',   values: ['easy', 'med', 'hard'] },
@@ -104,7 +126,7 @@
 
   /* Course rules. A course is a short ordered base list; only its bases render. */
   const COURSE_MAX_BASES = 5;      // hard cap per Andrew (2026-06-20)
-  const DEFAULT_COURSE_ID = 'central-5';
+  const DEFAULT_COURSE_ID = 'niagara-loop';
 
   /* ---- Region map image hook (handoff §6) ---------------------------------
    * When the real (Gemini) map art arrives, drop it in here. Set `image` to its
@@ -191,6 +213,7 @@
   global.PITSTOP_CONFIG = {
     CONFIG: CONFIG,
     TUNABLES: TUNABLES,
+    SPEED: SPEED,
     CAR_TYPES: CAR_TYPES,
     RACE_OPTIONS: RACE_OPTIONS,
     PIT_BASE_ID: PIT_BASE_ID,

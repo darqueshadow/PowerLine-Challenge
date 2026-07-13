@@ -36,12 +36,21 @@
 
   // Phase 1 leg-loop state (route-traversal impulse model, authorized 2026-06-20).
   const T = CFG.TUNABLES || {};
+  const SP = CFG.SPEED || {};                      // speed / WPM gauge model
+  // WPM tracker for the command currently being typed (drives the boost size).
+  const typing = { start: 0, lastWpm: 0 };
   const SHIFT = window.PITSTOP_SHIFT || null;      // Shift Change engine (core/shiftchange.js)
   const SC = CFG.SHIFT_CHANGE || {};
   let raceCoords = null;   // last gameplay-map coord map (set by renderMap('regionMap'))
   const race = { on: false, paused: false, leg: null, pos: 0, vel: 0,
-                 last: 0, t0: 0, raf: 0, unitId: null, fromId: null, toId: null,
-                 hitBases: {},   // base ids reached this race (light up on the minimap)
+                 last: 0, t0: 0, startTs: 0, raf: 0, unitId: null, fromId: null, toId: null,
+                 // Multi-leg route traversal (Slice 2): drive every base of the course
+                 // for `laps` laps, finishing at Start/Finish. `stops` = the ordered
+                 // base ids of ONE lap (loops re-append the start); `legIndex` = which
+                 // segment of that list we're driving; `lap` = 1..laps.
+                 stops: [], legIndex: 0, lap: 1, laps: 1, shiftFired: false,
+                 speed: 0, hold: 0, wpm: 0,   // speed/WPM gauge (base..overflowMax); hold = decay-freeze secs
+                 hitBases: {},   // base ids reached this lap (light up on the minimap)
                  // Shift Change overlay state (design note §2/§3). armed = a change is
                  // due this leg; open = the box is up; cleared = it's been resolved.
                  shift: { armed: false, slot: null, box: null, open: false, cleared: false } };
@@ -57,7 +66,21 @@
     state.currentScreen = id;
     if (id !== 'gameScreen') stopRace();
     if (id === 'gridScreen') renderMap('gridMap');
-    if (id === 'gameScreen') { renderRoad(); renderMap('regionMap'); startLeg(); }
+    if (id === 'gameScreen') { renderRoad(); renderMap('regionMap'); startRace(); }
+    focusPrimary(id);
+  }
+
+  // Keyboard support: land focus on the screen's primary button so Enter/Space
+  // acts immediately and arrow keys have a starting point. The game screen focuses
+  // the command input instead (handled in startLeg).
+  function focusPrimary(id) {
+    if (id === 'gameScreen') return;
+    const screen = document.getElementById(id);
+    if (!screen) return;
+    const primary = screen.querySelector('.btn[data-primary]') ||
+                    screen.querySelector('.btn:not(.danger):not(:disabled)') ||
+                    screen.querySelector('.btn');
+    if (primary) setTimeout(function () { primary.focus(); }, 40);
   }
 
   /* ---- Boot loader (animated; asset-load progress hook is stubbed) -------- */
@@ -122,7 +145,7 @@
     grid.innerHTML = '';
     CFG.RACE_OPTIONS.schema.forEach(function (opt) {
       const row = document.createElement('div');
-      row.className = 'opt-row';
+      row.className = 'opt-row' + (opt.dev ? ' opt-dev' : '');   // dev-flagged options render purple
       const label = document.createElement('label');
       label.textContent = opt.label;
       row.appendChild(label);
@@ -263,11 +286,11 @@
     // + merge points sit on the route segments either side of the junction (the
     // nearest on-route base to the pit); the lane's midpoint passes through
     // Fleet so the ⛽ box sits right on the lane.
-    let junction = null, jbest = Infinity;
+    let junction = null;
     if (pit && !pitOnCourse && C[pitId]) {
-      bases.forEach(function (b) {
-        if (b.distanceToPit != null && b.distanceToPit < jbest) { jbest = b.distanceToPit; junction = b; }
-      });
+      // The pit lane branches off around the START/FINISH base (Andrew's call) —
+      // the pit sits by the start line, splitting off and rejoining there.
+      junction = D.baseById[course.startId] || bases[0];
       if (junction && C[junction.id]) {
         const J = C[junction.id], F = C[pitId];
         const order = course.baseIds, n = order.length, idx = order.indexOf(junction.id);
@@ -301,20 +324,26 @@
     }
 
     // nodes: start = checkered flag; other stops numbered in drive order. On the
-    // gameplay minimap (compact) we drop labels/numbers and light up hit dots.
+    // gameplay minimap (compact) the MAP IS THE CHALLENGE: the base we're at / just
+    // left glows one colour (from), the base we're driving to glows another (next),
+    // and the rest share a dim colour. Full grid map keeps labels + numbers.
     const compact = (svgId === 'regionMap');
+    const liveFrom = compact && race.on ? race.fromId : null;
+    const liveTo   = compact && race.on ? race.toId   : null;
     let stop = 0;
     bases.forEach(function (b) {
       const p = C[b.id]; if (!p) return;
       const isStart = b.id === course.startId;
       const isPit = b.id === pitId;
-      const isHit = compact && race.hitBases && race.hitBases[b.id];
+      const live = (b.id === liveTo) ? 'next' : (b.id === liveFrom) ? 'from'
+                 : (compact && race.hitBases && race.hitBases[b.id]) ? 'hit' : '';
+      const big = (live === 'next' || live === 'from');
       if (isStart) {
-        html += '<circle class="sf-ring" cx="' + p.x + '" cy="' + p.y + '" r="' + ringR + '" style="stroke-width:' + stroke + '"/>';
+        html += '<circle class="sf-ring' + (live ? ' ' + live : '') + '" cx="' + p.x + '" cy="' + p.y + '" r="' + (big ? ringR * 1.15 : ringR) + '" style="stroke-width:' + stroke + '"/>';
         html += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + sfR + '" fill="url(#' + pid + ')" stroke="#f4fff0" stroke-width="' + (stroke * 0.6) + '"/>';
       } else {
         stop += 1;
-        html += '<circle class="map-node' + (isPit ? ' pit' : '') + (isHit ? ' hit' : '') + '" cx="' + p.x + '" cy="' + p.y + '" r="' + nodeR + '" style="stroke-width:' + (stroke * 0.5) + '"/>';
+        html += '<circle class="map-node' + (isPit ? ' pit' : '') + (live ? ' ' + live : '') + '" cx="' + p.x + '" cy="' + p.y + '" r="' + (big ? nodeR * 1.3 : nodeR) + '" style="stroke-width:' + (stroke * 0.5) + '"/>';
         if (!compact) html += '<text class="node-num" x="' + p.x + '" y="' + (p.y + font * 0.35) + '" text-anchor="middle" style="font-size:' + font + 'px">' + stop + '</text>';
       }
       if (!compact) {
@@ -411,26 +440,70 @@
     return u.indexOf('2101') >= 0 ? '2101' : (u[0] || '2101');
   }
 
-  function startLeg() {
+  function nowMs() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+  // WPM for the command just submitted: (chars/5) / minutes since the first keystroke.
+  function computeTypingWpm(text) {
+    const chars = String(text || '').trim().length;
+    if (!chars || !typing.start) return SP.optimalWpm || 45;   // no timing captured → assume optimal
+    const mins = Math.max(0.0001, (nowMs() - typing.start) / 60000);
+    return (chars / 5) / mins;
+  }
+
+  // One lap = the course's bases in drive order; a LOOP re-appends the start so
+  // the last leg drives back to Start/Finish. Point-to-point ends at the last base.
+  function buildStops(course) {
+    const ids = (course.baseIds || []).slice();
+    if (course.type === 'loop' && ids.length > 1) ids.push(ids[0]);
+    return ids;
+  }
+
+  // Set up a full race: every base, every lap, finishing at Start/Finish.
+  function startRace() {
     const course = activeCourse();
     if (!course || !DATAMOD.buildLeg || course.baseIds.length < 2) return;
     cancelAnimationFrame(race.raf);
     race.unitId = pickUnit();
-    race.fromId = course.baseIds[0];
-    race.toId = course.baseIds[1];
+    race.stops = buildStops(course);
+    // Laps: the player's Race Options control wins; fall back to the course's Laps.
+    // Point-to-point is a single pass.
+    const optLaps = Number(state.raceOptions.laps) || 0;
+    race.laps = course.type === 'point-to-point' ? 1 : Math.max(1, optLaps || course.laps || 1);
+    race.lap = 1;
+    race.legIndex = 0;
+    race.startTs = 0;
+    race.shiftFired = false;
+    race.hitBases = {};
+    race.speed = SP.base != null ? SP.base : 25;   // gauge starts at idle base
+    race.hold = 0; race.wpm = 0;
+    startLeg();
+  }
+
+  // Drive ONE leg: stops[legIndex] -> stops[legIndex+1]. Called by startRace and
+  // by legComplete as it advances through the route.
+  function startLeg() {
+    const stops = race.stops;
+    if (!stops || stops.length < 2 || race.legIndex >= stops.length - 1) return;
+    cancelAnimationFrame(race.raf);
+    race.fromId = stops[race.legIndex];
+    race.toId = stops[race.legIndex + 1];
     race.leg = DATAMOD.buildLeg(race.unitId, race.fromId, race.toId);
     if (!race.leg) return;
-    race.pos = 0; race.vel = 0; race.last = 0; race.t0 = 0; race.on = true; race.paused = false;
+    race.pos = 0; race.last = 0; race.on = true; race.paused = false;   // speed carries between legs
     road.phase = 0;
-    race.hitBases = {}; race.hitBases[race.fromId] = true;   // start counts as hit
+    race.hitBases[race.fromId] = true;                      // start of this leg counts as hit
     const legLabel = document.getElementById('roadLegLabel');
     if (legLabel) legLabel.textContent = (race.leg.toName || race.toId);
     renderRoad();
-    renderMap('regionMap');                                 // light up the start dot
+    renderMap('regionMap');                                 // light up the current dot
     const input = document.getElementById('commandInput');
     if (input) { input.disabled = false; input.value = ''; setTimeout(function () { input.focus(); }, 60); }
     resetShift();
-    armShift();
+    // Arm the Shift Change ONCE, on the opening leg only, so it doesn't re-fire
+    // every leg of a multi-leg race.
+    if (!race.shiftFired && race.lap === 1 && race.legIndex === 0) {
+      armShift();
+      if (race.shift.armed) race.shiftFired = true;
+    }
     updateRaceHUD(0);
     race.raf = requestAnimationFrame(loop);
   }
@@ -441,11 +514,15 @@
 
   function loop(ts) {
     if (!race.on || race.paused) return;
-    if (!race.last) { race.last = ts; race.t0 = ts; }
+    if (!race.last) race.last = ts;
+    if (!race.startTs) race.startTs = ts;               // race clock starts once, spans all legs/laps
     let dt = (ts - race.last) / 1000; race.last = ts;
     if (dt > 0.1) dt = 0.1;                                   // clamp tab-switch jumps
-    race.vel = Math.max(0, race.vel - (T.dragRate || 0.3) * dt);
-    const v = Math.max(race.vel, T.idleCreep || 0.05);        // anti-stall creep
+    // Speed gauge: hold after a boost, then decay gently toward the idle base.
+    if (race.hold > 0) race.hold = Math.max(0, race.hold - dt);
+    else race.speed = Math.max(SP.base || 25, race.speed - (SP.decay || 12) * dt);
+    const eff = Math.min(SP.max || 100, race.speed);          // motion/display cap at 100
+    const v = (eff / (SP.max || 100)) * (SP.legRate || 0.6);  // pos-units/sec
     race.pos = Math.min(1, race.pos + v * dt);
     updateRoad(dt, v);
     updateUnitMarker();
@@ -469,28 +546,47 @@
       const el = document.getElementById(pair[1]);
       if (el) el.classList.toggle('live', !!beat && beat.code === pair[0]);
     });
+    const unitEl = document.getElementById('hudUnit');
+    if (unitEl) unitEl.textContent = race.unitId || '—';
+
+    // Map-as-challenge caption: the NEXT base — its name + the full code to type.
+    const tgt = document.getElementById('mapTarget');
+    if (tgt) {
+      if (race.on && race.toId) {
+        const to = DATAMOD.DATA && DATAMOD.DATA.baseById[race.toId];
+        tgt.textContent = '▸ ' + (to ? to.name : race.toId) + '  ·  ' + race.toId;
+      } else tgt.textContent = '';
+    }
+
+    // Slim status line — transient cues only (the map + Active strip carry the command).
     const cp = document.getElementById('challengePrompt');
     if (cp && race.on) {
-      if (race.shift.open) {
-        cp.textContent = '⇄ SHIFT CHANGE — clear every unit in the box, then BSE';
-      } else if (beat && beat.code === 'BSE' && race.shift.armed && !race.shift.cleared) {
-        cp.textContent = 'Shift Change pending  →  type:  LA ' + race.unitId;
-      } else if (!beat) cp.textContent = 'Arriving…';
-      else if (race.pos >= beat.gate) {
-        // Show the beat's exact form (ENP carries no base code); on arrival,
-        // also surface the "Home Start/Stop" shortcut — BSEH needs no base code.
-        let line = beat.challenge + '   →  type:  ' + beat.command;
-        if (beat.homeCode) line += '   ·  or  ' + beat.homeCode + ' ' + race.unitId + '  (Home Start/Stop — no base code)';
-        cp.textContent = line;
-      }
-      else cp.textContent = '… approaching ' + beat.code + ' gate';
+      if (race.shift.open) cp.textContent = '⇄ SHIFT CHANGE — clear the board, then BSE';
+      else if (beat && beat.code === 'BSE' && race.shift.armed && !race.shift.cleared) cp.textContent = 'Shift Change pending → type LA ' + race.unitId;
+      else if (beat && beat.code === 'BSE' && race.pos >= beat.gate) cp.textContent = 'Home base? type BSEH ' + race.unitId + ' (no base code)';
+      else cp.textContent = '';
     }
+
+    // Speed gauge (0–50–100), driven by WPM. Overflow past 100 glows.
+    const eff = Math.min(SP.max || 100, race.speed);
     const sp = document.getElementById('hudSpeed');
-    if (sp) sp.textContent = Math.round(race.vel * (T.speedDisplayScale || 120));
-    const lap = document.getElementById('hudLap'); if (lap) lap.textContent = 'Leg 1';
-    if (ts && race.t0) {
+    if (sp) sp.textContent = Math.round(eff);
+    const fill = document.getElementById('speedFill');
+    if (fill) {
+      fill.style.width = Math.max(0, Math.min(100, eff)) + '%';
+      if (fill.parentNode) fill.parentNode.classList.toggle('overflow', race.speed > (SP.max || 100) + 0.5);
+    }
+    const wEl = document.getElementById('hudWpm');
+    if (wEl) wEl.textContent = (race.wpm ? race.wpm : '—') + ' wpm';
+
+    const lap = document.getElementById('hudLap');
+    if (lap) lap.textContent = race.lap + '/' + race.laps;
+    const legsPerLap = Math.max(1, (race.stops.length || 2) - 1);
+    const pl = document.getElementById('hudPlace');
+    if (pl) pl.textContent = Math.min(race.legIndex + 1, legsPerLap) + '/' + legsPerLap;
+    if (ts && race.startTs) {
       const tEl = document.getElementById('hudTime');
-      if (tEl) tEl.textContent = ((ts - race.t0) / 1000).toFixed(1) + 's';
+      if (tEl) tEl.textContent = ((ts - race.startTs) / 1000).toFixed(1) + 's';
     }
   }
 
@@ -501,7 +597,7 @@
     setTimeout(function () { box.classList.remove(cls); }, 320);
   }
 
-  function handleRaceCommand(value) {
+  function handleRaceCommand(value, wpm) {
     const input = document.getElementById('commandInput');
     // While the Shift Change box is open, ALL input goes to it (checked before the
     // race-on guard so the debug opener is usable outside a live leg).
@@ -524,26 +620,64 @@
     if (race.pos < beat.gate) { flashBox('early'); AUDIO.play('menu'); return; }   // no-op: too early
     if (DATAMOD.validateBeat(value, beat) === 'hit') {
       beat.done = true;
-      race.vel += (T.impulseBoost || 0.7);                                          // throttle burst
+      applySpeedBoost(wpm);                                                         // gauge jump + hold
       AUDIO.play('select'); flashBox('hit');
     } else {
-      race.vel *= (T.sputterFactor || 0.45);                                        // sputter
+      race.speed = Math.max(SP.base || 25, race.speed * (T.sputterFactor || 0.45)); // bleed speed, no stall
+      race.hold = 0;                                                                // and kill the hold
       AUDIO.play('back'); flashBox('miss');
     }
     updateRaceHUD();
   }
 
+  // A correct command boosts the gauge (scaled by how fast it was typed), then it
+  // HOLDS before decaying. Above 100 the hold lasts longer and the value overflows
+  // (a buffer) so you stay at top speed longer — the reward for chaining fast.
+  function applySpeedBoost(wpm) {
+    const opt = SP.optimalWpm || 45;
+    const minF = SP.minBoostFactor != null ? SP.minBoostFactor : 0.4;
+    const factor = wpm ? Math.max(minF, Math.min(1, wpm / opt)) : 1;   // slow typing → smaller boost
+    race.wpm = Math.round(wpm || 0);
+    race.speed = Math.min(SP.overflowMax || 150, race.speed + (SP.boost || 25) * factor);
+    const over = Math.max(0, race.speed - (SP.max || 100));
+    race.hold = (SP.holdBase || 1.2) + over * (SP.holdOverflowPer || 0.03);
+  }
+
   function legComplete() {
     race.on = false;
     cancelAnimationFrame(race.raf);
-    race.hitBases[race.toId] = true;      // light up the arrival dot on the minimap
+    race.hitBases[race.toId] = true;                     // light up the arrival dot
     renderMap('regionMap');
+    race.legIndex += 1;
+    const legsPerLap = race.stops.length - 1;
+    if (race.legIndex < legsPerLap) {                    // more legs this lap → drive on
+      AUDIO.play('select');
+      startLeg();
+      return;
+    }
+    if (race.lap < race.laps) {                          // lap done, more laps → next lap
+      race.lap += 1;
+      race.legIndex = 0;
+      race.hitBases = {};                                // fresh lap progress on the minimap
+      AUDIO.play('select');
+      startLeg();
+      showRadio('▶ LAP ' + race.lap + ' OF ' + race.laps, 'cleared');
+      return;
+    }
+    raceFinish();                                        // final lap done → the race is over
+  }
+
+  function raceFinish() {
+    race.on = false;
+    cancelAnimationFrame(race.raf);
     const input = document.getElementById('commandInput');
     if (input) input.disabled = true;
+    hideRadio();
     const cp = document.getElementById('challengePrompt');
-    if (cp) cp.innerHTML = '✓ LEG COMPLETE — ' + race.unitId + ' based at ' + (race.leg ? race.leg.toName : '') +
-      ' &nbsp;<button class="btn small" data-action="goto" data-target="endScreen">Finish ▶</button>';
+    if (cp) cp.textContent = '🏁 RACE COMPLETE — ' + race.unitId + ' finished ' +
+      race.laps + (race.laps > 1 ? ' laps' : ' lap');
     AUDIO.play('select');
+    setTimeout(function () { if (state.currentScreen === 'gameScreen') showScreen('endScreen'); }, 1800);
   }
 
   function stopRace() { race.on = false; race.paused = false; cancelAnimationFrame(race.raf); resetShift(); }
@@ -562,12 +696,20 @@
     return t.slice(0, 2) + ':' + t.slice(2) + ' · ' + String(slot.kind).toUpperCase();
   }
 
+  // Toggle the layout mode that drops the centered command box to the bottom while
+  // the Shift Change board (which fills the middle) is up.
+  function setShiftActive(on) {
+    const gw = document.querySelector('#gameScreen .game-wrap');
+    if (gw) gw.classList.toggle('shift-active', !!on);
+  }
+
   function resetShift() {
     stopShiftClock();
     race.shift.armed = false; race.shift.slot = null; race.shift.box = null;
     race.shift.open = false; race.shift.cleared = false;
     const el = document.getElementById('shiftChangeBox');
     if (el) el.classList.remove('active');
+    setShiftActive(false);
     hideRadio();
   }
 
@@ -599,6 +741,7 @@
     race.shift.open = true; race.shift.cleared = false;
     const el = document.getElementById('shiftChangeBox');
     if (el) el.classList.add('active');
+    setShiftActive(true);
     const slotEl = document.getElementById('shiftSlot');
     if (slotEl) slotEl.textContent = fmtSlot(box.slot);
     renderShiftBox();
@@ -648,6 +791,7 @@
     race.shift.cleared = !!cleared;
     const el = document.getElementById('shiftChangeBox');
     if (el) el.classList.remove('active');
+    setShiftActive(false);
     if (cleared) {
       const late = race.shift.box ? race.shift.box.lateCount : 0;
       showRadio('Shift Change cleared' + (late ? ' (' + late + ' late)' : '') + ' — BSE to finish the leg.', 'cleared');
@@ -754,6 +898,41 @@
     });
   }
 
+  /* ---- Keyboard menu navigation ------------------------------------------
+   * Menus are fully keyboard-operable: arrows move between buttons, Enter/Space
+   * activates. Skips the live game screen (the command input owns the keyboard)
+   * and never hijacks typing in a text field or a <select>. Works for the active
+   * overlay (e.g. Pause) too. */
+  function wireKeyboardNav() {
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;         // keep dev hook + native shortcuts
+      const overlay = document.querySelector('.overlay.active');
+      const container = overlay || document.querySelector('.screen.active');
+      if (!container) return;
+      if (!overlay && container.id === 'gameScreen') return;   // command input owns the keyboard
+      const ae = document.activeElement;
+      const tag = (ae && ae.tagName) || '';
+      const inField = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+
+      const btns = Array.prototype.slice.call(container.querySelectorAll('.btn'))
+        .filter(function (b) { return !b.disabled && b.offsetParent !== null; });
+      if (!btns.length) return;
+      const idx = btns.indexOf(ae);
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        if (inField) return;                                   // let the control use arrows
+        e.preventDefault(); btns[(idx + 1 + btns.length) % btns.length].focus(); AUDIO.play('menu');
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        if (inField) return;
+        e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); AUDIO.play('menu');
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        if (inField) return;                                   // Enter/Space in a field does its own thing
+        if (idx >= 0) return;                                  // a focused button → native click handles it
+        e.preventDefault(); btns[0].click();
+      }
+    });
+  }
+
   /* ========================================================================
    * MODE COMPLIANCE — Demo default + Developer Mode (Law §0.15, Ctrl+Shift+B)
    * The handoff requires NOT blocking Ctrl+Shift+B at the shell level. All
@@ -840,14 +1019,28 @@
   function init() {
     wireNav();
     wireModeCompliance();
+    wireKeyboardNav();
     const cmdInput = document.getElementById('commandInput');
     if (cmdInput) cmdInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); handleRaceCommand(cmdInput.value); }
-      if (e.key !== 'Escape') AUDIO.play('typing');
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleRaceCommand(cmdInput.value, computeTypingWpm(cmdInput.value));
+        typing.start = 0;                                   // reset stopwatch for the next command
+        return;
+      }
+      if (e.key === 'Escape') return;
+      if (!typing.start && e.key.length === 1) typing.start = nowMs();   // stopwatch starts on 1st keystroke
+      AUDIO.play('typing');
     });
     renderOptions();
-    // Unlock audio on first gesture (autoplay policy).
-    document.addEventListener('pointerdown', function once() { AUDIO.init(); AUDIO.resume(); document.removeEventListener('pointerdown', once); });
+    // Unlock audio on first gesture — pointer OR key (menus are keyboard-first).
+    function unlockAudio() {
+      AUDIO.init(); AUDIO.resume();
+      document.removeEventListener('pointerdown', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    }
+    document.addEventListener('pointerdown', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
 
     // Re-fit the active map when the window resizes (keeps it filling the field).
     let resizeT = null;
@@ -881,7 +1074,7 @@
   // openShiftChange('0600') pops the box for any schedule slot; best run while on
   // the game screen mid-leg. closeShiftChange() tears it down.
   window.PITSTOP_DEBUG = {
-    race: race, activeBeat: activeBeat, startLeg: startLeg, state: state, loop: loop,
+    race: race, activeBeat: activeBeat, startRace: startRace, startLeg: startLeg, state: state, loop: loop,
     openShiftChange: function (t) {
       openShiftBox(t || (state.raceOptions.startTime !== 'NONE' ? state.raceOptions.startTime : '0600'));
       return race.shift.box;

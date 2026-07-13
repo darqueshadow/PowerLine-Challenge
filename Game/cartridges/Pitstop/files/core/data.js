@@ -352,7 +352,7 @@
       { Base: 'Pelham',        Code: '72111', Weight: 10, approx_lat: 43.038, approx_lon: -79.293, approx_dist_to_westwood_km: 16.51 },
       { Base: 'Ridgeway',      Code: '72113', Weight: 8,  approx_lat: 42.884, approx_lon: -79.052, approx_dist_to_westwood_km: 34.0 },
       { Base: 'Glendale',      Code: '72115', Weight: 10, approx_lat: 43.17,  approx_lon: -79.2,   approx_dist_to_westwood_km: 0 },
-      { Base: 'St Paul',       Code: '72116', Weight: 8,  approx_lat: 43.111, approx_lon: -79.11,  approx_dist_to_westwood_km: 9.82 },
+      { Base: 'St Paul',       Code: '72116', Weight: 8,  approx_lat: 43.15,  approx_lon: -79.085, approx_dist_to_westwood_km: 9.82 },
       { Base: 'Fort Erie',     Code: '72117', Weight: 10, approx_lat: 42.91,  approx_lon: -78.99,  approx_dist_to_westwood_km: 33.57 },
       { Base: 'Merritville',   Code: '72118', Weight: 8,  approx_lat: 43.06,  approx_lon: -79.23,  approx_dist_to_westwood_km: 12.47 },
       { Base: 'HQ',            Code: '72120', Weight: 5,  approx_lat: 43.168, approx_lon: -79.205, approx_dist_to_westwood_km: 0.46 },
@@ -362,7 +362,9 @@
       { Base: 'Fallsview',     Code: '72124', Weight: 2,  approx_lat: 43.082, approx_lon: -79.08,  approx_dist_to_westwood_km: 13.81 }
     ],
     units: [{ Units: '2100' }, { Units: '2101' }, { Units: '2102' }, { Units: 'FIT' }, { Units: 'CARE1' }],
-    courses: [{ CourseId: 'central-5', Name: 'Niagara Central 5', Type: 'loop', Laps: '3',
+    courses: [{ CourseId: 'niagara-loop', Name: 'Niagara Loop', Type: 'loop', Laps: '3',
+                Bases: '72102|72101|72103|72100|72116' },
+              { CourseId: 'central-5', Name: 'Niagara Central 5', Type: 'loop', Laps: '3',
                 Bases: '72102|72101|72103|72116|72100' }]
   };
 

@@ -117,6 +117,11 @@ h1, h2, h3 { text-transform: uppercase; text-shadow: var(--glow); color: var(--p
 }
 .opt-defer { color: var(--text-dim); font-size: 11px; }
 
+/* dev-flagged option (e.g. Shift Change) — purple so it's obvious it's a
+ * work-in-progress toggle while we develop this. */
+.opt-dev label { color: #b46cff; text-shadow: 0 0 6px rgba(180,108,255,.5); }
+.opt-dev select { color: #d6b3ff; border-color: #7d3ff0; box-shadow: 0 0 8px rgba(125,63,240,.35); }
+
 /* ---- Pre-Race Grid ------------------------------------------------------- */
 #gridScreen .countdown { font-size: clamp(48px, 12vw, 140px); color: var(--amber); text-shadow: 0 0 14px rgba(255,176,0,.6); letter-spacing: 10px; }
 
@@ -125,8 +130,8 @@ h1, h2, h3 { text-transform: uppercase; text-shadow: var(--glow); color: var(--p
  * ========================================================================= */
 #gameScreen { padding: 0; }
 .game-wrap {
-  display: grid; width: 100%; height: 100%;
-  grid-template-rows: 44px 1fr 96px;
+  display: grid; width: 100%; height: 100%; position: relative;
+  grid-template-rows: 44px 1fr;
   grid-template-columns: 1fr;
 }
 
@@ -161,12 +166,31 @@ h1, h2, h3 { text-transform: uppercase; text-shadow: var(--glow); color: var(--p
 /* side column: small region map above the gauges */
 .side-col { display: flex; flex-direction: column; min-height: 0;
   background: linear-gradient(180deg, #03160c, #010a05); }
-.minimap { position: relative; height: 44%; min-height: 120px; border-bottom: 2px solid var(--phosphor-dim);
+.minimap { position: relative; height: 52%; min-height: 160px; display: flex; flex-direction: column;
+  border-bottom: 2px solid var(--phosphor-dim);
   background: radial-gradient(circle at 40% 35%, #06200f, #010a05 72%); }
-.minimap svg { width: 100%; height: 100%; display: block; }
-.minimap-title { position: absolute; top: 6px; left: 8px; z-index: 2; font-size: 10px;
-  color: var(--text-dim); letter-spacing: 2px; }
+.minimap svg { flex: 1 1 auto; width: 100%; min-height: 0; display: block; }
+.minimap-title { padding: 5px 8px 0; font-size: 10px; color: var(--text-dim); letter-spacing: 2px; }
+/* the live challenge readout: NEXT base name + the full code to type */
+.map-target { padding: 1px 8px 4px; min-height: 1.25em; font-size: 13px; letter-spacing: .5px;
+  color: var(--command-color); text-shadow: 0 0 6px rgba(77,181,255,.5); }
 .side-col .gauges { padding: 12px; flex: 1 1 auto; overflow-y: auto; }
+
+/* Speed gauge (0–50–100), driven by WPM of what you're typing */
+.speed-gauge { margin-bottom: 10px; }
+.speed-gauge .gauge-label { display: flex; justify-content: space-between; align-items: baseline; }
+.speed-gauge .wpm-read { color: var(--command-color); font-size: 11px; letter-spacing: 0; }
+.speedbar { position: relative; height: 16px; border: 1px solid var(--phosphor-dim); background: #041018; overflow: hidden; }
+.speedbar > span { display: block; height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--phosphor-dim), var(--phosphor)); transition: width .12s linear; }
+.speedbar .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(200,255,200,.4); }
+.speedbar .tick.t50 { left: 50%; }
+.speedbar.overflow { border-color: var(--amber); }
+.speedbar.overflow > span { width: 100% !important;
+  background: linear-gradient(90deg, var(--amber), #fff2b0); box-shadow: 0 0 12px rgba(255,176,0,.8);
+  animation: speedOverflow .55s ease-in-out infinite; }
+@keyframes speedOverflow { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.4); } }
+.speed-scale { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 2px; }
 
 /* ▸ THEME INJECTION POINT: BACKGROUND — region map play surface */
 .region-map { position: relative; background:
@@ -180,8 +204,14 @@ h1, h2, h3 { text-transform: uppercase; text-shadow: var(--glow); color: var(--p
 .map-base-label { fill: var(--text); font-size: 2.7px; font-family: var(--font); }
 .map-node { fill: var(--phosphor-dim); stroke: var(--phosphor); stroke-width: 0.4; }
 .map-node.pit { fill: var(--amber); stroke: var(--amber); }
-/* minimap: a base dot lights up once its base has been hit */
-.map-node.hit { fill: var(--phosphor); stroke: var(--phosphor-soft); filter: drop-shadow(0 0 2px rgba(57,255,20,.9)); }
+/* minimap = the challenge: dim dots for the field, with the base we're at / just
+ * left (from) and the base we're driving to (next) glowing distinct colours. */
+.map-node.hit  { fill: var(--phosphor); stroke: var(--phosphor-soft); filter: drop-shadow(0 0 2px rgba(57,255,20,.9)); }
+.map-node.from { fill: #ff9d3b; stroke: #ffd9a8; filter: drop-shadow(0 0 4px rgba(255,157,59,.95)); }
+.map-node.next { fill: var(--command-color); stroke: #d3ecff; filter: drop-shadow(0 0 6px rgba(77,181,255,.95)); animation: nextPulse 1s ease-in-out infinite; }
+.sf-ring.from  { stroke: #ff9d3b; }
+.sf-ring.next  { stroke: var(--command-color); animation: nextPulse 1s ease-in-out infinite; }
+@keyframes nextPulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
 .node-num { fill: #001a00; font-size: 2.7px; font-weight: bold; font-family: var(--font); }
 .sf-ring { fill: none; stroke: var(--checker); stroke-width: 0.6; }
 .map-pit { fill: var(--amber); stroke: #1a1200; }
@@ -189,7 +219,7 @@ h1, h2, h3 { text-transform: uppercase; text-shadow: var(--glow); color: var(--p
 .pit-label { fill: var(--amber); }
 /* legacy markers (unused in course view, kept for reference) */
 .map-base { fill: var(--phosphor-dim); }
-.map-unit { fill: var(--command-color); filter: drop-shadow(0 0 3px rgba(77,181,255,.95)); }
+.map-unit { fill: #eafff0; stroke: #093; stroke-width: .3; filter: drop-shadow(0 0 3px rgba(230,255,240,.9)); }
 .map-opp  { fill: var(--flag-red); opacity: .85; }
 
 /* Map legend — every symbol explained */
@@ -225,13 +255,26 @@ h1, h2, h3 { text-transform: uppercase; text-shadow: var(--glow); color: var(--p
 .bar.speed > span { background: var(--phosphor); width: 0%; }
 .pit-indicator { font-size: 11px; color: var(--text-dim); border: 1px dashed #7a5500; padding: 4px 6px; text-align: center; }
 
-/* Bottom: challenge prompt + active command + command box */
-.hud-bottom { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px;
-  padding: 10px 16px; border-top: 2px solid var(--phosphor-dim); background: var(--bg-panel); }
+/* Play overlay: Challenge callout in the top third + a centered command console,
+ * laid over the road view (replaces the old bottom bar). */
+.play-overlay { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
 
-/* ▸ THEME INJECTION POINT: CHALLENGE appearance */
-.challenge-prompt { color: var(--challenge-color); font-size: 17px; text-shadow: 0 0 6px rgba(255,225,77,.4); }
-.active-cmd { margin-top: 4px; font-size: 12px; color: var(--text-dim); }
+/* ▸ THEME INJECTION POINT: CHALLENGE — the map (side minimap) is now the challenge.
+ * This is just a slim transient status line above the command box. */
+.race-status { min-height: 1.25em; text-align: center; pointer-events: none;
+  color: var(--challenge-color); font-size: 14px; letter-spacing: .4px;
+  text-shadow: 0 0 6px rgba(255,225,77,.4), 0 1px 3px #000; }
+
+/* Centered command console (bigger box). While the Shift Change board is up it
+ * drops to the bottom so the board — which fills the middle — doesn't cover it. */
+.command-stack { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.command-stack .command-box { pointer-events: auto; min-width: min(560px, 84%); padding: 12px 20px; }
+.command-stack .command-box .prompt { font-size: 24px; }
+.command-stack .command-box input { font-size: 24px; }
+.game-wrap.shift-active .command-stack { top: auto; bottom: 16px; transform: none; }
+
+.active-cmd { font-size: 13px; color: var(--text-dim); text-shadow: 0 1px 3px #000; pointer-events: none; }
 .active-cmd .live { color: var(--phosphor); border: 1px solid var(--phosphor); padding: 1px 6px; margin: 0 2px; }
 
 /* ▸ THEME INJECTION POINT: COMMAND UI styling */

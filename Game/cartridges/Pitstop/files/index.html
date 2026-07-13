@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- PITSTOP (NEMS 500) — PowerLine Challenge cartridge · Phase 1 - Road + Minimap · v0.4.0 -->
+  <!-- PITSTOP (NEMS 500) — PowerLine Challenge cartridge · Phase 1 - Map-Challenge + Speed/WPM · v0.7.0 -->
   <title>PITSTOP — PLC</title>
-  <link rel="stylesheet" href="style.css?v=0.4.0" />
+  <link rel="stylesheet" href="style.css?v=0.7.1" />
 </head>
 <body>
 <div id="app">
@@ -28,20 +28,20 @@
     <div class="subtitle">NEMS&nbsp;500</div>
     <div class="tagline">Niagara Regional PowerLine Race</div>
     <div class="menu-list" style="min-width:auto">
-      <button class="btn blink" data-action="title-start">▶ PRESS START</button>
+      <button class="btn blink" data-action="title-start" data-primary>▶ PRESS START</button>
     </div>
-    <div class="version-stamp">v0.2.0 · PHASE 1 · LEG LOOP</div>
+    <div class="version-stamp">v0.7.0 · PHASE 1 · FULL COURSE</div>
   </section>
 
   <!-- ============================ MAIN MENU ============================ -->
   <section id="menuScreen" class="screen">
     <h2>Main Menu</h2>
     <div class="menu-list">
-      <button class="btn" data-action="goto" data-target="optionsScreen">Start Race</button>
+      <button class="btn" data-action="goto" data-target="optionsScreen" data-primary>Start Race</button>
       <button class="btn" data-action="goto" data-target="instructionsScreen">Instructions</button>
       <button class="btn danger" data-action="eject">Return to Arcade</button>
     </div>
-    <div class="version-stamp">v0.2.0 · PHASE 1</div>
+    <div class="version-stamp">v0.7.0 · PHASE 1</div>
   </section>
 
   <!-- =========================== INSTRUCTIONS =========================== -->
@@ -68,7 +68,7 @@
       <p class="note">24-hour units (pre-dawn / evening) run the full chain
          <span class="cmd-code">RCAV → OD → SS → BSEH → CAV SS</span>; 12-hour starts (mid-day) come
          up as <span class="cmd-code">SP</span> and begin at <span class="cmd-code">SS</span>.
-         <span class="cmd-code">NOTE</span> may be added any time after SS. Set <b>Shift Start</b> in
+         <span class="cmd-code">NOTE</span> may be added any time after SS. Set <b>Shift Change</b> in
          Race Options (or NONE to skip). Earlier = harder.</p>
     </div>
     <div class="menu-list" style="min-width:auto;margin-top:1em;">
@@ -82,7 +82,7 @@
     <div class="options-grid" id="optionsGrid"><!-- populated from RACE_OPTIONS.schema --></div>
     <div class="menu-list" style="min-width:auto;margin-top:1.4em;flex-direction:row;gap:14px;">
       <button class="btn small" data-action="goto" data-target="menuScreen">◀ Back</button>
-      <button class="btn small" data-action="goto" data-target="gridScreen">To Grid ▶</button>
+      <button class="btn small" data-action="goto" data-target="gridScreen" data-primary>To Grid ▶</button>
     </div>
     <p class="note">Options are stored only — no race logic runs in Phase 0.</p>
   </section>
@@ -100,7 +100,7 @@
     <div class="countdown" id="gridCountdown" style="font-size:clamp(32px,6vw,72px);margin:6px 0;">3 · 2 · 1</div>
     <div class="menu-list" style="min-width:auto;flex-direction:row;gap:14px;">
       <button class="btn small" data-action="goto" data-target="optionsScreen">◀ Back</button>
-      <button class="btn" data-action="goto" data-target="gameScreen">GO ▶</button>
+      <button class="btn" data-action="goto" data-target="gameScreen" data-primary>GO ▶</button>
     </div>
   </section>
 
@@ -111,8 +111,8 @@
       <!-- top HUD strip -->
       <div class="hud-strip">
         <div class="hud-cell"><span class="hud-label">Lap</span><span class="hud-value" id="hudLap">1/3</span></div>
-        <div class="hud-cell"><span class="hud-label">Time</span><span class="hud-value" id="hudTime">00:00.0</span></div>
-        <div class="hud-cell"><span class="hud-label">Place</span><span class="hud-value" id="hudPlace">4/4</span></div>
+        <div class="hud-cell"><span class="hud-label">Time</span><span class="hud-value" id="hudTime">0.0s</span></div>
+        <div class="hud-cell"><span class="hud-label">Leg</span><span class="hud-value" id="hudPlace">1/1</span></div>
         <div class="hud-cell"><span class="hud-label">Speed</span><span class="hud-value" id="hudSpeed">0</span></div>
         <button class="btn small" data-action="pause">❚❚ Pause</button>
       </div>
@@ -125,16 +125,44 @@
           <div class="road-watermark">ROUTE · <span id="roadLegLabel">—</span></div>
           <!-- radio-chatter telegraph (Shift Change warning + status) -->
           <div id="radioBubble" class="radio-bubble"></div>
+
+          <!-- play overlay: centered command console. The CHALLENGE is now the map
+               (side minimap) — it lights the current + next base; this strip carries
+               the command word + unit, plus a slim transient status line. -->
+          <div class="play-overlay">
+            <div class="command-stack">
+              <!-- ▸ THEME INJECTION POINT: CHALLENGE (transient status only) -->
+              <div class="race-status" id="challengePrompt"></div>
+              <div class="active-cmd">Unit <b id="hudUnit">—</b> ·
+                <span class="live" id="cmdAP">AP</span>
+                <span id="cmdENP">ENP</span>
+                <span id="cmdBSE">BSE</span>
+              </div>
+              <!-- ▸ THEME INJECTION POINT: COMMAND UI -->
+              <div class="command-box">
+                <span class="prompt">&gt;</span>
+                <input id="commandInput" type="text" autocomplete="off" spellcheck="false"
+                       placeholder="type command…" disabled />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- side column: small region map (outline + connected base dots) over gauges -->
+        <!-- side column: the region map is now the CHALLENGE (lights current + next
+             base), over the speed gauge + car gauges -->
         <div class="side-col">
-          <!-- ▸ THEME INJECTION POINT: region minimap -->
+          <!-- ▸ THEME INJECTION POINT: region minimap (challenge) -->
           <div class="minimap">
-            <div class="minimap-title">REGION</div>
+            <div class="minimap-title">CHALLENGE · next base</div>
+            <div class="map-target" id="mapTarget"></div>
             <svg id="regionMap" viewBox="0 0 100 80" preserveAspectRatio="xMidYMid meet"></svg>
           </div>
           <div class="gauges">
+            <div class="speed-gauge">
+              <div class="gauge-label">Speed <span class="wpm-read" id="hudWpm">— wpm</span></div>
+              <div class="speedbar"><span id="speedFill"></span><i class="tick t50"></i></div>
+              <div class="speed-scale"><span>0</span><span>50</span><span>100</span></div>
+            </div>
             <div>
               <div class="gauge-label">Tires</div>
               <div class="tires">
@@ -149,25 +177,6 @@
             <div class="pit-indicator" id="pitIndicator">PIT: Fleet (72123) — n/a</div>
             <div class="map-legend" id="gameLegend"></div>
           </div>
-        </div>
-      </div>
-
-      <!-- bottom: challenge + active cmd + command box -->
-      <div class="hud-bottom">
-        <div>
-          <!-- ▸ THEME INJECTION POINT: CHALLENGE appearance -->
-          <div class="challenge-prompt" id="challengePrompt">— awaiting race start (Phase 1) —</div>
-          <div class="active-cmd">Active:
-            <span class="live" id="cmdAP">AP</span>
-            <span id="cmdENP">ENP</span>
-            <span id="cmdBSE">BSE</span>
-          </div>
-        </div>
-        <!-- ▸ THEME INJECTION POINT: COMMAND UI -->
-        <div class="command-box">
-          <span class="prompt">&gt;</span>
-          <input id="commandInput" type="text" autocomplete="off" spellcheck="false"
-                 placeholder="type command…" disabled />
         </div>
       </div>
 
@@ -220,7 +229,7 @@
       <p class="note">Results table is a Phase 0 placeholder.</p>
     </div>
     <div class="menu-list" style="min-width:auto;">
-      <button class="btn" data-action="goto" data-target="menuScreen">Main Menu</button>
+      <button class="btn" data-action="goto" data-target="menuScreen" data-primary>Main Menu</button>
     </div>
   </section>
 
@@ -249,10 +258,10 @@
 </div>
 
 <!-- Core modules load in order: config → data → audio → script (Build Procedure §3) -->
-<script src="core/config.js?v=0.4.0"></script>
-<script src="core/data.js?v=0.4.0"></script>
-<script src="core/shiftchange.js?v=0.4.0"></script>
-<script src="core/audio.js?v=0.4.0"></script>
-<script src="script.js?v=0.4.0"></script>
+<script src="core/config.js?v=0.7.1"></script>
+<script src="core/data.js?v=0.7.1"></script>
+<script src="core/shiftchange.js?v=0.7.1"></script>
+<script src="core/audio.js?v=0.7.1"></script>
+<script src="script.js?v=0.7.1"></script>
 </body>
 </html>
