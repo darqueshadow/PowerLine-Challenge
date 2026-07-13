@@ -96,6 +96,14 @@
                 screenshot: "cartridges/Asteroid Command/files/assets/Menus/title_screen.png",
                 synopsis: "Defend Niagara's three paramedic sectors from asteroid strikes. Master PowerLine commands under pressure as you protect North, South, and East zones using the Command Tower. Incorrect commands and sector losses damage the tower. If the tower falls early, you'll watch the remaining sectors get destroyed one by one.",
                 cassetteImage: "assets/images/asteroid-command.png"
+            },
+            {
+                id: "pitstop",
+                displayName: "Pitstop",
+                status: "test",
+                screenshot: "assets/images/coming-soon-placeholder.svg",
+                synopsis: "Top-down Niagara Region race: post your unit base-to-base with real PowerLine commands — AP → ENP → BSE. Fast, accurate typing is your throttle. Race the laps, work the pit lane, finish first. (Early test build.)",
+                cassetteImage: "assets/images/Cassette_BLANK.png"
             }
         ];
     }
@@ -294,6 +302,8 @@
                 window.location.href = "cartridges/blank/index.html";
             } else if (cartridge.id === 'asteroid-command') {
                 window.location.href = "cartridges/Asteroid Command/files/index.html";
+            } else if (cartridge.id === 'pitstop') {
+                window.location.href = "cartridges/Pitstop/files/index.html";
             }
             // Future cassettes will be added here
             else {
