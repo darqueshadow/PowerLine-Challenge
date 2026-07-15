@@ -33,8 +33,8 @@
     holodeckPassword: 'GREEN FLAG',
     holodeckTimeout: 15000,
 
-    version: '0.7.1',
-    versionLabel: 'PHASE 1 · MAP-CHALLENGE + SPEED/WPM'
+    version: '0.9.4',
+    versionLabel: 'PHASE 1 · ARCADE RESKIN'
   };
 
   /* ---- TUNABLES — config-driven (handoff §6) -------------------------------
@@ -78,13 +78,94 @@
     legRate: 0.6         // pos-units/sec at full (100) speed — sets how long a leg takes
   };
 
+  /* ---- TIRE-DAMAGE RENDER MODEL (design "Pitstop Arcade.dc.html" §05) --------
+   * RENDER-ONLY. A single integer tire_health (0–10, 0 = burst) maps to BOTH
+   * visual channels — the rubber (greys black→white + growing wear spot) AND the
+   * side-panel gauge (fill drops + hue green→red). This block is the state table;
+   * script.js deriveTire() reads it. It does NOT compute or store wear — that
+   * consequence layer is GATED (see Pitstop_Design_Note.md §10, Overview clause
+   * pending). Redundant cues (fill level AND hue) survive colourblindness.
+   *
+   * Stage map: Fresh 10–8 · Worn 7–5 · Warning 4–2 · Critical 1 · Burst 0. */
+  const TIRE = {
+    max: 10,
+    demoHealth: 10,   // render-only default surfaced in-race until a wear source is authorized
+    // Ordered high→low; the first entry whose `min` the health meets wins.
+    stages: [
+      { min: 8, stage: 'FRESH',    stageColor: '#2ECC40', rubber: '#1A1A1A', spot: '18%', spotColor: '#333333', sheen: '0 0 18px rgba(255,255,255,.12)', panel: '#2ECC40', panel2: '#23a233', governor: '100%',                     govColor: '#2ECC40' },
+      { min: 5, stage: 'WORN',     stageColor: '#FFDC00', rubber: '#595959', spot: '34%', spotColor: '#8F8F8F', sheen: 'none',                            panel: '#FFDC00', panel2: '#c9af00', governor: 'easing down',              govColor: '#FFDC00' },
+      { min: 2, stage: 'WARNING',  stageColor: '#FF851B', rubber: '#A6A6A6', spot: '52%', spotColor: '#D4D4D4', sheen: 'none',                            panel: '#FF851B', panel2: '#d9660f', governor: '~90%',                     govColor: '#FF851B' },
+      { min: 1, stage: 'CRITICAL', stageColor: '#FF4136', rubber: '#ECECEC', spot: '70%', spotColor: '#FFFFFF', sheen: 'none',                            panel: '#FF4136', panel2: '#c22219', governor: '~80% · one bump from burst', govColor: '#FF4136' }
+    ],
+    burst: { stage: 'BURST', stageColor: '#FF4136', rubber: '#161616', spot: '0%', spotColor: 'transparent', sheen: 'none', panel: '#FF4136', panel2: '#c22219', governor: '~40% (governor)', govColor: '#FF4136' }
+  };
+
   /* ---- CAR CONFIG — [PHASE 1+ — GATED] placeholder stat blocks (handoff §6)
-   * "speed/handling/tire-durability/fuel-capacity stats per car type." */
+   * "speed/handling/tire-durability/fuel-capacity stats per car type."
+   * ⚠ NO LONGER SURFACED IN RACE OPTIONS (2026-07-14): the Car option was
+   * replaced by the Unit picker (SELECTABLE_UNITS below). Kept here as a gated
+   * placeholder in case a separate performance/stats axis returns later. */
   const CAR_TYPES = [
     { id: 'rookie',  name: 'Rookie Runner', speed: 5, handling: 7, tireDurability: 8, fuelCapacity: 8 },
     { id: 'balanced', name: 'All-Rounder',  speed: 6, handling: 6, tireDurability: 6, fuelCapacity: 6 },
     { id: 'sprinter', name: 'Sprinter',     speed: 8, handling: 5, tireDurability: 4, fuelCapacity: 5 }
   ];
+
+  /* ---- SELECTABLE UNITS (Andrew, 2026-07-14) --------------------------------
+   * The player PICKS which unit (truck) they drive. This REPLACES the old Car
+   * (rookie/balanced/sprinter) option in Race Options. Five to start ("off the
+   * top of my head") — each is a REAL roster unit from datasets/units.csv.
+   *
+   * `hotkey` = the top-row number key that selects it on the Race Options screen.
+   * They're spread 1 · 3 · 5 · 7 · 9 (NOT 1-2-3-4-5) so the reach is BALANCED
+   * across the number row — Andrew's "divide the keyboard up" call. The chosen
+   * ids also exercise every digit 0-9 when typed, which matters because you type
+   * the unit constantly in-race (AP 2107, ENP 2107, …).
+   *
+   * `tint` is a PLACEHOLDER for the distinct race-car sprite each unit will get
+   * later ("when we get there, the unit number will be a different looking race
+   * car"). No car-visual system is built yet — today the tint only colours the
+   * picker chip + the map marker so the units already LOOK distinct.
+   *
+   * To retune the roster: edit the five ids (keep them real units); if you add or
+   * remove entries, keep the hotkeys on spread-out number-row keys. */
+  const SELECTABLE_UNITS = [
+    // stats (Andrew, 2026-07-15): speed = how fast the gauge climbs; handling =
+    // how much speed a miss KEEPS. Picking the unit picks the car's feel — this
+    // re-activates the gated CAR_TYPES idea, merged into the unit. Wired in
+    // script.js; toggle with CARS.handlingEnabled.
+    //
+    // cls/blurb/pros/cons drive the Race Options UNIT DETAIL CARD (script.js
+    // renderUnitDetail): the car art (assets/cars/{id}_c.png), a class + one-line
+    // pitch, SPEED/CONTROL meters, a telemetry performance curve, and strengths/
+    // weaknesses — so the player can see WHY to pick each unit. Content only.
+    { id: '2107', hotkey: '1', tint: '#39ff14', stats: { speed: 6, handling: 6 },   // green
+      cls: 'All-Rounder',
+      blurb: 'Balanced speed and grip — no weakness, no standout. The dependable pick for learning a course.',
+      pros: ['Even speed & control', 'Forgives most mistakes', 'Great all-round starter'],
+      cons: ['Out-dragged by the sprinters', 'Out-lasted by the heavies'] },
+    { id: '2138', hotkey: '3', tint: '#4db5ff', stats: { speed: 4, handling: 8 },   // blue
+      cls: 'Steady',
+      blurb: 'Slow to wind up, but shrugs off mistakes. Wins by never losing time.',
+      pros: ['Typos barely cost speed', 'Rock-steady and forgiving', 'Ideal for new drivers'],
+      cons: ['Lowest top speed', 'Sluggish to build pace'] },
+    { id: '2045', hotkey: '5', tint: '#ffb000', stats: { speed: 7, handling: 5 },   // amber
+      cls: 'Nimble',
+      blurb: 'Quick to build pace and agile — but a touch twitchy when you slip.',
+      pros: ['Fast to get up to speed', 'Agile and responsive'],
+      cons: ['Mistakes bite', 'Needs a steady hand'] },
+    { id: '2396', hotkey: '7', tint: '#ff3b30', stats: { speed: 9, handling: 3 },   // red
+      cls: 'Flat-out',
+      blurb: 'The fastest thing on the grid — and the most unforgiving. Experts only.',
+      pros: ['Blistering top speed', 'Fastest acceleration'],
+      cons: ['One typo tanks your speed', 'Brutal to control'] },
+    { id: '2523', hotkey: '9', tint: '#c77dff', stats: { speed: 8, handling: 4 },   // violet
+      cls: 'Sprinter',
+      blurb: 'Explosive pace for drivers who rarely miss. Punishing when you do.',
+      pros: ['Near-top acceleration', 'Big top speed'],
+      cons: ['Low forgiveness', 'Errors cost you dearly'] }
+  ];
+  const DEFAULT_UNIT_ID = SELECTABLE_UNITS[0].id;
 
   /* ---- RACE OPTIONS (handoff §4) — definitions + defaults --------------------
    * Drives the Race Options screen controls. Selecting an option only writes to
@@ -95,8 +176,9 @@
       courseSelect: 'random',   // a course id | 'random'
       randomBaseCount: 6,       // # bases when courseSelect === 'random'
       laps: 3,
-      carType: 'balanced',
+      unit: DEFAULT_UNIT_ID,    // which truck you drive (was carType) — see SELECTABLE_UNITS
       timeOfDay: 'day',         // 'day' | 'night' (lighting only)
+      raceLook: 'dark',         // 'dark' (green-phosphor CRT road, default) | 'outrun' (sunny OutRun skin) — see style.css .road-view.look-outrun
       startTime: 'NONE',        // shift-change schedule slot to begin at; 'NONE' = no Shift Changes (default while in dev)
       raceType: 'computer',     // 'computer' (AI/ghost) | 'players' (DEFERRED)
       pit: 'on',                // 'on' | 'off' — 'off' disables the Phase 3 layer
@@ -105,16 +187,14 @@
     },
     // Option metadata for rendering the controls generically.
     schema: [
+      // Trimmed to essentials (Andrew, 2026-07-15): Time of Day, Race Look, Race
+      // Type, Pit/No-Pit, Difficulty and Opponents were removed from the UI. Their
+      // defaults above are kept so any game logic that reads them still works.
       { key: 'courseType',  label: 'Course Type',  values: ['loop', 'point-to-point'] },
       { key: 'courseSelect',label: 'Course',       values: ['random'] /* + course ids when authored */ },
       { key: 'laps',        label: 'Laps',         type: 'int', min: 1, max: 20 },
-      { key: 'carType',     label: 'Car',          values: CAR_TYPES.map(c => c.id) },
-      { key: 'timeOfDay',   label: 'Time of Day',  values: ['day', 'night'] },
-      { key: 'startTime',   label: 'Shift Change', dev: true, values: ['NONE', '0530', '0600', '0630', '0700', '0730', '0800', '0900', '1000', '1100', '1200', '1400', '1730', '1800', '1830', '1900', '1930'] },
-      { key: 'raceType',    label: 'Race Type',    values: ['computer', 'players'] /* players = DEFERRED */ },
-      { key: 'pit',         label: 'Pit / No-Pit', values: ['on', 'off'] },
-      { key: 'difficulty',  label: 'Difficulty',   values: ['easy', 'med', 'hard'] },
-      { key: 'opponents',   label: 'Opponents',    type: 'int', min: 0, max: 7 }
+      { key: 'unit',        label: 'Unit',         control: 'unitpick' },  // number-key picker (1·3·5·7·9)
+      { key: 'startTime',   label: 'Shift Change', dev: true, values: ['NONE', '0530', '0600', '0630', '0700', '0730', '0800', '0900', '1000', '1100', '1200', '1400', '1730', '1800', '1830', '1900', '1930'] }
     ]
   };
 
@@ -144,6 +224,34 @@
    * looping road image / sprite path here later and the renderer will use it. */
   const ROAD_VIEW = {
     image: null                    // e.g. 'assets/road_loop.png' (null = procedural)
+  };
+
+  /* ---- OUTRUN CURVE ENGINE (Andrew, 2026-07-15) ----------------------------
+   * The road bends as you drive and the car banks into it. This is a CSS-scene
+   * approximation: script.js writes --road-curve (-1..1) each frame; the CSS
+   * skews the road's vanishing point + parallax-shifts the sun/clouds/scenery,
+   * and the car frame/lean follows. `rate` = how fast the bend evolves with
+   * travel; `ease` = how quickly the live curve settles toward target; amp/freq
+   * shape the (summed-sine) road. frameThresholds = |steer| cutoffs choosing the
+   * c / r1 / r2 car frame. placeholderLeanDeg = the div-car's fake lean until
+   * real sprites load. */
+  const ROAD_CURVE = {
+    rate: 6, ease: 3,
+    amp1: 0.7, freq1: 0.9, amp2: 0.3, freq2: 2.3,
+    frameThresholds: [0.18, 0.5],
+    placeholderLeanDeg: 8
+  };
+
+  /* ---- CAR SPRITES (OutRun banking cars) — see Pitstop_Car_Sprite_Brief.md ---
+   * Per-unit race-car sprites live in assets/cars/{unit}_{c|r1|r2}.png (straight
+   * + two RIGHT leans; the engine mirrors them for left curves). Auto-detected:
+   * if a unit's three frames load, the car renders as those sprites; otherwise
+   * the procedural div-car stays and fake-leans. Drop 2107_c/r1/r2.png in to test
+   * — no flag to flip. handlingEnabled gates the per-unit speed/handling stats. */
+  const CARS = {
+    enabled: true,
+    path: 'assets/cars/',
+    handlingEnabled: true
   };
 
   /* ---- SHIFT CHANGE (NEMS500_ShiftChange_DesignNote.md) --------------------
@@ -214,13 +322,18 @@
     CONFIG: CONFIG,
     TUNABLES: TUNABLES,
     SPEED: SPEED,
+    TIRE: TIRE,
     CAR_TYPES: CAR_TYPES,
+    SELECTABLE_UNITS: SELECTABLE_UNITS,
+    DEFAULT_UNIT_ID: DEFAULT_UNIT_ID,
     RACE_OPTIONS: RACE_OPTIONS,
     PIT_BASE_ID: PIT_BASE_ID,
     COURSE_MAX_BASES: COURSE_MAX_BASES,
     DEFAULT_COURSE_ID: DEFAULT_COURSE_ID,
     REGION_MAP: REGION_MAP,
     ROAD_VIEW: ROAD_VIEW,
+    ROAD_CURVE: ROAD_CURVE,
+    CARS: CARS,
     SHIFT_CHANGE: SHIFT_CHANGE
   };
 })(window);

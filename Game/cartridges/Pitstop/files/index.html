@@ -3,9 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- PITSTOP (NEMS 500) — PowerLine Challenge cartridge · Phase 1 - Map-Challenge + Speed/WPM · v0.7.0 -->
+  <!-- PITSTOP (NEMS 500) — PowerLine Challenge cartridge · Phase 1 · Arcade Reskin · v0.9.4
+       Look-and-feel implemented from Andrew's design "Pitstop Arcade.dc.html"
+       (claude.ai/design project "Pitstop PLC fine tuning"). Theme layer only —
+       animated perspective road, chunky pixel HUD, checkered-flag motifs,
+       reactive speed gauge, render-only tire-damage. No gated gameplay. -->
   <title>PITSTOP — PLC</title>
-  <link rel="stylesheet" href="style.css?v=0.7.1" />
+  <!-- Arcade type: Press Start 2P (pixel headings/numbers) + Share Tech Mono (body).
+       Falls back to Courier New offline (CSV loading needs a local http server). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=0.9.4" />
 </head>
 <body>
 <div id="app">
@@ -23,14 +32,21 @@
   </section>
 
   <!-- ============================== TITLE =============================== -->
-  <section id="titleScreen" class="screen">
+  <section id="titleScreen" class="screen title-screen">
+    <div class="title-chevrons"></div>
+    <div class="flag-band top"></div>
+    <div class="flag-band bottom"></div>
     <h1 class="title-big">PITSTOP</h1>
+    <div class="title-checker-bar"></div>
     <div class="subtitle">NEMS&nbsp;500</div>
-    <div class="tagline">Niagara Regional PowerLine Race</div>
+    <div class="tagline">NIAGARA REGIONAL POWERLINE RACE</div>
+    <!-- LOCKED tagline (Pitstop_Design_Note.md §0 — must-have, do not reword). -->
+    <div class="tagline-locked">“Type fast and risk the wall. Type clean and bleed the speed.”</div>
     <div class="menu-list" style="min-width:auto">
-      <button class="btn blink" data-action="title-start" data-primary>▶ PRESS START</button>
+      <button class="btn press-start blink" data-action="title-start" data-primary>▶ PRESS START</button>
     </div>
-    <div class="version-stamp">v0.7.0 · PHASE 1 · FULL COURSE</div>
+    <div class="version-stamp">v0.9.4 · PHASE 1 · ARCADE RESKIN</div>
+    <div class="crt-scan"></div>
   </section>
 
   <!-- ============================ MAIN MENU ============================ -->
@@ -41,7 +57,7 @@
       <button class="btn" data-action="goto" data-target="instructionsScreen">Instructions</button>
       <button class="btn danger" data-action="eject">Return to Arcade</button>
     </div>
-    <div class="version-stamp">v0.7.0 · PHASE 1</div>
+    <div class="version-stamp">v0.9.4 · PHASE 1</div>
   </section>
 
   <!-- =========================== INSTRUCTIONS =========================== -->
@@ -50,7 +66,7 @@
     <div class="panel">
       <p>Post your unit base-to-base around the Niagara Region. Each leg is a three-beat
          sequence — <span class="cmd-code">AP → ENP → BSE</span> — typed as real PowerLine
-         commands. Fast, correct typing is your throttle.</p>
+         commands. Fast, correct typing is your throttle; a miss bleeds the speed.</p>
       <h3 style="margin-top:14px;font-size:16px;">PowerLine Command Reference</h3>
       <table class="cmd-table">
         <thead><tr><th>Cmd</th><th>Meaning</th><th>Type</th><th>Sample phrasing</th></tr></thead>
@@ -58,7 +74,8 @@
       </table>
       <p class="note">Example — Challenge: <em>“Assign 2101 to Ontario St”</em>
          → Command: <span class="cmd-code">AP 2101 72101</span></p>
-      <p class="note todo">SWAP — pit tire/fuel swap command — TBD (net-new; defined when the pit layer is authorized).</p>
+      <p class="note todo">SWAP — pit tire/fuel swap command — preview only (net-new; the pit
+         consequence layer is authorized separately).</p>
       <h3 style="margin-top:14px;font-size:16px;">Shift Change</h3>
       <p>At real shift-change times a radio call warns you a change is coming. After
          <span class="cmd-code">ENP</span>, type <span class="cmd-code">LA</span> to stay mobile —
@@ -84,14 +101,14 @@
       <button class="btn small" data-action="goto" data-target="menuScreen">◀ Back</button>
       <button class="btn small" data-action="goto" data-target="gridScreen" data-primary>To Grid ▶</button>
     </div>
-    <p class="note">Options are stored only — no race logic runs in Phase 0.</p>
+    <p class="note">Options are stored for the race.</p>
   </section>
 
   <!-- =========================== PRE-RACE GRID ========================== -->
   <section id="gridScreen" class="screen">
     <h2>Pre-Race Grid</h2>
     <div class="panel" style="max-width:1000px;">
-      <div class="map-watermark">COURSE PREVIEW · PLACEHOLDER</div>
+      <div class="map-watermark">COURSE PREVIEW</div>
       <div class="region-map" style="height:48vh;position:relative;border:1px solid var(--phosphor-dim);">
         <svg id="gridMap" preserveAspectRatio="xMidYMid meet"></svg>
       </div>
@@ -108,36 +125,112 @@
   <section id="gameScreen" class="screen">
     <div class="game-wrap">
 
-      <!-- top HUD strip -->
+      <!-- top HUD strip — racing dashboard pods -->
       <div class="hud-strip">
-        <div class="hud-cell"><span class="hud-label">Lap</span><span class="hud-value" id="hudLap">1/3</span></div>
-        <div class="hud-cell"><span class="hud-label">Time</span><span class="hud-value" id="hudTime">0.0s</span></div>
-        <div class="hud-cell"><span class="hud-label">Leg</span><span class="hud-value" id="hudPlace">1/1</span></div>
-        <div class="hud-cell"><span class="hud-label">Speed</span><span class="hud-value" id="hudSpeed">0</span></div>
-        <button class="btn small" data-action="pause">❚❚ Pause</button>
+        <div class="flag-badge" aria-hidden="true"></div>
+        <div class="hud-pod pod-lap"><span class="pod-label">LAP</span><span class="pod-val" id="hudLap">1/3</span></div>
+        <div class="hud-pod pod-time"><span class="pod-label">TIME</span><span class="pod-val" id="hudTime">0.0</span></div>
+        <div class="hud-pod pod-leg"><span class="pod-label">LEG</span><span class="pod-val" id="hudPlace">1/1</span></div>
+        <div class="hud-spacer"></div>
+        <div class="hud-pod pod-speed">
+          <div class="speed-read">
+            <span class="pod-label">SPEED · <span class="js-wpm">— wpm</span></span>
+            <span class="pod-val" id="hudSpeed">0</span>
+          </div>
+          <span class="speed-unit">KM/H</span>
+        </div>
+        <button class="pause-btn" data-action="pause">❚❚ PAUSE</button>
       </div>
+      <!-- checkered accent under the dashboard -->
+      <div class="hud-checker" aria-hidden="true"></div>
 
       <!-- middle: road POV (main) | side column (minimap + gauges) -->
       <div class="hud-mid">
-        <!-- ▸ THEME INJECTION POINT: BACKGROUND — the road we're driving (main surface) -->
+        <!-- ▸ THEME INJECTION POINT: BACKGROUND — the road we're driving (main surface).
+             CSS perspective road: sky/sun/clouds/ground/asphalt/rumbles/centre-line/
+             chevrons/flying-scenery/sign/car. Scroll speed reacts to race.speed via
+             the --road-spd custom property set in script.js updateRoad(). -->
         <div class="road-view" id="roadView">
-          <svg id="roadSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+          <div class="rv-sky"></div>
+          <div class="rv-sun"></div>
+          <div class="rv-clouds" aria-hidden="true">
+            <span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span>
+            <span class="cloud c4"></span><span class="cloud c5"></span><span class="cloud c6"></span>
+          </div>
+          <div class="rv-ground"></div>
+          <div class="rv-road"></div>
+          <div class="rv-rumble left"></div>
+          <div class="rv-rumble right"></div>
+          <div class="rv-center"></div>
+          <div class="rv-chevrons left"><i></i><i></i></div>
+          <div class="rv-chevrons right"><i></i><i></i></div>
+
+          <!-- flying roadside scenery (from horizon toward camera) -->
+          <div class="rv-scenery" aria-hidden="true">
+            <span class="scn tree la d0"></span>
+            <span class="scn bush lb d1"></span>
+            <span class="scn tuft la d2"></span>
+            <span class="scn rock lb d3"></span>
+            <span class="scn bush la d4"></span>
+            <span class="scn tree lb d5"></span>
+            <span class="scn tree ra d0b"></span>
+            <span class="scn rock rb d1b"></span>
+            <span class="scn bush ra d2b"></span>
+            <span class="scn tuft rb d3b"></span>
+            <span class="scn tree ra d4b"></span>
+            <span class="scn bush rb d5b"></span>
+          </div>
+
+          <!-- a single passing road sign (text set per leg by script.js) -->
+          <div class="rv-sign" aria-hidden="true">
+            <div class="sign-face" id="roadSignText">PIT LANE
+AHEAD</div>
+            <div class="sign-post"></div>
+          </div>
+
+          <!-- the car (3/4 from behind — white body, green + blue trim, unit number) -->
+          <div class="rv-car" id="raceCar">
+            <div class="car-shadow"></div>
+            <div class="tire front left"></div>
+            <div class="tire front right"></div>
+            <div class="tire rear left"><i></i></div>
+            <div class="tire rear right"><i></i></div>
+            <div class="car-nose"></div>
+            <div class="car-body"></div>
+            <div class="car-flank left"></div>
+            <div class="car-flank right"></div>
+            <div class="car-stripe"></div>
+            <div class="car-cockpit"></div>
+            <div class="car-unit" id="carUnit">2101</div>
+            <div class="car-wing"></div>
+            <div class="car-endplate left"></div>
+            <div class="car-endplate right"></div>
+          </div>
+
+          <!-- route watermark -->
           <div class="road-watermark">ROUTE · <span id="roadLegLabel">—</span></div>
+
           <!-- radio-chatter telegraph (Shift Change warning + status) -->
           <div id="radioBubble" class="radio-bubble"></div>
 
-          <!-- play overlay: centered command console. The CHALLENGE is now the map
-               (side minimap) — it lights the current + next base; this strip carries
-               the command word + unit, plus a slim transient status line. -->
+          <!-- ▸ gear-shifter status box (left): AP / ENP / LA / BSE light by unit
+               status. Active beat glows; LA glows during a Shift Change. -->
+          <div class="gear-box">
+            <div class="gear-title">SHIFT</div>
+            <div class="gear" id="cmdAP"><span>AP</span></div>
+            <div class="gear" id="cmdENP"><span>ENP</span></div>
+            <div class="gear la" id="cmdLA"><span>LA</span></div>
+            <div class="gear" id="cmdBSE"><span>BSE</span></div>
+          </div>
+
+          <!-- play overlay: centered command console. The CHALLENGE is the minimap
+               (side column) — it lights the current + next base; this strip carries
+               the unit + a slim transient hit/miss status line. -->
           <div class="play-overlay">
             <div class="command-stack">
-              <!-- ▸ THEME INJECTION POINT: CHALLENGE (transient status only) -->
+              <!-- ▸ THEME INJECTION POINT: CHALLENGE (transient hit/miss status only) -->
               <div class="race-status" id="challengePrompt"></div>
-              <div class="active-cmd">Unit <b id="hudUnit">—</b> ·
-                <span class="live" id="cmdAP">AP</span>
-                <span id="cmdENP">ENP</span>
-                <span id="cmdBSE">BSE</span>
-              </div>
+              <div class="active-cmd">UNIT <b id="hudUnit">—</b></div>
               <!-- ▸ THEME INJECTION POINT: COMMAND UI -->
               <div class="command-box">
                 <span class="prompt">&gt;</span>
@@ -146,35 +239,40 @@
               </div>
             </div>
           </div>
+
+          <!-- CRT scanline + vignette for the race view -->
+          <div class="rv-scan" aria-hidden="true"></div>
         </div>
 
-        <!-- side column: the region map is now the CHALLENGE (lights current + next
-             base), over the speed gauge + car gauges -->
+        <!-- side column: minimap is the CHALLENGE (lights current + next base),
+             over the speed bar + tire/fuel gauges -->
         <div class="side-col">
           <!-- ▸ THEME INJECTION POINT: region minimap (challenge) -->
           <div class="minimap">
-            <div class="minimap-title">CHALLENGE · next base</div>
+            <div class="minimap-title">CHALLENGE · NEXT BASE</div>
             <div class="map-target" id="mapTarget"></div>
             <svg id="regionMap" viewBox="0 0 100 80" preserveAspectRatio="xMidYMid meet"></svg>
           </div>
           <div class="gauges">
             <div class="speed-gauge">
-              <div class="gauge-label">Speed <span class="wpm-read" id="hudWpm">— wpm</span></div>
+              <div class="gauge-label">SPEED <span class="wpm-read js-wpm">— wpm</span></div>
               <div class="speedbar"><span id="speedFill"></span><i class="tick t50"></i></div>
               <div class="speed-scale"><span>0</span><span>50</span><span>100</span></div>
             </div>
             <div>
               <div class="gauge-label">Tires</div>
-              <div class="tires">
-                <div class="tire">FL</div><div class="tire">FR</div>
-                <div class="tire">RL</div><div class="tire">RR</div>
+              <div class="tires" id="hudTires">
+                <div class="tire-cell"><span class="tc-lab">FL</span><span class="tc-wear">OK</span></div>
+                <div class="tire-cell"><span class="tc-lab">FR</span><span class="tc-wear">OK</span></div>
+                <div class="tire-cell"><span class="tc-lab">RL</span><span class="tc-wear">OK</span></div>
+                <div class="tire-cell"><span class="tc-lab">RR</span><span class="tc-wear">OK</span></div>
               </div>
             </div>
             <div>
               <div class="gauge-label">Fuel</div>
               <div class="bar fuel"><span></span></div>
             </div>
-            <div class="pit-indicator" id="pitIndicator">PIT: Fleet (72123) — n/a</div>
+            <div class="pit-indicator" id="pitIndicator">PIT · FLEET (72123) — type <b>LA</b> to peel off</div>
             <div class="map-legend" id="gameLegend"></div>
           </div>
         </div>
@@ -199,6 +297,72 @@
     </div>
   </section>
 
+  <!-- =========================== PIT STOP (preview) =====================
+       Visual/preview screen implemented from design §03 (the namesake moment).
+       Reachable via the Developer screen-jump panel. NOT wired into the live
+       race — the pit/tire/fuel consequence layer is authorized separately
+       (Pitstop_Design_Note.md §10). Shown as a look-and-feel target. -->
+  <section id="pitScreen" class="screen pit-screen">
+    <div class="pit-wrap">
+      <div class="caution-band top"></div>
+      <div class="caution-band bottom"></div>
+      <div class="pit-cols">
+        <!-- left: the car in the box + crew -->
+        <div class="pit-left">
+          <div class="pit-title">⚑ PIT LANE — WESTWOOD</div>
+          <div class="pit-sub">Unit 2101 in the box · clear the damage before the clock runs</div>
+          <div class="pit-box">
+            <div class="pit-box-lines"></div>
+            <div class="pit-car">
+              <div class="pit-car-body"></div>
+              <div class="pit-car-stripe"></div>
+              <div class="pit-car-num">01</div>
+              <div class="pit-tire tl pulse"></div>
+              <div class="pit-tire tr"></div>
+              <div class="pit-tire bl"></div>
+              <div class="pit-tire br pulse"></div>
+              <div class="pit-spark"></div>
+            </div>
+          </div>
+        </div>
+        <!-- right: swap panel -->
+        <div class="pit-right">
+          <div class="pit-clock-row">
+            <span class="pit-clock-lab">PIT CLOCK</span>
+            <span class="pit-clock-val">00:07</span>
+          </div>
+          <div class="pit-damage">
+            <div class="pd-title">DAMAGE REPORT</div>
+            <div class="pd-row blown">
+              <span class="pd-lab">FL</span>
+              <div class="pd-bar"><span style="width:18%"></span></div>
+              <span class="pd-stat">BLOWN</span>
+            </div>
+            <div class="pd-row worn">
+              <span class="pd-lab">RR</span>
+              <div class="pd-bar"><span style="width:44%"></span></div>
+              <span class="pd-stat">WORN</span>
+            </div>
+            <div class="pd-row ok">
+              <span class="pd-lab">FR</span>
+              <div class="pd-bar"><span style="width:88%"></span></div>
+              <span class="pd-stat">OK</span>
+            </div>
+          </div>
+          <div class="pit-swap">
+            <div class="swap-hint">Type <span class="swap-cmd">SWAP FL</span> to fit fresh rubber</div>
+            <div class="swap-box"><span class="prompt">&gt;</span><span class="swap-typed">SWAP FL<i class="caret">▋</i></span></div>
+          </div>
+          <div class="pit-rejoin">↵ then <b>LA</b> to rejoin the course · the car never fully stops</div>
+        </div>
+      </div>
+      <div class="crt-scan"></div>
+    </div>
+    <div class="menu-list" style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);min-width:auto;flex-direction:row;gap:12px;">
+      <button class="btn small" data-action="goto" data-target="gameScreen" data-primary>◀ Back to Race</button>
+    </div>
+  </section>
+
   <!-- ===== Overlays ===== -->
   <div id="pauseOverlay" class="overlay">
     <h2>Paused</h2>
@@ -209,28 +373,35 @@
     </div>
   </div>
 
-  <!-- End / Podium (handoff §3) -->
-  <section id="endScreen" class="screen">
-    <h2>Race Result</h2>
+  <!-- End / Podium (design §04) -->
+  <section id="endScreen" class="screen end-screen">
+    <div class="finish-banner" aria-hidden="true"></div>
+    <div class="finish-title">FINISH!</div>
+    <div class="finish-stats" id="finishStats">P1 · —</div>
     <div class="podium">
-      <div class="step p2"><div class="pos">2</div></div>
-      <div class="step p1"><div class="pos">1</div></div>
-      <div class="step p3"><div class="pos">3</div></div>
+      <div class="pstep second">
+        <div class="pstep-name" id="podName2">—</div>
+        <div class="pstep-block"><span class="pstep-pos">2</span></div>
+      </div>
+      <div class="pstep first">
+        <div class="pstep-name you">YOU</div>
+        <div class="pstep-block"><span class="pstep-pos">1</span></div>
+      </div>
+      <div class="pstep third">
+        <div class="pstep-name" id="podName3">—</div>
+        <div class="pstep-block"><span class="pstep-pos">3</span></div>
+      </div>
     </div>
-    <div class="panel results" style="max-width:560px;">
-      <table class="cmd-table">
-        <thead><tr><th>Pos</th><th>Racer</th><th>Lap Time</th><th>Penalties</th><th>Tire/Fuel</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-          <tr><td>2</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-          <tr><td>3</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        </tbody>
-      </table>
-      <p class="note">Results table is a Phase 0 placeholder.</p>
+    <div class="result-chips">
+      <div class="rchip">LEGS <b id="chipLegs">—</b></div>
+      <div class="rchip">PENALTIES <b class="amber" id="chipPen">0</b></div>
+      <div class="rchip">PIT STOPS <b class="white" id="chipPits">0</b></div>
     </div>
-    <div class="menu-list" style="min-width:auto;">
-      <button class="btn" data-action="goto" data-target="menuScreen" data-primary>Main Menu</button>
+    <div class="menu-list" style="min-width:auto;flex-direction:row;gap:16px;margin-top:26px;">
+      <button class="btn press-start" data-action="goto" data-target="gridScreen" data-primary>↻ RACE AGAIN</button>
+      <button class="btn danger" data-action="goto" data-target="menuScreen">MAIN MENU</button>
     </div>
+    <div class="crt-scan"></div>
   </section>
 
   <!-- Cassette exit (return to Arcade) -->
@@ -257,11 +428,11 @@
 
 </div>
 
-<!-- Core modules load in order: config → data → audio → script (Build Procedure §3) -->
-<script src="core/config.js?v=0.7.1"></script>
-<script src="core/data.js?v=0.7.1"></script>
-<script src="core/shiftchange.js?v=0.7.1"></script>
-<script src="core/audio.js?v=0.7.1"></script>
-<script src="script.js?v=0.7.1"></script>
+<!-- Core modules load in order: config → data → shiftchange → audio → script (Build Procedure §3) -->
+<script src="core/config.js?v=0.9.4"></script>
+<script src="core/data.js?v=0.9.4"></script>
+<script src="core/shiftchange.js?v=0.9.4"></script>
+<script src="core/audio.js?v=0.9.4"></script>
+<script src="script.js?v=0.9.4"></script>
 </body>
 </html>

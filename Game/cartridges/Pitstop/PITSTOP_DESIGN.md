@@ -42,6 +42,128 @@ Leg loop, impulse movement, command validation wired to play, laps/timer logic, 
 
 ## Changelog — gameplay refinements
 
+**v0.9.4 (2026-07-15) — Gear-shifter box: next-gear shimmer + LA is grey-until-available.**
+Directly requested by Andrew.
+- **Next-gear shimmer** — the gear you should type next now gets a **cyan shimmer ring**
+  (echoes the minimap's cyan "next base" cue), while the current status stays the solid
+  green `.live`. `nextGearCode()` (`script.js`) picks it: normally the active beat; LA when
+  a Shift Change is armed after ENP; BSE while the board is open. Rendered as a `.next`
+  class toggled in `updateRaceHUD` (every frame). The shimmer rides a `::after`
+  pseudo-element so it never fights the `.flash` wrong-command flicker (`.gear.flash::after`
+  is hidden). Shimmer walks AP→ENP→BSE as each beat is cleared (AP shimmers at leg start).
+- **LA is grey, not white** — LA left the "always white outline" idle look; it now sits
+  **grey** (out of the normal AP→ENP→BSE rotation) and only lights up when it becomes
+  available: it **shimmers** as the next gear when a Shift Change makes LA the required
+  command, then glows **amber** (`.gear.la.live`) while the unit is actually in LA.
+- Cache-bust `?v=` 0.9.3 → 0.9.4; config version + stamps updated.
+
+**v0.9.3 (2026-07-15) — Curve-engine fix: the road surface now turns with its lines.**
+Andrew: the car + red/white rumble lines were leaning into the bend but the grey road
+surface stayed a straight trapezoid, so the edges detached from the tarmac.
+- **Root cause:** the `--road-curve` skew was applied to `.rv-rumble` + `.rv-center` but
+  NOT `.rv-road`. The tarmac and its rumble/centre lines are ONE trapezoid — they must
+  share the skew or they separate.
+- **Fix (`style.css`):** added `.rv-road` to the skew rule (same `transform-origin`), so
+  the whole road assembly banks together. Skew + the `background-position` scroll don't
+  conflict. Applies to BOTH looks (dark + OutRun). Cache-bust `?v=` 0.9.2 → 0.9.3.
+
+**v0.9.2 (2026-07-15) — Selectable RACE LOOK: sunny "OutRun" road skin (design §1a).**
+Implemented from Andrew's Claude Design file *"Pitstop Arcade.dc.html"* (§1a, re-imported
+via the claude_design MCP). Adds the design's bright OutRun *exploration* as an **alternate,
+non-destructive race look** — the dark green-phosphor CRT road stays the DEFAULT. Directly
+scoped with Andrew (add-as-skin, generic sprite set).
+- **New Race Option `Race Look` (`raceLook`: `dark` | `outrun`)** — `config.js`
+  (`RACE_OPTIONS.defaults` + schema). Renders as a DARK/OUTRUN dropdown via the generic
+  options path; default `dark`.
+- **`applyRaceLook()` (`script.js`)** toggles `.look-outrun` on `#roadView` at game-screen
+  show, reading `raceOptions.raceLook`. Purely a class flip.
+- **OutRun skin (`style.css` · `.road-view.look-outrun`)** re-skins the road scene's PALETTE
+  only: bright sky warming to a hazy horizon, **banded OutRun sun**, a Niagara **escarpment**
+  silhouette on the horizon, alternating light/dark **grass + tarmac scanline bands** (new
+  `ps-orsun`/`ps-orgrass`/`ps-orroad` keyframes), the passing sign restyled as an OutRun
+  **billboard**, brightened flying scenery, and a **soft vignette** in place of the heavy CRT
+  scanlines. The **curve engine** (`--road-curve`) and **speed reactivity** (`--road-spd`)
+  are palette-independent, so road bending + car banking keep working under both looks.
+- **Scope (this pass):** GENERIC OutRun sprite set — **per-municipality scenery swaps** (NOTL
+  vineyards / St Catharines skyline / West Lincoln farmland) DEFERRED. The top HUD strip +
+  side column stay dark under both looks (the skin is the road view).
+- Cache-bust `?v=` 0.9.1 → 0.9.2; config version + visible stamps updated. Verified live in
+  browser: DARK/OUTRUN dropdown → `raceLook` stored → `#roadView.look-outrun` toggles; both
+  looks render; curve/car/HUD/side-column intact; no console errors.
+
+**v0.9.1 (2026-07-14) — Gear-shifter box: status semantics + wrong-command flash.**
+Directly requested by Andrew (correction to the v0.9.0 gear box).
+- **The gear box now lights the CURRENT status = the last command entered
+  CORRECTLY** (like the gear a car is in), not the pending/next beat. At the
+  start of a leg **nothing is lit**; AP lights once AP posts correctly, ENP once
+  en route, LA during a Shift Change, BSE on arrival. Only one gear at a time
+  (`race.gear`, set on a validated `hit`; reset to `null` each leg).
+- **Wrong-command cue:** entering the wrong next command (e.g. wrong unit on the
+  AP beat, wrong unit/base on ENP) **flickers that gear red↔green 3× quickly**
+  (`flashGear()` + `@keyframes gearFlash`). The command box still flashes red too;
+  the lit status gear is unaffected by the flicker.
+- Cache-bust `?v=` 0.9.0 → 0.9.1; config version + stamps updated. Verified
+  end-to-end headless: start=none-lit, correct AP → AP lit only, wrong ENP →
+  ENP flickers while AP stays lit.
+
+**v0.9.0 (2026-07-14) — Arcade reskin (design "Pitstop Arcade.dc.html").**
+Implemented from Andrew's Claude Design mock (project *Pitstop PLC fine tuning*,
+imported via the claude_design MCP). **Theme layer only** — no gated gameplay
+(the veer→collision→damage combat model in `Pitstop_Design_Note.md` stays gated
+pending its Overview clause; opponents/pit-wear remain unwired).
+- **Type:** added `Press Start 2P` (pixel) + `Share Tech Mono` (Google Fonts,
+  Courier fallback). New `--font-pixel` / `--font-mono` vars; `--font` → mono.
+- **Title (§01):** animated checkered flag bands, glowing pixel `PITSTOP`,
+  `NEMS 500`, chevron backdrop, CRT scanlines — and the **locked tagline**
+  *"Type fast and risk the wall. Type clean and bleed the speed."*
+  (`Pitstop_Design_Note.md` §0, must-have).
+- **Race HUD (§02) — the hero.** Retired the procedural **SVG** road for a
+  **CSS perspective road**: sky/sun/clouds/green land, asphalt trapezoid,
+  red-white rumble strips, dashed centre line, side chevrons, flying roadside
+  scenery, a passing road sign (points at the next base), and a detailed CSS
+  **car** (white body, blue + green trim, unit number, tinted per selected unit).
+  Scroll speed reacts to `race.speed` via the `--road-spd` custom property
+  (`updateRoad`). Dashboard is now pixel **HUD pods** (LAP green · TIME blue ·
+  LEG amber · SPEED **KM/H** red-orange with WPM sublabel) + checkered accent +
+  racing PAUSE. New left **gear-shifter box** — `AP / ENP / LA / BSE` light by
+  unit status (LA glows during a Shift Change; BSE dark until it clears). Side
+  column keeps the minimap-as-challenge + 0-50-100 speed bar + tire grid + fuel +
+  pit indicator, restyled. Per-view CRT scanline/vignette overlay.
+- **Finish (§04):** checkered banner, `FINISH!`, real stats line + result chips
+  (legs from the race; place/penalties/pit-stops placeholder), podium with
+  **YOU = 1st**, `↻ RACE AGAIN` / `MAIN MENU` wired.
+- **Pit Stop (§03):** new **preview** screen (`#pitScreen`, reachable via the Dev
+  screen-jump) — caution stripes, car-in-box with pulsing damaged tires + spark
+  FX, PIT CLOCK, DAMAGE REPORT, `SWAP FL` box, "then LA to rejoin". **Not wired**
+  into the live race (pit/tire/fuel consequence layer authorized separately).
+- **Tire-damage (§05):** render-only. One integer `tire_health` (0–10) maps via
+  `CFG.TIRE` → `deriveTire()` to the in-race tire grid (Fresh/Worn/Warning/
+  Critical/Burst). No wear is computed or stored (gated); defaults fresh.
+  `PITSTOP_DEBUG.setTire(0..10)` previews the stages.
+- Cache-bust `?v=` 0.8.0 → 0.9.0; config version + visible stamps updated. All
+  script-referenced ids preserved; the race loop / Shift Change engine untouched.
+
+**v0.8.0 (2026-07-14) — Player-selectable Unit (replaces the Car option).**
+Directly requested by Andrew.
+- **You now PICK which unit you drive.** The old inert **Car** option
+  (rookie/balanced/sprinter) is retired from Race Options and replaced by a **Unit**
+  picker: 5 real roster units to start ("off the top of my head"). The chosen unit
+  drives the race (`pickUnit()` now reads `state.raceOptions.unit`; it was hardcoded
+  to `2101`). Config: `SELECTABLE_UNITS` in `config.js`.
+- **Number-key hotkeys, balanced across the top row (Andrew's "divide the keyboard
+  up" call).** Each unit maps to a top-row number key, spread **1 · 3 · 5 · 7 · 9**
+  (not 1-2-3-4-5) so the reach is even. Press the key on Race Options (or click the
+  chip) to select; hotkeys are ignored while typing in a field. The 5 ids
+  (`2107 2138 2045 2396 2523`) also happen to exercise every digit 0-9 when typed,
+  which matters since you type the unit constantly in-race.
+- **Groundwork for "a different looking race car."** Each unit carries a placeholder
+  `tint`; today it colours the picker chip's car swatch + the in-race map marker so
+  units already look distinct. The real per-unit sprites drop in later
+  (`SELECTABLE_UNITS[].tint → sprite`) — NOT built yet, per "when we get there."
+- `CAR_TYPES` kept in `config.js` as a gated placeholder (a possible future
+  stats axis) but no longer surfaced. Cache-bust `?v=` 0.7.1 → 0.8.0; stamps + config
+  version updated.
+
 **v0.7.0 (2026-07-12) — Pit lane at start/finish, course/position fixes, map-as-
 challenge, speed/WPM model.** All directly requested by Andrew.
 - **Pit lane now branches around the START/FINISH base** (Linwell on Niagara Loop),

@@ -22,7 +22,7 @@
   const AUDIO = window.AudioManager || { play: function () {}, init: function () {}, resume: function () {} };
 
   const SCREENS = ['bootScreen','titleScreen','menuScreen','instructionsScreen',
-                   'optionsScreen','gridScreen','gameScreen','endScreen'];
+                   'optionsScreen','gridScreen','gameScreen','pitScreen','endScreen'];
 
   // ---- de-facto state (mode flags + nav), mirrors the PLC convention --------
   const state = {
@@ -55,7 +55,8 @@
                  // due this leg; open = the box is up; cleared = it's been resolved.
                  shift: { armed: false, slot: null, box: null, open: false, cleared: false } };
   let shiftClockTimer = 0, shiftClockLast = 0;
-  const road = { phase: 0 };   // scroll phase for the procedural road POV
+  const road = { phase: 0, spd: -1, curve: 0, dist: 0 };   // spd = --road-spd; curve = live bend (-1..1); dist = curve-gen travel
+  const carSprite = { unitId: null, ready: false, frame: null, base: null };  // OutRun per-unit sprite state
 
   /* ---- Screen router ------------------------------------------------------ */
   function showScreen(id) {
@@ -66,7 +67,7 @@
     state.currentScreen = id;
     if (id !== 'gameScreen') stopRace();
     if (id === 'gridScreen') renderMap('gridMap');
-    if (id === 'gameScreen') { renderRoad(); renderMap('regionMap'); startRace(); }
+    if (id === 'gameScreen') { applyRaceLook(); renderRoad(); renderMap('regionMap'); startRace(); }
     focusPrimary(id);
   }
 
@@ -150,6 +151,41 @@
       label.textContent = opt.label;
       row.appendChild(label);
 
+      // Unit picker — replaces the old Car dropdown. A row of chips, one per
+      // SELECTABLE_UNIT, each tagged with its top-row number-key hotkey
+      // (spread 1·3·5·7·9). Click a chip or press its number to pick. Each
+      // chip's tint is a placeholder for the unit's future distinct car sprite.
+      if (opt.control === 'unitpick') {
+        row.classList.add('unit-row');
+        const hint = document.createElement('div');
+        hint.className = 'unit-hint';
+        hint.textContent = 'press  1 · 3 · 5 · 7 · 9  (or click) — each unit is a different car';
+        const pick = document.createElement('div');
+        pick.className = 'unit-pick';
+        (CFG.SELECTABLE_UNITS || []).forEach(function (u) {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'unit-chip' + (state.raceOptions.unit === u.id ? ' sel' : '');
+          chip.setAttribute('data-unit', u.id);
+          chip.setAttribute('data-hotkey', u.hotkey);
+          chip.innerHTML =
+            '<span class="chip-key">' + u.hotkey + '</span>' +
+            '<span class="chip-car" style="--tint:' + u.tint + '"></span>' +
+            '<span class="chip-id">' + u.id + '</span>';
+          chip.addEventListener('click', function () { selectUnit(u.id); });
+          pick.appendChild(chip);
+        });
+        const detail = document.createElement('div');
+        detail.className = 'unit-detail';
+        detail.id = 'unitDetail';
+        row.appendChild(hint);
+        row.appendChild(pick);
+        row.appendChild(detail);
+        grid.appendChild(row);
+        renderUnitDetail(state.raceOptions.unit);   // fill the card for the current pick
+        return;   // skip the generic <select>/<input> path
+      }
+
       let ctrl;
       if (opt.type === 'int') {
         ctrl = document.createElement('input');
@@ -194,6 +230,116 @@
       row.appendChild(ctrl);
       grid.appendChild(row);
     });
+  }
+
+  // Player picks which unit (truck) they drive — replaces the old Car option.
+  // Called by a chip click and by the number-key hotkeys (1·3·5·7·9). Only
+  // updates state + the chip highlight here; pickUnit() reads
+  // state.raceOptions.unit when the race actually starts.
+  function selectUnit(id) {
+    const units = (CFG.SELECTABLE_UNITS || []);
+    if (!units.some(function (u) { return u.id === id; })) return;
+    state.raceOptions.unit = id;
+    const chips = document.querySelectorAll('#optionsGrid .unit-chip');
+    Array.prototype.forEach.call(chips, function (c) {
+      c.classList.toggle('sel', c.getAttribute('data-unit') === id);
+    });
+    renderUnitDetail(id);            // refresh the car / stats / pros-cons card
+    AUDIO.play('select');
+  }
+
+  // ---- Unit detail card (Race Options) --------------------------------------
+  // Shows the picked unit's car art, class, one-line blurb, SPEED/CONTROL meters,
+  // a telemetry-style performance curve and pros/cons, so a player can see WHY to
+  // choose each unit. Rebuilt on every selectUnit() (chip click or number hotkey).
+  function unitById(id) {
+    const units = (CFG.SELECTABLE_UNITS || []);
+    for (let i = 0; i < units.length; i++) if (units[i].id === id) return units[i];
+    return units[0] || null;
+  }
+
+  // A technical "speed vs control" performance curve as inline SVG. The trace
+  // RISES like an acceleration curve — steeper + higher = more SPEED — then takes
+  // a recovery DIP partway: the deeper the dip, the LESS handling (a miss costs
+  // more speed). So the shape encodes both stats AND the real miss mechanic.
+  function telemetrySVG(u, tint) {
+    const s = (u.stats && u.stats.speed) || 5, h = (u.stats && u.stats.handling) || 5;
+    const sp = s / 10, hp = h / 10;
+    const W = 300, H = 132, ML = 30, MR = 12, MT = 12, MB = 24;
+    const pw = W - ML - MR, ph = H - MT - MB, base = MT + ph;
+    const ceiling = 0.30 + 0.62 * sp;                 // top-speed plateau (fraction of ph)
+    const riseK = 3 + 6 * sp;                          // how fast the trace climbs
+    const x0 = 0.42, dw = 0.11, depth = ceiling * (1 - hp) * 0.72;  // the miss dip
+    const N = 48, pts = [];
+    let dipPx = ML, dipPy = base;
+    for (let i = 0; i <= N; i++) {
+      const x = i / N;
+      const accel = ceiling * (1 - Math.exp(-riseK * x));
+      const dip = depth * Math.exp(-Math.pow((x - x0) / dw, 2));
+      const y = Math.max(0, accel - dip);
+      const px = ML + x * pw, py = base - y * ph;
+      pts.push(px.toFixed(1) + ' ' + py.toFixed(1));
+      if (Math.abs(x - x0) <= 0.5 / N) { dipPx = px; dipPy = py; }
+    }
+    const line = 'M' + pts.join(' L');
+    const area = line + ' L' + (ML + pw).toFixed(1) + ' ' + base + ' L' + ML + ' ' + base + ' Z';
+    const ceilY = (base - ceiling * ph).toFixed(1);
+    let grid = '';
+    for (let g = 1; g < 4; g++) { const gx = (ML + g / 4 * pw).toFixed(1); grid += '<line x1="' + gx + '" y1="' + MT + '" x2="' + gx + '" y2="' + base + '" class="g-grid"/>'; }
+    for (let g = 1; g < 3; g++) { const gy = (MT + g / 3 * ph).toFixed(1); grid += '<line x1="' + ML + '" y1="' + gy + '" x2="' + (ML + pw) + '" y2="' + gy + '" class="g-grid"/>'; }
+    return '' +
+      '<svg class="ud-graph" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + u.id + ' performance curve">' +
+      '<rect x="' + ML + '" y="' + MT + '" width="' + pw + '" height="' + ph + '" class="g-frame"/>' + grid +
+      '<line x1="' + ML + '" y1="' + ceilY + '" x2="' + (ML + pw) + '" y2="' + ceilY + '" class="g-ceil"/>' +
+      '<path d="' + area + '" class="g-area" style="fill:' + tint + '"/>' +
+      '<path d="' + line + '" class="g-line" style="stroke:' + tint + ';color:' + tint + '"/>' +
+      '<circle cx="' + dipPx.toFixed(1) + '" cy="' + dipPy.toFixed(1) + '" r="3" class="g-dip"/>' +
+      '<text x="' + ML + '" y="' + (MT - 3) + '" class="g-lab">SPEED</text>' +
+      '<text x="' + (ML + pw) + '" y="' + (H - 6) + '" class="g-lab" text-anchor="end">LEG DISTANCE ▸</text>' +
+      '<text x="' + Math.min(ML + pw - 2, dipPx + 5).toFixed(1) + '" y="' + (dipPy - 6).toFixed(1) + '" class="g-lab g-miss">MISS</text>' +
+      '</svg>';
+  }
+
+  function meterHTML(label, val) {
+    const pct = Math.max(0, Math.min(10, val)) * 10;
+    return '<div class="ud-meter"><span class="m-lab">' + label + '</span>' +
+      '<span class="m-bar"><span class="m-fill" style="width:' + pct + '%"></span></span>' +
+      '<span class="m-val">' + val + '<i>/10</i></span></div>';
+  }
+  function listHTML(items, cls) {
+    return '<ul class="' + cls + '">' + (items || []).map(function (t) {
+      return '<li><span class="mk"></span>' + t + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  function renderUnitDetail(id) {
+    const box = document.getElementById('unitDetail');
+    if (!box) return;
+    const u = unitById(id);
+    if (!u) { box.innerHTML = ''; return; }
+    const tint = u.tint || '#39ff14';
+    const s = (u.stats && u.stats.speed) || 5, h = (u.stats && u.stats.handling) || 5;
+    const carSrc = (CFG.CARS && CFG.CARS.path ? CFG.CARS.path : 'assets/cars/') + u.id + '_c.png';
+    box.style.setProperty('--tint', tint);
+    box.innerHTML = '' +
+      '<div class="ud-left">' +
+        '<div class="ud-car">' +
+          '<span class="ud-badge">' + u.id + '</span>' +
+          '<img class="ud-img" src="' + carSrc + '" alt="Unit ' + u.id + ' car" ' +
+               'onerror="this.remove();this.closest(\'.ud-car\').classList.add(\'no-art\');">' +
+        '</div>' +
+        '<div class="ud-meters">' + meterHTML('SPEED', s) + meterHTML('CONTROL', h) + '</div>' +
+      '</div>' +
+      '<div class="ud-right">' +
+        '<div class="ud-head"><span class="ud-id">UNIT ' + u.id + '</span>' +
+          '<span class="ud-cls">' + (u.cls || '') + '</span></div>' +
+        '<p class="ud-blurb">' + (u.blurb || '') + '</p>' +
+        telemetrySVG(u, tint) +
+        '<div class="ud-lists">' +
+          '<div class="ud-col"><h4 class="ud-h ok">STRENGTHS</h4>' + listHTML(u.pros, 'ud-pros') + '</div>' +
+          '<div class="ud-col"><h4 class="ud-h no">WEAKNESSES</h4>' + listHTML(u.cons, 'ud-cons') + '</div>' +
+        '</div>' +
+      '</div>';
   }
 
   // Draw the active COURSE into an <svg>: only the course's bases (≤5), the
@@ -386,47 +532,123 @@
     });
   }
 
-  /* ---- Road POV (main play surface) --------------------------------------
-   * A procedural vector road that scrolls with speed — the primary surface now
-   * that the map is a side minimap. Drop real art into CFG.ROAD_VIEW.image and
-   * this uses it instead. The car never fully stops, so the road always drifts. */
-  const ROAD = { HZ: 38, apex: 50, apexHalf: 1.6, baseHalf: 62, rungs: 14, speedK: 6 };
-
-  function drawRoad() {
-    const svg = document.getElementById('roadSvg');
-    if (!svg) return;
-    const art = (CFG.ROAD_VIEW || {}).image;
-    if (art) { svg.innerHTML = '<image href="' + art + '" x="0" y="0" width="100" height="100" preserveAspectRatio="none"/>'; return; }
-    const R = ROAD, ph = road.phase;
-    let h = '<rect class="road-ground" x="0" y="' + R.HZ + '" width="100" height="' + (100 - R.HZ) + '"/>';
-    // road surface trapezoid (narrow at horizon, wide at the bottom)
-    h += '<polygon class="road-surface" points="' +
-         (R.apex - R.apexHalf) + ',' + R.HZ + ' ' + (R.apex + R.apexHalf) + ',' + R.HZ + ' ' +
-         (R.apex + R.baseHalf) + ',100 ' + (R.apex - R.baseHalf) + ',100"/>';
-    // perspective rungs flowing toward the viewer + centre dashes
-    for (let i = 0; i < R.rungs; i++) {
-      const d = ((i + ph) % R.rungs) / R.rungs;       // 0 (far) .. 1 (near)
-      const dd = d * d;                                // bunch detail near the horizon
-      const y = R.HZ + (100 - R.HZ) * dd;
-      const half = R.apexHalf + (R.baseHalf - R.apexHalf) * dd;
-      const cls = (Math.floor(i + ph) % 2 === 0) ? 'road-rung a' : 'road-rung b';
-      h += '<rect class="' + cls + '" x="' + (R.apex - half).toFixed(1) + '" y="' + y.toFixed(1) +
-           '" width="' + (half * 2).toFixed(1) + '" height="' + Math.max(0.5, y * 0.02).toFixed(1) + '"/>';
-      const cw = 0.4 + dd * 2.4;
-      h += '<rect class="road-center" x="' + (R.apex - cw / 2).toFixed(1) + '" y="' + y.toFixed(1) +
-           '" width="' + cw.toFixed(1) + '" height="' + Math.max(0.7, y * 0.03).toFixed(1) + '"/>';
-    }
-    // edges + horizon
-    h += '<line class="road-edge" x1="' + (R.apex - R.apexHalf) + '" y1="' + R.HZ + '" x2="' + (R.apex - R.baseHalf) + '" y2="100"/>';
-    h += '<line class="road-edge" x1="' + (R.apex + R.apexHalf) + '" y1="' + R.HZ + '" x2="' + (R.apex + R.baseHalf) + '" y2="100"/>';
-    h += '<line class="road-horizon" x1="0" y1="' + R.HZ + '" x2="100" y2="' + R.HZ + '"/>';
-    svg.innerHTML = h;
+  /* ---- Road POV (main play surface) — CSS perspective road ----------------
+   * The design (Pitstop Arcade.dc.html §02) renders the road as CSS layers
+   * (sky / sun / clouds / asphalt trapezoid / rumble strips / centre line /
+   * chevrons / flying scenery / passing sign / the car), animated via keyframes
+   * in style.css. Their scroll speed is scaled by the --road-spd custom property
+   * on #roadView, which we set from race.speed so the world flows faster the
+   * faster you're going. The old procedural SVG road is retired (#roadSvg gone).
+   * A future looping road IMAGE can still swap in via CFG.ROAD_VIEW.image. */
+  function setRoadSign(text) {
+    const el = document.getElementById('roadSignText');
+    if (el) el.textContent = text || '';
+  }
+  function setCarUnit(id) {
+    const el = document.getElementById('carUnit');
+    if (el) el.textContent = id || '—';
+  }
+  // Speed → animation-duration multiplier: faster speed → smaller multiplier →
+  // quicker scroll. Quantized to 0.05 so we only poke the CSS var when it
+  // meaningfully changes (updating animation-duration every frame would churn).
+  function roadSpeedMult() {
+    const eff = Math.min((SP.max || 100), race.speed || (SP.base || 25));
+    const m = Math.max(0.45, Math.min(1.5, 1.5 - eff / 90));
+    return Math.round(m * 20) / 20;
+  }
+  function applyRoadSpeed() {
+    const rv = document.getElementById('roadView');
+    if (!rv) return;
+    const m = roadSpeedMult();
+    if (m !== road.spd) { road.spd = m; rv.style.setProperty('--road-spd', String(m)); }
   }
 
-  function renderRoad() { drawRoad(); }
+  /* ---- OutRun curve engine (Andrew, 2026-07-15) ---------------------------
+   * The road bends as you travel and the car banks into it. curveAt() shapes a
+   * smooth summed-sine bend from cumulative travel; updateRoad eases the live
+   * curve toward it, pushes it to CSS (--road-curve), and steers the car. The
+   * car uses real PNG frames when a unit's sprites load, else the div-car
+   * fake-leans (Pitstop_Car_Sprite_Brief.md). */
+  function curveAt(d) {
+    const A = CFG.ROAD_CURVE || {};
+    const a1 = A.amp1 != null ? A.amp1 : 0.7, f1 = A.freq1 != null ? A.freq1 : 0.9;
+    const a2 = A.amp2 != null ? A.amp2 : 0.3, f2 = A.freq2 != null ? A.freq2 : 2.3;
+    const v = a1 * Math.sin(d * f1) + a2 * Math.sin(d * f2 + 1.3);
+    return Math.max(-1, Math.min(1, v));
+  }
+  // Try to load a unit's 3 sprite frames; if all resolve, switch the car to
+  // sprite mode. On any 404 we stay in placeholder mode (div-car). No flag flip.
+  function ensureCarSprites(unitId) {
+    const CARS = CFG.CARS || {};
+    if (!CARS.enabled || !unitId || carSprite.unitId === unitId) return;
+    carSprite.unitId = unitId; carSprite.ready = false; carSprite.frame = null;
+    const car = document.getElementById('raceCar');
+    if (car) car.classList.remove('sprite-mode');
+    const base = (CARS.path || 'assets/cars/') + unitId + '_';
+    const frames = ['c', 'r1', 'r2'];
+    let loaded = 0, failed = false;
+    frames.forEach(function (f) {
+      const img = new Image();
+      img.onload = function () {
+        if (failed || carSprite.unitId !== unitId) return;
+        if (++loaded === frames.length) { carSprite.ready = true; carSprite.base = base; enterSpriteMode(); }
+      };
+      img.onerror = function () { failed = true; };   // unit has no art yet → placeholder stays
+      img.src = base + f + '.png';
+    });
+  }
+  function enterSpriteMode() {
+    const car = document.getElementById('raceCar');
+    if (!car) return;
+    car.classList.add('sprite-mode');
+    setCarFrame('c', 1);
+  }
+  function setCarFrame(frame, dir) {
+    const car = document.getElementById('raceCar');
+    if (!car || !carSprite.ready) return;
+    if (carSprite.frame !== frame) {
+      carSprite.frame = frame;
+      car.style.setProperty('--car-frame', 'url("' + carSprite.base + frame + '.png")');
+    }
+    car.style.setProperty('--car-mirror', String(dir));
+  }
+  // Steer the car from the live curve: sprite mode picks a frame + mirror (the
+  // frame carries the lean); placeholder mode fakes the lean with a rotation.
+  function applyCarSteer(curve) {
+    const car = document.getElementById('raceCar');
+    if (!car) return;
+    const A = CFG.ROAD_CURVE || {};
+    const steer = Math.max(-1, Math.min(1, curve || 0));
+    car.style.setProperty('--car-steer', steer.toFixed(3));
+    if (carSprite.ready) {
+      const mag = Math.abs(steer), th = A.frameThresholds || [0.18, 0.5];
+      setCarFrame(mag < th[0] ? 'c' : (mag < th[1] ? 'r1' : 'r2'), steer < 0 ? -1 : 1);
+      car.style.setProperty('--car-lean', '0');
+    } else {
+      car.style.setProperty('--car-mirror', '1');
+      car.style.setProperty('--car-lean', (steer * (A.placeholderLeanDeg != null ? A.placeholderLeanDeg : 8)).toFixed(2));
+    }
+  }
+  function renderRoad() { setCarUnit(race.unitId); ensureCarSprites(race.unitId); applyRoadSpeed(); applyCarSteer(road.curve); }
+  // RACE LOOK skin — swap the road scene between the dark green-phosphor CRT
+  // (default) and the sunny OutRun palette (design §1a). Purely a class toggle on
+  // #roadView; the curve engine (--road-curve) and speed reactivity (--road-spd)
+  // are palette-independent, so bending + car banking keep working under both.
+  function applyRaceLook() {
+    const rv = document.getElementById('roadView');
+    if (!rv) return;
+    const look = (state.raceOptions && state.raceOptions.raceLook) || 'dark';
+    rv.classList.toggle('look-outrun', look === 'outrun');
+  }
   function updateRoad(dt, v) {
-    road.phase = (road.phase + (v || 0) * dt * ROAD.speedK) % (ROAD.rungs * 2);
-    drawRoad();
+    applyRoadSpeed();
+    const A = CFG.ROAD_CURVE || {};
+    road.dist += (v || 0) * dt * (A.rate != null ? A.rate : 6);
+    const target = curveAt(road.dist);
+    road.curve += (target - road.curve) * Math.min(1, dt * (A.ease != null ? A.ease : 3));
+    const rv = document.getElementById('roadView');
+    if (rv) rv.style.setProperty('--road-curve', road.curve.toFixed(3));
+    applyCarSteer(road.curve);
   }
 
   /* ===================== PHASE 1 — single-leg race loop ====================
@@ -436,8 +658,59 @@
    * sputters (momentum loss); a beat typed before its gate is a harmless no-op.
    * No laps / opponents / pit yet (those are Slices 2–3). */
   function pickUnit() {
+    const sel = state.raceOptions && state.raceOptions.unit;
+    if (sel) return sel;                                       // player's Race Options pick wins
     const u = (DATAMOD.DATA && DATAMOD.DATA.units) || [];
     return u.indexOf('2101') >= 0 ? '2101' : (u[0] || '2101');
+  }
+
+  // Placeholder for the future distinct car sprites: tint the map marker with the
+  // selected unit's colour so each unit already LOOKS different today. The real
+  // per-unit race-car art drops in later (config SELECTABLE_UNITS[].tint → sprite).
+  function unitTint(id) {
+    const units = (CFG.SELECTABLE_UNITS || []);
+    for (let i = 0; i < units.length; i++) if (units[i].id === id) return units[i].tint;
+    return null;
+  }
+  function applyUnitTint() {
+    const t = unitTint(race.unitId);
+    const m = document.getElementById('unitMarker');
+    if (m && t) { m.style.fill = t; m.style.stroke = t; }
+    // The car's green stripe + rear wing take the unit's tint so each unit's
+    // race car already looks distinct (placeholder for full per-unit sprites).
+    const car = document.getElementById('raceCar');
+    if (car && t) car.style.setProperty('--car-tint', t);
+  }
+
+  /* ---- Tire-damage RENDER model (design §05) ------------------------------
+   * RENDER-ONLY. Maps one integer tire_health (0–10) to a visual stage via the
+   * config table (CFG.TIRE). It does NOT compute or store wear — that
+   * consequence layer is gated (Pitstop_Design_Note.md §10). In-race we render
+   * the 2×2 side gauge from a single health value (default = fresh) so the
+   * cartridge already SHOWS the system; a wear source wires in when authorized. */
+  function deriveTire(h) {
+    const T = CFG.TIRE || {};
+    if (h <= 0) return T.burst || { stage: 'BURST' };
+    const stages = T.stages || [];
+    for (let i = 0; i < stages.length; i++) if (h >= stages[i].min) return stages[i];
+    return stages[stages.length - 1] || { stage: 'FRESH' };
+  }
+  // Render the four side-column tire cells from a single tire_health. Redundant
+  // cue: the wear TEXT and the cell colour class both track the stage.
+  function renderTireGauges(h) {
+    const cells = document.querySelectorAll('#hudTires .tire-cell');
+    if (!cells.length) return;
+    const stage = deriveTire(h).stage;
+    let cls = '', text = 'OK';
+    if (stage === 'WARNING')      { cls = 'worn'; text = 'WORN'; }
+    else if (stage === 'CRITICAL'){ cls = 'low';  text = 'LOW'; }
+    else if (stage === 'BURST')   { cls = 'low';  text = 'OUT'; }
+    Array.prototype.forEach.call(cells, function (c) {
+      c.classList.remove('worn', 'low');
+      if (cls) c.classList.add(cls);
+      const w = c.querySelector('.tc-wear');
+      if (w) w.textContent = text;
+    });
   }
 
   function nowMs() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
@@ -463,6 +736,7 @@
     if (!course || !DATAMOD.buildLeg || course.baseIds.length < 2) return;
     cancelAnimationFrame(race.raf);
     race.unitId = pickUnit();
+    applyUnitTint();                 // placeholder: colour the marker per selected unit
     race.stops = buildStops(course);
     // Laps: the player's Race Options control wins; fall back to the course's Laps.
     // Point-to-point is a single pass.
@@ -474,7 +748,12 @@
     race.shiftFired = false;
     race.hitBases = {};
     race.speed = SP.base != null ? SP.base : 25;   // gauge starts at idle base
-    race.hold = 0; race.wpm = 0;
+    race.hold = 0; race.wpm = 0; race.elapsed = 0; race.gear = null;   // no gear lit at the start
+    road.dist = 0; road.curve = 0;                  // fresh OutRun curve for this race
+    // Render-only tire health (design §05). Default fresh; no wear source is
+    // wired (gated) — the debug hook can set it to preview the other stages.
+    race.tireHealth = (CFG.TIRE && CFG.TIRE.demoHealth != null) ? CFG.TIRE.demoHealth : 10;
+    renderTireGauges(race.tireHealth);
     startLeg();
   }
 
@@ -489,10 +768,13 @@
     race.leg = DATAMOD.buildLeg(race.unitId, race.fromId, race.toId);
     if (!race.leg) return;
     race.pos = 0; race.last = 0; race.on = true; race.paused = false;   // speed carries between legs
+    race.gear = null;                                                   // each leg starts with no gear lit
     road.phase = 0;
     race.hitBases[race.fromId] = true;                      // start of this leg counts as hit
     const legLabel = document.getElementById('roadLegLabel');
     if (legLabel) legLabel.textContent = (race.leg.toName || race.toId);
+    // The passing road sign points at where this leg is headed.
+    setRoadSign(((race.leg.toName || race.toId) + '').toUpperCase() + '\n' + race.toId);
     renderRoad();
     renderMap('regionMap');                                 // light up the current dot
     const input = document.getElementById('commandInput');
@@ -510,6 +792,19 @@
 
   function activeBeat() {
     return race.leg ? (race.leg.beats.find(function (b) { return !b.done; }) || null) : null;
+  }
+
+  // The gear to type NEXT — telegraphed with a shimmer ring in the SHIFT box.
+  // Normally the active beat; but when a Shift Change is armed after ENP, LA is
+  // required before BSE (so grey LA lights up), and while the board is open BSE
+  // is what follows once it's cleared.
+  function nextGearCode() {
+    if (!race.on) return null;
+    if (race.shift.open) return 'BSE';
+    const beat = activeBeat();
+    if (!beat) return null;
+    if (beat.code === 'BSE' && race.shift.armed && !race.shift.cleared) return 'LA';
+    return beat.code;
   }
 
   function loop(ts) {
@@ -540,14 +835,36 @@
     m.setAttribute('cy', (a.y + (b.y - a.y) * race.pos).toFixed(1));
   }
 
+  // Race clock: seconds under a minute, m:ss.s above (design shows "1:24.6").
+  function fmtRaceTime(sec) {
+    if (sec < 60) return sec.toFixed(1);
+    const m = Math.floor(sec / 60), s = sec - m * 60;
+    return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+  }
+
   function updateRaceHUD(ts) {
     const beat = activeBeat();
-    [['AP', 'cmdAP'], ['ENP', 'cmdENP'], ['BSE', 'cmdBSE']].forEach(function (pair) {
-      const el = document.getElementById(pair[1]);
-      if (el) el.classList.toggle('live', !!beat && beat.code === pair[0]);
-    });
+    // Gear-shifter box: lights the unit's CURRENT status = the last command
+    // entered CORRECTLY (race.gear), like the gear a car is in. Nothing is lit
+    // at the start of a leg; AP lights once posted, ENP once en route, LA during
+    // a Shift Change, BSE on arrival. Only one gear is illuminated at a time.
+    const gear = function (id, on) { const el = document.getElementById(id); if (el) el.classList.toggle('live', !!on); };
+    gear('cmdAP',  race.gear === 'AP');
+    gear('cmdENP', race.gear === 'ENP');
+    gear('cmdLA',  race.gear === 'LA');
+    gear('cmdBSE', race.gear === 'BSE');
+    // Shimmer the NEXT gear to type (grey LA lights up here once a Shift Change
+    // makes it available). The current status above stays solid .live.
+    const next = nextGearCode();
+    const gearNext = function (id, on) { const el = document.getElementById(id); if (el) el.classList.toggle('next', !!on); };
+    gearNext('cmdAP',  next === 'AP');
+    gearNext('cmdENP', next === 'ENP');
+    gearNext('cmdLA',  next === 'LA');
+    gearNext('cmdBSE', next === 'BSE');
+
     const unitEl = document.getElementById('hudUnit');
     if (unitEl) unitEl.textContent = race.unitId || '—';
+    setCarUnit(race.unitId);
 
     // Map-as-challenge caption: the NEXT base — its name + the full code to type.
     const tgt = document.getElementById('mapTarget');
@@ -567,17 +884,24 @@
       else cp.textContent = '';
     }
 
-    // Speed gauge (0–50–100), driven by WPM. Overflow past 100 glows.
+    // Speed: the top pod shows KM/H (the 0–100 value, cosmetically labelled),
+    // the side bar shows the 0–50–100 gauge. Overflow past 100 glows.
+    const over = race.speed > (SP.max || 100) + 0.5;
     const eff = Math.min(SP.max || 100, race.speed);
     const sp = document.getElementById('hudSpeed');
-    if (sp) sp.textContent = Math.round(eff);
+    if (sp) {
+      sp.textContent = Math.round(eff);
+      sp.style.color = over ? 'var(--amber)' : (eff > 70 ? 'var(--phosphor)' : 'var(--phosphor-soft)');
+    }
     const fill = document.getElementById('speedFill');
     if (fill) {
       fill.style.width = Math.max(0, Math.min(100, eff)) + '%';
-      if (fill.parentNode) fill.parentNode.classList.toggle('overflow', race.speed > (SP.max || 100) + 0.5);
+      if (fill.parentNode) fill.parentNode.classList.toggle('overflow', over);
     }
-    const wEl = document.getElementById('hudWpm');
-    if (wEl) wEl.textContent = (race.wpm ? race.wpm : '—') + ' wpm';
+    // WPM readouts (top speed pod + side gauge share the .js-wpm class).
+    const wtxt = (race.wpm ? race.wpm : '—') + ' WPM';
+    const wEls = document.querySelectorAll('.js-wpm');
+    Array.prototype.forEach.call(wEls, function (el) { el.textContent = wtxt; });
 
     const lap = document.getElementById('hudLap');
     if (lap) lap.textContent = race.lap + '/' + race.laps;
@@ -585,8 +909,9 @@
     const pl = document.getElementById('hudPlace');
     if (pl) pl.textContent = Math.min(race.legIndex + 1, legsPerLap) + '/' + legsPerLap;
     if (ts && race.startTs) {
+      race.elapsed = (ts - race.startTs) / 1000;
       const tEl = document.getElementById('hudTime');
-      if (tEl) tEl.textContent = ((ts - race.startTs) / 1000).toFixed(1) + 's';
+      if (tEl) tEl.textContent = fmtRaceTime(race.elapsed);
     }
   }
 
@@ -595,6 +920,17 @@
     if (!box) return;
     box.classList.remove('hit', 'miss', 'early'); void box.offsetWidth; box.classList.add(cls);
     setTimeout(function () { box.classList.remove(cls); }, 320);
+  }
+
+  // Flicker a specific gear in the shifter box red↔green 3× — the "wrong next
+  // command" cue (e.g. wrong unit/base for the beat you're on). `code` = the
+  // command you were SUPPOSED to enter (the active beat, or LA when it's pending).
+  const GEAR_ID = { AP: 'cmdAP', ENP: 'cmdENP', LA: 'cmdLA', BSE: 'cmdBSE' };
+  function flashGear(code) {
+    const el = document.getElementById(GEAR_ID[code]);
+    if (!el) return;
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    setTimeout(function () { el.classList.remove('flash'); }, 620);
   }
 
   function handleRaceCommand(value, wpm) {
@@ -612,7 +948,8 @@
     // blocked until the board is cleared (design note §2).
     if (beat.code === 'BSE' && race.shift.armed && !race.shift.cleared) {
       if (firstToken(value) === 'LA') { openShiftBox(race.shift.slot); return; }
-      flashBox('early'); AUDIO.play('back');
+      // Wrong entry while LA is the required next command → flicker the LA gear.
+      flashBox('early'); flashGear('LA'); AUDIO.play('back');
       showRadio('Shift Change pending — type LA to handle it before BSE.', '');
       return;
     }
@@ -620,14 +957,38 @@
     if (race.pos < beat.gate) { flashBox('early'); AUDIO.play('menu'); return; }   // no-op: too early
     if (DATAMOD.validateBeat(value, beat) === 'hit') {
       beat.done = true;
+      race.gear = beat.code;                                                        // shift into this gear (status lights)
       applySpeedBoost(wpm);                                                         // gauge jump + hold
       AUDIO.play('select'); flashBox('hit');
     } else {
-      race.speed = Math.max(SP.base || 25, race.speed * (T.sputterFactor || 0.45)); // bleed speed, no stall
+      // Wrong content (wrong unit/base for this beat) → flicker the gear you were
+      // trying to complete red↔green; bleed speed, don't stall.
+      flashGear(beat.code);
+      race.speed = Math.max(SP.base || 25, race.speed * missKeepFraction());          // bleed speed (per-unit handling), no stall
       race.hold = 0;                                                                // and kill the hold
       AUDIO.play('back'); flashBox('miss');
     }
     updateRaceHUD();
+  }
+
+  /* ---- Per-unit handling (Andrew, 2026-07-15) -----------------------------
+   * Re-activates the gated CAR_TYPES idea, merged into the selected unit:
+   * `speed` → how fast the gauge climbs on a good beat; `handling` → what
+   * fraction of speed a miss KEEPS. Gate with CFG.CARS.handlingEnabled. */
+  function unitStats(id) {
+    const units = CFG.SELECTABLE_UNITS || [];
+    for (let i = 0; i < units.length; i++) if (units[i].id === id && units[i].stats) return units[i].stats;
+    return { speed: 6, handling: 6 };   // balanced fallback
+  }
+  function speedBoostFactor() {
+    if (!(CFG.CARS && CFG.CARS.handlingEnabled)) return 1;
+    return 0.78 + (unitStats(race.unitId).speed / 10) * 0.44;         // spd4 → ~0.96 · spd9 → ~1.18
+  }
+  function missKeepFraction() {
+    const base = (T.sputterFactor != null ? T.sputterFactor : 0.45);
+    if (!(CFG.CARS && CFG.CARS.handlingEnabled)) return base;
+    const f = base + (unitStats(race.unitId).handling - 5) * 0.05;    // h8 → .60 (forgiving) · h3 → .30 (harsh)
+    return Math.max(0.2, Math.min(0.85, f));
   }
 
   // A correct command boosts the gauge (scaled by how fast it was typed), then it
@@ -638,7 +999,7 @@
     const minF = SP.minBoostFactor != null ? SP.minBoostFactor : 0.4;
     const factor = wpm ? Math.max(minF, Math.min(1, wpm / opt)) : 1;   // slow typing → smaller boost
     race.wpm = Math.round(wpm || 0);
-    race.speed = Math.min(SP.overflowMax || 150, race.speed + (SP.boost || 25) * factor);
+    race.speed = Math.min(SP.overflowMax || 150, race.speed + (SP.boost || 25) * factor * speedBoostFactor());
     const over = Math.max(0, race.speed - (SP.max || 100));
     race.hold = (SP.holdBase || 1.2) + over * (SP.holdOverflowPer || 0.03);
   }
@@ -667,6 +1028,23 @@
     raceFinish();                                        // final lap done → the race is over
   }
 
+  // Fill the podium / result chips (design §04) from the finished race. Place +
+  // penalties + pit stops are placeholders (opponents/pit consequence not wired).
+  function populateFinish() {
+    const legsPerLap = Math.max(1, (race.stops.length || 2) - 1);
+    const totalLegs = legsPerLap * race.laps;
+    const fs = document.getElementById('finishStats');
+    if (fs) fs.textContent = 'P1 · ' + fmtRaceTime(race.elapsed || 0) + ' · UNIT ' + (race.unitId || '—');
+    const cl = document.getElementById('chipLegs'); if (cl) cl.textContent = totalLegs + '/' + totalLegs;
+    const cp = document.getElementById('chipPen');  if (cp) cp.textContent = '0';
+    const cpit = document.getElementById('chipPits'); if (cpit) cpit.textContent = '0';
+    // Two other roster units flank the podium (placeholder AI field).
+    const others = (CFG.SELECTABLE_UNITS || []).map(function (u) { return u.id; })
+      .filter(function (id) { return id !== race.unitId; });
+    const p2 = document.getElementById('podName2'); if (p2) p2.textContent = others[0] || '2104';
+    const p3 = document.getElementById('podName3'); if (p3) p3.textContent = others[1] || '2101';
+  }
+
   function raceFinish() {
     race.on = false;
     cancelAnimationFrame(race.raf);
@@ -676,6 +1054,7 @@
     const cp = document.getElementById('challengePrompt');
     if (cp) cp.textContent = '🏁 RACE COMPLETE — ' + race.unitId + ' finished ' +
       race.laps + (race.laps > 1 ? ' laps' : ' lap');
+    populateFinish();
     AUDIO.play('select');
     setTimeout(function () { if (state.currentScreen === 'gameScreen') showScreen('endScreen'); }, 1800);
   }
@@ -739,6 +1118,7 @@
     if (!box) return;
     race.shift.armed = true; race.shift.slot = box.slot; race.shift.box = box;
     race.shift.open = true; race.shift.cleared = false;
+    race.gear = 'LA';                                   // stay-mobile: LA gear lights
     const el = document.getElementById('shiftChangeBox');
     if (el) el.classList.add('active');
     setShiftActive(true);
@@ -913,6 +1293,16 @@
       const ae = document.activeElement;
       const tag = (ae && ae.tagName) || '';
       const inField = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+      const inChip = !!(ae && ae.classList && ae.classList.contains('unit-chip'));
+
+      // Unit picker hotkeys — top-row number keys pick your car on Race Options.
+      // Keys are spread 1·3·5·7·9 (balanced reach); ignored while typing a field.
+      if (!overlay && container.id === 'optionsScreen' && !inField) {
+        const units = (CFG.SELECTABLE_UNITS || []);
+        for (let i = 0; i < units.length; i++) {
+          if (String(units[i].hotkey) === e.key) { e.preventDefault(); selectUnit(units[i].id); return; }
+        }
+      }
 
       const btns = Array.prototype.slice.call(container.querySelectorAll('.btn'))
         .filter(function (b) { return !b.disabled && b.offsetParent !== null; });
@@ -926,7 +1316,7 @@
         if (inField) return;
         e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); AUDIO.play('menu');
       } else if (e.key === 'Enter' || e.key === ' ') {
-        if (inField) return;                                   // Enter/Space in a field does its own thing
+        if (inField || inChip) return;                         // field / unit chip does its own thing
         if (idx >= 0) return;                                  // a focused button → native click handles it
         e.preventDefault(); btns[0].click();
       }
@@ -1080,7 +1470,10 @@
       return race.shift.box;
     },
     closeShiftChange: function () { closeShiftBox(true); },
-    shift: race.shift
+    shift: race.shift,
+    // Preview the render-only tire-damage stages (design §05): setTire(0..10).
+    setTire: function (h) { race.tireHealth = h; renderTireGauges(h); return deriveTire(h).stage; },
+    deriveTire: deriveTire
   };
 
   if (document.readyState === 'loading') {
