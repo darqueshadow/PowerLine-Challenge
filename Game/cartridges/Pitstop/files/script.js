@@ -42,6 +42,14 @@
   const SHIFT = window.PITSTOP_SHIFT || null;      // Shift Change engine (core/shiftchange.js)
   const SC = CFG.SHIFT_CHANGE || {};
   let raceCoords = null;   // last gameplay-map coord map (set by renderMap('regionMap'))
+  // Config readers. Written as functions with an explicit `!= null` check rather
+  // than `SP.base || 25` because several of these values are legitimately ZERO —
+  // SPEED.base is 0 now that the car rolls to a full stop, and `0 || 25` would
+  // silently resurrect the old idle floor.
+  function spCfg(key, dflt)   { return SP[key] != null ? SP[key] : dflt; }
+  function tfCfg(key, dflt)   { const C = CFG.TRAFFIC || {}; return C[key] != null ? C[key] : dflt; }
+  function tireCfg(key, dflt) { const C = CFG.TIRE || {};    return C[key] != null ? C[key] : dflt; }
+
   const race = { on: false, paused: false, leg: null, pos: 0, vel: 0,
                  last: 0, t0: 0, startTs: 0, raf: 0, unitId: null, fromId: null, toId: null,
                  // Multi-leg route traversal (Slice 2): drive every base of the course
@@ -49,14 +57,17 @@
                  // base ids of ONE lap (loops re-append the start); `legIndex` = which
                  // segment of that list we're driving; `lap` = 1..laps.
                  stops: [], legIndex: 0, lap: 1, laps: 1, shiftFired: false,
-                 speed: 0, hold: 0, wpm: 0,   // speed/WPM gauge (base..overflowMax); hold = decay-freeze secs
+                 speed: 0, hold: 0, wpm: 0,   // speed/WPM gauge (km/h, 0..overflowMax); hold = decay-freeze secs
+                 braking: false, brakeUntil: 0,   // backspace = brake pedal; brakeUntil is a nowMs() stamp
+                 tireHealth: 10,                  // 0–10; mistakes wear it down (see damageTires)
                  hitBases: {},   // base ids reached this lap (light up on the minimap)
                  // Shift Change overlay state (design note §2/§3). armed = a change is
                  // due this leg; open = the box is up; cleared = it's been resolved.
                  shift: { armed: false, slot: null, box: null, open: false, cleared: false } };
   let shiftClockTimer = 0, shiftClockLast = 0;
-  const road = { phase: 0, spd: -1, curve: 0, dist: 0 };   // spd = --road-spd; curve = live bend (-1..1); dist = curve-gen travel
+  const road = { phase: 0, spd: -1, curve: 0, dist: 0, stopped: false };   // spd = --road-spd; curve = live bend (-1..1); dist = curve-gen travel
   const carSprite = { unitId: null, ready: false, frame: null, base: null };  // OutRun per-unit sprite state
+  const traffic = { cars: [] };   // opponent cars circulating around the player (see TRAFFIC section)
 
   /* ---- Screen router ------------------------------------------------------ */
   function showScreen(id) {
@@ -67,7 +78,7 @@
     state.currentScreen = id;
     if (id !== 'gameScreen') stopRace();
     if (id === 'gridScreen') renderMap('gridMap');
-    if (id === 'gameScreen') { applyRaceLook(); renderRoad(); renderMap('regionMap'); startRace(); }
+    if (id === 'gameScreen') { applyRaceLook(); renderRoad(); renderMap('regionMap'); startRace(); requestAnimationFrame(focusCommand); }
     focusPrimary(id);
   }
 
@@ -82,6 +93,17 @@
                     screen.querySelector('.btn:not(.danger):not(:disabled)') ||
                     screen.querySelector('.btn');
     if (primary) setTimeout(function () { primary.focus(); }, 40);
+  }
+
+  // Put the caret in the command box so the player can type the moment a race
+  // begins — the cursor "defaults" into it. Also used to return focus there if the
+  // player clicks the road/HUD mid-race. No-ops unless the game screen is live,
+  // the input is enabled, and nothing is paused or overlaid.
+  function focusCommand() {
+    if (state.currentScreen !== 'gameScreen' || state.paused) return;
+    if (document.querySelector('.overlay.active')) return;
+    const input = document.getElementById('commandInput');
+    if (input && !input.disabled) input.focus();
   }
 
   /* ---- Boot loader (animated; asset-load progress hook is stubbed) -------- */
@@ -552,8 +574,9 @@
   // quicker scroll. Quantized to 0.05 so we only poke the CSS var when it
   // meaningfully changes (updating animation-duration every frame would churn).
   function roadSpeedMult() {
-    const eff = Math.min((SP.max || 100), race.speed || (SP.base || 25));
-    const m = Math.max(0.45, Math.min(1.5, 1.5 - eff / 90));
+    const max = spCfg('max', 200);
+    const eff = Math.max(0, Math.min(max, race.speed));
+    const m = Math.max(0.45, Math.min(1.5, 1.5 - (eff / max) * 1.05));   // 1.5 crawling → 0.45 flat out
     return Math.round(m * 20) / 20;
   }
   function applyRoadSpeed() {
@@ -561,6 +584,11 @@
     if (!rv) return;
     const m = roadSpeedMult();
     if (m !== road.spd) { road.spd = m; rv.style.setProperty('--road-spd', String(m)); }
+    // Rolled to a stop: freeze the scroll outright. --road-spd can only ever SLOW
+    // the animations down — it can't reach zero — so the world would keep creeping
+    // past a parked car without this.
+    const stopped = race.speed < 1;
+    if (stopped !== road.stopped) { road.stopped = stopped; rv.classList.toggle('stopped', stopped); }
   }
 
   /* ---- OutRun curve engine (Andrew, 2026-07-15) ---------------------------
@@ -651,6 +679,191 @@
     applyCarSteer(road.curve);
   }
 
+  /* ===================== TRAFFIC — opponent cars (Andrew, 2026-07-16) ========
+   * A field of other roster units circulates around the player on the same
+   * pseudo-3D road as the scenery, and you either pass them or they pass you.
+   *
+   * Each car's whole position is ONE number: z = metres ahead of the player. Its
+   * rate of change is just the speed DIFFERENCE, so passing falls out of the
+   * existing speed model for free — out-type the field and you carve through it;
+   * stop typing and the field files past you. Every car holds its own pace,
+   * sampled per car and clamped to TRAFFIC.maxKph, so they never all run together.
+   * Cars are only ever drawn from BEHIND, which is correct in both directions: one
+   * you're catching grows from the horizon, one catching YOU swells up from the
+   * bottom edge and shrinks away toward it.
+   *
+   * tfProject() must stay in step with the CSS road (style.css .rv-road): the
+   * trapezoid spans 44%..56% of the width at the horizon (44% down the view) and
+   * 18%..82% at the camera, and the whole thing is skewX'd about its bottom centre
+   * by --road-curve * -9deg. Reproducing that skew here is what keeps the cars on
+   * the tarmac through a bend instead of floating off the outside of it. */
+  const OPP_W = 104, OPP_H = 70;   // opponent element box (px at scale 1 ≈ the player car's on-screen size)
+  const OPP_SKEW_DEG = 9;          // MUST match the skewX factor on .rv-road
+  const OPP_TINTS = ['#ff6b3d', '#4dd2ff', '#f7e14a', '#b06bff', '#5cff9d', '#ff5c8a', '#8fa4b8'];
+
+  // The field = other real roster trucks, never the unit you're driving.
+  function opponentIds() {
+    const all = (DATAMOD.DATA && DATAMOD.DATA.units) || [];
+    const mine = race.unitId;
+    const trucks = all.filter(function (id) { return /^\d+$/.test(id) && id !== mine; });
+    if (trucks.length) return shuffled(trucks);
+    return (CFG.SELECTABLE_UNITS || []).map(function (u) { return u.id; })
+      .filter(function (id) { return id !== mine; });
+  }
+  function shuffled(a) {
+    const out = a.slice();
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1)), t = out[i]; out[i] = out[j]; out[j] = t;
+    }
+    return out;
+  }
+  // A rival keeps a selectable unit's tint if it has one, else takes a stable
+  // colour off the palette so the same truck is the same colour all race.
+  function oppTint(id) {
+    const t = unitTint(id);
+    if (t) return t;
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return OPP_TINTS[h % OPP_TINTS.length];
+  }
+
+  function makeOppEl(car) {
+    const el = document.createElement('div');
+    el.className = 'opp-car';
+    el.style.width = OPP_W + 'px';
+    el.style.height = OPP_H + 'px';
+    el.style.setProperty('--opp-tint', oppTint(car.id));
+    el.innerHTML =
+      '<div class="oc-shadow"></div>' +
+      '<div class="oc-tire left"></div><div class="oc-tire right"></div>' +
+      '<div class="oc-body"></div><div class="oc-roof"></div>' +
+      '<div class="oc-lamp left"></div><div class="oc-lamp right"></div>' +
+      '<div class="oc-wing"></div>' +
+      '<div class="oc-num">' + car.id + '</div>';
+    return el;
+  }
+
+  // Re-roll a car's pace + lane and drop it back into the field at `z`. Sampling
+  // uniformly across avg ± spread and clamping to [min, max] is what makes the
+  // field average avgKph while guaranteeing nobody ever tops maxKph.
+  function respawnOpp(car, z) {
+    car.z = z;
+    car.near = false;
+    const avg = tfCfg('avgKph', 125), spread = tfCfg('spreadKph', 50);
+    car.kph = Math.max(tfCfg('minKph', 70),
+              Math.min(tfCfg('maxKph', 175), avg + (Math.random() * 2 - 1) * spread));
+    const lanes = tfCfg('lanes', [-0.58, -0.34, 0.34, 0.58]);
+    car.lane = lanes[Math.floor(Math.random() * lanes.length)];
+    if (car.el) car.el.classList.remove('near', 'bumped');
+  }
+
+  function clearTraffic() {
+    traffic.cars.forEach(function (c) { if (c.el && c.el.parentNode) c.el.parentNode.removeChild(c.el); });
+    traffic.cars.length = 0;
+  }
+
+  function buildTraffic() {
+    clearTraffic();
+    const wrap = document.getElementById('rvTraffic');
+    if (!wrap || !tfCfg('enabled', true)) return;
+    wrap.innerHTML = '';
+    const pool = opponentIds();
+    if (!pool.length) return;
+    const n = Math.min(tfCfg('count', 5), pool.length);
+    const zFar = tfCfg('zFar', 260), first = tfCfg('passZ', 12) * 2;
+    for (let i = 0; i < n; i++) {
+      const car = { id: pool[i], z: 0, lane: 0, kph: 0, near: false, el: null };
+      car.el = makeOppEl(car);
+      wrap.appendChild(car.el);
+      // Everyone starts AHEAD of the standing start, spread up the road. They're
+      // all quicker than a parked car, so the field pulls away, recycles behind and
+      // comes back past you — which is also why nothing starts inside the pass
+      // window and fires a phantom "PASSED" on lap one.
+      respawnOpp(car, first + (i + 0.5) / n * (zFar - first));
+      traffic.cars.push(car);
+    }
+  }
+
+  // Project a car's z onto the CSS road. Returns null when it's out of the draw
+  // range. `shift` is tan(curve * 9°) — the road's skew, precomputed per frame.
+  function tfProject(z, lane, W, H, shift) {
+    if (z > tfCfg('zFar', 260) || z < tfCfg('zHide', -6)) return null;
+    const cam = tfCfg('camDepth', 24);
+    const k = cam / (cam + z);                       // on-screen scale; 1 = level with the player
+    const y = H * (0.44 + 0.56 * k);                 // ground contact — matches .rv-road's trapezoid
+    const halfW = (0.06 + 0.26 * k) * W;             // road half-width at this depth
+    const x = W * 0.5 + lane * halfW + (H - y) * shift;
+    return { k: k, x: x, y: y };
+  }
+
+  function drawOpp(car, W, H, shift) {
+    const p = tfProject(car.z, car.lane, W, H, shift);
+    if (!p) { car.el.style.display = 'none'; return; }
+    car.el.style.display = '';
+    car.el.style.transform = 'translate(' + (p.x - OPP_W / 2).toFixed(1) + 'px,' +
+      (p.y - OPP_H).toFixed(1) + 'px) scale(' + p.k.toFixed(4) + ')';
+    car.el.style.opacity = p.k < 0.14 ? (p.k / 0.14).toFixed(2) : '1';   // fade in at the horizon
+    car.el.style.zIndex = String(Math.round(Math.min(p.k, 1) * 100));    // nearer cars draw over farther ones
+  }
+
+  function updateTraffic(dt, playerKph) {
+    if (!traffic.cars.length) return;
+    const rv = document.getElementById('roadView');
+    if (!rv) return;
+    const W = rv.clientWidth, H = rv.clientHeight;
+    if (!W || !H) return;
+    const zFar = tfCfg('zFar', 260), zBehind = tfCfg('zBehind', -40), passZ = tfCfg('passZ', 12);
+    const shift = Math.tan(road.curve * OPP_SKEW_DEG * Math.PI / 180);
+    traffic.cars.forEach(function (car) {
+      car.z += (car.kph - playerKph) / 3.6 * dt;          // dz/dt IS the speed difference (m/s)
+      if (car.z > zFar) respawnOpp(car, zBehind);         // it out-ran the draw range
+      else if (car.z < zBehind) respawnOpp(car, zFar);    // you dropped it
+      const near = Math.abs(car.z) <= passZ;
+      // Leaving the pass window is the moment a pass COMPLETES: z<0 means the car
+      // is behind you now (you got by), z>0 means it's ahead (it got by you).
+      if (car.near && !near) flashPass(car.z < 0 ? '▸ PASSED ' + car.id : '◂ ' + car.id + ' WENT BY', 'pass');
+      car.near = near;
+      car.el.classList.toggle('near', near);
+      drawOpp(car, W, H, shift);
+    });
+  }
+
+  // A typo taken wheel-to-wheel = contact. The closest car in the pass window gets
+  // clouted: the whole view jolts, it gets shoved off its line, and the rubber pays
+  // for it (bumpDamage, on top of the miss's own missDamage).
+  function bumpNearbyCar() {
+    let hit = null;
+    traffic.cars.forEach(function (c) {
+      if (c.near && (!hit || Math.abs(c.z) < Math.abs(hit.z))) hit = c;
+    });
+    if (!hit) return false;
+    damageTires(tireCfg('bumpDamage', 2));
+    race.speed = Math.max(spCfg('base', 0), race.speed * tfCfg('bumpSpeedKeep', 0.6));
+    hit.lane = Math.max(-0.8, Math.min(0.8, hit.lane + (hit.lane < 0 ? -0.14 : 0.14)));
+    replay(hit.el, 'bumped');
+    replay(document.getElementById('roadView'), 'jolt');
+    flashPass('✸ CONTACT · ' + hit.id, 'bump');
+    return true;
+  }
+
+  // Restart a one-shot CSS animation class that may already be on the element.
+  function replay(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  }
+
+  // Transient pass / contact callout on the road view. Deliberately NOT the radio
+  // bubble — that belongs to the Shift Change and must not get clobbered by traffic.
+  let passT = 0;
+  function flashPass(text, cls) {
+    const el = document.getElementById('passFlash');
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'pass-flash show' + (cls ? ' ' + cls : '');
+    clearTimeout(passT);
+    passT = setTimeout(function () { el.className = 'pass-flash'; }, 1100);
+  }
+
   /* ===================== PHASE 1 — single-leg race loop ====================
    * Route-traversal impulse model (authorized 2026-06-20). SLICE 1: prove ONE
    * leg A→B with position-gated AP→ENP→BSE beats. Correct beat at its gate =
@@ -682,12 +895,13 @@
     if (car && t) car.style.setProperty('--car-tint', t);
   }
 
-  /* ---- Tire-damage RENDER model (design §05) ------------------------------
-   * RENDER-ONLY. Maps one integer tire_health (0–10) to a visual stage via the
-   * config table (CFG.TIRE). It does NOT compute or store wear — that
-   * consequence layer is gated (Pitstop_Design_Note.md §10). In-race we render
-   * the 2×2 side gauge from a single health value (default = fresh) so the
-   * cartridge already SHOWS the system; a wear source wires in when authorized. */
+  /* ---- Tire-damage model (design §05) -------------------------------------
+   * Maps one integer tire_health (0–10) to a visual stage via the config table
+   * (CFG.TIRE), and renders that stage to the 2×2 side gauge AND to the rubber on
+   * the car itself. Mistakes are the wear SOURCE — see damageTires().
+   * ⚠ Still gated (Pitstop_Design_Note.md §10): the CONSEQUENCE of worn tires —
+   * the speed governor and the pit-stop repair loop. Damage accrues and SHOWS;
+   * nothing punishes it yet beyond the look. */
   function deriveTire(h) {
     const T = CFG.TIRE || {};
     if (h <= 0) return T.burst || { stage: 'BURST' };
@@ -702,22 +916,50 @@
     if (!cells.length) return;
     const stage = deriveTire(h).stage;
     let cls = '', text = 'OK';
-    if (stage === 'WARNING')      { cls = 'worn'; text = 'WORN'; }
+    // Full stage map (config.js TIRE.stages): Fresh 10–8 · Worn 7–5 · Warning 4–2 ·
+    // Critical 1 · Burst 0. WORN used to fall through to "OK" — it now has its own
+    // rung, so the gauge stops claiming healthy rubber at half health.
+    if (stage === 'WORN')         { cls = 'worn'; text = 'WORN'; }
+    else if (stage === 'WARNING') { cls = 'warn'; text = 'WARN'; }
     else if (stage === 'CRITICAL'){ cls = 'low';  text = 'LOW'; }
     else if (stage === 'BURST')   { cls = 'low';  text = 'OUT'; }
+    // The fill tracks health point-by-point so EVERY miss moves the gauge; the
+    // class (hue) still steps at the stage boundaries.
+    const wear = Math.max(0, Math.min(100, (1 - h / tireCfg('max', 10)) * 100));
     Array.prototype.forEach.call(cells, function (c) {
-      c.classList.remove('worn', 'low');
+      c.classList.remove('worn', 'warn', 'low');
       if (cls) c.classList.add(cls);
+      c.style.setProperty('--wear', wear.toFixed(0) + '%');
       const w = c.querySelector('.tc-wear');
       if (w) w.textContent = text;
     });
+    // The rubber on the car tracks the same stage (config greys black→white), so
+    // damage reads on the thing you're actually looking at, not just the gauge.
+    const car = document.getElementById('raceCar');
+    if (car) car.setAttribute('data-tire', stage);
+  }
+
+  /* ---- Tire WEAR SOURCE (Andrew, 2026-07-16) ------------------------------
+   * Until now nothing ever decremented tire_health, so a wrong command never
+   * showed damage — the gauge sat on OK all race. Mistakes are the source: every
+   * miss scrubs the rubber by TIRE.missDamage, and a miss taken wheel-to-wheel
+   * costs TIRE.bumpDamage on top (bumpNearbyCar). Both visual channels — the side
+   * gauge and the car's own tires — flash and re-render on every hit. */
+  function damageTires(n) {
+    if (!n || race.tireHealth == null) return;
+    const before = race.tireHealth;
+    race.tireHealth = Math.max(0, race.tireHealth - n);
+    if (race.tireHealth === before) return;         // already burst — nothing left to lose
+    renderTireGauges(race.tireHealth);
+    replay(document.getElementById('raceCar'), 'hurt');
+    replay(document.getElementById('hudTires'), 'hurt');
   }
 
   function nowMs() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
   // WPM for the command just submitted: (chars/5) / minutes since the first keystroke.
   function computeTypingWpm(text) {
     const chars = String(text || '').trim().length;
-    if (!chars || !typing.start) return SP.optimalWpm || 45;   // no timing captured → assume optimal
+    if (!chars || !typing.start) return spCfg('optimalWpm', 45);   // no timing captured → assume optimal
     const mins = Math.max(0.0001, (nowMs() - typing.start) / 60000);
     return (chars / 5) / mins;
   }
@@ -747,13 +989,14 @@
     race.startTs = 0;
     race.shiftFired = false;
     race.hitBases = {};
-    race.speed = SP.base != null ? SP.base : 25;   // gauge starts at idle base
+    race.speed = spCfg('base', 0);                  // standing start — typing is the throttle
     race.hold = 0; race.wpm = 0; race.elapsed = 0; race.gear = null;   // no gear lit at the start
+    race.brakeUntil = 0; race.braking = false; setBrakeLight(false);
     road.dist = 0; road.curve = 0;                  // fresh OutRun curve for this race
-    // Render-only tire health (design §05). Default fresh; no wear source is
-    // wired (gated) — the debug hook can set it to preview the other stages.
-    race.tireHealth = (CFG.TIRE && CFG.TIRE.demoHealth != null) ? CFG.TIRE.demoHealth : 10;
+    // Tire health (design §05). Starts fresh; mistakes wear it down (damageTires).
+    race.tireHealth = tireCfg('demoHealth', 10);
     renderTireGauges(race.tireHealth);
+    buildTraffic();                                 // put the field on the road
     startLeg();
   }
 
@@ -778,7 +1021,8 @@
     renderRoad();
     renderMap('regionMap');                                 // light up the current dot
     const input = document.getElementById('commandInput');
-    if (input) { input.disabled = false; input.value = ''; setTimeout(function () { input.focus(); }, 60); }
+    if (input) { input.disabled = false; input.value = ''; }
+    setTimeout(focusCommand, 60);   // land the caret in the command box for this leg
     resetShift();
     // Arm the Shift Change ONCE, on the opening leg only, so it doesn't re-fire
     // every leg of a multi-leg race.
@@ -807,19 +1051,57 @@
     return beat.code;
   }
 
+  /* ---- Speed model (Andrew, 2026-07-16) -----------------------------------
+   * Typing is the ONLY throttle — nothing else pushes the car — so stop typing and
+   * it coasts down to a genuine stop. The burn-off is brisk at pace, then eases to
+   * `rollDecay` below `rollThreshold` (25 km/h) so the last stretch is a long roll
+   * rather than a hard stop. Backspace is the brake pedal (tapBrake): it kills the
+   * hold and scrubs hard for as long as the player keeps tapping it. */
+  function updateSpeed(dt, ts) {
+    const braking = race.brakeUntil > ts;
+    if (braking) {
+      race.hold = 0;
+      race.speed = Math.max(spCfg('base', 0), race.speed - spCfg('brakeDecay', 90) * dt);
+    } else if (race.hold > 0) {
+      race.hold = Math.max(0, race.hold - dt);           // boost buffer: freeze the decay
+    } else {
+      const rate = race.speed <= spCfg('rollThreshold', 25)
+        ? spCfg('rollDecay', 8) : spCfg('decay', 24);
+      race.speed = Math.max(spCfg('base', 0), race.speed - rate * dt);
+    }
+    if (braking !== race.braking) { race.braking = braking; setBrakeLight(braking); }
+  }
+
+  function setBrakeLight(on) {
+    const car = document.getElementById('raceCar');
+    if (car) car.classList.toggle('braking', !!on);
+  }
+
+  // Backspace = the brake pedal (Andrew, 2026-07-16). Each tap re-arms the brake
+  // for brakeHold seconds, so holding it down (key repeat) keeps the light lit and
+  // keeps scrubbing speed. The light is set here as well as in updateSpeed so it
+  // fires on the keystroke rather than on the next frame.
+  function tapBrake() {
+    if (!race.on || race.paused) return;
+    race.brakeUntil = nowMs() + spCfg('brakeHold', 0.3) * 1000;
+    race.hold = 0;
+    race.braking = true;
+    setBrakeLight(true);
+  }
+
   function loop(ts) {
     if (!race.on || race.paused) return;
     if (!race.last) race.last = ts;
     if (!race.startTs) race.startTs = ts;               // race clock starts once, spans all legs/laps
     let dt = (ts - race.last) / 1000; race.last = ts;
     if (dt > 0.1) dt = 0.1;                                   // clamp tab-switch jumps
-    // Speed gauge: hold after a boost, then decay gently toward the idle base.
-    if (race.hold > 0) race.hold = Math.max(0, race.hold - dt);
-    else race.speed = Math.max(SP.base || 25, race.speed - (SP.decay || 12) * dt);
-    const eff = Math.min(SP.max || 100, race.speed);          // motion/display cap at 100
-    const v = (eff / (SP.max || 100)) * (SP.legRate || 0.6);  // pos-units/sec
+    updateSpeed(dt, ts);
+    const max = spCfg('max', 200);
+    const eff = Math.min(max, race.speed);                    // motion/display cap at top speed
+    const v = (eff / max) * spCfg('legRate', 0.6);            // pos-units/sec
     race.pos = Math.min(1, race.pos + v * dt);
     updateRoad(dt, v);
+    updateTraffic(dt, eff);
     updateUnitMarker();
     updateRaceHUD(ts);
     if (race.pos >= 1 && race.leg.beats.every(function (b) { return b.done; })) { legComplete(); return; }
@@ -884,18 +1166,19 @@
       else cp.textContent = '';
     }
 
-    // Speed: the top pod shows KM/H (the 0–100 value, cosmetically labelled),
-    // the side bar shows the 0–50–100 gauge. Overflow past 100 glows.
-    const over = race.speed > (SP.max || 100) + 0.5;
-    const eff = Math.min(SP.max || 100, race.speed);
-    const sp = document.getElementById('hudSpeed');
-    if (sp) {
-      sp.textContent = Math.round(eff);
-      sp.style.color = over ? 'var(--amber)' : (eff > 70 ? 'var(--phosphor)' : 'var(--phosphor-soft)');
+    // Speed: the top pod shows real KM/H, the side bar shows the 0–100–200 gauge.
+    // Overflow past the 200 top end glows (the buffer that holds you flat out).
+    const max = spCfg('max', 200);
+    const over = race.speed > max + 0.5;
+    const eff = Math.min(max, race.speed);
+    const spEl = document.getElementById('hudSpeed');
+    if (spEl) {
+      spEl.textContent = Math.round(eff);
+      spEl.style.color = over ? 'var(--amber)' : (eff > max * 0.7 ? 'var(--phosphor)' : 'var(--phosphor-soft)');
     }
     const fill = document.getElementById('speedFill');
     if (fill) {
-      fill.style.width = Math.max(0, Math.min(100, eff)) + '%';
+      fill.style.width = Math.max(0, Math.min(100, eff / max * 100)) + '%';
       if (fill.parentNode) fill.parentNode.classList.toggle('overflow', over);
     }
     // WPM readouts (top speed pod + side gauge share the .js-wpm class).
@@ -964,8 +1247,10 @@
       // Wrong content (wrong unit/base for this beat) → flicker the gear you were
       // trying to complete red↔green; bleed speed, don't stall.
       flashGear(beat.code);
-      race.speed = Math.max(SP.base || 25, race.speed * missKeepFraction());          // bleed speed (per-unit handling), no stall
+      race.speed = Math.max(spCfg('base', 0), race.speed * missKeepFraction());      // bleed speed (per-unit handling)
       race.hold = 0;                                                                // and kill the hold
+      damageTires(tireCfg('missDamage', 1));                                        // a typo scrubs the rubber
+      bumpNearbyCar();                                                              // ...and clouts anyone you're alongside
       AUDIO.play('back'); flashBox('miss');
     }
     updateRaceHUD();
@@ -995,13 +1280,16 @@
   // HOLDS before decaying. Above 100 the hold lasts longer and the value overflows
   // (a buffer) so you stay at top speed longer — the reward for chaining fast.
   function applySpeedBoost(wpm) {
-    const opt = SP.optimalWpm || 45;
-    const minF = SP.minBoostFactor != null ? SP.minBoostFactor : 0.4;
+    const opt = spCfg('optimalWpm', 45);
+    const minF = spCfg('minBoostFactor', 0.4);
     const factor = wpm ? Math.max(minF, Math.min(1, wpm / opt)) : 1;   // slow typing → smaller boost
     race.wpm = Math.round(wpm || 0);
-    race.speed = Math.min(SP.overflowMax || 150, race.speed + (SP.boost || 25) * factor * speedBoostFactor());
-    const over = Math.max(0, race.speed - (SP.max || 100));
-    race.hold = (SP.holdBase || 1.2) + over * (SP.holdOverflowPer || 0.03);
+    race.speed = Math.min(spCfg('overflowMax', 250),
+                          race.speed + spCfg('boost', 50) * factor * speedBoostFactor());
+    const over = Math.max(0, race.speed - spCfg('max', 200));
+    race.hold = spCfg('holdBase', 1.2) + over * spCfg('holdOverflowPer', 0.015);
+    race.brakeUntil = 0;                     // back on the throttle — off the brake
+    if (race.braking) { race.braking = false; setBrakeLight(false); }
   }
 
   function legComplete() {
@@ -1059,7 +1347,13 @@
     setTimeout(function () { if (state.currentScreen === 'gameScreen') showScreen('endScreen'); }, 1800);
   }
 
-  function stopRace() { race.on = false; race.paused = false; cancelAnimationFrame(race.raf); resetShift(); }
+  function stopRace() {
+    race.on = false; race.paused = false;
+    cancelAnimationFrame(race.raf);
+    race.brakeUntil = 0; race.braking = false; setBrakeLight(false);
+    clearTraffic();
+    resetShift();
+  }
 
   /* ===================== SHIFT CHANGE (overlay) ============================
    * design: NEMS500_ShiftChange_DesignNote.md. A time-of-day-triggered box of
@@ -1419,6 +1713,9 @@
         return;
       }
       if (e.key === 'Escape') return;
+      // Backspace = the brake. Not preventDefault'd — it still deletes the
+      // character; it just lights the brake light and scrubs speed while it does.
+      if (e.key === 'Backspace') { tapBrake(); return; }
       if (!typing.start && e.key.length === 1) typing.start = nowMs();   // stopwatch starts on 1st keystroke
       AUDIO.play('typing');
     });
@@ -1431,6 +1728,15 @@
     }
     document.addEventListener('pointerdown', unlockAudio);
     document.addEventListener('keydown', unlockAudio);
+
+    // Keep the command box focused during a race: clicking the road / HUD (anything
+    // that isn't itself an interactive control) returns the caret to the box, so the
+    // player never has to click it to resume typing.
+    document.addEventListener('pointerdown', function (e) {
+      if (state.currentScreen !== 'gameScreen') return;
+      if (e.target.closest('button, a, input, select, textarea, [data-action]')) return;
+      setTimeout(focusCommand, 0);   // after the browser's own focus handling
+    });
 
     // Re-fit the active map when the window resizes (keeps it filling the field).
     let resizeT = null;
@@ -1471,9 +1777,34 @@
     },
     closeShiftChange: function () { closeShiftBox(true); },
     shift: race.shift,
-    // Preview the render-only tire-damage stages (design §05): setTire(0..10).
+    // Preview the tire-damage stages (design §05): setTire(0..10).
     setTire: function (h) { race.tireHealth = h; renderTireGauges(h); return deriveTire(h).stage; },
-    deriveTire: deriveTire
+    deriveTire: deriveTire,
+    damageTires: damageTires,
+    // Traffic: inspect the live field, or force a car alongside you to test the bump.
+    traffic: traffic,
+    pullAlongside: function (i) {
+      const c = traffic.cars[i || 0];
+      if (!c) return null;
+      c.z = 0; c.kph = race.speed; c.near = true;
+      return c;
+    },
+    bump: bumpNearbyCar,
+    setSpeed: function (kph) { race.speed = kph; race.hold = 0; return race.speed; },
+    tapBrake: tapBrake,
+    // Step the sim by a FIXED dt without rAF. The speed/traffic model is otherwise
+    // only observable at 60fps in a focused tab — rAF is throttled to a dead stop
+    // in a background one — so this makes the curve verifiable and tunable
+    // deterministically: PITSTOP_DEBUG.step(1) advances exactly one second.
+    step: function (dt) {
+      const d = dt || 1 / 60;
+      updateSpeed(d, nowMs());
+      const eff = Math.min(spCfg('max', 200), race.speed);
+      updateRoad(d, (eff / spCfg('max', 200)) * spCfg('legRate', 0.6));
+      updateTraffic(d, eff);
+      updateRaceHUD();
+      return { speed: +race.speed.toFixed(2), braking: race.braking, tire: race.tireHealth };
+    }
   };
 
   if (document.readyState === 'loading') {

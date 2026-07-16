@@ -33,7 +33,7 @@
     holodeckPassword: 'GREEN FLAG',
     holodeckTimeout: 15000,
 
-    version: '0.9.4',
+    version: '0.9.6',
     versionLabel: 'PHASE 1 · ARCADE RESKIN'
   };
 
@@ -56,40 +56,60 @@
     fuelBurnRate: 0.0
   };
 
-  /* ---- SPEED / WPM MODEL (Andrew, 2026-07-12) ------------------------------
-   * The gauge reads 0–50–100 and is DRIVEN by typing speed (WPM of the command
-   * you're entering). A correct command "boosts" the gauge; it HOLDS briefly, then
-   * slowly runs down — with more allowance between commands than the old impulse
-   * model. Boosts stack toward 100. At/above 100 the hold lasts longer and the
-   * value can OVERFLOW past 100 (a buffer) so you stay at top speed longer.
-   * These numbers are a FIRST PASS — meant to be tuned by feel.
-   * ⚠ Andrew's spec cut off ("…if I get enough") — the overflow-buffer payoff is
-   * inferred; confirm/adjust. */
+  /* ---- SPEED / WPM MODEL (Andrew, 2026-07-12 · rescaled to km/h 2026-07-16) --
+   * The gauge reads REAL KM/H (0–100–200) and is DRIVEN by typing speed (WPM of
+   * the command you're entering). A correct command "boosts" the gauge; it HOLDS
+   * briefly, then runs down. Boosts stack toward the 200 km/h top end. At/above
+   * 200 the hold lasts longer and the value can OVERFLOW past it (a buffer) so
+   * you stay at top speed longer.
+   *
+   * ROLL-TO-STOP (Andrew, 2026-07-16): typing is the ONLY throttle, so there is
+   * no idle floor any more — `base: 0`. Stop typing and the car coasts down and
+   * genuinely stops. Below `rollThreshold` the burn-off eases to `rollDecay` so
+   * the last stretch is a long roll rather than a hard stop.
+   *   ⚠ base is legitimately 0 — read these with a `!= null` check, never
+   *   `SP.base || 25`, or the old idle floor comes back from the dead.
+   * Backspace is the BRAKE: it kills the hold and scrubs at `brakeDecay` for
+   * `brakeHold` seconds per tap (see script.js tapBrake / updateSpeed).
+   * These numbers are meant to be tuned by feel. */
   const SPEED = {
-    base: 25,            // idle floor — the car never fully stops
-    max: 100,            // effective/display cap that drives motion
-    overflowMax: 150,    // accumulator ceiling (the buffer lives between 100 and here)
-    boost: 25,           // gauge points added by an optimally-typed correct command
+    base: 0,             // floor — the car rolls to a genuine stop when you stop typing
+    max: 200,            // TOP SPEED (km/h) — the effective/display cap that drives motion
+    overflowMax: 250,    // accumulator ceiling (the buffer lives between 200 and here)
+    boost: 50,           // km/h added by an optimally-typed correct command
     optimalWpm: 45,      // type at/above this WPM to earn the full boost
     minBoostFactor: 0.4, // boost multiplier when typing very slowly
     holdBase: 1.2,       // seconds the gauge holds after a boost before it decays
-    holdOverflowPer: 0.03, // extra hold seconds per accumulator point above 100
-    decay: 12,           // gauge points/sec lost once the hold expires (gentle)
-    legRate: 0.6         // pos-units/sec at full (100) speed — sets how long a leg takes
+    holdOverflowPer: 0.015, // extra hold seconds per accumulator point above max
+    decay: 24,           // km/h per sec shed once the hold expires (above rollThreshold)
+    rollThreshold: 25,   // km/h under which the burn-off eases off — the long roll home
+    rollDecay: 8,        // km/h per sec shed below rollThreshold (gentle)
+    brakeDecay: 90,      // km/h per sec shed while the brake (backspace) is on
+    brakeHold: 0.3,      // seconds the brake light + scrub stay live per backspace tap
+    legRate: 0.6         // pos-units/sec at top speed — sets how long a leg takes
   };
 
-  /* ---- TIRE-DAMAGE RENDER MODEL (design "Pitstop Arcade.dc.html" §05) --------
-   * RENDER-ONLY. A single integer tire_health (0–10, 0 = burst) maps to BOTH
-   * visual channels — the rubber (greys black→white + growing wear spot) AND the
-   * side-panel gauge (fill drops + hue green→red). This block is the state table;
-   * script.js deriveTire() reads it. It does NOT compute or store wear — that
-   * consequence layer is GATED (see Pitstop_Design_Note.md §10, Overview clause
-   * pending). Redundant cues (fill level AND hue) survive colourblindness.
+  /* ---- TIRE-DAMAGE MODEL (design "Pitstop Arcade.dc.html" §05) ---------------
+   * A single integer tire_health (0–10, 0 = burst) maps to BOTH visual channels —
+   * the rubber (greys black→white + growing wear spot) AND the side-panel gauge
+   * (fill drops + hue green→red). This block is the state table; script.js
+   * deriveTire() reads it. Redundant cues (fill level AND hue) survive
+   * colourblindness.
+   *
+   * WEAR SOURCE (Andrew, 2026-07-16): mistakes are now what wears the rubber —
+   * "the unit is not showing damage when there is a wrong input". Every miss costs
+   * `missDamage`; a miss taken wheel-to-wheel with a car you're passing is a BUMP
+   * and costs `bumpDamage` on top (see script.js damageTires / bumpNearbyCar).
+   *   ⚠ Still GATED (Pitstop_Design_Note.md §10): the CONSEQUENCE of worn tires —
+   *   the speed governor and the pit-stop repair loop. Damage accrues and SHOWS;
+   *   nothing punishes it yet beyond the look.
    *
    * Stage map: Fresh 10–8 · Worn 7–5 · Warning 4–2 · Critical 1 · Burst 0. */
   const TIRE = {
     max: 10,
-    demoHealth: 10,   // render-only default surfaced in-race until a wear source is authorized
+    demoHealth: 10,   // tire health every race starts on
+    missDamage: 1,    // health lost per wrong command
+    bumpDamage: 2,    // EXTRA health lost when that wrong command bumps a car you're passing
     // Ordered high→low; the first entry whose `min` the health meets wins.
     stages: [
       { min: 8, stage: 'FRESH',    stageColor: '#2ECC40', rubber: '#1A1A1A', spot: '18%', spotColor: '#333333', sheen: '0 0 18px rgba(255,255,255,.12)', panel: '#2ECC40', panel2: '#23a233', governor: '100%',                     govColor: '#2ECC40' },
@@ -254,6 +274,36 @@
     handlingEnabled: true
   };
 
+  /* ---- TRAFFIC — opponent cars on the track (Andrew, 2026-07-16) ------------
+   * A field of other roster units circulates around the player on the same
+   * pseudo-3D road as the scenery, and you either pass them or they pass you.
+   *
+   * Every car holds its OWN pace, sampled uniformly across avgKph ± spreadKph and
+   * then clamped to [minKph, maxKph] — so the field averages `avgKph` and NOTHING
+   * ever exceeds `maxKph` (Andrew: "they should not go any faster then 175. That
+   * is the max"). Since the player's top end is 200, out-typing the field always
+   * beats it; stop typing and the whole field files past you.
+   *
+   * Geometry note: camDepth/zFar/lanes describe the projection and MUST stay in
+   * step with the CSS road trapezoid (style.css .rv-road) — script.js tfProject()
+   * reproduces that shape, including the --road-curve skew, so the cars sit on the
+   * tarmac through a bend. Distances are metres; z = metres ahead of the player. */
+  const TRAFFIC = {
+    enabled: true,
+    count: 5,             // cars circulating in the draw range at once
+    avgKph: 125,          // the field's average pace
+    spreadKph: 50,        // ± sampled per car (re-rolled each time one recycles)
+    minKph: 70,
+    maxKph: 175,          // HARD ceiling — no opponent ever exceeds this
+    camDepth: 24,         // pseudo-3D camera depth: on-screen scale = camDepth / (camDepth + z)
+    zFar: 260,            // metres ahead: cars fade in / recycle out here
+    zBehind: -40,         // metres behind: cars recycle back to the horizon here
+    zHide: -6,            // stop drawing once a car is this far past the camera
+    passZ: 12,            // |z| under this = wheel-to-wheel; a typo in here BUMPS
+    lanes: [-0.58, -0.34, 0.34, 0.58],  // lateral slots as a fraction of the road half-width
+    bumpSpeedKeep: 0.6    // speed kept after a bump, on TOP of the normal miss bleed
+  };
+
   /* ---- SHIFT CHANGE (NEMS500_ShiftChange_DesignNote.md) --------------------
    * Mid-race OVERLAY challenge: at real shift-change clock times the player is
    * telegraphed one leg early, types LA after ENP to stay mobile, then clears a
@@ -334,6 +384,7 @@
     ROAD_VIEW: ROAD_VIEW,
     ROAD_CURVE: ROAD_CURVE,
     CARS: CARS,
+    TRAFFIC: TRAFFIC,
     SHIFT_CHANGE: SHIFT_CHANGE
   };
 })(window);

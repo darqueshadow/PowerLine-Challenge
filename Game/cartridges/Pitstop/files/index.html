@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=0.9.4" />
+  <link rel="stylesheet" href="style.css?v=0.9.6" />
 </head>
 <body>
 <div id="app">
@@ -45,7 +45,7 @@
     <div class="menu-list" style="min-width:auto">
       <button class="btn press-start blink" data-action="title-start" data-primary>▶ PRESS START</button>
     </div>
-    <div class="version-stamp">v0.9.4 · PHASE 1 · ARCADE RESKIN</div>
+    <div class="version-stamp">v0.9.6 · PHASE 1 · ARCADE RESKIN</div>
     <div class="crt-scan"></div>
   </section>
 
@@ -57,7 +57,7 @@
       <button class="btn" data-action="goto" data-target="instructionsScreen">Instructions</button>
       <button class="btn danger" data-action="eject">Return to Arcade</button>
     </div>
-    <div class="version-stamp">v0.9.4 · PHASE 1</div>
+    <div class="version-stamp">v0.9.6 · PHASE 1</div>
   </section>
 
   <!-- =========================== INSTRUCTIONS =========================== -->
@@ -188,6 +188,15 @@ AHEAD</div>
             <div class="sign-post"></div>
           </div>
 
+          <!-- opponent cars — the field you pass / get passed by. Populated and
+               positioned every frame by script.js updateTraffic(); each car is
+               projected onto the same road trapezoid as the scenery. -->
+          <div class="rv-traffic" id="rvTraffic" aria-hidden="true"></div>
+
+          <!-- transient pass / contact callout (kept off the radio bubble, which
+               belongs to the Shift Change) -->
+          <div id="passFlash" class="pass-flash" aria-hidden="true"></div>
+
           <!-- the car (3/4 from behind — white body, green + blue trim, unit number) -->
           <div class="rv-car" id="raceCar">
             <div class="car-shadow"></div>
@@ -202,6 +211,9 @@ AHEAD</div>
             <div class="car-stripe"></div>
             <div class="car-cockpit"></div>
             <div class="car-unit" id="carUnit">2101</div>
+            <!-- brake lights — lit while the player is on the brake (backspace) -->
+            <div class="car-brake left"></div>
+            <div class="car-brake right"></div>
             <div class="car-wing"></div>
             <div class="car-endplate left"></div>
             <div class="car-endplate right"></div>
@@ -257,7 +269,7 @@ AHEAD</div>
             <div class="speed-gauge">
               <div class="gauge-label">SPEED <span class="wpm-read js-wpm">— wpm</span></div>
               <div class="speedbar"><span id="speedFill"></span><i class="tick t50"></i></div>
-              <div class="speed-scale"><span>0</span><span>50</span><span>100</span></div>
+              <div class="speed-scale"><span>0</span><span>100</span><span>200</span></div>
             </div>
             <div>
               <div class="gauge-label">Tires</div>
@@ -429,10 +441,10 @@ AHEAD</div>
 </div>
 
 <!-- Core modules load in order: config → data → shiftchange → audio → script (Build Procedure §3) -->
-<script src="core/config.js?v=0.9.4"></script>
-<script src="core/data.js?v=0.9.4"></script>
-<script src="core/shiftchange.js?v=0.9.4"></script>
-<script src="core/audio.js?v=0.9.4"></script>
-<script src="script.js?v=0.9.4"></script>
+<script src="core/config.js?v=0.9.6"></script>
+<script src="core/data.js?v=0.9.6"></script>
+<script src="core/shiftchange.js?v=0.9.6"></script>
+<script src="core/audio.js?v=0.9.6"></script>
+<script src="script.js?v=0.9.6"></script>
 </body>
 </html>

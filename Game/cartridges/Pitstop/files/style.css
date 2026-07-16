@@ -333,6 +333,14 @@ h3 { text-shadow: var(--glow); }
 .rv-sun     { transform: translateX(calc(var(--road-curve,0) * -34px)); }
 .rv-clouds  { transform: translateX(calc(var(--road-curve,0) * -26px)); }
 .rv-scenery { transform: translateX(calc(var(--road-curve,0) * -16px)); }
+/* ROLLED TO A STOP (script.js applyRoadSpeed) — --road-spd only ever SLOWS these
+   animations, it can never reach zero, so a parked car would still have the world
+   creeping past it. Freeze the scrolling layers outright instead. */
+.road-view.stopped .rv-road, .road-view.stopped .rv-rumble, .road-view.stopped .rv-center,
+.road-view.stopped .rv-chevrons i, .road-view.stopped .scn, .road-view.stopped .rv-sign {
+  animation-play-state: paused; }
+/* Contact with a car you're passing — jolt the whole scene. */
+.road-view.jolt { animation: ps-jolt .1s steps(1) 3; }
 .rv-sky { position: absolute; inset: 0; z-index: 0;
   background: linear-gradient(180deg,#17265f 0%,#3a63bf 28%,#79b0e8 44%,#cfe8f6 58%); }
 .rv-sun { position: absolute; right: 9%; top: 8%; width: 108px; height: 108px; border-radius: 50%; z-index: 1;
@@ -415,7 +423,8 @@ h3 { text-shadow: var(--glow); }
 /* Sprite mode: once a unit's PNG frames load, hide the procedural div-car parts
    and paint the frame as the car's background; number + shadow stay on top. */
 .rv-car.sprite-mode > * { display: none; }
-.rv-car.sprite-mode .car-shadow, .rv-car.sprite-mode .car-unit { display: block; }
+.rv-car.sprite-mode .car-shadow, .rv-car.sprite-mode .car-unit,
+.rv-car.sprite-mode .car-brake { display: block; }
 .rv-car.sprite-mode { background-image: var(--car-frame, none); background-size: contain;
   background-repeat: no-repeat; background-position: center bottom; }
 .rv-car .car-shadow { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 180px; height: 28px;
@@ -451,6 +460,75 @@ h3 { text-shadow: var(--glow); }
   background: linear-gradient(180deg,#33343a,#17181c); }
 .rv-car .car-endplate.left  { left: 22px; }
 .rv-car .car-endplate.right { right: 22px; }
+
+/* BRAKE LIGHTS (Andrew, 2026-07-16) — lit while the player is on the brake, i.e.
+   holding/tapping backspace. We view the car from behind, so the rear is the
+   BOTTOM of the sprite: these sit on the tail, just above the wing. Kept visible
+   in sprite-mode too (see the sprite-mode exception list above). */
+.rv-car .car-brake { position: absolute; bottom: 21px; width: 16px; height: 7px; border-radius: 2px; z-index: 3;
+  background: #4a1512; transition: background .05s linear, box-shadow .05s linear; }
+.rv-car .car-brake.left  { left: 50%; transform: translateX(-32px); }
+.rv-car .car-brake.right { left: 50%; transform: translateX(16px); }
+.rv-car.braking .car-brake { background: #ff2d20;
+  box-shadow: 0 0 12px 3px rgba(255,45,32,.9), 0 0 26px rgba(255,45,32,.5); }
+
+/* TIRE DAMAGE on the car itself — the rubber greys black→white as health drops,
+   mirroring the config's stage table (config.js TIRE.stages[].rubber) so the side
+   gauge and the car never disagree. */
+.rv-car[data-tire="WORN"]     .tire { background: linear-gradient(90deg,#2a2b30,#5a5c63,#2a2b30); }
+.rv-car[data-tire="WARNING"]  .tire { background: linear-gradient(90deg,#54565c,#9a9ca3,#54565c); }
+.rv-car[data-tire="CRITICAL"] .tire { background: linear-gradient(90deg,#8f9198,#e6e8ec,#8f9198); }
+.rv-car[data-tire="BURST"]    .tire { background: linear-gradient(90deg,#0d0d0f,#1a1a1e,#0d0d0f); opacity: .8; }
+/* Damage taken. ps-bob owns `transform`, so this cue rides `filter` instead —
+   two animations can share an element only while they touch disjoint properties. */
+.rv-car.hurt { animation: ps-bob 1.6s ease-in-out infinite, ps-dmgflash .16s steps(1) 3; }
+
+/* ---- TRAFFIC — opponent cars ---------------------------------------------
+ * Positioned entirely from JS (script.js drawOpp): each frame sets an inline
+ * transform of translate(x,y) scale(k) with the origin at the car's bottom
+ * centre, so it plants on the road surface at the right depth. Because that
+ * transform is inline and per-frame, NOTHING here may animate `transform` — a CSS
+ * animation outranks inline style and would tear the car off the road. Cues ride
+ * `filter` instead. The wrap sits below the player car (z-index 4 vs 5), so a
+ * rival never paints over the car you're driving. */
+.rv-traffic { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.opp-car { position: absolute; left: 0; top: 0; transform-origin: 50% 100%;
+  will-change: transform; --opp-tint: #ff6b3d; }
+.opp-car .oc-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  width: 96px; height: 13px; border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.45), transparent 70%); }
+.opp-car .oc-tire { position: absolute; bottom: 5px; width: 15px; height: 31px; border-radius: 4px;
+  background: linear-gradient(90deg,#050506,#2c2d33,#050506); }
+.opp-car .oc-tire.left  { left: 1px; }
+.opp-car .oc-tire.right { right: 1px; }
+.opp-car .oc-body { position: absolute; left: 11px; right: 11px; bottom: 8px; height: 53px;
+  clip-path: polygon(16% 0, 84% 0, 100% 62%, 96% 100%, 4% 100%, 0 62%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--opp-tint) 82%, #fff) 0%, var(--opp-tint) 58%,
+              color-mix(in srgb, var(--opp-tint) 62%, #000) 100%);
+  box-shadow: inset 0 2px 5px rgba(255,255,255,.35); }
+.opp-car .oc-roof { position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: 44px; height: 21px; border-radius: 7px 7px 4px 4px; z-index: 2;
+  background: radial-gradient(ellipse at 50% 30%, #182029, #05070a); border: 2px solid rgba(255,255,255,.5); }
+.opp-car .oc-lamp { position: absolute; bottom: 17px; width: 13px; height: 5px; border-radius: 2px; z-index: 2;
+  background: #ff2d20; box-shadow: 0 0 7px rgba(255,45,32,.75); }
+.opp-car .oc-lamp.left  { left: 16px; }
+.opp-car .oc-lamp.right { right: 16px; }
+.opp-car .oc-wing { position: absolute; bottom: 4px; left: 15px; right: 15px; height: 7px; border-radius: 2px; z-index: 2;
+  background: linear-gradient(180deg,#e8edf2,#9aa3ad); }
+.opp-car .oc-num { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 3;
+  font-family: var(--font-pixel); font-size: 9px; color: #fff; text-shadow: 0 1px 2px #000; }
+/* Wheel-to-wheel: a typo RIGHT NOW is contact, so say so. */
+.opp-car.near { filter: drop-shadow(0 0 7px rgba(255,176,0,.85)); }
+.opp-car.bumped { animation: ps-oppbump .15s steps(1) 3; }
+
+/* Pass / contact callout — top-right of the road view. */
+.pass-flash { position: absolute; right: 14px; top: 30px; z-index: 6; pointer-events: none;
+  font-family: var(--font-pixel); font-size: 10px; letter-spacing: 1px; padding: 6px 9px; border-radius: 4px;
+  color: var(--phosphor); background: rgba(2,20,10,.72); border: 1px solid var(--phosphor-dim);
+  opacity: 0; transform: translateY(-4px); transition: opacity .18s ease, transform .18s ease; }
+.pass-flash.show { opacity: 1; transform: translateY(0); }
+.pass-flash.bump { color: #fff; background: rgba(60,6,2,.85); border-color: var(--flag-red);
+  text-shadow: 0 0 8px rgba(255,59,48,.9); }
 
 .road-watermark { position: absolute; top: 8px; left: 12px; z-index: 3; color: var(--dim, #6fae66);
   color: rgba(111,174,102,.9); font-size: 11px; letter-spacing: 2px; }
@@ -602,18 +680,30 @@ h3 { text-shadow: var(--glow); }
 
 /* Tires 2x2 (render-only; colored by wear class) */
 .tires { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* Damage just landed — flash the gauge so the hit is impossible to miss. */
+.tires.hurt { animation: ps-dmgflash .16s steps(1) 3; }
 .tire-cell { position: relative; border: 1px solid var(--phosphor-dim); height: 34px; overflow: hidden;
   display: flex; align-items: center; justify-content: space-between; padding: 0 8px; background: #04120a; }
 .tire-cell .tc-lab { font-size: 11px; color: var(--text-dim); z-index: 2; }
 .tire-cell .tc-wear { font-size: 11px; color: var(--phosphor); z-index: 2; }
-.tire-cell::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
-  background: var(--phosphor); opacity: .28; }
-.tire-cell.worn { border-color: var(--amber); }
-.tire-cell.worn .tc-wear { color: var(--amber); }
-.tire-cell.worn::before { background: var(--amber); width: 45%; }
+/* Wear fill. The width tracks tire_health CONTINUOUSLY via --wear (set per cell in
+   script.js renderTireGauges) rather than snapping only at the stage boundaries —
+   otherwise the first two misses of a race move nothing and the gauge reads a flat
+   "OK" while you're visibly damaging the car. Hue still steps with the stage, so
+   the two channels stay redundant (level AND colour). */
+.tire-cell::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+  width: var(--wear, 0%); background: var(--phosphor); opacity: .28; transition: width .22s ease; }
+/* Hue steps with the stage, matching config.js TIRE.stages[].stageColor:
+   Worn = yellow, Warning = orange, Critical/Burst = red. */
+.tire-cell.worn { border-color: #ffdc00; }
+.tire-cell.worn .tc-wear { color: #ffdc00; }
+.tire-cell.worn::before { background: #ffdc00; }
+.tire-cell.warn { border-color: #ff851b; }
+.tire-cell.warn .tc-wear { color: #ff851b; }
+.tire-cell.warn::before { background: #ff851b; }
 .tire-cell.low { border-color: var(--flag-red); animation: ps-tirepulse 1s ease-in-out infinite; }
 .tire-cell.low .tc-wear { color: var(--flag-red); }
-.tire-cell.low::before { background: var(--flag-red); width: 75%; }
+.tire-cell.low::before { background: var(--flag-red); }
 
 /* Fuel */
 .bar { height: 14px; border: 1px solid var(--phosphor-dim); background: #041018; }
@@ -853,6 +943,15 @@ h3 { text-shadow: var(--glow); }
 @keyframes ps-nextpulse { 0%,100% { opacity: 1; filter: drop-shadow(0 0 5px currentColor); } 50% { opacity: .45; filter: drop-shadow(0 0 1px currentColor); } }
 @keyframes ps-chevron { 0% { opacity: 0; transform: translateY(30px) scaleY(.6); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateY(-160px) scaleY(1.4); } }
 @keyframes ps-tirepulse { 0%,100% { box-shadow: 0 0 0 rgba(255,59,48,0); } 50% { box-shadow: 0 0 12px rgba(255,59,48,.8); } }
+/* Damage / contact cues. These ride `filter` on purpose: the elements they land on
+   already have a `transform` (ps-bob on the car, an inline per-frame transform on
+   an opponent), and a transform animation would fight or override it. */
+@keyframes ps-dmgflash { 0%,100% { filter: none; }
+  50% { filter: brightness(1.9) drop-shadow(0 0 8px rgba(255,59,48,.95)); } }
+@keyframes ps-oppbump  { 0%,100% { filter: none; }
+  50% { filter: brightness(2.2) drop-shadow(0 0 9px rgba(255,59,48,.95)); } }
+@keyframes ps-jolt { 0% { transform: translate(0,0); } 33% { transform: translate(-5px,2px); }
+  66% { transform: translate(4px,-2px); } 100% { transform: translate(0,0); } }
 @keyframes ps-flag { to { background-position: 32px 0; } }
 /* ps-bob also carries the OutRun steer: --car-steer slides the car toward the
    inside of the bend, --car-mirror flips the sprite for left curves, and

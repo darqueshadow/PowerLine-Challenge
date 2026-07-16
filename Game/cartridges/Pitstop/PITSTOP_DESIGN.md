@@ -33,6 +33,12 @@ NEMS 500's mechanics exceed Theme scope (Law §0.3) and conflict with the engine
 
 ## Explicitly NOT built (gated / out of scope)
 
+> ⚠ **This is a Phase-0 snapshot — the changelog below supersedes it.** Much of the
+> list has since been authorized and built (leg loop, laps/timer, podium results,
+> opponent cars, tire *damage*). Read the changelog for what's actually live; what
+> remains gated today is the **tire/pit/fuel consequence layer** (the speed governor
+> + pit repair loop) and the veer→collision model in `Pitstop_Design_Note.md` §10.
+
 Leg loop, impulse movement, command validation wired to play, laps/timer logic, opponents/AI, scoring/penalties, podium results, and the entire pit/tire/fuel system. **Hub registration** is intentionally omitted (Core Law: "insert cartridges into the Arcade hub only when instructed") — a ~2-line edit to `core/submenu.js` (`loadCartridges()` entry + `handleStart()` branch → `cartridges/Pitstop/files/index.html`) when you give the go.
 
 ## Reused real data vs. net-new placeholders
@@ -41,6 +47,66 @@ Leg loop, impulse movement, command validation wired to play, laps/timer logic, 
 - **Net-new (placeholder until authored):** the **SWAP** command (absent from all datasets), base map `coords`, `distanceToWestwood` (currently derived from placeholder coords), route topology, car visual/physics configs, all non-weight tunables, leg scenery refs.
 
 ## Changelog — gameplay refinements
+
+**v0.9.6 (2026-07-16) — Real km/h + roll-to-stop, opponent cars, damage on a miss, brake light.**
+All four directly requested by Andrew.
+- **The gauge is now REAL KM/H and the car rolls to a stop.** Top speed **200**
+  (was a unitless 100); the whole `SPEED` block rescaled with it (boost 25→**50**,
+  decay 12→**24**, overflow buffer 150→**250**, side bar relabelled 0-**100**-**200**).
+  The **idle floor is gone** (`base: 25` → **0**) — typing is the only throttle, so
+  stop typing and the car genuinely coasts to a dead stop. Below **25 km/h**
+  (`rollThreshold`) the burn-off eases from 24 to **8 km/h/s** (`rollDecay`) so the
+  last stretch is a long roll, not a hard stop. Measured: **200→0 in 10.4s**, of
+  which the final 25 km/h alone takes **3.1s** (vs ~1s at the fast rate).
+  `applyRoadSpeed()` also freezes the scrolling layers outright at a stop
+  (`.road-view.stopped`) — `--road-spd` can only ever *slow* an animation, never
+  reach zero, so the world used to creep past a parked car.
+  ⚠ **`base` is legitimately 0 now.** Every read goes through `spCfg(key, dflt)`
+  (`!= null`, not `||`) — `SP.base || 25` would silently resurrect the idle floor.
+- **Brake light + backspace is the brake pedal.** Two rear lamps on the car
+  (`.car-brake`, kept alive in sprite-mode) light red while braking. Each Backspace
+  re-arms the brake for `brakeHold` **0.3s** and scrubs at `brakeDecay` **90 km/h/s**,
+  killing the boost hold; a correct command releases it. Not `preventDefault`'d —
+  the key still deletes the character it was always deleting.
+- **Opponent cars — you pass them or they pass you.** New `TRAFFIC` config +
+  engine (`script.js`, "TRAFFIC" section). A field of **5** other roster trucks
+  circulates around the player; each car's whole position is one number,
+  `z` = metres ahead, and **dz/dt is just the speed difference** — so passing falls
+  out of the existing speed model for free. Every car re-rolls its own pace on
+  recycle, uniform across **125 ± 50** clamped to **[70, 175]**: the field averages
+  **125** and **nothing ever exceeds 175** (verified: 6000 re-rolls → max 174.97,
+  avg 124.7). Since the player tops out at 200, out-typing the field always beats
+  it. Verified across the range: parked → 46 go by / you pass 0; at 90 → 10 go by;
+  at the 125 field average → **5 passes vs 2 passed** (genuinely two-way); flat out
+  at 200 → 23 passes, **never** passed. Cars are drawn rear-view only (correct in
+  both directions) and `tfProject()` reproduces the CSS road trapezoid *including*
+  the `--road-curve` skew, so they sit on the tarmac through a bend.
+  A `#passFlash` callout reports each pass — deliberately **not** the radio bubble,
+  which belongs to the Shift Change and must not get clobbered by traffic.
+- **A wrong command now SHOWS damage** (Andrew: "the unit is not showing damage
+  when there is a wrong input"). **Root cause: nothing ever decremented
+  `tire_health`** — `renderTireGauges()` only ever ran once, at `startRace`, so the
+  gauge sat on OK all race. Mistakes are now the wear **source** (`damageTires()`):
+  every miss costs `TIRE.missDamage` **1**, and a miss taken wheel-to-wheel with a
+  car you're passing (`|z| <= passZ` 12m) is a **BUMP** — `TIRE.bumpDamage` **2** on
+  top, ×0.6 extra speed loss, the rival shoved off its line, and the whole view
+  jolts. Damage reads on **three** channels now: the side gauge, the **rubber on the
+  car itself** (`[data-tire]`, greys black→white per the config's stage table), and
+  a flash on both.
+  - Two related gauge fixes: the wear fill now tracks health **continuously**
+    (`--wear`) instead of snapping only at stage boundaries — the first two misses
+    of a race moved nothing before; and **WORN used to fall through to "OK"**, so
+    the gauge claimed healthy rubber at half health. Full map now renders:
+    OK → WORN → WARN → LOW → OUT.
+- **Still gated** (`Pitstop_Design_Note.md` §10): the *consequence* of worn tires —
+  the speed governor and the pit-stop repair loop. Damage accrues and SHOWS; nothing
+  punishes it yet beyond the look.
+- New `PITSTOP_DEBUG` hooks: `step(dt)` advances the sim by a **fixed dt with no
+  rAF** (rAF is throttled to a dead stop in a background tab, which makes the speed
+  curve otherwise unobservable/untunable headless), plus `setSpeed`, `tapBrake`,
+  `pullAlongside(i)`, `bump`, `damageTires`, `traffic`.
+- Cache-bust `?v=` 0.9.5 → 0.9.6; config version + stamps updated (stamps had
+  drifted to 0.9.4).
 
 **v0.9.4 (2026-07-15) — Gear-shifter box: next-gear shimmer + LA is grey-until-available.**
 Directly requested by Andrew.
