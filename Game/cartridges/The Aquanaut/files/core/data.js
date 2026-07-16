@@ -506,6 +506,7 @@ function loadFallbackData() {
         { c: "Westwood", m: "72122", weight: 5 },
         { c: "Fleet", m: "72123", weight: 5 },
         { c: "Fallsview", m: "72124", weight: 2 },
+        { c: "Prince Charles", m: "72125", weight: 10 },
         { c: "St Catharines", m: "/23000", weight: 8 },
         { c: "Welland County", m: "/4227", weight: 8 },
         { c: "GNG", m: "/4213", weight: 8 },

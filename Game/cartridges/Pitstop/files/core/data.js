@@ -330,7 +330,7 @@
     return 'hit';
   }
 
-  /* ---- Embedded fallback (full 21 bases so the map works on file:// too) -- */
+  /* ---- Embedded fallback (full 22 bases so the map works on file:// too) -- */
   const FALLBACK = {
     commands: [
       { Challenge: 'Post to',    Command: 'AP',  Type: 'direction' },
@@ -359,7 +359,8 @@
       { Base: 'Fitch St',      Code: '72121', Weight: 3,  approx_lat: 42.998, approx_lon: -79.262, approx_dist_to_westwood_km: 19.78 },
       { Base: 'Westwood',      Code: '72122', Weight: 5,  approx_lat: 43.17,  approx_lon: -79.2,   approx_dist_to_westwood_km: 0 },
       { Base: 'Fleet',         Code: '72123', Weight: 5,  approx_lat: 43.17,  approx_lon: -79.2,   approx_dist_to_westwood_km: 0 },
-      { Base: 'Fallsview',     Code: '72124', Weight: 2,  approx_lat: 43.082, approx_lon: -79.08,  approx_dist_to_westwood_km: 13.81 }
+      { Base: 'Fallsview',     Code: '72124', Weight: 2,  approx_lat: 43.082, approx_lon: -79.08,  approx_dist_to_westwood_km: 13.81 },
+      { Base: 'Prince Charles', Code: '72125', Weight: 10, approx_lat: 42.992, approx_lon: -79.261, approx_dist_to_westwood_km: 20.39 }
     ],
     units: [{ Units: '2100' }, { Units: '2101' }, { Units: '2102' }, { Units: 'FIT' }, { Units: 'CARE1' }],
     courses: [{ CourseId: 'niagara-loop', Name: 'Niagara Loop', Type: 'loop', Laps: '3',
