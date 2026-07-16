@@ -10070,6 +10070,7 @@ function ensureSonarOverlay(creature) {
     // Single-line text readout: "Awaiting TOC" → "TOC Completed" / "Patient Left…" (the
     // chevron stage ladder was retired; the offload colour is the only axis).
     if (creature.isToc) {
+        el.classList.add('toc-unit');   // scopes the larger TOC challenge-box sizing (see style.css)
         const tocPanel = document.createElement('div');
         tocPanel.className = 'toc-status-panel';
 

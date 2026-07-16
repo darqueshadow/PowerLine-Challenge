@@ -2617,6 +2617,15 @@ button.menu-kb-selected {
     opacity: 1;
 }
 
+/* TOC challenge boxes read a touch larger than standard targets — scoped to
+   `.toc-unit` (added in ensureSonarOverlay) so normal creatures stay at 14px.
+   The measured box width feeds the mutual-clearance spacing, so widening here
+   also keeps neighbouring TOC boxes from overlapping. */
+.sonar-challenge-overlay.toc-unit .sonar-challenge-text {
+    font-size: 18px;
+    padding: 6px 13px;
+}
+
 .sonar-challenge-text.challenge-hidden {
     max-width: 0;
     opacity: 0;
