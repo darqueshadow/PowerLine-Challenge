@@ -1,0 +1,81 @@
+/* ============================================================================
+ * @plc/ui — typography: Heading, VersionStamp
+ * ----------------------------------------------------------------------------
+ * Headings are the cabinet voice: Press Start 2P, uppercase, phosphor, glowing.
+ * Levels are styled by CLASS rather than by element, so a screen can pick the
+ * right heading LEVEL for its document outline and the right SIZE for its
+ * layout independently. Tying size to <h1>/<h2>/<h3> — as three of the four
+ * arcade stylesheets do — forces a choice between correct semantics and correct
+ * scale, and the arcade consistently chose scale.
+ * ========================================================================= */
+
+.plc-heading {
+  font-family: var(--plc-font-pixel);
+  font-weight: 400;               /* Press Start 2P has no bold; see tokens.css */
+  text-transform: uppercase;
+  color: var(--plc-phosphor);
+  text-shadow: var(--plc-glow);
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* The wordmark — PITSTOP, THE AQUANAUT. Fluid because it is the one piece of
+   type that should always dominate its screen, on a laptop or a 4K panel. */
+.plc-heading--display {
+  font-size: var(--plc-pixel-xl);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.plc-heading--lg {
+  font-size: var(--plc-pixel-lg);
+}
+
+.plc-heading--md {
+  font-size: var(--plc-pixel-md);
+}
+
+.plc-heading--sm {
+  font-size: var(--plc-pixel-sm);
+  letter-spacing: var(--plc-tracking);
+}
+
+/* The line under a wordmark — "NEMS 500". Amber by default so it reads as a
+   model number stamped on the cabinet rather than as more title.
+   ⚠ `.subtitle` is a name that already means three different things across the
+   arcade (amber and margin-TOP in Pitstop; small and margin-BOTTOM in AC/AQ,
+   and those two disagree on colour). Hence the deliberate rename. */
+.plc-tagline {
+  font-family: var(--plc-font-pixel);
+  font-weight: 400;
+  font-size: var(--plc-pixel-sm);
+  color: var(--plc-amber);
+  letter-spacing: var(--plc-tracking-wide);
+  text-shadow: 0 0 6px rgba(255, 176, 0, .5);
+  margin: 0;
+}
+
+/* Supporting copy under a heading — the terminal voice, dimmed. */
+.plc-subhead {
+  font-family: var(--plc-font-mono);
+  font-size: var(--plc-text-md);
+  color: var(--plc-text-dim);
+  letter-spacing: var(--plc-tracking);
+  margin: 0;
+}
+
+/* ---- VersionStamp ---------------------------------------------------------
+ * The build tag every screen in the arcade carries in a corner. Absolute, so it
+ * pins to the console shell rather than joining the centred stack — which means
+ * its container needs a positioning context (`.plc-screen` provides one). */
+.plc-version {
+  position: absolute;
+  right: 2.4vw;
+  bottom: 2vh;
+  z-index: var(--plc-z-overlay);
+  font-family: var(--plc-font-mono);
+  font-size: var(--plc-text-xs);
+  color: var(--plc-text-dim);
+  letter-spacing: 1px;
+  pointer-events: none;
+}

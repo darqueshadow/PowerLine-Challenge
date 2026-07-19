@@ -1,0 +1,27 @@
+/* ============================================================================
+ * @plc/ui — reset
+ * ----------------------------------------------------------------------------
+ * Scoped as tightly as a shared library can manage. The arcade's four
+ * stylesheets each ship their own global reset today (`* { margin:0; padding:0;
+ * box-sizing:border-box }`, near-identically), so the library must provide one
+ * or every cartridge keeps its own — but it must not reach further than that,
+ * because this sheet will eventually be linked alongside cartridge CSS that
+ * still assumes its own reset ran.
+ *
+ * The one difference from what the cartridges do today: pseudo-elements are
+ * included. Three of the four sheets write `*` alone, which leaves ::before and
+ * ::after on `content-box` — and this library builds scanline veils, glow rings
+ * and gantry beams out of pseudo-elements, where an unexpected box model shows
+ * up as a border that overflows its parent by exactly the border width.
+ * ========================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Deliberately NOT a blanket `* { margin: 0; padding: 0 }`. Zeroing every
+   element globally is a cartridge-level choice about the whole document; a
+   component library that did it would silently restyle host markup it was never
+   handed. The elements this library actually renders zero their own. */

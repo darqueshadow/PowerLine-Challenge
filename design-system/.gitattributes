@@ -1,0 +1,15 @@
+# The repo runs core.autocrlf=true, which would rewrite these to CRLF on every
+# checkout. Source and config stay LF so diffs stay readable and the build is
+# byte-identical across machines — the same reasoning as
+# Game/cartridges/Pitstop/files/datasets/.gitattributes.
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.mjs   text eol=lf
+*.css   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+
+# Fonts are binary — never let git touch their line endings.
+*.woff2 binary
+*.woff  binary
+*.ttf   binary

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+
+# design-sync working dirs (the uploaded bundle is reproducible from src/)
+ds-bundle/
+.ds-sync/
+
+# Preview harness bundle — a 1 MB esbuild artifact rebuilt on demand with:
+#   npx esbuild preview/demo.tsx --bundle --format=esm --jsx=automatic \
+#     --loader:.css=empty --outfile=preview/demo.js
+preview/demo.js

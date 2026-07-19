@@ -1,0 +1,28 @@
+/* ============================================================================
+ * @plc/ui — stylesheet entry
+ * ----------------------------------------------------------------------------
+ * Everything the components render is reachable from THIS file's @import
+ * closure. That is not a style preference — it is the contract with two
+ * consumers at once:
+ *
+ *   • Claude Design renders each design with only styles.css's transitive
+ *     @import closure. A rule outside it does not exist as far as any design
+ *     the agent builds is concerned.
+ *   • The PLC cartridges are plain HTML with no build step; they link the
+ *     single flat dist/plc-ui.css that this file compiles to.
+ *
+ * Order matters and is deliberate: tokens first (everything downstream reads
+ * them), then the reset, then base element styling, then components. A
+ * component file may only ever consume tokens — never redefine them.
+ * ========================================================================= */
+
+@import "./fonts.css";
+@import "./tokens.css";
+@import "./reset.css";
+@import "./base.css";
+
+/* Components. Order between these is not significant — they share no selectors
+   — but they must all come after the four above, which they read from. */
+@import "./chrome.css";
+@import "./controls.css";
+@import "./typography.css";

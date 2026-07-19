@@ -1,0 +1,45 @@
+/* ============================================================================
+ * @plc/ui — typefaces
+ * ----------------------------------------------------------------------------
+ * The two faces the PLC console is built on, self-hosted. See
+ * ../fonts/LICENSE.md for provenance and the SIL OFL terms.
+ *
+ *   Press Start 2P   the pixel face. Headings, HUD readouts, arcade buttons —
+ *                    anything that should read as CABINET rather than terminal.
+ *                    It has no bold; never ask for one, the browser will
+ *                    synthesise a smeared fake. Its glyphs are wide and its
+ *                    x-height enormous, so it needs far more letter-spacing
+ *                    headroom and far smaller sizes than a normal face.
+ *   Share Tech Mono  the terminal face. Body copy, labels, command input —
+ *                    the green-screen voice.
+ *
+ * `font-display: swap` is deliberate: a cartridge should show readable Courier
+ * immediately rather than an invisible menu while a font loads. The fallback
+ * chain ends in Courier for exactly that reason — it is the closest thing to a
+ * terminal face that every machine already has.
+ * ========================================================================= */
+
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/PressStart2P-Regular.woff2') format('woff2');
+  /* Latin only — matches the shipped subset. Declaring the true coverage lets
+     the browser fall back per-character instead of rendering tofu for anything
+     outside it. */
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Share Tech Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/ShareTechMono-Regular.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}

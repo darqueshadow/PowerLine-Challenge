@@ -1,0 +1,148 @@
+/* ============================================================================
+ * @plc/ui — chrome: Screen, Scanlines, Panel, Overlay
+ * ----------------------------------------------------------------------------
+ * The console shell. These four are what make a surface read as PLC before a
+ * single control is placed on it.
+ * ========================================================================= */
+
+/* ---- Screen ---------------------------------------------------------------
+ * One "page" of the console. Cartridges keep several mounted and show one at a
+ * time; the library only owns what a screen looks like, never which is showing
+ * (that is the cartridge's router).
+ *
+ * Centring is the default because nearly every arcade screen is a centred stack
+ * — title, menu, boot. `--top` exists for the screens that overflow, where
+ * centring hides the top with no way to scroll to it. */
+.plc-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* The screen owns the rhythm between its stacked children, rather than each
+     child carrying a margin for the space above it. The original arcade did the
+     latter — Pitstop's `.menu-list` sets `margin-top: 2.2em`, its `.subtitle`
+     `0.4em`, its `.tagline` `1.2em` — which spreads one screen's vertical
+     rhythm across four unrelated component files and makes it impossible to
+     reuse any of them somewhere spaced differently.
+     A full-bleed shell (a game view that fills the panel) overrides both this
+     and the padding; see `.plc-screen--bleed`. */
+  gap: var(--plc-space-lg);
+  width: 100%;
+  height: 100%;
+  padding: 4vh 4vw;
+  text-align: center;
+  background: var(--plc-bg);
+  color: var(--plc-text);
+  font-family: var(--plc-font);
+}
+
+.plc-screen--top {
+  justify-content: flex-start;
+  overflow-y: auto;
+}
+
+/* Full-bleed: the screen IS the content — a race view, a canvas, a garage
+   scene — so the centring padding and stack gap would only letterbox it. */
+.plc-screen--bleed {
+  padding: 0;
+  gap: 0;
+  justify-content: stretch;
+  align-items: stretch;
+  text-align: initial;
+}
+
+/* ---- Scanlines ------------------------------------------------------------
+ * THE motif of the arcade, and the single biggest source of drift found in the
+ * audit — five different recipes across four stylesheets. This is the one.
+ *
+ * Always `pointer-events: none`: it covers its whole container, so without it
+ * every control underneath becomes unclickable. That is not hypothetical; it is
+ * the classic way a CRT veil breaks a UI.
+ *
+ * Its z-index sits ABOVE content but BELOW modals, so a dialog is never veiled
+ * by the screen it opened over. */
+.plc-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: var(--plc-z-scanlines);
+  pointer-events: none;
+  background-image: var(--plc-scanlines);
+}
+
+/* The vignette is separate: a full-screen console wants the darkened corners of
+   a real tube, but a small preview card or an inline panel just looks smudged. */
+.plc-scanlines--vignette {
+  background-image: var(--plc-scanlines), var(--plc-vignette);
+}
+
+/* Drift is what sells a live tube over a printed texture. Two pitches of travel
+   keeps the loop seamless — at one pitch the reset is visible as a jump. */
+.plc-scanlines--animated {
+  animation: plc-scan 1s steps(3) infinite;
+}
+
+@keyframes plc-scan {
+  to {
+    background-position: 0 calc(var(--plc-scanline-pitch) * 2);
+  }
+}
+
+/* ---- Panel ----------------------------------------------------------------
+ * A bordered field of phosphor glass. The workhorse container: instruction
+ * copy, option grids, result summaries. */
+.plc-panel {
+  border: var(--plc-border) solid var(--plc-phosphor-dim);
+  border-radius: var(--plc-radius);
+  background: var(--plc-bg-panel);
+  padding: var(--plc-space-xl);
+  text-align: left;
+  color: var(--plc-text);
+}
+
+/* Long-form panels (instructions, command references) cap their height and
+   scroll rather than pushing the screen's own controls off the bottom. */
+.plc-panel--scroll {
+  overflow-y: auto;
+  max-height: 74vh;
+}
+
+.plc-panel--tight {
+  padding: var(--plc-space-md) var(--plc-space-lg);
+}
+
+/* Draws attention without spending a signal colour on it. */
+.plc-panel--glow {
+  box-shadow: var(--plc-glow-soft);
+}
+
+/* ---- Overlay --------------------------------------------------------------
+ * A scrim plus a centred stack — pause, confirm, dev gate.
+ *
+ * VISIBILITY IS A PROP, NOT A CLASS. The audit found three incompatible
+ * conventions in play across the arcade: `.hidden { display:none !important }`
+ * (Asteroid Command, Aquanaut), a `.hidden` that instead animates opacity and
+ * scale on one ID (hub), and no `.hidden` at all (Pitstop, which uses the
+ * [hidden] attribute plus `.active`). Shipping any one of those names would
+ * silently break the other two. So this library never ships a `.hidden` class:
+ * an Overlay that should not be seen is simply not rendered. */
+.plc-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--plc-z-modal);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--plc-space-lg);
+  padding: var(--plc-space-xl);
+  background: var(--plc-scrim);
+  text-align: center;
+}
+
+/* The dev-mode gate (Law §0.15, Ctrl+Shift+B) rides above everything, including
+   a pause overlay that may already be up when it is summoned. */
+.plc-overlay--dev {
+  z-index: var(--plc-z-dev);
+  background: rgba(0, 0, 0, .9);
+}
