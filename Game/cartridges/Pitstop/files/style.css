@@ -1036,9 +1036,25 @@ h3 { text-shadow: var(--glow); }
 .bar > span { display: block; height: 100%; }
 .bar.fuel > span { background: linear-gradient(90deg, var(--amber), #ffd76b); width: 72%; }
 
+/* PIT ADVISORY — hidden for most of a lap, raised by script.js
+   updatePitAdvisory on the run down to the Start/Finish line (the pit came off
+   the map on 2026-07-19; this is how the player hears about it now). It fades
+   up rather than snapping on, so it registers as something ARRIVING at the
+   right moment instead of a panel that was always there. */
 .pit-indicator { font-size: 11px; color: var(--amber); border: 1px dashed #7a5500; padding: 7px 8px;
   text-align: center; letter-spacing: 1px; }
+.pit-indicator[hidden] { display: none; }
+.pit-indicator.live { animation: pitCue .5s ease-out both; }
 .pit-indicator b { color: var(--checker); }
+/* The gate is still closed (spec §0.9/§9.1) — say so on the cue itself so the
+   advisory can't be read as a live mechanic. */
+.pit-indicator .pi-preview { display: block; margin-top: 3px; font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-dim); }
+@keyframes pitCue {
+  from { opacity: 0; transform: translateY(4px); border-color: var(--amber); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .pit-indicator.live { animation: none; } }
 
 /* Map legend — every symbol explained */
 .map-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 4px; font-size: 11px; color: var(--text-dim); }
@@ -1059,9 +1075,6 @@ h3 { text-shadow: var(--glow); }
 /* kerb swatch — the same red/white blocks the route draws on the map */
 .map-legend .sw-route { height: 4px; width: 16px; border: 1px solid #6a1a15; border-radius: 1px;
   background: repeating-linear-gradient(90deg, #e8352a 0 4px, #f4f4f0 4px 8px); }
-/* pit-lane swatch — solid yellow, matching .map-spur */
-.map-legend .sw-pitlane { height: 4px; width: 16px; border-radius: 1px; background: #ffd400; }
-.map-legend .sw-tire { background: #141414; border: 1px solid #000; border-radius: 50%; color: #cfd3d8; font-size: 8px; }
 
 /* course render (SVG): route line, numbered stops, start/finish */
 .region-map { position: relative; background:
@@ -1106,15 +1119,46 @@ h3 { text-shadow: var(--glow); }
    one. Red and yellow stay reserved for the route and the pit lane. */
 .map-arrow { fill: #f4fff0; stroke: #0a0a0a; stroke-linejoin: round;
   filter: drop-shadow(0 0 2px rgba(0,0,0,.75)); }
-/* The base code, set under each name — dimmer and a shade smaller so the label
-   reads "Linwell" first and "72102" as its identifier underneath. */
-.map-base-code { fill: #8fc79c; font-size: .82em; letter-spacing: .5px; }
 .sf-ring { fill: none; stroke: var(--checker); stroke-width: 0.6; }
-.map-tire { filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
-/* PIT LANE (Andrew, 2026-07-19) — solid yellow, so the Fleet bypass reads as one
-   continuous lane and never gets confused with the red/white kerb of the route. */
-.map-spur { stroke: #ffd400; fill: none; stroke-linecap: round; opacity: .95; }
-.pit-label { fill: #cfd3d8; }
+
+/* ---- START / FINISH LABEL — the one that runs the Christmas Tree -----------
+   Andrew, 2026-07-19: "a different colour font for the Start/Stop base —
+   multi-coloured, single-coloured, animated, whatever would be fun."
+
+   So it stages. The NAME sits in checker-white — brighter than the phosphor
+   every other base label wears, so the dot you return to each lap reads first.
+   Under it the START / FINISH tag runs a drag strip's staging lights: three
+   ambers down the tree, GREEN, a held green, then dark before it comes round
+   again. It's the same sequence the race itself launches on, which is the joke.
+
+   Two things keep it from becoming noise. It is the ONLY animated type on the
+   map, and the amber phases are dimmer than the green, so what you catch out of
+   the corner of your eye is the green flash, once every 2.6s. The halo the
+   other labels carry (.map-base-label's under-stroke) is inherited, so the
+   colours stay legible over the patchwork and over the red/white kerb.
+
+   Colour-blind safety: the tag never carries meaning by colour — it says
+   "START / FINISH" in words, and the checkered ring on the dot is the real
+   symbol. The lights are decoration on top of an already-labelled thing.
+
+   CSS, not JS, on purpose: renderMap redraws on every arrival and every resize,
+   and a script-driven blink would restart from black each time. A CSS animation
+   on a freshly-inserted node just picks up the document timeline. */
+.sf-label .sf-name { fill: var(--checker); font-weight: 700; letter-spacing: .4px; }
+.sf-label .sf-tag  { font-size: .82em; letter-spacing: .6px; animation: sfTree 2.6s steps(1, end) infinite; }
+@keyframes sfTree {
+  0%,  14% { fill: #d38200; }                                      /* pre-stage amber   */
+  15%, 29% { fill: #ffa000; }                                      /* stage amber       */
+  30%, 44% { fill: #ffc21a; }                                      /* last amber, hotter */
+  45%, 74% { fill: #2ECC40; }                                      /* GREEN — lights out */
+  75%, 89% { fill: #7ee787; }                                      /* green fading       */
+  90%, 100% { fill: #5c6f60; }                                     /* dark, then round again */
+}
+/* Anyone who has asked the OS for less motion gets the end state, not the
+   sequence: a green tag that still reads as GO, just without the blink. */
+@media (prefers-reduced-motion: reduce) {
+  .sf-label .sf-tag { animation: none; fill: #2ECC40; }
+}
 .map-base { fill: var(--phosphor-dim); }
 .map-unit { fill: #eafff0; stroke: #093; stroke-width: .3; filter: drop-shadow(0 0 3px rgba(230,255,240,.9)); }
 .map-opp  { fill: var(--flag-red); opacity: .85; }

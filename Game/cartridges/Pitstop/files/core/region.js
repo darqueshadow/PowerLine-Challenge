@@ -184,6 +184,139 @@
     }
   }
 
+  /* ---- KEEP THE COURSE ON LAND (Andrew, 2026-07-19) --------------------------
+   * "On the River Run, the Course runs over water — keep it in the muni areas."
+   *
+   * A straight chord between two stops is not always a drivable line. The worst
+   * case is River Run's Fort Erie → Niagara Falls leg: the Niagara River bulges
+   * east around Grand Island, so the chord spends over half its length off
+   * Canadian soil — drawn, it reads as the ambulance swimming the river and
+   * clipping the corner of New York State. St Paul → Glendale grazes the water
+   * the same way at the St. Catharines / Niagara Falls boundary.
+   *
+   * So a leg is no longer assumed to be one segment. It is BENT until every
+   * sample sits inside the patchwork: split at the midpoint, drag that midpoint
+   * to the nearest land if it is wet, and recurse on both halves. On the River
+   * Run this pulls the line onto the Canadian bank — the Niagara Parkway, which
+   * is the road you would actually drive.
+   *
+   * "Land" here means "inside a municipality we DRAW". That is deliberate and
+   * self-consistent: the test and the picture read the same decimated polygons,
+   * so a leg that passes can never be drawn over a gap. It also means the US
+   * bank and Grand Island are correctly not land — they are not in the table.
+   * ------------------------------------------------------------------------- */
+
+  function onLand(lat, lon, rings) {
+    for (const id in rings) {
+      const list = rings[id];
+      for (let r = 0; r < list.length; r++) if (pointInRing(lat, lon, list[r])) return true;
+    }
+    return false;
+  }
+
+  // Nearest drawable land to a point that fell in the water. Searched as widening
+  // rings (longitude scaled by cos(lat) so the ring is round on the ground) and,
+  // once land is found, pushed one more step the same way so the waypoint sits
+  // INLAND rather than balanced on the shoreline — a waypoint on the line itself
+  // leaves the halves either side of it still grazing the water.
+  const NL_STEP = 0.0015, NL_RINGS = 60, NL_DIRS = 32;
+  function nearestLand(lat, lon, rings) {
+    const k = Math.cos(lat * Math.PI / 180) || 1;
+    for (let r = 1; r <= NL_RINGS; r++) {
+      for (let d = 0; d < NL_DIRS; d++) {
+        const a = (d / NL_DIRS) * Math.PI * 2;
+        const dLat = Math.sin(a) * NL_STEP, dLon = Math.cos(a) * NL_STEP / k;
+        const la = lat + dLat * r, lo = lon + dLon * r;
+        if (!onLand(la, lo, rings)) continue;
+        const inLat = la + dLat, inLon = lo + dLon;               // one step further in
+        return onLand(inLat, inLon, rings) ? { lat: inLat, lon: inLon } : { lat: la, lon: lo };
+      }
+    }
+    return null;                                                  // nowhere to go — caller keeps the chord
+  }
+
+  /* Sampling is by DISTANCE, not a fixed count: ~150 m apart, matching the
+   * tolerance the boundaries were decimated at, so the walk can't step over a
+   * notch in the shore the drawn polygon actually has.
+   *
+   * SEAM TOLERANCE. Not every off-land sample is water. The published rings were
+   * decimated independently at 150 m, so two ADJACENT municipalities no longer
+   * share an exact edge — between them runs a hairline of unpainted background a
+   * couple of hundred metres wide at worst. St Paul → Glendale trips one of
+   * those at the St. Catharines / Niagara Falls border: it is a seam in the art,
+   * not the lake, and bending a leg around it would put a visible kink in a road
+   * that is fine. So a leg is judged by its LONGEST CONTINUOUS wet run, and runs
+   * under SEAM_DEG are read as seams and left alone. The Niagara River is two
+   * kilometres of open water at its narrowest here — an order of magnitude clear
+   * of the threshold, so nothing real hides under it. */
+  const SEG_DEG = 0.0015, SEG_MAX = 200, SEAM_DEG = 0.004, BEND_DEPTH = 10;
+
+  // Longest unbroken off-land stretch along a-b, in degrees. 0 == entirely dry.
+  function wettestRun(a, b, rings) {
+    const dLat = b.lat - a.lat, dLon = b.lon - a.lon;
+    const span = Math.hypot(dLat, dLon);
+    const n = Math.max(6, Math.min(SEG_MAX, Math.ceil(span / SEG_DEG)));
+    let run = 0, worst = 0;
+    for (let s = 0; s <= n; s++) {
+      const t = s / n;
+      if (onLand(a.lat + dLat * t, a.lon + dLon * t, rings)) run = 0;
+      else { run += span / n; if (run > worst) worst = run; }
+    }
+    return worst;
+  }
+  function segOnLand(a, b, rings) { return wettestRun(a, b, rings) <= SEAM_DEG; }
+
+  function bend(a, b, rings, depth) {
+    if (depth >= BEND_DEPTH || segOnLand(a, b, rings)) return [a, b];
+    let m = { lat: (a.lat + b.lat) / 2, lon: (a.lon + b.lon) / 2 };
+    if (!onLand(m.lat, m.lon, rings)) {
+      const n = nearestLand(m.lat, m.lon, rings);
+      if (!n) return [a, b];                                      // give up honestly, don't fake a detour
+      m = n;
+    }
+    return bend(a, m, rings, depth + 1).concat(bend(m, b, rings, depth + 1).slice(1));
+  }
+
+  /* The drawable path for one leg: [start, ...waypoints, end] in lat/lon. A leg
+   * that never leaves land comes back as the plain two-point chord, so nothing
+   * changes for the courses that were already fine. */
+  function routeLeg(a, b) {
+    if (!a || !b || a.lat == null || b.lat == null) return [a, b].filter(Boolean);
+    const rings = ringsById();
+    if (!rings) return [a, b];                                    // no geometry → straight, as before
+    return bend(a, b, rings, 0);
+  }
+
+  /* The whole course as drawable legs: one entry per leg, each carrying the
+   * leg's own point list. A circuit gets its closing leg too.
+   *
+   * MEMOISED per course. Bending the Grand Tour costs tens of milliseconds of
+   * point-in-polygon work and the answer only depends on the stop list, which
+   * never changes mid-race — but renderMap asks twice per draw (once through
+   * municipalitiesFor, once for the line itself) and redraws on every arrival
+   * and every resize. */
+  const ROUTE_CACHE = {};
+  function routeFor(course, baseById) {
+    const out = [];
+    if (!course || !baseById) return out;
+    const ids = course.baseIds || [];
+    const key = (course.id || '?') + '|' + course.type + '|' + ids.join(',');
+    if (ROUTE_CACHE[key]) return ROUTE_CACHE[key];
+    const pt = function (id) {
+      const b = baseById[id];
+      return (b && b.lat != null && b.lon != null) ? { id: id, lat: b.lat, lon: b.lon } : null;
+    };
+    const legs = [];
+    for (let i = 0; i < ids.length - 1; i++) legs.push([ids[i], ids[i + 1]]);
+    if (course.type === 'loop' && ids.length > 2) legs.push([ids[ids.length - 1], ids[0]]);
+    legs.forEach(function (l) {
+      const a = pt(l[0]), b = pt(l[1]);
+      if (a && b) out.push({ fromId: l[0], toId: l[1], points: routeLeg(a, b) });
+    });
+    ROUTE_CACHE[key] = out;
+    return out;
+  }
+
   /* The set of municipality ids a course should light up: the ones its stops sit
    * in, PLUS any it drives across between stops, or EVERY one when it is the full
    * race (CFG.FULL_COURSE_ID — the Grand Tour, which skips Wainfleet and Thorold
@@ -206,18 +339,16 @@
     const rings = ringsById();
     if (!rings || !baseById) return out;                // no geometry → stops only
 
-    // Walk the drive order, including the closing leg of a circuit — the route is
-    // drawn closed there, so it can cross a municipality on the way home too.
-    const pts = ids.map(function (id) {
-      const b = baseById[id];
-      return (b && b.lat != null && b.lon != null) ? { lat: b.lat, lon: b.lon } : null;
+    // Walk the ROUTED drive order — the bent path from routeFor, not the raw
+    // chords, and including the closing leg of a circuit. Using the same points
+    // the renderer draws is what keeps the promise in this section's header: the
+    // lit municipalities and the visible line agree by construction, so a leg
+    // bent around the Niagara River lights the bank it was bent onto.
+    routeFor(course, baseById).forEach(function (leg) {
+      for (let i = 0; i < leg.points.length - 1; i++) {
+        markCrossed(leg.points[i], leg.points[i + 1], rings, out);
+      }
     });
-    for (let i = 0; i < pts.length - 1; i++) {
-      if (pts[i] && pts[i + 1]) markCrossed(pts[i], pts[i + 1], rings, out);
-    }
-    if (course.type === 'loop' && pts.length > 2 && pts[pts.length - 1] && pts[0]) {
-      markCrossed(pts[pts.length - 1], pts[0], rings, out);
-    }
     return out;
   }
 
@@ -225,6 +356,8 @@
     MUNICIPALITIES: MUNICIPALITIES,
     buildCells: buildCells,
     municipalitiesFor: municipalitiesFor,
+    routeLeg: routeLeg,
+    routeFor: routeFor,
     ownerOf: function (baseId) { return OWNER[baseId] || null; }
   };
 })(window);

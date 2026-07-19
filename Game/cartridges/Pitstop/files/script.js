@@ -42,6 +42,7 @@
   const SHIFT = window.PITSTOP_SHIFT || null;      // Shift Change engine (core/shiftchange.js)
   const SC = CFG.SHIFT_CHANGE || {};
   let raceCoords = null;   // last gameplay-map coord map (set by renderMap('regionMap'))
+  let raceLegPaths = null; // 'from>to' -> the drawn screen polyline for that leg (same source)
   // Config readers. Written as functions with an explicit `!= null` check rather
   // than `SP.base || 25` because several of these values are legitimately ZERO —
   // SPEED.base is 0 now that the car rolls to a full stop, and `0 || 25` would
@@ -763,29 +764,6 @@
     return { at: out, project: project };
   }
 
-  /* ---- Tire marker helper (Andrew, 2026-07-17) ----------------------------
-   * The off-route pit is drawn as a racecar TIRE. Pure SVG, so nothing external
-   * is fetched (geo spec §3: schematic, no map tiles). The region backdrop that
-   * used to live here — a smoothed convex hull of the course bases — was
-   * replaced on 2026-07-19 by the municipality patchwork in core/region.js. */
-  // A small racecar tire (black slick + silver rim + spokes), centred at (cx,cy).
-  function tireSVG(cx, cy, r) {
-    const rim = r * 0.60, hub = r * 0.20, sw = Math.max(0.3, r * 0.09);
-    let g = '<g class="map-tire" transform="translate(' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ')">';
-    g += '<circle r="' + r.toFixed(2) + '" fill="#141414" stroke="#000" stroke-width="' + (r * 0.12).toFixed(2) + '"/>';
-    g += '<circle r="' + (r * 0.82).toFixed(2) + '" fill="none" stroke="#2b2b2b" stroke-width="' + (r * 0.07).toFixed(2) + '"/>';
-    g += '<circle r="' + rim.toFixed(2) + '" fill="#cfd3d8" stroke="#83888f" stroke-width="' + sw.toFixed(2) + '"/>';
-    for (let i = 0; i < 5; i++) {
-      const a = i / 5 * Math.PI * 2 - Math.PI / 2;
-      const x1 = (Math.cos(a) * hub).toFixed(2), y1 = (Math.sin(a) * hub).toFixed(2);
-      const x2 = (Math.cos(a) * rim * 0.9).toFixed(2), y2 = (Math.sin(a) * rim * 0.9).toFixed(2);
-      g += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#9aa0a6" stroke-width="' + sw.toFixed(2) + '" stroke-linecap="round"/>';
-    }
-    g += '<circle r="' + hub.toFixed(2) + '" fill="#6b6e73" stroke="#3a3c40" stroke-width="' + (r * 0.05).toFixed(2) + '"/>';
-    g += '</g>';
-    return g;
-  }
-
   function renderMap(svgId) {
     const svg = document.getElementById(svgId);
     if (!svg) return;
@@ -794,15 +772,20 @@
     if (!D || !course) { svg.innerHTML = ''; return; }
     const bases = course.baseIds.map(function (id) { return D.baseById[id]; }).filter(Boolean);
     if (!bases.length) { svg.innerHTML = ''; return; }
-    const pitId = CFG.PIT_BASE_ID || '72123';
-    const pit = D.baseById[pitId];
-    const pitOnCourse = course.baseIds.indexOf(pitId) !== -1;
-    // Fleet is OFF a Point 2 Point course (Andrew, 2026-07-19): the pit lane is a
-    // bypass that splits off the route and rejoins it, which only reads on a
-    // circuit you come back around. A point-to-point run never returns to the
-    // start, so Fleet is dropped entirely — no lane, no tire, and it is excluded
-    // from the map fit so the course still fills the field.
-    const showPit = !!(pit && !pitOnCourse && course.type !== 'point-to-point');
+    /* THE PIT IS NOT ON THE MAP (Andrew, 2026-07-19).
+     *
+     * Fleet used to be drawn here — a yellow bypass lane bowing off the start
+     * node with a tire sitting on it. It never worked: the pit has no real place
+     * on a course made of bases, so the tire had to be PLACED beside the
+     * start/finish rather than projected, the lane was invented geometry, and
+     * together they put a second piece of furniture on top of the busiest corner
+     * of the map for something you cannot currently drive into anyway.
+     *
+     * Andrew: "it is not necessary — just include it in the instructions." So the
+     * pit is now TOLD, not drawn: the Instructions screen states that 72123 is
+     * the pit, and the in-race pit advisory (updatePitAdvisory) raises it on the
+     * approach to the start/finish line, which is the only moment it matters.
+     * The map goes back to being just the course. */
 
     // viewBox = the container's real pixel size, so the SVG fills the field
     // with no letterboxing. Re-measured every render (handles resize).
@@ -822,14 +805,6 @@
     // Fit the COURSE BASES to fill the field, regardless of area. When a real
     // geo-referenced map image lands (REGION_MAP.image+bounds) we'd align dots
     // to the art instead.
-    //
-    // Fleet is NOT in the fit (Andrew, 2026-07-19): "ignore the lat/lon for
-    // Fleet — put it beside the Start/Stop base". The pit is track furniture,
-    // not a place you navigate to, and its real address (2 Westwood Ct, shared
-    // with Glendale) can sit far off the course — which dragged the whole fit
-    // sideways and stranded the tire nowhere near the start line. It is now
-    // PLACED, not projected: pinned just outside the start/finish node (see
-    // pitPos below), which is where the pit lane physically is anyway.
     //
     // MUNICIPALITY BACKDROP (core/region.js): the cells this course touches — or
     // all twelve on the full race. Built BEFORE the fit so their corners can go
@@ -855,7 +830,7 @@
     const FIT = fitCourseToBox(bases, W, H, pad, frame);
     const C = FIT.at;
 
-    const nodeR = (compact ? unit * 0.034 : unit * 0.022), ringR = unit * 0.040, sfR = unit * 0.028, pitR = unit * 0.028;
+    const nodeR = (compact ? unit * 0.034 : unit * 0.022), ringR = unit * 0.040, sfR = unit * 0.028;
     const font = unit * 0.032, stroke = Math.max(1, unit * 0.006), chk = unit * 0.018;
     const pid = 'sfChecker_' + svgId;
 
@@ -893,77 +868,62 @@
       // to set type on. Colour and shape carry the region on their own.
     }
 
-    // pit LANE: Fleet reads as a lane that SPLITS off the main course and
-    // REJOINS it (a bypass bowing out to the pit), not a dead-end spur. Branch
-    // + merge points sit on the route segments either side of the junction (the
-    // nearest on-route base to the pit); the lane's midpoint passes through
-    // Fleet so the ⛽ box sits right on the lane.
-    // FLEET PLACEMENT — geometry, not geography (see the fit note above). The
-    // tire is pinned just OUTSIDE the start/finish node, pushed straight away
-    // from the course's centre so it clears the route and leaves room for its
-    // own lane to bow out. Clamped to the viewBox so a start node near an edge
-    // can't push the tire off-screen. A degenerate course whose centre lands on
-    // the start node falls back to "due left of start".
-    let pitPos = null;
-    const startPt = C[course.startId] || (bases[0] && C[bases[0].id]);
-    if (showPit && startPt) {
-      const hp = bases.map(function (b) { return C[b.id]; }).filter(Boolean);
-      const gx = hp.reduce(function (s, p) { return s + p.x; }, 0) / hp.length;
-      const gy = hp.reduce(function (s, p) { return s + p.y; }, 0) / hp.length;
-      let dx = startPt.x - gx, dy = startPt.y - gy;
-      const len = Math.hypot(dx, dy);
-      if (len < 1e-3) { dx = -1; dy = 0; } else { dx /= len; dy /= len; }
-      const m = unit * 0.07;
-      pitPos = {
-        x: Math.max(m, Math.min(W - m, startPt.x + dx * unit * 0.14)),
-        y: Math.max(m, Math.min(H - m, startPt.y + dy * unit * 0.14))
-      };
-    }
-
-    let junction = null;
-    if (showPit && pitPos) {
-      // The pit lane branches off around the START/FINISH base (Andrew's call) —
-      // the pit sits by the start line, splitting off and rejoining there.
-      junction = D.baseById[course.startId] || bases[0];
-      if (junction && C[junction.id]) {
-        const J = C[junction.id], F = pitPos;
-        const order = course.baseIds, n = order.length, idx = order.indexOf(junction.id);
-        const isLoop = course.type === 'loop' && n > 2;
-        const prev = (idx > 0) ? C[order[idx - 1]] : (isLoop ? C[order[n - 1]] : null);
-        const next = (idx < n - 1) ? C[order[idx + 1]] : (isLoop ? C[order[0]] : null);
-        const lerp = function (a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; };
-        // Split just before the junction, merge just after it. When a neighbour
-        // is missing (a degenerate 2-stop loop — point-to-point no longer reaches
-        // here), fall back to a short offset toward the pit so the lane still
-        // leaves and returns near the junction.
-        const split = prev ? lerp(prev, J, 0.6) : lerp(J, F, 0.18);
-        const merge = next ? lerp(J, next, 0.4) : lerp(J, F, 0.32);
-        const segMid = { x: (split.x + merge.x) / 2, y: (split.y + merge.y) / 2 };
-        // Both control points sit beyond Fleet (k = 4/3) so the cubic's midpoint
-        // lands exactly on F — the lane visibly wraps out to the pit and back.
-        const cx = segMid.x + (F.x - segMid.x) * (4 / 3);
-        const cy = segMid.y + (F.y - segMid.y) * (4 / 3);
-        const d = 'M ' + split.x.toFixed(1) + ' ' + split.y.toFixed(1) +
-                  ' C ' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' ' + cx.toFixed(1) + ' ' + cy.toFixed(1) +
-                  ' ' + merge.x.toFixed(1) + ' ' + merge.y.toFixed(1);
-        html += '<path class="map-spur" d="' + d + '" style="stroke-width:' + (stroke * 1.6).toFixed(2) + '"/>';
-      }
-    }
-
-    // ROUTE LINE (drive order); closed for a loop, open for point-to-point.
-    // Drawn as a KERB (Andrew, 2026-07-19) — red/white blocks like the side of
-    // the track: a solid WHITE stroke with a dashed RED stroke laid over it, so
-    // the red's gaps show the white through. Both are the same width; only the
-    // red carries the dash. Pitch scales with the line so the blocks stay
-    // readable from the tiny in-race minimap up to the full grid preview.
-    const coords = course.baseIds.map(function (id) { return C[id] ? (C[id].x + ',' + C[id].y) : null; }).filter(Boolean);
+    /* ROUTE LINE (drive order) — one polyline per LEG, not one line through all
+     * the stops, because a leg is no longer necessarily straight.
+     *
+     * KEEPING THE ROAD ON LAND (Andrew, 2026-07-19): "on the River Run the
+     * Course runs over water — keep it in the muni areas." A chord between two
+     * stops can leave Niagara entirely; River Run's Fort Erie → Niagara Falls
+     * leg cuts the bulge the Niagara River makes around Grand Island and spends
+     * over half its length off Canadian soil, which drew the ambulance swimming
+     * the river. core/region.js bends such a leg back onto the bank
+     * (REGION.routeFor) and hands back its waypoints, so what is drawn here
+     * follows the shore — the Niagara Parkway, the road you would really take.
+     * Legs that were always dry come back as the plain two-point chord and look
+     * exactly as they did.
+     *
+     * Drawn as a KERB — red/white blocks like the side of the track: a solid
+     * WHITE stroke with a dashed RED stroke laid over it, so the red's gaps show
+     * the white through. Both are the same width; only the red carries the dash.
+     * Pitch scales with the line so the blocks stay readable from the tiny
+     * in-race minimap up to the full grid preview.
+     *
+     * A circuit closes because routeFor includes the leg home as a real leg —
+     * NOT via a <polygon> auto-close, which would draw that leg straight and
+     * quietly undo the bending on it. */
     const kerbW = stroke * 2.4;                       // "thicker" — was `stroke`
     const kerbDash = (kerbW * 1.6).toFixed(2);        // block length == gap length
-    const routeTag = (course.type === 'loop' && coords.length > 2) ? 'polygon' : 'polyline';
-    html += '<' + routeTag + ' class="map-route-base" points="' + coords.join(' ') +
-            '" style="stroke-width:' + kerbW.toFixed(2) + '" />';
-    html += '<' + routeTag + ' class="map-route" points="' + coords.join(' ') +
-            '" style="stroke-width:' + kerbW.toFixed(2) + ';stroke-dasharray:' + kerbDash + ' ' + kerbDash + '" />';
+    const legScreen = ((REGION && REGION.routeFor) ? REGION.routeFor(course, D.baseById) : [])
+      .map(function (leg) {
+        return {
+          fromId: leg.fromId, toId: leg.toId,
+          pts: leg.points.map(function (p) { return FIT.project(p.lat, p.lon); })
+        };
+      });
+    // No geometry module, or a course whose bases carry no lat/lon → fall back
+    // to the straight stop-to-stop line rather than drawing no route at all.
+    if (!legScreen.length) {
+      const ids = course.baseIds;
+      for (let i = 0; i < ids.length - 1; i++) {
+        if (C[ids[i]] && C[ids[i + 1]]) legScreen.push({ fromId: ids[i], toId: ids[i + 1], pts: [C[ids[i]], C[ids[i + 1]]] });
+      }
+      if (course.type === 'loop' && ids.length > 2 && C[ids[ids.length - 1]] && C[ids[0]]) {
+        legScreen.push({ fromId: ids[ids.length - 1], toId: ids[0], pts: [C[ids[ids.length - 1]], C[ids[0]]] });
+      }
+    }
+    const legPointStr = legScreen.map(function (l) {
+      return l.pts.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+    });
+    // White base first for EVERY leg, then the red dash over the lot — laying
+    // both per leg would let one leg's red be overpainted by the next leg's white.
+    legPointStr.forEach(function (pts) {
+      html += '<polyline class="map-route-base" points="' + pts +
+              '" style="stroke-width:' + kerbW.toFixed(2) + '" />';
+    });
+    legPointStr.forEach(function (pts) {
+      html += '<polyline class="map-route" points="' + pts +
+              '" style="stroke-width:' + kerbW.toFixed(2) + ';stroke-dasharray:' + kerbDash + ' ' + kerbDash + '" />';
+    });
 
     /* DIRECTION ARROWS (Andrew, 2026-07-19) — one per leg, at its midpoint,
      * pointing the way you drive.
@@ -975,41 +935,50 @@
      * no other job in the game — you never type it, the radio never says it, the
      * road sign never shows it. The only thing it genuinely told you that the
      * route line didn't was WHICH WAY ROUND, and an arrow says that without
-     * putting a rival number on a base. The base code now appears on the label
-     * instead, so every number on the map is one you'd actually type.
+     * putting a rival number on a base.
      *
      * White fill + dark edge is chosen to survive the kerb underneath it: on a red
-     * block the white reads, on a white block the dark edge defines it. Amber and
-     * red stay reserved for the pit lane and the route. */
-    const legPts = course.baseIds.map(function (id) { return C[id] || null; });
-    const arrowLegs = [];
-    for (let i = 0; i < legPts.length - 1; i++) {
-      if (legPts[i] && legPts[i + 1]) arrowLegs.push([legPts[i], legPts[i + 1]]);
-    }
-    if (course.type === 'loop' && legPts.length > 2 && legPts[legPts.length - 1] && legPts[0]) {
-      arrowLegs.push([legPts[legPts.length - 1], legPts[0]]);   // the leg home closes the circuit
-    }
+     * block the white reads, on a white block the dark edge defines it. Red stays
+     * reserved for the route itself.
+     *
+     * On a bent leg (see the route note above) the arrow rides the SUB-SEGMENT
+     * that straddles the leg's halfway point rather than the chord between its
+     * two stops — otherwise a leg routed around the Niagara River would carry an
+     * arrow sitting out in the water, pointing along a line that isn't drawn. */
     const arrowR = Math.max(2.2, unit * (compact ? 0.026 : 0.019));
-    arrowLegs.forEach(function (leg) {
-      const a = leg[0], b = leg[1];
-      const dx = b.x - a.x, dy = b.y - a.y;
-      if (Math.hypot(dx, dy) < arrowR * 2.2) return;    // too short to hold a legible head
-      const deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    legScreen.forEach(function (l) {
+      const pts = l.pts;
+      let total = 0;
+      const seg = [];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const d = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+        seg.push(d); total += d;
+      }
+      // Judged on the WHOLE leg, not on the sub-segment the head happens to land
+      // on. A bent leg is chopped into a dozen short pieces, every one of them
+      // shorter than a legible arrowhead — testing the piece silently stripped
+      // the arrow off the longest leg on the map (River Run's river crossing).
+      if (total < arrowR * 2.2) return;
+      let want = total / 2, i = 0;
+      while (i < seg.length - 1 && want > seg[i]) { want -= seg[i]; i++; }
+      const a = pts[i], b = pts[i + 1];
+      const f = seg[i] > 0 ? want / seg[i] : 0.5;
+      const mx = a.x + (b.x - a.x) * f, my = a.y + (b.y - a.y) * f;
+      const deg = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
       html += '<polygon class="map-arrow" points="' +
               (arrowR * 1.25).toFixed(2) + ',0 ' +
               (-arrowR * 0.8).toFixed(2) + ',' + (arrowR * 0.85).toFixed(2) + ' ' +
               (-arrowR * 0.8).toFixed(2) + ',' + (-arrowR * 0.85).toFixed(2) +
-              '" transform="translate(' + ((a.x + b.x) / 2).toFixed(1) + ' ' + ((a.y + b.y) / 2).toFixed(1) +
+              '" transform="translate(' + mx.toFixed(1) + ' ' + my.toFixed(1) +
               ') rotate(' + deg.toFixed(1) + ')" style="stroke-width:' + (stroke * 0.5).toFixed(2) + '"/>';
     });
 
     // NODES (Andrew's colour scheme, 2026-07-17; digits removed 2026-07-19):
     // Start/Finish = checkered flag; the base we're currently at (occupied) =
     // green; the base we're driving to (next) = light-green and pulsing; every
-    // other course base = grey. The dots are now PLAIN — no drive-order digit —
-    // because that digit collided with the base code the player actually types
-    // (see the direction-arrow note above). Colour still carries current/next,
-    // and on the labelled maps the base code rides the label.
+    // other course base = grey. The dots are PLAIN — no drive-order digit (see
+    // the direction-arrow note above). Colour carries current/next; the labelled
+    // maps put the base NAME beside the dot, and only the name (2026-07-19).
     const liveFrom = race.on ? race.fromId : null;   // occupied — the base we're at / just left
     const liveTo   = race.on ? race.toId   : null;   // next — the base we're driving to
     bases.forEach(function (b) {
@@ -1025,45 +994,60 @@
         html += '<circle class="map-node' + (live ? ' ' + live : '') + '" cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" style="stroke-width:' + (stroke * 0.5) + '"/>';
       }
       if (!compact) {
-        // Name on the first line, BASE CODE on a second beneath it — the code is
-        // what the player types (AP 2107 72102), so the map should reinforce it
-        // rather than compete with it. Stacked rather than trailing on purpose:
-        // "Merrittville · 72118" as one string is nearly twice the width of the
-        // name alone, and at this density the extra length collides with the
-        // route line and with neighbouring labels.
-        const tag = isStart ? ' — START / FINISH' : '';
-        // Labels sit to the RIGHT of their dot, except on the right-hand side of
-        // the field, where they'd run past the edge and get clipped — those flip
-        // to the left of the dot instead. The start label is the long one, so it
-        // flips earliest.
+        /* NAME ONLY — no base code (Andrew, 2026-07-19): "on the maps, just list
+         * the base by name, not with the 721## code." The code used to ride a
+         * second line under the name so the map reinforced what you type. It
+         * doubled the label count on a map that already has twelve coloured
+         * cells, a kerb and a dozen dots competing for the same space, and the
+         * code is on the road sign and in the command box the moment you need
+         * it. The map is for reading the region; the HUD is for reading numbers.
+         *
+         * Labels sit to the RIGHT of their dot, except on the right-hand side of
+         * the field, where they'd run past the edge and get clipped — those flip
+         * to the left of the dot instead. The start label is the long one, so it
+         * flips earliest. */
         const wide = isStart ? 0.42 : 0.62;
         const flip = p.x > W * wide;
-        const lx = (flip ? (p.x - nodeR - font * 0.3) : (p.x + nodeR + font * 0.3)).toFixed(1);
-        html += '<text class="map-base-label" text-anchor="' + (flip ? 'end' : 'start') + '" x="' + lx +
-                '" y="' + (p.y - font * 0.12).toFixed(1) + '" style="font-size:' + font + 'px">' +
-                '<tspan x="' + lx + '">' + b.name + tag + '</tspan>' +
-                '<tspan class="map-base-code" x="' + lx + '" dy="1.02em">' + b.id + '</tspan></text>';
+        // Clear the DOT, whichever dot this is. The start/finish carries a
+        // checkered disc inside a ring nearly twice a plain node's radius, so
+        // offsetting every label by nodeR tucked the start label under its own
+        // flag — visible the moment the label went two lines.
+        const clear = (isStart ? ringR : nodeR) + font * 0.3;
+        const lx = (flip ? (p.x - clear) : (p.x + clear)).toFixed(1);
+        const anchor = flip ? 'end' : 'start';
+        if (isStart) {
+          /* THE START/FINISH LABEL IS THE ONE THAT MOVES (Andrew, 2026-07-19:
+           * "a different colour font for the Start/Stop base — multi-coloured,
+           * animated, whatever would be fun").
+           *
+           * It runs the CHRISTMAS TREE. The base name sits in checker-white so
+           * it still reads as a place, and the START / FINISH tag beneath it
+           * cycles the drag strip's staging lights — amber, amber, amber, GREEN,
+           * hold, dark — the same sequence the race itself starts on (§ the
+           * Christmas Tree start). Every other base label stays plain phosphor,
+           * so the one dot you have to come back to every lap is the only thing
+           * on the map that blinks. Purely CSS (.sf-name / .sf-tag): the map
+           * re-renders on arrivals, so a JS-driven blink would stutter. */
+          html += '<text class="map-base-label sf-label" text-anchor="' + anchor + '" x="' + lx +
+                  '" y="' + (p.y - font * 0.12).toFixed(1) + '" style="font-size:' + font + 'px">' +
+                  '<tspan class="sf-name" x="' + lx + '">' + b.name + '</tspan>' +
+                  '<tspan class="sf-tag" x="' + lx + '" dy="1.02em">▚ START / FINISH ▚</tspan></text>';
+        } else {
+          html += '<text class="map-base-label" text-anchor="' + anchor + '" x="' + lx +
+                  '" y="' + (p.y + font * 0.34).toFixed(1) + '" style="font-size:' + font + 'px">' +
+                  b.name + '</text>';
+        }
       }
     });
-
-    // FLEET / PIT (Andrew, 2026-07-17; re-placed 2026-07-19): the off-route pit
-    // reads as a RACECAR TIRE — the spot you swap rubber. It no longer sits at
-    // Fleet's real address; it is pinned beside the start/finish line (pitPos).
-    if (showPit && pitPos) {
-      const pp = pitPos;
-      const tireR = Math.max(pitR * 1.5, unit * 0.05);
-      html += tireSVG(pp.x, pp.y, tireR);
-      // Label sits ABOVE the tire, centred: the pit is pinned right next to the
-      // start/finish node, so a label to the SIDE collides with the start label.
-      // Clamped off both edges so the centred label can't run out of the field.
-      if (!compact) html += '<text class="map-base-label pit-label" x="' +
-        Math.max(font * 2.6, Math.min(W - font * 2.6, pp.x)).toFixed(1) + '" y="' +
-        (pp.y - tireR - font * 0.45).toFixed(1) + '" text-anchor="middle" style="font-size:' + font + 'px">Fleet · PIT</text>';
-    }
 
     // Gameplay map: stash coords + drop the player's unit marker at the start.
     if (svgId === 'regionMap') {
       raceCoords = C;
+      // The marker follows the DRAWN leg, waypoints and all — a leg bent around
+      // the Niagara River would otherwise be driven as the straight chord it
+      // replaced, putting the dot in the water while the road runs up the bank.
+      raceLegPaths = {};
+      legScreen.forEach(function (l) { raceLegPaths[l.fromId + '>' + l.toId] = l.pts; });
       const s0 = C[course.startId];
       if (s0) html += '<circle class="map-unit" id="unitMarker" cx="' + s0.x + '" cy="' + s0.y + '" r="' + (nodeR * 1.15) + '" />';
     }
@@ -1071,14 +1055,10 @@
     svg.innerHTML = html;
   }
 
-  // Legend so every symbol on the map has a meaning.
+  // Legend so every symbol on the map has a meaning. The pit lane and tire
+  // swatches went with the pit itself (renderMap, 2026-07-19) — nothing on the
+  // map means "pit" any more, so nothing in the legend should claim it does.
   function renderLegends() {
-    const D = DATAMOD.DATA;
-    // Mirrors renderMap's showPit: no tire swatch on a Point 2 Point course, where
-    // Fleet is not drawn at all. Re-run on every course change alongside renderMap.
-    const lcourse = activeCourse();
-    const hasPit = !!(D && D.baseById && D.baseById[CFG.PIT_BASE_ID || '72123']) &&
-                   !!lcourse && lcourse.type !== 'point-to-point';
     const html =
       '<span class="lg"><span class="sw sw-sf"></span>Start / Finish</span>' +
       '<span class="lg"><span class="sw sw-cur"></span>Current base (occupied)</span>' +
@@ -1086,9 +1066,7 @@
       '<span class="lg"><span class="sw sw-node"></span>Course base</span>' +
       '<span class="lg"><span class="sw sw-route"></span>Race route</span>' +
       // Drive order used to be a digit on each dot; it's an arrow on each leg now.
-      '<span class="lg"><span class="sw sw-arrow">▶</span>Drive direction</span>' +
-      (hasPit ? '<span class="lg"><span class="sw sw-pitlane"></span>Pit lane</span>' +
-                '<span class="lg"><span class="sw sw-tire">◉</span>Fleet · pit (tire swap)</span>' : '');
+      '<span class="lg"><span class="sw sw-arrow">▶</span>Drive direction</span>';
     ['gridLegend', 'gameLegend'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el) el.innerHTML = html;
@@ -2348,13 +2326,86 @@
     race.raf = requestAnimationFrame(loop);
   }
 
+  /* ---- PIT ADVISORY (Andrew, 2026-07-19) ----------------------------------
+   * "Having the pitstop physically on the map is not working, and come to think
+   * of it, is not necessary. Let's just include it in the instructions. As they
+   * approach, make them aware that 72123 is available for pit as they approach
+   * the Start/Finish/Lap line."
+   *
+   * So the pit is no longer a thing you can see on the map at all (renderMap
+   * dropped the lane and the tire). It is a thing you are TOLD, twice: once on
+   * the Instructions screen, and once here — in the moment it is actionable.
+   *
+   * WHEN IT LIGHTS: only while driving the leg whose destination is the
+   * start/finish base, and only past PIT_CUE_AT of that leg, so it reads as an
+   * approach rather than as a permanent HUD fixture. A point-to-point course
+   * never comes back to the line, so it never fires there.
+   *
+   * WHAT IT SAYS is deliberately not "type SWAP". The pit/tire consequence layer
+   * and the SWAP command are gated behind NEMS500_Geography_Tire_Spec §0.9/§9.1
+   * pending Andrew, so promising a working command here would be a lie the race
+   * can't honour. It announces that the pit is open and where it is; the panel
+   * carries a PREVIEW mark so nobody reads it as a live mechanic. The old static
+   * markup said "type LA to peel off", which was exactly that lie, always on. */
+  const PIT_CUE_AT = 0.55;                              // fraction of the closing leg
+  function updatePitAdvisory() {
+    const el = document.getElementById('pitIndicator');
+    if (!el) return;
+    const course = activeCourse();
+    const pitId = CFG.PIT_BASE_ID || '72123';
+    const show = !!(race.on && course && course.type !== 'point-to-point' &&
+                    race.toId && race.toId === course.startId &&
+                    race.pos >= PIT_CUE_AT);
+    el.hidden = !show;
+    if (!show) { el.classList.remove('live'); return; }
+    if (!el.classList.contains('live')) {
+      el.classList.add('live');
+      el.innerHTML = '⛽ PIT OPEN · <b>' + pitId + '</b> FLEET — off the line ahead' +
+                     '<span class="pi-preview">preview</span>';
+    }
+  }
+
+  /* Walk the marker along the leg's DRAWN path by arc length, so race.pos (0..1
+   * through the leg) maps to the same fraction of the road on screen. A leg that
+   * region.js bent around water has several segments; a leg that was always
+   * straight has one, and this reduces to the old lerp. */
+  function pointAlong(path, t) {
+    if (!path || path.length < 2) return null;
+    if (path.length === 2) {
+      const a = path[0], b = path[1];
+      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    }
+    const seg = [];
+    let total = 0;
+    for (let i = 0; i < path.length - 1; i++) {
+      const d = Math.hypot(path[i + 1].x - path[i].x, path[i + 1].y - path[i].y);
+      seg.push(d); total += d;
+    }
+    if (total <= 0) return path[0];
+    let want = Math.max(0, Math.min(1, t)) * total;
+    for (let i = 0; i < seg.length; i++) {
+      if (want <= seg[i] || i === seg.length - 1) {
+        const f = seg[i] > 0 ? want / seg[i] : 0;
+        return { x: path[i].x + (path[i + 1].x - path[i].x) * f,
+                 y: path[i].y + (path[i + 1].y - path[i].y) * f };
+      }
+      want -= seg[i];
+    }
+    return path[path.length - 1];
+  }
+
   function updateUnitMarker() {
     const m = document.getElementById('unitMarker');
     if (!m || !raceCoords) return;
-    const a = raceCoords[race.fromId], b = raceCoords[race.toId];
-    if (!a || !b) return;
-    m.setAttribute('cx', (a.x + (b.x - a.x) * race.pos).toFixed(1));
-    m.setAttribute('cy', (a.y + (b.y - a.y) * race.pos).toFixed(1));
+    const path = raceLegPaths && raceLegPaths[race.fromId + '>' + race.toId];
+    let p = pointAlong(path, race.pos);
+    if (!p) {                                            // no drawn path for this leg — straight line
+      const a = raceCoords[race.fromId], b = raceCoords[race.toId];
+      if (!a || !b) return;
+      p = { x: a.x + (b.x - a.x) * race.pos, y: a.y + (b.y - a.y) * race.pos };
+    }
+    m.setAttribute('cx', p.x.toFixed(1));
+    m.setAttribute('cy', p.y.toFixed(1));
   }
 
   // Race clock: seconds under a minute, m:ss.s above (design shows "1:24.6").
@@ -2428,6 +2479,7 @@
 
     const lap = document.getElementById('hudLap');
     if (lap) lap.textContent = race.lap + '/' + race.laps;
+    updatePitAdvisory();
     const legsPerLap = Math.max(1, (race.stops.length || 2) - 1);
     const pl = document.getElementById('hudPlace');
     if (pl) pl.textContent = Math.min(race.legIndex + 1, legsPerLap) + '/' + legsPerLap;

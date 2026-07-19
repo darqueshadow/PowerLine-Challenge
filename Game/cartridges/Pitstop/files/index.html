@@ -77,6 +77,25 @@
       <p class="note todo">SWAP — pit tire/fuel swap command — preview only (net-new; the pit
          consequence layer is authorized separately).</p>
 
+      <!-- THE PIT LIVES HERE NOW (Andrew, 2026-07-19). It used to be drawn on the
+           course map as a yellow bypass lane with a tire on it, next to the
+           start/finish dot. That never worked: the pit is a building, not a stop
+           on a course made of bases, so its lane was invented geometry sitting on
+           the busiest corner of the map. Andrew: "not necessary — just include it
+           in the instructions." Stated here, and raised in-race by the pit
+           advisory on the approach to the line (script.js updatePitAdvisory). -->
+      <h3 style="margin-top:14px;font-size:16px;">The Pit — 72123 Fleet</h3>
+      <p>Your pit is <span class="cmd-code">72123</span> — <b>Fleet</b>, the garage that keeps the
+         trucks running. It is not a stop on the course and it is not drawn on the map: it sits
+         off the circuit, on the run down to the <b>Start / Finish</b> line.</p>
+      <p class="note">That is the only place it can be taken. You come past the line at the end of
+         every lap, and that is your window — the console calls the pit as you approach so you know
+         it is there before you're past it. Anywhere else on the course, you're driving on what
+         you've got.</p>
+      <p class="note todo">Pitting is <b>preview only</b> for now — the advisory tells you the pit
+         is open, but tires, fuel and the <span class="cmd-code">SWAP</span> command don't yet
+         change the race. The consequence layer is authorized separately.</p>
+
       <h3 style="margin-top:14px;font-size:16px;">Race Type B — Checkpoint</h3>
       <p>Pick <b>Type B · Checkpoint</b> in Race Options and <span class="cmd-code">ENP</span>
          stops being an invisible rule and becomes two gantries over the road: the
@@ -355,7 +374,11 @@ AHEAD</div>
               <div class="gauge-label">Fuel</div>
               <div class="bar fuel"><span></span></div>
             </div>
-            <div class="pit-indicator" id="pitIndicator">PIT · FLEET (72123) — type <b>LA</b> to peel off</div>
+            <!-- Pit advisory. Dark for most of a lap; script.js updatePitAdvisory
+                 lights it on the approach to the Start/Finish line, which is the
+                 only place the pit can be taken. Text is written there — this is
+                 just the slot, so the markup can't drift from the rule. -->
+            <div class="pit-indicator" id="pitIndicator" hidden></div>
             <div class="map-legend" id="gameLegend"></div>
           </div>
         </div>
