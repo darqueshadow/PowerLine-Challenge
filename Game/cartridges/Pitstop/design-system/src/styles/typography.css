@@ -1,5 +1,5 @@
 /* ============================================================================
- * @plc/ui — typography: Heading, VersionStamp
+ * @pitstop/ui — typography: Heading, VersionStamp
  * ----------------------------------------------------------------------------
  * Headings are the cabinet voice: Press Start 2P, uppercase, phosphor, glowing.
  * Levels are styled by CLASS rather than by element, so a screen can pick the
@@ -9,35 +9,35 @@
  * scale, and the arcade consistently chose scale.
  * ========================================================================= */
 
-.plc-heading {
-  font-family: var(--plc-font-pixel);
+.ps-heading {
+  font-family: var(--ps-font-pixel);
   font-weight: 400;               /* Press Start 2P has no bold; see tokens.css */
   text-transform: uppercase;
-  color: var(--plc-phosphor);
-  text-shadow: var(--plc-glow);
+  color: var(--ps-phosphor);
+  text-shadow: var(--ps-glow);
   line-height: 1.3;
   margin: 0;
 }
 
 /* The wordmark — PITSTOP, THE AQUANAUT. Fluid because it is the one piece of
    type that should always dominate its screen, on a laptop or a 4K panel. */
-.plc-heading--display {
-  font-size: var(--plc-pixel-xl);
+.ps-heading--display {
+  font-size: var(--ps-pixel-xl);
   line-height: 1;
   letter-spacing: 0;
 }
 
-.plc-heading--lg {
-  font-size: var(--plc-pixel-lg);
+.ps-heading--lg {
+  font-size: var(--ps-pixel-lg);
 }
 
-.plc-heading--md {
-  font-size: var(--plc-pixel-md);
+.ps-heading--md {
+  font-size: var(--ps-pixel-md);
 }
 
-.plc-heading--sm {
-  font-size: var(--plc-pixel-sm);
-  letter-spacing: var(--plc-tracking);
+.ps-heading--sm {
+  font-size: var(--ps-pixel-sm);
+  letter-spacing: var(--ps-tracking);
 }
 
 /* The line under a wordmark — "NEMS 500". Amber by default so it reads as a
@@ -45,37 +45,37 @@
    ⚠ `.subtitle` is a name that already means three different things across the
    arcade (amber and margin-TOP in Pitstop; small and margin-BOTTOM in AC/AQ,
    and those two disagree on colour). Hence the deliberate rename. */
-.plc-tagline {
-  font-family: var(--plc-font-pixel);
+.ps-tagline {
+  font-family: var(--ps-font-pixel);
   font-weight: 400;
-  font-size: var(--plc-pixel-sm);
-  color: var(--plc-amber);
-  letter-spacing: var(--plc-tracking-wide);
+  font-size: var(--ps-pixel-sm);
+  color: var(--ps-amber);
+  letter-spacing: var(--ps-tracking-wide);
   text-shadow: 0 0 6px rgba(255, 176, 0, .5);
   margin: 0;
 }
 
 /* Supporting copy under a heading — the terminal voice, dimmed. */
-.plc-subhead {
-  font-family: var(--plc-font-mono);
-  font-size: var(--plc-text-md);
-  color: var(--plc-text-dim);
-  letter-spacing: var(--plc-tracking);
+.ps-subhead {
+  font-family: var(--ps-font-mono);
+  font-size: var(--ps-text-md);
+  color: var(--ps-text-dim);
+  letter-spacing: var(--ps-tracking);
   margin: 0;
 }
 
 /* ---- VersionStamp ---------------------------------------------------------
  * The build tag every screen in the arcade carries in a corner. Absolute, so it
  * pins to the console shell rather than joining the centred stack — which means
- * its container needs a positioning context (`.plc-screen` provides one). */
-.plc-version {
+ * its container needs a positioning context (`.ps-screen` provides one). */
+.ps-version {
   position: absolute;
   right: 2.4vw;
   bottom: 2vh;
-  z-index: var(--plc-z-overlay);
-  font-family: var(--plc-font-mono);
-  font-size: var(--plc-text-xs);
-  color: var(--plc-text-dim);
+  z-index: var(--ps-z-overlay);
+  font-family: var(--ps-font-mono);
+  font-size: var(--ps-text-xs);
+  color: var(--ps-text-dim);
   letter-spacing: 1px;
   pointer-events: none;
 }

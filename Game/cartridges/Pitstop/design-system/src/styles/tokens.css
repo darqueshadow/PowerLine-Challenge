@@ -1,155 +1,168 @@
 /* ============================================================================
- * @plc/ui — THE TOKEN CONTRACT
+ * @pitstop/ui — THE TOKEN CONTRACT
  * ----------------------------------------------------------------------------
  * Every value the library renders comes from here. Component files may READ
  * these and must never redefine them — that rule is the whole reason this
  * library can serve four different-looking surfaces from one set of components.
  *
- * ── HOW THEMING WORKS (Andrew, 2026-07-19) ──────────────────────────────────
- * The library owns STRUCTURE; each cartridge owns its PALETTE. `Game/CLAUDE.md`
- * requires it — "do not borrow themes from one cartridge for another" — and the
- * arcade's own history proves it: Pitstop is phosphor green, Asteroid Command
- * cyan, The Aquanaut teal-and-sonar-green. A library that hardcoded green could
- * only ever serve half the arcade.
+ * ── THIS IS PITSTOP'S, AND ONLY PITSTOP'S (Andrew, 2026-07-19) ──────────────
+ * PLC is a SUITE of independent games behind a shared hub. Each cartridge has
+ * its own mechanics, its own command style and its own look, and — the part
+ * that governs this file — working on one must never change another. The
+ * Aquanaut and Asteroid Command each own their design language outright; the
+ * hub owns its own PET-computer look and knows how to LAUNCH the cartridges
+ * without sharing a theme with any of them.
  *
- * So a cartridge re-tints by overriding tokens, never by rewriting components:
+ * An earlier cut of this file was arcade-wide, with cartridges re-tinting it by
+ * overriding tokens. That was wrong, and the reason is worth keeping: token
+ * overrides isolate COLOUR, not change. A shared Button means editing Pitstop's
+ * button edits The Aquanaut's too — precisely the coupling the suite is built
+ * to avoid. Independence of change is the requirement; independence of palette
+ * was only ever a symptom of it.
  *
- *     :root {
- *       --plc-phosphor:     #00ffff;   -- Asteroid Command's cyan
- *       --plc-phosphor-dim: #0a7f8f;
- *       --plc-glow:         0 0 6px rgba(0, 255, 255, .55);
- *     }
+ * So: nothing outside Pitstop consumes these tokens. If another cartridge ever
+ * wants a design system, it gets its OWN — copied and diverged freely, never
+ * imported. Duplication between cartridges is the price of independence here,
+ * and it is deliberately being paid.
  *
  * ── WHY THESE NAMES ─────────────────────────────────────────────────────────
- * They are Pitstop's, namespaced. Pitstop was the only file in the arcade with a
- * complete, coherent token system — the hub has NO custom properties at all,
- * every value there is a literal — so adopting its vocabulary costs the most
- * developed cartridge almost nothing to migrate. "Phosphor" is also simply the
- * right word for a PET console, whatever colour the phosphor happens to glow.
+ * Pitstop's own vocabulary, namespaced `--ps-` to match the `ps-` prefix its
+ * stylesheet already uses for keyframes. "Phosphor" rather than "primary" or
+ * "accent" because this is a PET console and the word carries the whole idea:
+ * a colour that GLOWS rather than one that merely fills.
  *
  * ── WHAT WAS RECONCILED ─────────────────────────────────────────────────────
- * A cross-cartridge audit found the same concept implemented many ways. Each
- * RECONCILED note records what the competing values were and which one won, so
+ * An audit of all four PLC stylesheets found the same concept implemented many
+ * different ways — five "PET greens", five scanline recipes, seven overlay
+ * scrims. Those findings still inform the values below, because they show which
+ * variants were deliberate and which were drift.
+ *
+ *   ⚠ But the audit's cross-cartridge scope is HISTORY, not a mandate. These
+ *   values bind Pitstop alone. A RECONCILED note saying a value "won" means it
+ *   won FOR PITSTOP; The Aquanaut keeping a different green is not a bug to be
+ *   fixed, it is that cartridge exercising its own identity.
+ *
+ * Each note records what the competing values were and which one was chosen, so
  * a future reader can tell a decision from an accident.
  * ========================================================================= */
 
 :root {
   /* ---- Surface ---------------------------------------------------------- */
-  --plc-bg: #000000;
+  --ps-bg: #000000;
   /* Panel fill. RECONCILED: hub rgba(20,20,20,.8) · Pitstop #04140a · AC/AQ
      rgba(0,0,0,.5). Pitstop's tinted near-black wins — a panel on a PET console
      should read as lit phosphor glass, not grey plastic, and a tinted fill
      re-themes with the palette where a neutral grey would not. */
-  --plc-bg-panel: #04140a;
-  --plc-bg-inset: #02220e;      /* recessed fields: inputs, chips, switch beds */
+  --ps-bg-panel: #04140a;
+  --ps-bg-inset: #02220e;      /* recessed fields: inputs, chips, switch beds */
 
   /* ---- Phosphor (the brand colour, whatever hue a cartridge sets) -------- */
   /* RECONCILED — the arcade had FIVE greens in play: #39ff14, #33ff33, #00ff41,
      #00FF41 (the same colour in different letter case) and #00ff88. #39ff14
      wins: it is both the hub's title/text green and Pitstop's --phosphor, so it
      is the value most of the arcade already agreed on. */
-  --plc-phosphor: #39ff14;
-  --plc-phosphor-dim: #1f8a10;   /* borders, rules, inactive edges */
-  --plc-phosphor-soft: #7dff5a;  /* hover lift, secondary emphasis */
+  --ps-phosphor: #39ff14;
+  --ps-phosphor-dim: #1f8a10;   /* borders, rules, inactive edges */
+  --ps-phosphor-soft: #7dff5a;  /* hover lift, secondary emphasis */
 
   /* ---- Text ------------------------------------------------------------- */
-  --plc-text: #c8ffc0;
-  --plc-text-dim: #6fae66;
-  --plc-text-invert: #001a00;    /* on a filled phosphor face */
+  --ps-text: #c8ffc0;
+  --ps-text-dim: #6fae66;
+  --ps-text-invert: #001a00;    /* on a filled phosphor face */
 
   /* ---- Signal colours --------------------------------------------------- */
-  --plc-amber: #ffb000;          /* caution, secondary attention */
-  --plc-danger: #ff3b30;         /* error, destructive, critical */
-  --plc-info: #4db5ff;           /* command input, "next", informational */
-  --plc-white: #f4fff0;          /* highlights, checkered motifs */
+  --ps-amber: #ffb000;          /* caution, secondary attention */
+  --ps-danger: #ff3b30;         /* error, destructive, critical */
+  --ps-info: #4db5ff;           /* command input, "next", informational */
+  --ps-white: #f4fff0;          /* highlights, checkered motifs */
 
   /* ---- Type ------------------------------------------------------------- */
   /* Courier closes both stacks deliberately: it is the closest terminal face
      present on every machine, so a font that fails to load degrades in
      character rather than into a proportional sans. */
-  --plc-font-pixel: 'Press Start 2P', 'Courier New', Courier, monospace;
-  --plc-font-mono: 'Share Tech Mono', 'Courier New', Courier, monospace;
-  --plc-font: var(--plc-font-mono);
+  --ps-font-pixel: 'Press Start 2P', 'Courier New', Courier, monospace;
+  --ps-font-mono: 'Share Tech Mono', 'Courier New', Courier, monospace;
+  --ps-font: var(--ps-font-mono);
 
   /* Press Start 2P has NO bold weight — asking for one makes the browser
      synthesise a smeared fake — and its glyphs run very large for their point
      size, which is why the pixel scale below sits so far under the mono one. */
-  --plc-text-xs: 11px;
-  --plc-text-sm: 13px;
-  --plc-text-md: 15px;
-  --plc-text-lg: 18px;
-  --plc-pixel-xs: 7px;
-  --plc-pixel-sm: 9px;
-  --plc-pixel-md: 12px;
-  --plc-pixel-lg: clamp(15px, 2.6vw, 22px);
-  --plc-pixel-xl: clamp(40px, 9vw, 110px);
+  --ps-text-xs: 11px;
+  --ps-text-sm: 13px;
+  --ps-text-md: 15px;
+  --ps-text-lg: 18px;
+  --ps-pixel-xs: 7px;
+  --ps-pixel-sm: 9px;
+  --ps-pixel-md: 12px;
+  --ps-pixel-lg: clamp(15px, 2.6vw, 22px);
+  --ps-pixel-xl: clamp(40px, 9vw, 110px);
 
   /* RECONCILED: letter-spacing:2px on buttons was the ONE property all four
      stylesheets already agreed on — the arcade's single point of consensus. */
-  --plc-tracking: 2px;
-  --plc-tracking-wide: 4px;
+  --ps-tracking: 2px;
+  --ps-tracking-wide: 4px;
 
   /* ---- Geometry --------------------------------------------------------- */
   /* RECONCILED: borders ran 1px (AC/AQ) vs 2px (hub, Pitstop). 2px wins — a
      hairline loses the chunky cabinet feel at arcade scale. */
-  --plc-border: 2px;
-  --plc-border-hair: 1px;
+  --ps-border: 2px;
+  --ps-border-hair: 1px;
   /* RECONCILED: radius ran 0 (Pitstop) / 4px (AC/AQ) / 8px (hub). ZERO wins. A
      Commodore PET has square phosphor panels, and a rounded corner is the single
      detail that most reads as "modern web app" instead of 1980s cabinet.
-     --plc-radius-pill remains for genuinely pill-shaped controls (switch beds). */
-  --plc-radius: 0;
-  --plc-radius-pill: 999px;
+     --ps-radius-pill remains for genuinely pill-shaped controls (switch beds). */
+  --ps-radius: 0;
+  --ps-radius-pill: 999px;
 
-  --plc-space-2xs: 4px;
-  --plc-space-xs: 6px;
-  --plc-space-sm: 8px;
-  --plc-space-md: 12px;
-  --plc-space-lg: 20px;
-  --plc-space-xl: 26px;
+  --ps-space-2xs: 4px;
+  --ps-space-xs: 6px;
+  --ps-space-sm: 8px;
+  --ps-space-md: 12px;
+  --ps-space-lg: 20px;
+  --ps-space-xl: 26px;
 
   /* ---- Glow ------------------------------------------------------------- */
   /* RECONCILED: glow radii were chosen ad hoc per site across the arcade —
      5/6/8/10/12/15/20/25/30px with no scale behind them. Three steps replace
      every one of those. */
-  --plc-glow: 0 0 6px rgba(57, 255, 20, .55);
-  --plc-glow-strong: 0 0 18px rgba(57, 255, 20, .8);
-  --plc-glow-soft: 0 0 12px rgba(57, 255, 20, .3);
+  --ps-glow: 0 0 6px rgba(57, 255, 20, .55);
+  --ps-glow-strong: 0 0 18px rgba(57, 255, 20, .8);
+  --ps-glow-soft: 0 0 12px rgba(57, 255, 20, .3);
 
   /* ---- Motion ----------------------------------------------------------- */
   /* RECONCILED: the same hover ran .12s (Pitstop) to .3s (hub) — a 2.5x spread.
      .12s wins: this is an arcade cabinet and its controls should feel instant. */
-  --plc-transition: .12s ease;
-  --plc-transition-slow: .3s ease;
+  --ps-transition: .12s ease;
+  --ps-transition-slow: .3s ease;
 
   /* ---- CRT -------------------------------------------------------------- */
   /* RECONCILED — the defining motif of the entire arcade had FIVE recipes, at
      alphas .06/.14/.15/.15/.16 and pitches of 3px and 4px. One canonical recipe
-     at the median. Intensity is its own knob (--plc-scanline-alpha) so a surface
+     at the median. Intensity is its own knob (--ps-scanline-alpha) so a surface
      wanting a fainter veil changes a number rather than forking the gradient. */
-  --plc-scanline-alpha: .15;
-  --plc-scanline-pitch: 3px;
-  --plc-scanlines: repeating-linear-gradient(
+  --ps-scanline-alpha: .15;
+  --ps-scanline-pitch: 3px;
+  --ps-scanlines: repeating-linear-gradient(
     0deg,
     rgba(0, 0, 0, 0) 0,
-    rgba(0, 0, 0, 0) calc(var(--plc-scanline-pitch) - 1px),
-    rgba(0, 0, 0, var(--plc-scanline-alpha)) var(--plc-scanline-pitch)
+    rgba(0, 0, 0, 0) calc(var(--ps-scanline-pitch) - 1px),
+    rgba(0, 0, 0, var(--ps-scanline-alpha)) var(--ps-scanline-pitch)
   );
-  --plc-vignette: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, .5) 100%);
+  --ps-vignette: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, .5) 100%);
 
   /* RECONCILED: seven different overlay scrims across the arcade. One value. */
-  --plc-scrim: rgba(0, 0, 0, .85);
+  --ps-scrim: rgba(0, 0, 0, .85);
 
   /* ---- Layering --------------------------------------------------------- */
   /* RECONCILED: the arcade's z-index scales were mutually INCOMPATIBLE — AC/AQ's
      primary overlays sat at 100 while Pitstop's pause sat at 8000, so merging
      the sheets naively would have mis-stacked them. One scale, with deliberate
      gaps so a cartridge can slot its own layers between these. */
-  --plc-z-base: 1;
-  --plc-z-overlay: 100;
-  --plc-z-scanlines: 200;
-  --plc-z-modal: 300;
-  --plc-z-dev: 400;
+  --ps-z-base: 1;
+  --ps-z-overlay: 100;
+  --ps-z-scanlines: 200;
+  --ps-z-modal: 300;
+  --ps-z-dev: 400;
 }
 
 /* Motion here is decoration: every animation in this library is a glow, a blink
@@ -158,7 +171,7 @@
    anyone who gets motion sickness from a flickering CRT pastiche. */
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --plc-transition: 0s;
-    --plc-transition-slow: 0s;
+    --ps-transition: 0s;
+    --ps-transition-slow: 0s;
   }
 }

@@ -1,12 +1,12 @@
 /* ============================================================================
- * @plc/ui — public entry
+ * @pitstop/ui — public entry
  * ----------------------------------------------------------------------------
  * Components only. This file deliberately does NOT `import './styles/index.css'`:
  * TypeScript carries such an import into dist/index.d.ts, where a consumer's
  * compiler cannot resolve a .css module and the build then fails on our behalf.
  * The stylesheet is a separate first-class artifact instead — reached via the
  * package's "style" field or its "./styles.css" export — which is also exactly
- * what lets the build-free PLC cartridges just <link> it.
+ * what lets build-free Pitstop just <link> it.
  * ========================================================================= */
 
 /* ---- Chrome: the console shell ---------------------------------------- */

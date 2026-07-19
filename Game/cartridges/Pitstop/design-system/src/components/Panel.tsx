@@ -18,10 +18,10 @@ export function Panel({ children, scroll, tight, glow, className }: PanelProps) 
   return (
     <div
       className={cx(
-        'plc-panel',
-        scroll && 'plc-panel--scroll',
-        tight && 'plc-panel--tight',
-        glow && 'plc-panel--glow',
+        'ps-panel',
+        scroll && 'ps-panel--scroll',
+        tight && 'ps-panel--tight',
+        glow && 'ps-panel--glow',
         className,
       )}
     >

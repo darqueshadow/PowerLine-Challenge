@@ -11,5 +11,5 @@ export interface VersionStampProps {
  * a positioning ancestor — `Screen` provides one.
  */
 export function VersionStamp({ children, className }: VersionStampProps) {
-  return <div className={cx('plc-version', className)}>{children}</div>;
+  return <div className={cx('ps-version', className)}>{children}</div>;
 }

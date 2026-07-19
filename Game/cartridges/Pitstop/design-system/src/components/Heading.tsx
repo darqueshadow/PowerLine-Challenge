@@ -18,6 +18,6 @@ export interface HeadingProps {
 export function Heading({ children, size = 'lg', level = 2, className }: HeadingProps) {
   const Tag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4';
   return (
-    <Tag className={cx('plc-heading', `plc-heading--${size}`, className)}>{children}</Tag>
+    <Tag className={cx('ps-heading', `ps-heading--${size}`, className)}>{children}</Tag>
   );
 }

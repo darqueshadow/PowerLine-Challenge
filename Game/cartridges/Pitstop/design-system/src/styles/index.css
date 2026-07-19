@@ -1,5 +1,5 @@
 /* ============================================================================
- * @plc/ui — stylesheet entry
+ * @pitstop/ui — stylesheet entry
  * ----------------------------------------------------------------------------
  * Everything the components render is reachable from THIS file's @import
  * closure. That is not a style preference — it is the contract with two
@@ -8,8 +8,8 @@
  *   • Claude Design renders each design with only styles.css's transitive
  *     @import closure. A rule outside it does not exist as far as any design
  *     the agent builds is concerned.
- *   • The PLC cartridges are plain HTML with no build step; they link the
- *     single flat dist/plc-ui.css that this file compiles to.
+ *   • Pitstop itself is plain HTML with no build step; it links the single flat
+ *     dist/ps-ui.css that this file compiles to.
  *
  * Order matters and is deliberate: tokens first (everything downstream reads
  * them), then the reset, then base element styling, then components. A

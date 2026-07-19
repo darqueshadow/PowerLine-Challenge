@@ -1,19 +1,19 @@
 {
-  "name": "@plc/ui",
+  "name": "@pitstop/ui",
   "version": "0.1.0",
   "private": true,
-  "description": "PowerLine Challenge — shared console chrome. The Commodore-PET/CRT design language behind the PLC arcade hub and its cartridges, as real React components over real CSS.",
+  "description": "Pitstop's design system \u2014 the console chrome for the PLC Pitstop cartridge, as real React components over real CSS. Scoped to Pitstop alone: PLC cartridges are independent and never share components.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "style": "./dist/plc-ui.css",
+  "style": "./dist/ps-ui.css",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./dist/plc-ui.css",
+    "./styles.css": "./dist/ps-ui.css",
     "./package.json": "./package.json"
   },
   "files": [

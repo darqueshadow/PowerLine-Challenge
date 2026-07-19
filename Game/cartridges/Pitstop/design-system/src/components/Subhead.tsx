@@ -8,5 +8,5 @@ export interface SubheadProps {
 
 /** Supporting copy under a heading — terminal voice, dimmed. */
 export function Subhead({ children, className }: SubheadProps) {
-  return <p className={cx('plc-subhead', className)}>{children}</p>;
+  return <p className={cx('ps-subhead', className)}>{children}</p>;
 }

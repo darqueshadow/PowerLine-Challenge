@@ -38,11 +38,11 @@ export function Button({
     <button
       type={type}
       className={cx(
-        'plc-btn',
-        size === 'sm' && 'plc-btn--sm',
-        variant === 'danger' && 'plc-btn--danger',
-        variant === 'start' && 'plc-btn--start',
-        blink && 'plc-btn--blink',
+        'ps-btn',
+        size === 'sm' && 'ps-btn--sm',
+        variant === 'danger' && 'ps-btn--danger',
+        variant === 'start' && 'ps-btn--start',
+        blink && 'ps-btn--blink',
         className,
       )}
       {...rest}

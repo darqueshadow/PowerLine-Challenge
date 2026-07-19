@@ -19,9 +19,9 @@ export function Scanlines({ vignette, animated, className }: ScanlinesProps) {
     <div
       aria-hidden="true"
       className={cx(
-        'plc-scanlines',
-        vignette && 'plc-scanlines--vignette',
-        animated && 'plc-scanlines--animated',
+        'ps-ui-scanlines',
+        vignette && 'ps-ui-scanlines--vignette',
+        animated && 'ps-ui-scanlines--animated',
         className,
       )}
     />

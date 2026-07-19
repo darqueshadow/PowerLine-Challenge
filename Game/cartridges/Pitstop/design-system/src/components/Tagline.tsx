@@ -15,5 +15,5 @@ export interface TaglineProps {
  * colour and on which margin it sets.
  */
 export function Tagline({ children, className }: TaglineProps) {
-  return <div className={cx('plc-tagline', className)}>{children}</div>;
+  return <div className={cx('ps-tagline', className)}>{children}</div>;
 }

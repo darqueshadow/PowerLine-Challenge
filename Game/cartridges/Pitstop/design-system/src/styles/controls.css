@@ -1,5 +1,5 @@
 /* ============================================================================
- * @plc/ui — controls: Button, MenuList
+ * @pitstop/ui — controls: Button, MenuList
  * ----------------------------------------------------------------------------
  * The audit's clearest finding lives here. Asteroid Command styles its buttons
  * through a seventeen-ID selector list; The Aquanaut through an eighteen-ID one
@@ -11,102 +11,105 @@
  * Transparent face, chunky phosphor border, uppercase, tracked. Hover INVERTS:
  * the face fills with phosphor and the label goes black.
  *
- * ⚠ Inversion is a deliberate default with a known dissenter. The Aquanaut
- * explicitly refuses it — its own CSS carries "NO solid-green fill / black-text
- * state anywhere" and forces a black face with a tracer sweep instead, because
- * a filled green slab breaks its dark deep-sea mood. That cartridge should
- * therefore override `.plc-btn:hover`, NOT be forced onto the default. It is a
- * legitimate theme difference, not drift to be reconciled away.
+ * Inversion is right for Pitstop: a filled phosphor slab reads as a lit arcade
+ * control, which is what this cartridge is going for.
+ *
+ * Worth recording that it is NOT universal within PLC — The Aquanaut's own CSS
+ * carries "NO solid-green fill / black-text state anywhere" and uses a tracer
+ * sweep instead, because a filled slab breaks its dark deep-sea mood. That is
+ * not a conflict to resolve: the two cartridges are independent and are
+ * supposed to disagree. It is noted only so nobody later "fixes" Pitstop's
+ * inversion to match Aquanaut, or vice versa.
  *
  * `background: transparent` (not `none`) matters: `none` leaves the UA's own
  * grey button face showing in some engines. */
-.plc-btn {
+.ps-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--plc-space-sm);
-  font-family: var(--plc-font);
-  font-size: var(--plc-text-lg);
+  gap: var(--ps-space-sm);
+  font-family: var(--ps-font);
+  font-size: var(--ps-text-lg);
   text-transform: uppercase;
-  letter-spacing: var(--plc-tracking);
-  color: var(--plc-phosphor);
+  letter-spacing: var(--ps-tracking);
+  color: var(--ps-phosphor);
   background: transparent;
-  border: var(--plc-border) solid var(--plc-phosphor-dim);
-  border-radius: var(--plc-radius);
-  padding: var(--plc-space-md) var(--plc-space-lg);
+  border: var(--ps-border) solid var(--ps-phosphor-dim);
+  border-radius: var(--ps-radius);
+  padding: var(--ps-space-md) var(--ps-space-lg);
   cursor: pointer;
-  transition: color var(--plc-transition), background var(--plc-transition),
-    border-color var(--plc-transition), box-shadow var(--plc-transition);
+  transition: color var(--ps-transition), background var(--ps-transition),
+    border-color var(--ps-transition), box-shadow var(--ps-transition);
 }
 
 /* :focus, NOT :focus-visible. These menus are driven by arrow keys — focus IS
    the cursor, and the player must see where it sits however it got there.
    :focus-visible would hide the highlight after a click, leaving a keyboard
    user with no cursor the moment they touched the mouse. */
-.plc-btn:hover,
-.plc-btn:focus {
-  color: var(--plc-text-invert);
-  background: var(--plc-phosphor);
-  box-shadow: var(--plc-glow);
+.ps-btn:hover,
+.ps-btn:focus {
+  color: var(--ps-text-invert);
+  background: var(--ps-phosphor);
+  box-shadow: var(--ps-glow);
   outline: none;
 }
 
-.plc-btn:disabled {
-  color: var(--plc-text-dim);
+.ps-btn:disabled {
+  color: var(--ps-text-dim);
   border-color: #233;
   background: transparent;
   box-shadow: none;
   cursor: not-allowed;
 }
 
-.plc-btn--sm {
-  font-size: var(--plc-text-sm);
-  padding: var(--plc-space-sm) var(--plc-space-md);
+.ps-btn--sm {
+  font-size: var(--ps-text-sm);
+  padding: var(--ps-space-sm) var(--ps-space-md);
 }
 
 /* Destructive / exit. Amber rather than red: in this arcade red is reserved for
    the route kerb and for genuine failure states, and "quit to menu" is neither. */
-.plc-btn--danger {
-  color: var(--plc-amber);
+.ps-btn--danger {
+  color: var(--ps-amber);
   border-color: #7a5500;
 }
 
-.plc-btn--danger:hover,
-.plc-btn--danger:focus {
+.ps-btn--danger:hover,
+.ps-btn--danger:focus {
   color: #1a1200;
-  background: var(--plc-amber);
+  background: var(--ps-amber);
   box-shadow: 0 0 6px rgba(255, 176, 0, .55);
 }
 
 /* The arcade "insert coin" button — PRESS START, RACE AGAIN. Filled by default
    rather than on hover, because it is the one control on screen that should
    look already-lit. */
-.plc-btn--start {
-  font-family: var(--plc-font-pixel);
+.ps-btn--start {
+  font-family: var(--ps-font-pixel);
   font-weight: 400;
-  font-size: var(--plc-pixel-md);
-  color: var(--plc-text-invert);
-  background: var(--plc-phosphor);
-  border-color: var(--plc-phosphor);
-  padding: var(--plc-space-lg) calc(var(--plc-space-xl) + var(--plc-space-2xs));
-  box-shadow: var(--plc-glow-strong);
+  font-size: var(--ps-pixel-md);
+  color: var(--ps-text-invert);
+  background: var(--ps-phosphor);
+  border-color: var(--ps-phosphor);
+  padding: var(--ps-space-lg) calc(var(--ps-space-xl) + var(--ps-space-2xs));
+  box-shadow: var(--ps-glow-strong);
 }
 
-.plc-btn--start:hover,
-.plc-btn--start:focus {
-  color: var(--plc-text-invert);
-  background: var(--plc-phosphor-soft);
-  box-shadow: var(--plc-glow-strong);
+.ps-btn--start:hover,
+.ps-btn--start:focus {
+  color: var(--ps-text-invert);
+  background: var(--ps-phosphor-soft);
+  box-shadow: var(--ps-glow-strong);
 }
 
 /* Attract-mode blink. Steps, never a fade — a CRT phosphor either fires or it
    does not, and an eased opacity ramp reads as modern CSS rather than as a
    1980s cabinet. */
-.plc-btn--blink {
-  animation: plc-blink 1.1s steps(2, start) infinite;
+.ps-btn--blink {
+  animation: ps-ui-blink 1.1s steps(2, start) infinite;
 }
 
-@keyframes plc-blink {
+@keyframes ps-ui-blink {
   to {
     opacity: 0;
   }
@@ -120,15 +123,15 @@
  * The row variant is not decoration: Pitstop's HTML overrides its own
  * `.menu-list` with inline `style="flex-direction:row"` in seven places, which
  * is the component telling us it was under-specified. */
-.plc-menu {
+.ps-menu {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--plc-space-md);
+  gap: var(--ps-space-md);
   min-width: 320px;
 }
 
-.plc-menu--row {
+.ps-menu--row {
   flex-direction: row;
   align-items: center;
   justify-content: center;
@@ -138,6 +141,6 @@
 
 /* Sized to its buttons instead of the 320px column — for a back/next pair, or a
    lone PRESS START, where the default minimum leaves an awkward gutter. */
-.plc-menu--auto {
+.ps-menu--auto {
   min-width: 0;
 }

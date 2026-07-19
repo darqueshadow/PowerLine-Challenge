@@ -21,9 +21,9 @@ export function Screen({ children, scroll, bleed, className }: ScreenProps) {
   return (
     <div
       className={cx(
-        'plc-screen',
-        scroll && 'plc-screen--top',
-        bleed && 'plc-screen--bleed',
+        'ps-screen',
+        scroll && 'ps-screen--top',
+        bleed && 'ps-screen--bleed',
         className,
       )}
     >

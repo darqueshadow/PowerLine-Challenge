@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ============================================================================
- * @plc/ui — build
+ * @pitstop/ui — build
  * ----------------------------------------------------------------------------
  * Two artifacts, deliberately:
  *
@@ -8,12 +8,12 @@
  *                      so a consumer (and the Claude Design runtime) supplies
  *                      its own copy — bundling a second React is the classic way
  *                      to get two renderers and hooks that throw.
- *   dist/plc-ui.css    ONE flat stylesheet, every @import already inlined.
+ *   dist/ps-ui.css    ONE flat stylesheet, every @import already inlined.
  *
- * That second artifact is the point of the whole package. The PLC cartridges
- * have NO build system (see Game/CLAUDE.md) — they are plain HTML that can only
- * `<link>` a stylesheet. Emitting the components' real CSS as a plain file is
- * what lets a cartridge eventually consume the SAME styles the components are
+ * That second artifact is the point of the whole package. Pitstop has NO build
+ * system (see Game/CLAUDE.md) — it is plain HTML that can only `<link>` a
+ * stylesheet. Emitting the components' real CSS as a plain file is
+ * what lets Pitstop eventually consume the SAME styles the components are
  * verified against, instead of keeping a hand-copied fork that drifts. Anything
  * that breaks that (CSS modules, hashed class names, CSS-in-JS) would sever it,
  * which is why this package styles by plain semantic class name and nothing else.
@@ -51,7 +51,7 @@ await esbuild.build({
   external: ['react', 'react-dom', 'react/jsx-runtime'],
   jsx: 'automatic',
   // The components import './styles/index.css' for authoring ergonomics, but the
-  // bundle must NOT carry it: consumers link dist/plc-ui.css themselves (built
+  // bundle must NOT carry it: consumers link dist/ps-ui.css themselves (built
   // below), and injecting the same rules twice from two places makes cascade
   // bugs that only appear in one of the two consumers.
   loader: { '.css': 'empty' },
@@ -61,7 +61,7 @@ await esbuild.build({
 await esbuild.build({
   ...shared,
   entryPoints: [resolve(root, 'src/styles/index.css')],
-  outfile: resolve(outdir, 'plc-ui.css'),
+  outfile: resolve(outdir, 'ps-ui.css'),
   loader: { '.woff2': 'file', '.woff': 'file', '.png': 'file', '.svg': 'file' },
   // 'fonts/[name]' (not the default hashed 'assets/[name]-HASH') so dist mirrors
   // the layout the design bundle expects, and so a cartridge linking the CSS gets
@@ -69,8 +69,8 @@ await esbuild.build({
   assetNames: 'fonts/[name]',
 });
 
-if (!existsSync(resolve(outdir, 'index.js')) || !existsSync(resolve(outdir, 'plc-ui.css'))) {
+if (!existsSync(resolve(outdir, 'index.js')) || !existsSync(resolve(outdir, 'ps-ui.css'))) {
   console.error('build: expected artifacts missing from dist/');
   process.exit(1);
 }
-console.log('build: dist/index.js + dist/plc-ui.css');
+console.log('build: dist/index.js + dist/ps-ui.css');

@@ -21,7 +21,7 @@ function Case({ title, children }: { title: string; children: React.ReactNode })
 
 function Demo() {
   return (
-    <div className="plc-root" style={{ padding: 24, minHeight: '100vh' }}>
+    <div className="ps-root" style={{ padding: 24, minHeight: '100vh' }}>
       <Case title="TITLE SCREEN">
         <div style={{ position: 'relative', height: 320, border: '1px solid #1f8a10' }}>
           <Screen>

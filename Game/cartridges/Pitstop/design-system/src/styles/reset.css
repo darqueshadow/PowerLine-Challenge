@@ -1,5 +1,5 @@
 /* ============================================================================
- * @plc/ui — reset
+ * @pitstop/ui — reset
  * ----------------------------------------------------------------------------
  * Scoped as tightly as a shared library can manage. The arcade's four
  * stylesheets each ship their own global reset today (`* { margin:0; padding:0;

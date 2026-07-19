@@ -26,7 +26,7 @@ export function Overlay({ children, dev, label, className }: OverlayProps) {
       role="dialog"
       aria-modal="true"
       aria-label={label}
-      className={cx('plc-overlay', dev && 'plc-overlay--dev', className)}
+      className={cx('ps-overlay', dev && 'ps-overlay--dev', className)}
     >
       {children}
     </div>

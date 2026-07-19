@@ -1,22 +1,22 @@
 /* ============================================================================
- * @plc/ui — base surface
+ * @pitstop/ui — base surface
  * ----------------------------------------------------------------------------
  * The console itself: the black field everything else sits on, and the two
  * typographic voices the arcade speaks in.
  *
- * `.plc-root` is an OPT-IN class, not a bare `html, body` rule. All four arcade
+ * `.ps-root` is an OPT-IN class, not a bare `html, body` rule. All four arcade
  * stylesheets currently style `html, body` directly and agree on it verbatim
  * (`width/height:100%; overflow:hidden`) — the one rule the whole project
- * already shares — but a library that grabbed those selectors would fight the
- * cartridge sheet linked next to it, and in Claude Design it would restyle the
+ * already shares — but a library that grabbed those selectors would fight
+ * Pitstop's own sheet linked next to it, and in Claude Design it would restyle the
  * whole preview canvas rather than the component under test. Wrapping is
- * therefore the contract: put `.plc-root` on the element that IS the console.
+ * therefore the contract: put `.ps-root` on the element that IS the console.
  * ========================================================================= */
 
-.plc-root {
-  background: var(--plc-bg);
-  color: var(--plc-text);
-  font-family: var(--plc-font);
+.ps-root {
+  background: var(--ps-bg);
+  color: var(--ps-text);
+  font-family: var(--ps-font);
   /* Pitstop alone carries this globally, and it is right: a hair of tracking is
      what stops a monospace face from reading as code and starts it reading as a
      terminal. */
@@ -26,9 +26,9 @@
   color-scheme: dark;
 }
 
-/* Fills its container. Cartridges apply this to a full-viewport shell; a
+/* Fills its container. Pitstop applies this to a full-viewport shell; a
    preview applies it to a card. Neither has to know about the other. */
-.plc-root--fill {
+.ps-root--fill {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -40,15 +40,15 @@
  * command input. Mixing them up is the fastest way to stop looking like PLC.
  * Both are utilities rather than element selectors so they can be applied to
  * host markup the library never renders. */
-.plc-pixel {
-  font-family: var(--plc-font-pixel);
+.ps-pixel {
+  font-family: var(--ps-font-pixel);
   /* Press Start 2P ships no bold. Naming the weight explicitly stops an
      inherited `font-weight: bold` from triggering a synthesised, smeared fake. */
   font-weight: 400;
 }
 
-.plc-mono {
-  font-family: var(--plc-font-mono);
+.ps-mono {
+  font-family: var(--ps-font-mono);
 }
 
 /* ---- Screen-reader-only ---------------------------------------------------
@@ -56,7 +56,7 @@
  * ⚑ ❚❚ ⇄ heavily, and a control whose entire label is a triangle is unusable
  * with a screen reader. `display: none` would remove it from the a11y tree, so
  * this clips instead. */
-.plc-sr-only {
+.ps-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;

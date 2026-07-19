@@ -20,7 +20,7 @@ export function MenuList({ children, row, auto, label, className }: MenuListProp
   return (
     <nav
       aria-label={label}
-      className={cx('plc-menu', row && 'plc-menu--row', auto && 'plc-menu--auto', className)}
+      className={cx('ps-menu', row && 'ps-menu--row', auto && 'ps-menu--auto', className)}
     >
       {children}
     </nav>
