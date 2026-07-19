@@ -1096,6 +1096,10 @@ h3 { text-shadow: var(--glow); }
    since font-size is set per-render in user units. */
 .map-base-label { fill: var(--text); font-size: 2.7px; font-family: var(--font);
   paint-order: stroke; stroke: rgba(1,8,4,.92); stroke-width: .22em; stroke-linejoin: round; }
+/* The base code set under each name — the number the player types. Dimmer and a
+   shade smaller than the name so the label reads "Linwell" first and "72102" as
+   its identifier underneath, rather than as two competing pieces of type. */
+.map-base-code { fill: #8fc79c; font-size: .82em; letter-spacing: .5px; }
 /* REGION BACKDROP — the cartoon municipality patchwork (core/region.js).
    Per-cell fill/stroke come from that module's palette and are set inline; the
    rules here only carry the shared treatment. Held a touch below full opacity so

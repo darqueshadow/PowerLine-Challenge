@@ -1033,9 +1033,22 @@
                   '<tspan class="sf-name" x="' + lx + '">' + b.name + '</tspan>' +
                   '<tspan class="sf-tag" x="' + lx + '" dy="1.02em">▚ START / FINISH ▚</tspan></text>';
         } else {
+          /* NAME over BASE CODE (Andrew, 2026-07-19). The code is the thing the
+           * player actually types — AP 2107 72102 — so the map reinforces it
+           * rather than competing with it. This is the other half of removing the
+           * drive-order digits from the dots: Andrew's report was "Linwell is the
+           * fourth stop so it is indicated by the number 4, but my brain is
+           * thinking 2, because it is base number 72102", and arrows alone only
+           * fix the half that put a WRONG number on the dot. Without the code
+           * shown somewhere, the number he actually reasons in appears nowhere on
+           * the map at all.
+           * Stacked, not trailing: "Merrittville · 72118" on one line is nearly
+           * twice the width of the name and collides with the route and with
+           * neighbouring labels at this density. */
           html += '<text class="map-base-label" text-anchor="' + anchor + '" x="' + lx +
-                  '" y="' + (p.y + font * 0.34).toFixed(1) + '" style="font-size:' + font + 'px">' +
-                  b.name + '</text>';
+                  '" y="' + (p.y - font * 0.12).toFixed(1) + '" style="font-size:' + font + 'px">' +
+                  '<tspan x="' + lx + '">' + b.name + '</tspan>' +
+                  '<tspan class="map-base-code" x="' + lx + '" dy="1.02em">' + b.id + '</tspan></text>';
         }
       }
     });
