@@ -60,43 +60,185 @@
     return out;
   }
 
-  /* ---- Loader (fetch over http://, embedded fallback for file://) ---------- */
+  /* ---- CSV text source ------------------------------------------------------
+   * Baked text (datasets/embedded.js) wins. Anything not in the bake falls back
+   * to fetch, which succeeds only over http:// — that keeps the OPTIONAL,
+   * currently-absent datasets (commands.csv, units.csv, bases.csv) working the
+   * way they always did. Resolves null when neither source has the file. */
+  function csvText(path) {
+    const baked = (global.PITSTOP_CSV || {})[path];
+    if (typeof baked === 'string') return Promise.resolve(baked);
+    return fetch(path + '?t=' + Date.now())
+      .then(r => (r.ok ? r.text() : null))
+      .catch(() => null);
+  }
+
+  /* ---- Loader (baked CSV text, so the cartridge runs from file://) ----------
+   * Bases now come from the VALIDATED BaseGeo authority (core/basegeo.js): real
+   * lat/lon, load-time validation, 72122 excluded. The old placeholder CSV is
+   * retired. A BaseGeo rejection (bad export) still drops to the embedded
+   * fallback so the game boots — logged loudly so the data gets fixed at source
+   * rather than silently limping on stale numbers.
+   *
+   * CSV TEXT comes from datasets/embedded.js (window.PITSTOP_CSV), baked from the
+   * CSVs by `node bake-data.mjs`. Browsers block fetch() of local files under
+   * file://, so a double-clicked index.html could never read the real datasets —
+   * it silently raced to the hand-authored FALLBACK courses below. The CSVs are
+   * still the source of truth; the bake just carries their text across.
+   *
+   *   ⚠ Re-bake after ANY CSV edit or the game keeps serving the last bake. */
   function loadGameData() {
-    const files = ['datasets/commands.csv',
-                   'datasets/Bases_Coordinates_PLACEHOLDER.csv',
-                   'datasets/units.csv',
-                   'datasets/courses.csv'];
-    return Promise.all(files.map(f =>
-      fetch(f + '?t=' + Date.now()).then(r => {
-        if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + f);
-        return r.text();
-      })
-    )).then(function (texts) {
-      applyData(parseCSV(texts[0]), parseCSV(texts[1]), parseCSV(texts[2]), parseCSV(texts[3]));
+    const BASEGEO = (global.PITSTOP_BASEGEO || {});
+    const fetchText = f => csvText(f).then(t => {
+      if (t == null) throw new Error('no baked or served copy of ' + f);
+      return t;
+    });
+    const geoLoad = BASEGEO.loadBaseGeo
+      ? BASEGEO.loadBaseGeo({ view: VIEW }).catch(err => ({ ok: false, bases: [],
+          errors: ['BaseGeo load failed: ' + err.message] }))
+      : Promise.resolve({ ok: false, bases: [], errors: ['PITSTOP_BASEGEO unavailable'] });
+
+    // Courses are now TWO normalized files (Andrew, 2026-07-17): Courses.csv holds
+    // metadata (CourseID,CourseName,Closure) and CourseStops.csv the ordered stops.
+    // fetchOpt lets a missing course file drop to the embedded fallback instead of
+    // nuking the whole load. (Courses.csv == the retired wide courses.csv on
+    // case-insensitive Windows — same path, new schema.)
+    // Per-file resilience: a single missing/renamed CSV must NOT blank the whole
+    // game. Each source falls back to its embedded copy independently, so the rest
+    // of the datasets still load. (Only a total failure hits the outer catch.)
+    const fetchOpt = f => fetchText(f).catch(() => null);
+    return Promise.all([
+      fetchOpt('datasets/commands.csv'),
+      fetchOpt('datasets/units.csv'),
+      fetchOpt('datasets/courses.csv'),
+      geoLoad,
+      fetchOpt('datasets/coursestops.csv')
+    ]).then(function (res) {
+      const geo = res[3];
+      if (!geo.ok) {
+        console.error('[Pitstop] BaseGeo REJECTED the dataset (' + geo.errors.length +
+                      ' problem(s)) — falling back to embedded bases. Repair at source in Excel:');
+        geo.errors.forEach(e => console.error('  • ' + e));
+      }
+      if (!res[0]) console.warn('[Pitstop] datasets/commands.csv missing — using the embedded command set.');
+      if (!res[1]) console.warn('[Pitstop] datasets/units.csv missing — using the embedded unit roster.');
+      const commands = res[0] ? parseCSV(res[0]) : FALLBACK.commands;
+      const units    = res[1] ? parseCSV(res[1]) : FALLBACK.units;
+      const meta  = res[2] ? parseCSV(res[2]) : null;
+      const stops = res[4] ? parseCourseStops(res[4]) : null;
+      // No SILENT fall-through to the hand-authored FALLBACK courses: that is what
+      // made a double-clicked index.html quietly serve the original stub courses.
+      let courseObjs = joinCourses(meta, stops);
+      if (!courseObjs) {
+        console.error('[Pitstop] courses.csv / coursestops.csv did not load — showing the ' +
+                      'hand-authored STUB courses, NOT your dataset. Fix: run `node bake-data.mjs` ' +
+                      'in the Pitstop folder, then reload.');
+        courseObjs = buildCourses(FALLBACK.courses);
+      }
+      applyData(commands, units, courseObjs, geo.ok ? geo.bases : null);
+      // Bake stamp: the one cheap way to spot "I edited a CSV but forgot to re-bake".
+      console.log('[Pitstop] datasets baked ' + (global.PITSTOP_CSV_BAKED || '(not baked)') +
+                  ' — ' + DATA.courses.length + ' courses, ' + DATA.bases.length + ' bases.');
       DATA.ready = true;
       return DATA;
     }).catch(function (err) {
-      console.warn('[Pitstop] CSV load failed (' + err.message + ') — using embedded fallback. ' +
-                   'Serve over http:// (Start Dev Server.bat) for live datasets.');
-      applyData(FALLBACK.commands, FALLBACK.bases, FALLBACK.units, FALLBACK.courses);
+      console.error('[Pitstop] data load failed (' + err.message + ') — using the hand-authored ' +
+                    'STUB data, NOT your dataset. Check that datasets/embedded.js loaded; ' +
+                    're-bake with `node bake-data.mjs` if it is missing.');
+      applyData(FALLBACK.commands, FALLBACK.units, buildCourses(FALLBACK.courses), null);
       DATA.ready = true;
       return DATA;
     });
   }
 
-  function applyData(commandRows, baseRows, unitRows, courseRows) {
+  // geoBases = validated BaseGeo records ({code,name,lat,lon,xy}), or null to use
+  // the embedded fallback base set. courseObjs = already-built course objects
+  // ({id,name,type,laps,baseIds}) from joinCourses() or buildCourses().
+  function applyData(commandRows, unitRows, courseObjs, geoBases) {
     DATA.commands = commandRows.map(function (r) {
       return { challenge: r.Challenge, command: r.Command, type: r.Type };
     }).filter(c => c.command);
     DATA.units = unitRows.map(r => String(r.Units || r.Unit || '').trim()).filter(Boolean);
-    DATA.bases = buildBaseRecords(baseRows);
+    DATA.bases = buildBaseRecords(geoBases || FALLBACK.bases);
+    injectPitFurniture(DATA.bases);
     projectBases(DATA.bases);
     DATA.baseById = {};
     DATA.bases.forEach(b => { DATA.baseById[b.id] = b; });
-    DATA.courses = buildCourses(courseRows || []);
+    DATA.courses = courseObjs || [];
+  }
+
+  /* ---- coursestops.csv → ordered stop rows --------------------------------
+   * Canonical schema: CourseID,StopOrder,bse_code (UTF-8 no BOM, LF).
+   *
+   * Header-keyed when the canonical header is present, POSITIONAL otherwise
+   * (col0=CourseID, col1=StopOrder, col2=bse_code). The positional path is kept
+   * because an Excel re-export has historically mangled the header — cramming
+   * "StopOrder, bse_code" into one quoted cell — which would silently yield zero
+   * stops under header-keyed parsing. CourseIDs and bse_codes never contain
+   * commas, so a plain split is safe on either path.
+   *
+   *   ⚠ bse_code is a STRING key: values are mixed (numeric "72117", alpha
+   *   "WF-CRU"). Never numeric-parse it — "WF-CRU" would become NaN and its
+   *   BaseGeo join would fail silently. */
+  function parseCourseStops(text) {
+    const lines = String(text || '').replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return [];
+    const head = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    const iId = head.indexOf('courseid'), iOrd = head.indexOf('stoporder'), iCode = head.indexOf('bse_code');
+    const canonical = iId !== -1 && iOrd !== -1 && iCode !== -1;
+    if (!canonical) {
+      console.warn('[Pitstop] coursestops.csv header is not canonical ' +
+                   '(CourseID,StopOrder,bse_code) — falling back to positional columns. ' +
+                   'Repair the header at source; a re-export likely merged two labels into one cell.');
+    }
+    const cId = canonical ? iId : 0, cOrd = canonical ? iOrd : 1, cCode = canonical ? iCode : 2;
+    const out = [];
+    for (let i = 1; i < lines.length; i++) {            // row 0 is the header on both paths
+      const c = lines[i].split(',');
+      const id = (c[cId] || '').trim();
+      const code = (c[cCode] || '').trim();             // string key — no numeric parse
+      if (!id || !code) continue;
+      out.push({ courseId: id, order: parseInt(c[cOrd], 10), code: code });
+    }
+    return out;
+  }
+
+  /* ---- Join Courses (metadata) ⋈ CourseStops (ordered stops) ----------------
+   * metaRows: CourseID,CourseName,Closure (tolerates the "CouseID" export typo).
+   * Closure → type: Circuit = loop, PointToPoint = point-to-point. Circuit closure
+   * is IMPLIED — buildStops() re-appends the start, so the authored sequence is the
+   * DISTINCT stops with no repeated start. laps is 1 here (player picks 3/6/9/12 at
+   * race time). Returns null when either file is missing/empty so the caller can
+   * fall back to the embedded courses. */
+  function joinCourses(metaRows, stopRows) {
+    if (!metaRows || !metaRows.length || !stopRows || !stopRows.length) return null;
+    const byCourse = {};
+    stopRows.forEach(function (s) {
+      (byCourse[s.courseId] = byCourse[s.courseId] || []).push(s);
+    });
+    Object.keys(byCourse).forEach(function (id) {
+      byCourse[id].sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    });
+    const out = [];
+    metaRows.forEach(function (m) {
+      const id = String(m.CourseID || m.CouseID || m.CourseId || m.id || '').trim();
+      const stops = id && byCourse[id];
+      if (!stops || !stops.length) return;
+      const closure = String(m.Closure || '').trim().toLowerCase();
+      const type = (closure === 'pointtopoint' || closure === 'point-to-point') ? 'point-to-point' : 'loop';
+      out.push({
+        id: id,
+        name: String(m.CourseName || m['Course Name'] || m.Name || id).trim(),
+        type: type,
+        laps: 1,                                        // player-selected at race time
+        baseIds: stops.map(function (s) { return s.code; })
+      });
+    });
+    return out.length ? out : null;
   }
 
   // Course rows: CourseId,Name,Type,Laps,Bases  (Bases = pipe/space-separated codes)
+  // Retained for the embedded FALLBACK courses (wide format).
   function buildCourses(rows) {
     return rows.map(function (r) {
       const ids = String(r.Bases || r.bases || '').split(/[|;,\s]+/).map(s => s.trim()).filter(Boolean);
@@ -110,31 +252,56 @@
     }).filter(c => c.id && c.baseIds.length);
   }
 
-  /* ---- Base records (handoff §6) ------------------------------------------ */
-  // Accepts rows from Bases_Coordinates_PLACEHOLDER.csv:
-  // Base,Code,City,Address,Weight,approx_lat,approx_lon,approx_dist_to_westwood_km,coord_status
+  /* ---- Base records --------------------------------------------------------
+   * Accepts either validated BaseGeo records ({code,name,lat,lon,xy}) or the
+   * embedded FALLBACK rows (same {code,name,lat,lon,weight} shape). The map only
+   * needs id/name/lat/lon; weight is carried for any future weighted feature and
+   * is joined from the embedded Data Sheet weights when the source omits it. */
   function buildBaseRecords(rows) {
     return rows.map(function (r) {
-      const id = String(r.Code || r['Command Base'] || '').trim();
-      const name = String(r.Base || r['Challenge Base'] || '').trim().replace(/\s+Base$/i, '');
-      const lat = parseFloat(r.approx_lat);
-      const lon = parseFloat(r.approx_lon);
-      const distKm = parseFloat(r.approx_dist_to_westwood_km);
+      const id = String(r.code != null ? r.code : (r.id != null ? r.id : '')).trim();
+      const lat = parseFloat(r.lat), lon = parseFloat(r.lon);
       return {
         id: id,
-        name: name,
-        weight: parseFloat(r.Weight) || 1,
-        city: r.City || '',
+        name: String(r.name || '').trim(),
+        weight: (r.weight != null ? r.weight : weightFor(id)),
         lat: isFinite(lat) ? lat : null,
         lon: isFinite(lon) ? lon : null,
-        // Distance to the PIT (Fleet 72123). The CSV column is named
-        // approx_dist_to_westwood_km, but Fleet & Westwood are co-located, so
-        // the values equal distance-to-Fleet/pit.
-        distanceToPit: isFinite(distKm) ? distKm : null,
-        coords: { x: 50, y: 40 },                                // set by projectBases()
-        scenery: null                                            // [DEFERRED] per-leg asset ref
+        coords: (r.xy && isFinite(r.xy.x)) ? { x: r.xy.x, y: r.xy.y }
+                                           : { x: 50, y: 40 },     // set by projectBases()
+        scenery: null,                                            // [DEFERRED] per-leg asset ref
+        isPit: false
       };
     }).filter(b => b.id);
+  }
+
+  // Authored base weights, keyed by code — the embedded copy of the Data Sheet
+  // weight column, so a BaseGeo record (which carries no weight) still gets one.
+  function weightFor(code) {
+    const row = FALLBACK.bases.find(b => String(b.code) === String(code));
+    return row && row.weight != null ? row.weight : 1;
+  }
+
+  /* ---- Pit facility (spec §4.4 / L5) --------------------------------------
+   * The pit (Fleet, PIT_BASE_ID) is TRACK FURNITURE, not a BaseGeo node — it has
+   * no lat/lon of its own. Physically it shares a building with Glendale (72115)
+   * at 2 Westwood Ct, so it inherits Glendale's real position; the map draws the
+   * pit lane from the start/finish node out to here. Injected after the base set
+   * is built so it is never a raceable node (it is filtered from random courses)
+   * yet is present in baseById for the renderer. */
+  function injectPitFurniture(bases) {
+    const pitId = CFG.PIT_BASE_ID || '72123';
+    if (bases.some(b => b.id === pitId)) return;
+    const anchorId = CFG.PIT_ANCHOR_ID || '72115';               // Glendale — co-located
+    const anchor = bases.find(b => b.id === anchorId);
+    if (!anchor || anchor.lat == null) return;                   // no anchor → skip silently
+    bases.push({
+      id: pitId, name: 'Fleet',
+      weight: weightFor(pitId),
+      lat: anchor.lat, lon: anchor.lon,
+      coords: { x: 50, y: 40 },
+      scenery: null, isPit: true
+    });
   }
 
   /* ---- Projection: real lat/lon -> map viewBox coords ---------------------
@@ -245,24 +412,35 @@
    * Resolves a course id to a renderable course capped at COURSE_MAX_BASES.
    * 'random' samples N bases and angle-orders them into a clean loop. Named
    * courses keep their authored order. Pure data — no race logic. */
-  function getActiveCourse(courseId) {
+  function getActiveCourse(courseId, typeHint) {
     const MAX = CFG.COURSE_MAX_BASES || 5;
     if (courseId === 'random') {
-      const pool = DATA.bases.slice();
+      // A Random draw takes the closure the player picked in Race Options (the
+      // course-type toggle), so a Point 2 Point random is actually open-ended.
+      const type = (typeHint === 'point-to-point') ? 'point-to-point' : 'loop';
+      const pool = DATA.bases.filter(b => !b.isPit);   // the pit is furniture, never a stop
       const pick = [];
       while (pick.length < MAX && pool.length) {
         pick.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
       }
       const ordered = loopOrder(pick);
-      return { id: 'random', name: 'Random ' + ordered.length, type: 'loop', laps: 3,
+      return { id: 'random', name: 'Random ' + ordered.length, type: type, laps: 3,
                baseIds: ordered, startId: ordered[0] };
     }
     let c = DATA.courses.find(x => x.id === courseId) || DATA.courses[0];
     if (!c) return null;
-    const ids = c.baseIds.filter(id => DATA.baseById[id]).slice(0, MAX);
-    if (c.baseIds.length > MAX) {
-      console.warn('[Pitstop] course "' + c.id + '" has ' + c.baseIds.length +
-                   ' bases; capped to ' + MAX + '.');
+    // Authored courses keep their FULL sequence — the NEMS courses run 4–15 stops.
+    // COURSE_MAX_BASES (Andrew's 5) now caps the RANDOM draw only, not authored
+    // courses. Bases missing from BaseGeo are dropped — that's a data gap to
+    // surface, not silent truncation. As of the 2026-07-18 dataset repair all 47
+    // stops across the 7 NEMS courses resolve, so this should never fire; if it
+    // does, the CSVs have drifted apart again (check bse_code spelling first —
+    // WF-CRU vs WF_CRU has bitten this join before).
+    const ids = c.baseIds.filter(id => DATA.baseById[id]);
+    const dropped = c.baseIds.length - ids.length;
+    if (dropped) {
+      console.warn('[Pitstop] course "' + c.id + '": ' + dropped + ' base(s) not in ' +
+                   'BaseGeo, dropped — coursestops.csv and baselatlon.csv disagree.');
     }
     return { id: c.id, name: c.name, type: c.type, laps: c.laps, baseIds: ids, startId: ids[0] };
   }
@@ -330,7 +508,12 @@
     return 'hit';
   }
 
-  /* ---- Embedded fallback (full 22 bases so the map works on file:// too) -- */
+  /* ---- Embedded fallback (file:// or a rejected dataset) -------------------
+   * The 17 raceable bases, mirroring the repaired datasets/Bases lat lon.csv
+   * (real signed lat/lon, Data Sheet names, 72122 excluded). Same
+   * {code,name,lat,lon,weight} shape buildBaseRecords reads from BaseGeo, so both
+   * paths share one builder. The pit (Fleet 72123) is NOT here — injectPitFurniture
+   * adds it from Glendale's position. Keep this in sync if the CSV changes. */
   const FALLBACK = {
     commands: [
       { Challenge: 'Post to',    Command: 'AP',  Type: 'direction' },
@@ -339,28 +522,23 @@
       { Challenge: 'Area of',    Command: 'LA',  Type: 'radio' }
     ],
     bases: [
-      { Base: 'Niagara Falls', Code: '72100', Weight: 10, approx_lat: 43.108, approx_lon: -79.083, approx_dist_to_westwood_km: 11.73 },
-      { Base: 'Ontario St',    Code: '72101', Weight: 10, approx_lat: 43.171, approx_lon: -79.245, approx_dist_to_westwood_km: 3.65 },
-      { Base: 'Linwell',       Code: '72102', Weight: 10, approx_lat: 43.196, approx_lon: -79.247, approx_dist_to_westwood_km: 4.78 },
-      { Base: 'Thorold',       Code: '72103', Weight: 10, approx_lat: 43.135, approx_lon: -79.215, approx_dist_to_westwood_km: 4.08 },
-      { Base: 'NOTL',          Code: '72104', Weight: 10, approx_lat: 43.255, approx_lon: -79.071, approx_dist_to_westwood_km: 14.09 },
-      { Base: 'Grimsby',       Code: '72105', Weight: 10, approx_lat: 43.2,   approx_lon: -79.565, approx_dist_to_westwood_km: 29.78 },
-      { Base: 'Port Colborne', Code: '72107', Weight: 10, approx_lat: 42.886, approx_lon: -79.25,  approx_dist_to_westwood_km: 31.84 },
-      { Base: 'King St',       Code: '72108', Weight: 10, approx_lat: 43.0,   approx_lon: -79.248, approx_dist_to_westwood_km: 19.3 },
-      { Base: 'Smithville',    Code: '72109', Weight: 10, approx_lat: 43.092, approx_lon: -79.553, approx_dist_to_westwood_km: 29.93 },
-      { Base: 'Vineland',      Code: '72110', Weight: 8,  approx_lat: 43.155, approx_lon: -79.398, approx_dist_to_westwood_km: 16.15 },
-      { Base: 'Pelham',        Code: '72111', Weight: 10, approx_lat: 43.038, approx_lon: -79.293, approx_dist_to_westwood_km: 16.51 },
-      { Base: 'Ridgeway',      Code: '72113', Weight: 8,  approx_lat: 42.884, approx_lon: -79.052, approx_dist_to_westwood_km: 34.0 },
-      { Base: 'Glendale',      Code: '72115', Weight: 10, approx_lat: 43.17,  approx_lon: -79.2,   approx_dist_to_westwood_km: 0 },
-      { Base: 'St Paul',       Code: '72116', Weight: 8,  approx_lat: 43.15,  approx_lon: -79.085, approx_dist_to_westwood_km: 9.82 },
-      { Base: 'Fort Erie',     Code: '72117', Weight: 10, approx_lat: 42.91,  approx_lon: -78.99,  approx_dist_to_westwood_km: 33.57 },
-      { Base: 'Merritville',   Code: '72118', Weight: 8,  approx_lat: 43.06,  approx_lon: -79.23,  approx_dist_to_westwood_km: 12.47 },
-      { Base: 'HQ',            Code: '72120', Weight: 5,  approx_lat: 43.168, approx_lon: -79.205, approx_dist_to_westwood_km: 0.46 },
-      { Base: 'Fitch St',      Code: '72121', Weight: 3,  approx_lat: 42.998, approx_lon: -79.262, approx_dist_to_westwood_km: 19.78 },
-      { Base: 'Westwood',      Code: '72122', Weight: 5,  approx_lat: 43.17,  approx_lon: -79.2,   approx_dist_to_westwood_km: 0 },
-      { Base: 'Fleet',         Code: '72123', Weight: 5,  approx_lat: 43.17,  approx_lon: -79.2,   approx_dist_to_westwood_km: 0 },
-      { Base: 'Fallsview',     Code: '72124', Weight: 2,  approx_lat: 43.082, approx_lon: -79.08,  approx_dist_to_westwood_km: 13.81 },
-      { Base: 'Prince Charles', Code: '72125', Weight: 10, approx_lat: 42.992, approx_lon: -79.261, approx_dist_to_westwood_km: 20.39 }
+      { code: '72100', name: 'Niagara Falls', lat: 43.112649, lon: -79.088989, weight: 10 },
+      { code: '72101', name: 'Ontario St',    lat: 43.158174, lon: -79.252737, weight: 10 },
+      { code: '72102', name: 'Linwell',       lat: 43.197654, lon: -79.232361, weight: 10 },
+      { code: '72103', name: 'Thorold',       lat: 43.088509, lon: -79.199505, weight: 10 },
+      { code: '72104', name: 'NOTL',          lat: 43.253247, lon: -79.066338, weight: 10 },
+      { code: '72105', name: 'Grimsby',       lat: 43.186578, lon: -79.513405, weight: 10 },
+      { code: '72107', name: 'Port Colborne', lat: 42.901783, lon: -79.242849, weight: 10 },
+      { code: '72108', name: 'King St',       lat: 42.977938, lon: -79.250540, weight: 10 },
+      { code: '72109', name: 'Smithville',    lat: 43.099502, lon: -79.547651, weight: 10 },
+      { code: '72110', name: 'Vineland',      lat: 43.152023, lon: -79.389173, weight: 8  },
+      { code: '72111', name: 'Pelham',        lat: 43.044691, lon: -79.298811, weight: 10 },
+      { code: '72113', name: 'Ridgeway',      lat: 42.884529, lon: -79.059275, weight: 8  },
+      { code: '72115', name: 'Glendale',      lat: 43.159931, lon: -79.154590, weight: 10 },
+      { code: '72116', name: 'St Paul',       lat: 43.132890, lon: -79.099461, weight: 8  },
+      { code: '72117', name: 'Fort Erie',     lat: 42.921095, lon: -78.939352, weight: 10 },
+      { code: '72118', name: 'Merrittville',  lat: 43.115569, lon: -79.242849, weight: 8  },
+      { code: '72125', name: 'Prince Charles',lat: 42.992128, lon: -79.261011, weight: 10 }
     ],
     units: [{ Units: '2100' }, { Units: '2101' }, { Units: '2102' }, { Units: 'FIT' }, { Units: 'CARE1' }],
     courses: [{ CourseId: 'niagara-loop', Name: 'Niagara Loop', Type: 'loop', Laps: '3',

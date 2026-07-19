@@ -1,0 +1,11 @@
+# Pitstop dataset CSVs are the SOURCE OF TRUTH for the course/base join chain
+# (Courses -> CourseStops -> BaseLatLon). Canonical form is UTF-8 no BOM, LF.
+#
+# This repo runs with core.autocrlf=true, which would rewrite these to CRLF in
+# the working tree on every checkout. The loaders tolerate CRLF (they split on
+# /\r?\n/), but the canonical form is LF — pin it so the files on disk match the
+# schema they're documented to have, and so diffs stay clean.
+*.csv text eol=lf
+
+# Excel workbooks are binary — never line-ending-converted, never diffed as text.
+*.xlsx binary

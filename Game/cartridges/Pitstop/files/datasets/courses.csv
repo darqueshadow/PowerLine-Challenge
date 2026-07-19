@@ -1,3 +1,8 @@
-CourseId,Name,Type,Laps,Bases
-niagara-loop,Niagara Loop,loop,3,72102|72101|72103|72100|72116
-central-5,Niagara Central 5,loop,3,72102|72101|72103|72116|72100
+CourseID,CourseName,Closure
+NEMS-01,River Run,PointToPoint
+NEMS-02,North Shore,PointToPoint
+NEMS-03,Erie Shore,PointToPoint
+NEMS-04,Western Hop,Circuit
+NEMS-05,Heart of the City,Circuit
+NEMS-06,Southern Run,Circuit
+NEMS-07,Grand Tour,Circuit

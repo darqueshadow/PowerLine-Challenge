@@ -22,6 +22,11 @@ the engine mirrors the leans for left curves):
 e.g. `cars/2107_c.png`. The unit number and shadow render as DOM layers on top, so sprites
 carry **no baked digits**. Full spec: `../Pitstop_Car_Sprite_Brief.md`.
 
+Frames are picked up **independently** — `_c` on its own already puts that unit's car on
+the road (it fake-leans through bends, as the placeholder did); adding `_r1`/`_r2` upgrades
+it to real banking art. Today all five units ship `_c` only, so the lean frames are the
+outstanding art ask.
+
 ## Other targets
 
 See `../Pitstop_Art_Brief.md` for the region map + hub tile — exact specs, and which

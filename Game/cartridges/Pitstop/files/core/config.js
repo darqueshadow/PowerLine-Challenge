@@ -48,7 +48,18 @@
     idleCreep: 0.05,             // min forward crawl so a leg never fully stalls
     sputterFactor: 0.45,         // velocity multiplier on a content mis-enter
     // Position gates within a leg (0=base A, 1=base B): when each beat activates.
-    gateAP: 0.0, gateENP: 0.5, gateBSE: 0.85,
+    // ONLY used by Race Type B ('timed'); Type A ('sequence') ignores them and
+    // gates on order alone. Placed on THIRDS (was .5/.85) so a single ~52 km/h
+    // boost — which coasts the car ~0.43 of a leg — actually reaches the next
+    // gate. At .5/.85 the car stalled short of ENP (the yellow-flash lock).
+    // Retune together with SPEED.boost/decay if the leg feel changes.
+    gateAP: 0.0, gateENP: 0.33, gateBSE: 0.66,
+    // Type A (HYBRID) arrival gate: AP & ENP are order-gated only, but the final
+    // BSE (arrival) beat won't post until the car is THIS far into the leg — you
+    // must drive up to the base to finish. Reachable by design: after ENP the car
+    // auto-rolls in (race.arriving), so it always reaches this mark. Type B ignores
+    // it (it position-gates every beat). Lower = you can "arrive" sooner.
+    arrivalGate: 0.66,
     speedDisplayScale: 120,      // vel → HUD speed readout
     // Phase 3 (pit/tire/fuel) — still placeholders.
     tireDamageThreshold: 0,
@@ -155,35 +166,43 @@
     // re-activates the gated CAR_TYPES idea, merged into the unit. Wired in
     // script.js; toggle with CARS.handlingEnabled.
     //
+    // DIFFICULTY RAMP (Andrew, 2026-07-17): the unit NUMBERS were chosen by how
+    // hard the number is to TYPE, and the roster is ordered easiest→hardest. The
+    // stats now track that ramp — EASIER number = SLOWER + more forgiving, HARDER
+    // number = FASTER + less forgiving — so the reward for taking on a tougher
+    // number to type is more speed. speed climbs 4→9 and handling falls 8→3 down
+    // the list (each pair sums to 12: a straight speed↔control trade). Keep this
+    // monotonic if you retune, and keep the ids real roster units.
+    //
     // cls/blurb/pros/cons drive the Race Options UNIT DETAIL CARD (script.js
     // renderUnitDetail): the car art (assets/cars/{id}_c.png), a class + one-line
     // pitch, SPEED/CONTROL meters, a telemetry performance curve, and strengths/
     // weaknesses — so the player can see WHY to pick each unit. Content only.
-    { id: '2107', hotkey: '1', tint: '#39ff14', stats: { speed: 6, handling: 6 },   // green
-      cls: 'All-Rounder',
-      blurb: 'Balanced speed and grip — no weakness, no standout. The dependable pick for learning a course.',
-      pros: ['Even speed & control', 'Forgives most mistakes', 'Great all-round starter'],
-      cons: ['Out-dragged by the sprinters', 'Out-lasted by the heavies'] },
-    { id: '2138', hotkey: '3', tint: '#4db5ff', stats: { speed: 4, handling: 8 },   // blue
+    { id: '2107', hotkey: '1', tint: '#39ff14', stats: { speed: 4, handling: 8 },   // green
       cls: 'Steady',
-      blurb: 'Slow to wind up, but shrugs off mistakes. Wins by never losing time.',
-      pros: ['Typos barely cost speed', 'Rock-steady and forgiving', 'Ideal for new drivers'],
-      cons: ['Lowest top speed', 'Sluggish to build pace'] },
-    { id: '2045', hotkey: '5', tint: '#ffb000', stats: { speed: 7, handling: 5 },   // amber
-      cls: 'Nimble',
-      blurb: 'Quick to build pace and agile — but a touch twitchy when you slip.',
-      pros: ['Fast to get up to speed', 'Agile and responsive'],
-      cons: ['Mistakes bite', 'Needs a steady hand'] },
-    { id: '2396', hotkey: '7', tint: '#ff3b30', stats: { speed: 9, handling: 3 },   // red
-      cls: 'Flat-out',
-      blurb: 'The fastest thing on the grid — and the most unforgiving. Experts only.',
-      pros: ['Blistering top speed', 'Fastest acceleration'],
-      cons: ['One typo tanks your speed', 'Brutal to control'] },
-    { id: '2523', hotkey: '9', tint: '#c77dff', stats: { speed: 8, handling: 4 },   // violet
+      blurb: 'The simplest number to hammer out — and the most forgiving car. Slow to wind up, but a typo barely dents your pace. The natural first pick.',
+      pros: ['Easiest unit number to type', 'Typos barely cost speed', 'Rock-steady and forgiving'],
+      cons: ['Lowest top speed', 'Slow to build pace'] },
+    { id: '2138', hotkey: '3', tint: '#4db5ff', stats: { speed: 5, handling: 7 },   // blue
+      cls: 'Cruiser',
+      blurb: 'An easy number to type and an easy car to drive. A relaxed pace with plenty of forgiveness for the odd slip.',
+      pros: ['Straightforward number to enter', 'Very forgiving of mistakes'],
+      cons: ['Still short on top speed', 'Sluggish off the line'] },
+    { id: '2045', hotkey: '5', tint: '#ffb000', stats: { speed: 6, handling: 6 },   // amber
+      cls: 'All-Rounder',
+      blurb: 'Balanced speed and grip — no weakness, no standout. A middling number to type and the dependable pick for learning a course.',
+      pros: ['Even speed & control', 'Forgives most mistakes', 'Great all-round pick'],
+      cons: ['Out-dragged by the sprinters', 'Out-lasted by the steady cars'] },
+    { id: '2396', hotkey: '7', tint: '#ff3b30', stats: { speed: 8, handling: 4 },   // red
       cls: 'Sprinter',
-      blurb: 'Explosive pace for drivers who rarely miss. Punishing when you do.',
-      pros: ['Near-top acceleration', 'Big top speed'],
-      cons: ['Low forgiveness', 'Errors cost you dearly'] }
+      blurb: 'Explosive pace for drivers who rarely miss — and a trickier number to keep nailing at speed. Punishing when you slip.',
+      pros: ['Big top speed', 'Fast to get up to pace'],
+      cons: ['Mistakes bite hard', 'A demanding number to type clean'] },
+    { id: '2523', hotkey: '9', tint: '#c77dff', stats: { speed: 9, handling: 3 },   // violet
+      cls: 'Flat-out',
+      blurb: 'The fastest thing on the grid — and the most unforgiving, with the toughest number to hammer out under pressure. Experts only.',
+      pros: ['Blistering top speed', 'Fastest acceleration'],
+      cons: ['One typo tanks your speed', 'The hardest number to type clean'] }
   ];
   const DEFAULT_UNIT_ID = SELECTABLE_UNITS[0].id;
 
@@ -192,6 +211,16 @@
    * raceOptions state; NO race logic is wired in Phase 0. */
   const RACE_OPTIONS = {
     defaults: {
+      // Race Type (Andrew, 2026-07-17 → hybrid chosen 2026-07-17). Governs how the
+      // AP→ENP→BSE beats are gated. (see PITSTOP_RACE_TYPE_AB.md)
+      //   'sequence' (Type A · HYBRID) — AP & ENP are order-gated only (type them
+      //     any time); the final BSE ARRIVAL needs the car near the base
+      //     (TUNABLES.arrivalGate). After ENP the car auto-rolls in, so you just
+      //     drive up and confirm arrival. Keeps the drive-to-base moment, no
+      //     mid-leg walls, can't soft-lock.
+      //   'timed'    (Type B) — every beat unlocks at a point on the leg
+      //     (gateAP/ENP/BSE); calling it early is a no-op with a "too early" cue.
+      legMode: 'sequence',
       courseType: 'loop',       // 'loop' | 'point-to-point'
       courseSelect: 'random',   // a course id | 'random'
       randomBaseCount: 6,       // # bases when courseSelect === 'random'
@@ -210,6 +239,7 @@
       // Trimmed to essentials (Andrew, 2026-07-15): Time of Day, Race Look, Race
       // Type, Pit/No-Pit, Difficulty and Opponents were removed from the UI. Their
       // defaults above are kept so any game logic that reads them still works.
+      { key: 'legMode',     label: 'Race Type',    values: ['sequence', 'timed'] },  // A/B toggle — custom row
       { key: 'courseType',  label: 'Course Type',  values: ['loop', 'point-to-point'] },
       { key: 'courseSelect',label: 'Course',       values: ['random'] /* + course ids when authored */ },
       { key: 'laps',        label: 'Laps',         type: 'int', min: 1, max: 20 },
@@ -224,9 +254,93 @@
    * pit lane is Fleet. People may say "Westwood" but mean Fleet. */
   const PIT_BASE_ID = '72123';
 
+  /* The pit is track furniture with no coordinates of its own (spec L5). It is
+   * rendered at the position of PIT_ANCHOR_ID — Glendale (72115), with which
+   * Fleet physically shares a building (2 Westwood Ct). data.js injectPitFurniture
+   * places the pit marker there.
+   *   ⚠ The MAP no longer uses that position (Andrew, 2026-07-19: "ignore the
+   *   lat/lon for Fleet, put it beside the Start/Stop base"). script.js renderMap
+   *   pins the pit tire next to the start/finish node instead, which is where the
+   *   pit lane physically branches. The anchor still gives Fleet a coordinate for
+   *   any non-map consumer. */
+  const PIT_ANCHOR_ID = '72115';
+
+  /* THE FULL RACE (Andrew, 2026-07-19) — the Grand Tour. Its map shows the WHOLE
+   * of Niagara: every municipality is drawn, including the ones it has no stop
+   * in (Wainfleet and Thorold). Every other course lights up only the
+   * municipalities it actually touches. See core/region.js municipalitiesFor(). */
+  const FULL_COURSE_ID = 'NEMS-07';
+
   /* Course rules. A course is a short ordered base list; only its bases render. */
   const COURSE_MAX_BASES = 5;      // hard cap per Andrew (2026-06-20)
   const DEFAULT_COURSE_ID = 'niagara-loop';
+
+  /* ---- GEO — BaseGeo / Course geometry config -------------------------------
+   * Backs core/basegeo.js (spec §2–§3) and core/course.js (spec §4). Per spec §7
+   * NONE of these may be hardcoded in the modules that consume them.
+   *
+   * ⚠ The `null`s below are BLOCKED, not forgotten. Each is an Andrew decision
+   * (spec §8) and Code is explicitly barred from defaulting them (spec §11).
+   * A null here means the dependent feature stays inert — it does NOT mean
+   * "pick something sensible". See PITSTOP_GEOGRAPHY_FINDINGS.md. */
+  const GEO = {
+    // Validation bounds (spec §2.3 V1). Anything outside is a sign or typo
+    // error. This is the rule that catches defect D1 — 17 of 18 rows carrying a
+    // positive longitude, which parses and projects cleanly while sitting in
+    // Kazakhstan. Widen these only if the real roster leaves Niagara.
+    bounds: { latMin: 42.8, latMax: 43.4, lonMin: -79.7, lonMax: -78.8 },
+
+    // Spec §2.3 V6 — 72122 stays out of BaseGeo and out of any course Sequence.
+    //
+    //   ⚠ The spec's stated REASON for this is wrong; the rule survives anyway.
+    //   Spec L4 claims "72122 is a code, not a place" and that the pit is 72122.
+    //   Andrew corrected both (2026-07-16): the pit is 72123/Fleet, and 72122 is
+    //   Westwood — a REAL base, technically distinct, that happens to share an
+    //   address (2 Westwood Ct) with Fleet AND with Glendale (72115). So its
+    //   coordinates matching 72115 byte-for-byte is a PHYSICAL FACT, not the
+    //   copy-paste error spec D2 diagnosed.
+    //
+    //   It is excluded because BaseGeo is the raceable NODE SET: a node sitting
+    //   exactly on Glendale cannot be a distinct course node (the leg between
+    //   them is 0 km) and would render as one dot. Excluded for geometry, not
+    //   because it isn't real. If Westwood ever needs to be raceable, Glendale
+    //   is the conflict to resolve — not this line.
+    excludedCode: '72122',
+
+    // Spec §4.3 C5 — below this, two course nodes render on top of each other.
+    // Set by Code as a RENDER-LEGIBILITY floor, deliberately chosen to reject
+    // nothing in the current roster: the closest real pair is King (72108) <->
+    // Prince Charles (72125) at 1.79 km, so 1.5 catches genuine coincidence
+    // only and changes no course's legality today. Andrew's to raise if he wants
+    // near-neighbours excluded on gameplay grounds rather than drawing grounds.
+    minLegDistanceKm: 1.5,
+
+    // Spec §4.2 Tier — banded from TotalDistance.
+    //   ⚠ BLOCKED on O6. Until Andrew authors the bands, tier resolves to null
+    //   and nothing may branch on it. Shape when it lands:
+    //     [{ tier: 'short', maxKm: 60 }, ..., { tier: 'grand', maxKm: null }]
+    tierBands: null,
+
+    // Spec §6 — time compression S (game-seconds per real second).
+    //   ⚠ BLOCKED on O2 (target round length). S alone decides whether pitting
+    //   is a decision or a formality: pit time is real typing time and does not
+    //   scale, race time does. Code must not pick it (spec §11).
+    timeCompressionS: null,
+
+    // Spec §4.4 — pit floor, so a zero-swap pit is not free.
+    //   ⚠ BLOCKED — Andrew's (spec §11).
+    pitFloorSec: null,
+
+    // Spec §4.4 — the code typed to enter the pit. RESOLVED (Andrew, 2026-07-16):
+    // it is 72123/Fleet, NOT the 72122/Westwood the spec's L4 asserts. Westwood
+    // is the same location but technically a different base — see excludedCode.
+    //
+    // Deliberately an alias, not a copy: PIT_BASE_ID is the existing source of
+    // truth and the racing layer already reads it. Two config keys holding the
+    // same base code independently is exactly the second-source-of-truth problem
+    // spec §2.1 warns about — one of them would eventually be edited alone.
+    pitEntryCode: PIT_BASE_ID
+  };
 
   /* ---- Region map image hook (handoff §6) ---------------------------------
    * When the real (Gemini) map art arrives, drop it in here. Set `image` to its
@@ -264,10 +378,12 @@
 
   /* ---- CAR SPRITES (OutRun banking cars) — see Pitstop_Car_Sprite_Brief.md ---
    * Per-unit race-car sprites live in assets/cars/{unit}_{c|r1|r2}.png (straight
-   * + two RIGHT leans; the engine mirrors them for left curves). Auto-detected:
-   * if a unit's three frames load, the car renders as those sprites; otherwise
-   * the procedural div-car stays and fake-leans. Drop 2107_c/r1/r2.png in to test
-   * — no flag to flip. handlingEnabled gates the per-unit speed/handling stats. */
+   * + two RIGHT leans; the engine mirrors them for left curves). Auto-detected
+   * and PARTIAL-FRIENDLY: the straight frame alone is enough to put the picked
+   * unit's car on the road (it then fake-leans like the placeholder did); add
+   * _r1/_r2 and it banks on real art. Only a missing _c falls back to the
+   * procedural div-car. Drop PNGs in to test — no flag to flip.
+   * handlingEnabled gates the per-unit speed/handling stats. */
   const CARS = {
     enabled: true,
     path: 'assets/cars/',
@@ -302,6 +418,169 @@
     passZ: 12,            // |z| under this = wheel-to-wheel; a typo in here BUMPS
     lanes: [-0.58, -0.34, 0.34, 0.58],  // lateral slots as a fraction of the road half-width
     bumpSpeedKeep: 0.6    // speed kept after a bump, on TOP of the normal miss bleed
+  };
+
+  /* ---- BANNER WINDOW — Race Type B "typing window" (PITSTOP_RACE_TYPE_AB.md
+   * §"Type B — Banner-Window mechanic", Andrew 2026-07-17) -------------------
+   * FIRST SLICE: the ENP beat only. In Race Type B ('timed') the ENP gate stops
+   * being an invisible position wall and becomes a VISIBLE typing window bracketed
+   * by two road gantries:
+   *   • OPEN  banner (filled)  — passes ⇒ start typing ENP now.
+   *   • CLOSE banner (outline) — Enter must be in before it passes.
+   * Type a LETTER before OPEN = too-early stumble (auto-brake scrub, NO tire
+   * damage — damage still means "wrong content"). Finish after CLOSE = a miss:
+   * speed bleed + the beat RE-ARMS (the window comes round again) — lose time,
+   * not the race. Steering keys are free (there's no steering layer in this slice).
+   *
+   * FIXED-DISTANCE window (the doc's recommended call): the two banners are real
+   * objects at leg positions; the car's `handling` stat sets the OPEN→CLOSE gap
+   * (better handling = wider = more grace). Your SPEED then sets how tight it FEELS
+   * — carry speed to win and the window shrinks; slow to the crawl floor and it's
+   * roomy but you lose pace. Speed is the risk dial.
+   *
+   *   ⚠ REACHABILITY (`gateCrawl`): typing is the only throttle, so a car that
+   *   coasts to a stop SHORT of a gated beat has no command left to type (the next
+   *   beat is gated) → soft-lock. A gentle crawl floor, live only in 'timed' mode
+   *   once AP is posted and while a gated beat is still ahead, always carries the
+   *   car up to the next banner. This is Type B's price for position-gating (the
+   *   doc's "gate placement is chained to speed tuning forever"); the crawl breaks
+   *   that chain. Type A never reads any of this. Only ENP is bannered in Slice 1;
+   *   AP (gate 0) and BSE (gateBSE) keep their plain 'timed' position gates. */
+  const BANNER = {
+    enabled: true,
+    // How far ahead (in leg-fraction) a banner first fades in at the horizon. z is
+    // derived as ((bannerPos - pos) / rangeFrac) * TRAFFIC.zFar, so a banner sits at
+    // the horizon when it's `rangeFrac` of a leg ahead and reaches the camera at 0.
+    rangeFrac: 0.34,
+    // OPEN→CLOSE gap (leg-fraction), mapped across the handling stat: worse handling
+    // (handMin) → gapMin (tight), better handling (handMax) → gapMax (roomy).
+    //   ⚠ TUNING FLOOR (review 2026-07-17): the gap must be wide enough that the
+    //   gateCrawl floor CATCHES the car inside the window — a fast unit enters OPEN
+    //   hot (~40 km/h) and only slows to the crawl ~0.15 of a leg in, so a gap below
+    //   ~0.16 leaves it crossing at speed with < the ~2.1s needed to type "ENP ####"
+    //   → a guaranteed first-pass miss. In THIS roster handling anti-correlates with
+    //   speed (speed+handling=12), so the FAST units (low handling) both arrive
+    //   hottest AND — under "better handling = wider" — get the narrowest window; the
+    //   floor below keeps that from being a hard wall. Retune against carried-speed
+    //   cross-TIME, not raw pos. This is the doc's "gate placement chained to speed
+    //   tuning" coupling made concrete — the headline knob to feel-test.
+    gapMin: 0.18, gapMax: 0.26,
+    handMin: 3, handMax: 8,   // SELECTABLE_UNITS handling range this maps across
+    // Reachability crawl floor (km/h) — see the soft-lock note above. Keep it below
+    // rollThreshold (25) so it reads as a slow roll, not a boost, and retune WITH
+    // SPEED if the leg feel changes.
+    gateCrawl: 14,
+    // On a missed window, place the fresh OPEN this far (leg-fraction) ahead of the
+    // car so the window is re-approached (and, since a miss bled the speed, hit slow
+    // and easy). If a fresh window won't fit before `safeMaxClose`, the car instead
+    // HOLDS at the current CLOSE banner until ENP is called — the last-ditch, only
+    // place a banner acts as a wall, so a leg can never soft-lock on a missed window.
+    rearmLead: 0.12,
+    safeMaxClose: 0.90,
+
+    /* ---- PACING CAPS (Andrew, 2026-07-19: "the time between banners is too long,
+     * lets cap it at 15 seconds for now") ------------------------------------
+     * Both windows below are wall-clock, NOT leg-fraction, because leg-fraction
+     * is meaningless as a wait: the same 0.33 of a leg is 2 seconds at 200 km/h
+     * and half a minute at a crawl. The car's speed is the player's own doing, so
+     * a slow lap must not also mean a boring one.
+     *   maxLeadSec  — hard cap on DEAD TIME: if the car has been driving this long
+     *     with a window armed but not yet reached, the OPEN gantry is re-seated
+     *     just ahead (`leadFrac`) so a banner always arrives inside 15s.
+     *   maxWindowSec — cap on the OPEN→CLOSE window itself. Rarely binds at pace
+     *     (the fixed-distance gap is a couple of seconds at speed); it's the
+     *     backstop for a car crawling through its own window. */
+    maxLeadSec: 15,
+    maxWindowSec: 15,
+    // Where a re-seated OPEN lands relative to the car (leg-fraction). Must be
+    // under rangeFrac (0.34) so the gantry fades in from the horizon rather than
+    // materialising on top of the player.
+    leadFrac: 0.16,
+
+    /* ---- HIT ZONE — the painted accuracy strip (Andrew, 2026-07-19) ---------
+     * A band painted across the tarmac inside the OPEN→CLOSE window. Land Enter
+     * with the car ON it and the boost runs at full duration; the further off, the
+     * shorter it runs (script.js gradeCheckpoint / BOOST.tiers).
+     *
+     *   ⚠ WHY THIS ISN'T A LITERAL CAR LENGTH. Andrew asked for "a section of
+     *   track that is a car length". Taken literally that is unplayable: one car
+     *   (~5 m) is ~0.008 of a leg, which at 100 km/h the car crosses in about 25
+     *   MILLISECONDS — under two frames, so no human input could ever land on it.
+     *   The band is therefore sized as a FRACTION OF THE WINDOW and tuned by feel;
+     *   it reads as a short painted section on screen (a few car lengths at the
+     *   camera) while staying hittable. Tune `len` for difficulty: smaller = a
+     *   tighter, more demanding zone.
+     *
+     * All three are fractions of the OPEN→CLOSE span:
+     *   len       — how long the painted band is
+     *   endMargin — gap left between the band and the CLOSE gantry, so nailing the
+     *               zone never risks over-running CLOSE on the same keystroke
+     * The band therefore sits LATE in the window: hanging on for it is the risky
+     * play, which is the cartridge's whole "risk the wall" premise. */
+    zone: { len: 0.24, endMargin: 0.07 }
+  };
+
+  /* ---- BOOST — typing speed and Enter accuracy, split (Andrew, 2026-07-19) ---
+   * "depending on how quickly the player types, should equal how fast the car will
+   * go for that command … depending on how accurate their enter is, will determine
+   * how long the boost lasts for."
+   *
+   * Two independent dials, deliberately:
+   *   HOW HARD  — WPM. Already the speed model's job (SPEED.boost × wpm factor):
+   *     type it clean and fast and the gauge jumps further. Also drives the engine
+   *     rev's pitch/length (audio.js _rev), so the car SOUNDS like it pulled.
+   *   HOW LONG  — Enter accuracy against the painted hit zone. Sets the seconds the
+   *     boost holds before the normal decay resumes, and how far the car's own
+   *     speed is allowed to overshoot while it runs.
+   *
+   * Keeping them separate means a fast typist who mistimes Enter gets a big but
+   * brief shove, and a metronomic typist who nails the zone gets a long, gentler
+   * one — two different ways to be good at the game rather than one.
+   *
+   * `tiers` is ordered BEST→WORST and read as: the first tier whose `within` the
+   * grade meets wins. `within` is distance from the zone centre measured in zone
+   * HALF-LENGTHS, so `within: 1` is literally "on the paint". */
+  const BOOST = {
+    enabled: true,
+    tiers: [
+      { key: 'perfect', within: 1.0,      label: 'PERFECT',  hold: 3.2, mult: 1.30, cls: 'perfect' },
+      { key: 'good',    within: 2.0,      label: 'GOOD',     hold: 2.2, mult: 1.15, cls: 'good' },
+      { key: 'ok',      within: 3.5,      label: 'OK',       hold: 1.4, mult: 1.00, cls: 'ok' },
+      { key: 'loose',   within: Infinity, label: 'SLOPPY',   hold: 0.8, mult: 0.88, cls: 'loose' }
+    ],
+    // Extra --road-spd multiplier while a boost runs — the visual "pull".
+    roadRush: 1.35,
+    // Type A has no banners, so it has no zone to grade against. It keeps the plain
+    // SPEED.holdBase hold; this flag is what stops the indicator appearing there.
+    bannerModeOnly: true
+  };
+
+  /* ---- STEERING — swerve through the field (Andrew, 2026-07-19) --------------
+   * "the arrow keys engage, and the player has to swerve past other cars."
+   * Until now the car's lateral position was purely the road's doing (the OutRun
+   * bend banked it); the player had no lane control at all, which is why the arrow
+   * keys did nothing in-race. Left/Right now move the car across the tarmac and the
+   * field becomes something you have to physically miss.
+   *
+   * `lane` matches the TRAFFIC lane scale: 0 = centre line, ±1 = the rumble strip.
+   * The steering is deliberately loose (rate/return) rather than instant — this is
+   * an arcade racer, not a shooter, and a twitch-perfect dodge would make the
+   * traffic free. Contact costs the boost, some speed and some rubber. */
+  const STEER = {
+    enabled: true,
+    rate: 1.7,         // lane-units per second while a key is held
+    returnRate: 0.9,   // lane-units per second the car drifts back to centre when it isn't
+    max: 0.76,         // furthest off centre you can get (TRAFFIC lanes top out at 0.58)
+    // Contact box. Two cars occupy the same slice of road when they're within
+    // `collideZ` metres of each other AND overlap laterally by `collideLane`.
+    collideZ: 8,
+    collideLane: 0.30,
+    // Speed kept after swerving into someone (on top of the tire cost).
+    hitSpeedKeep: 0.55,
+    hitDamage: 2,
+    // Seconds of immunity after a contact, so one clumsy moment can't chain into
+    // three collisions on the same car while you're still overlapping it.
+    hitCooldown: 0.9
   };
 
   /* ---- SHIFT CHANGE (NEMS500_ShiftChange_DesignNote.md) --------------------
@@ -378,13 +657,19 @@
     DEFAULT_UNIT_ID: DEFAULT_UNIT_ID,
     RACE_OPTIONS: RACE_OPTIONS,
     PIT_BASE_ID: PIT_BASE_ID,
+    PIT_ANCHOR_ID: PIT_ANCHOR_ID,
+    FULL_COURSE_ID: FULL_COURSE_ID,
     COURSE_MAX_BASES: COURSE_MAX_BASES,
     DEFAULT_COURSE_ID: DEFAULT_COURSE_ID,
+    GEO: GEO,
     REGION_MAP: REGION_MAP,
     ROAD_VIEW: ROAD_VIEW,
     ROAD_CURVE: ROAD_CURVE,
     CARS: CARS,
     TRAFFIC: TRAFFIC,
+    BANNER: BANNER,
+    BOOST: BOOST,
+    STEER: STEER,
     SHIFT_CHANGE: SHIFT_CHANGE
   };
 })(window);

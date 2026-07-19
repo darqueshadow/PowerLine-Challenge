@@ -76,6 +76,18 @@
          → Command: <span class="cmd-code">AP 2101 72101</span></p>
       <p class="note todo">SWAP — pit tire/fuel swap command — preview only (net-new; the pit
          consequence layer is authorized separately).</p>
+
+      <h3 style="margin-top:14px;font-size:16px;">Race Type B — Checkpoint</h3>
+      <p>Pick <b>Type B · Checkpoint</b> in Race Options and <span class="cmd-code">ENP</span>
+         stops being an invisible rule and becomes two gantries over the road: the
+         <b>OPEN</b> banner starts the window, the <b>CLOSE</b> banner ends it. Between them,
+         a <b>hit zone</b> is painted across the tarmac.</p>
+      <p class="note">How fast you TYPE sets how hard the car pulls. How accurately you land
+         <b>Enter</b> on the painted zone sets how LONG the boost runs — nail the paint and
+         you get the longest one. Watch the BOOST readout for the grade.</p>
+      <p class="note">While the boost is live, <b>◀ ▶ arrow keys</b> steer. The field doesn't
+         move over for you: swerve past them. Contact costs you the boost, some speed and
+         some rubber.</p>
       <h3 style="margin-top:14px;font-size:16px;">Shift Change</h3>
       <p>At real shift-change times a radio call warns you a change is coming. After
          <span class="cmd-code">ENP</span>, type <span class="cmd-code">LA</span> to stay mobile —
@@ -99,9 +111,22 @@
     <div class="options-grid" id="optionsGrid"><!-- populated from RACE_OPTIONS.schema --></div>
     <div class="menu-list" style="min-width:auto;margin-top:1.4em;flex-direction:row;gap:14px;">
       <button class="btn small" data-action="goto" data-target="menuScreen">◀ Back</button>
-      <button class="btn small" data-action="goto" data-target="gridScreen" data-primary>To Grid ▶</button>
+      <button class="btn small" data-action="goto" data-target="unitScreen" data-primary>Next · Unit ▶</button>
     </div>
     <p class="note">Options are stored for the race.</p>
+  </section>
+
+  <!-- =========================== UNIT SELECTION =========================
+       Own screen (Andrew, 2026-07-17): picking the truck you drive was pulled
+       out of Race Options so it gets the whole field — the chip row plus the
+       full detail card (art, class, SPEED/CONTROL, telemetry, strengths). -->
+  <section id="unitScreen" class="screen">
+    <h2>Select Your Unit</h2>
+    <div class="unit-screen" id="unitScreenBody"><!-- populated by script.js renderUnitScreen --></div>
+    <div class="menu-list" style="min-width:auto;margin-top:1.2em;flex-direction:row;gap:14px;">
+      <button class="btn small" data-action="goto" data-target="optionsScreen">◀ Back</button>
+      <button class="btn small" data-action="goto" data-target="gridScreen" data-primary>To Grid ▶</button>
+    </div>
   </section>
 
   <!-- =========================== PRE-RACE GRID ========================== -->
@@ -109,14 +134,19 @@
     <h2>Pre-Race Grid</h2>
     <div class="panel" style="max-width:1000px;">
       <div class="map-watermark">COURSE PREVIEW</div>
-      <div class="region-map" style="height:48vh;position:relative;border:1px solid var(--phosphor-dim);">
+      <!-- Aspect tracks Niagara's real proportions — the published boundaries
+           span 42.836°–43.262°N by 79.754°–78.908°W, which is 1.45:1 once
+           cosine-corrected. The map scales uniformly now that it draws a real
+           place, so a full-panel-width box would just letterbox it in dead
+           space. Exact for the full race; short courses letterbox a little. -->
+      <div class="region-map" style="height:48vh;aspect-ratio:1.45;width:auto;margin:0 auto;position:relative;border:1px solid var(--phosphor-dim);">
         <svg id="gridMap" preserveAspectRatio="xMidYMid meet"></svg>
       </div>
       <div class="map-legend" id="gridLegend"></div>
     </div>
     <div class="countdown" id="gridCountdown" style="font-size:clamp(32px,6vw,72px);margin:6px 0;">3 · 2 · 1</div>
     <div class="menu-list" style="min-width:auto;flex-direction:row;gap:14px;">
-      <button class="btn small" data-action="goto" data-target="optionsScreen">◀ Back</button>
+      <button class="btn small" data-action="goto" data-target="unitScreen">◀ Back</button>
       <button class="btn" data-action="goto" data-target="gameScreen" data-primary>GO ▶</button>
     </div>
   </section>
@@ -193,9 +223,42 @@ AHEAD</div>
                projected onto the same road trapezoid as the scenery. -->
           <div class="rv-traffic" id="rvTraffic" aria-hidden="true"></div>
 
+          <!-- Race Type B "banner window" — OPEN/CLOSE gantries bracketing the ENP
+               typing window. Built + projected onto the road each frame by
+               script.js updateBanners(); empty (display:none) in Race Type A and
+               whenever ENP isn't the active gated beat. (PITSTOP_RACE_TYPE_AB.md) -->
+          <div class="rv-banners" id="rvBanners" aria-hidden="true"></div>
+
+          <!-- CHECKPOINT hit zone — the painted band inside the OPEN/CLOSE window.
+               Land Enter with the car on the paint and the boost runs longest.
+               Projected onto the road each frame by script.js drawHitZone();
+               hidden outside Race Type B's ENP window. (config BANNER.zone) -->
+          <div class="rv-zone" id="rvZone" aria-hidden="true">
+            <div class="zn-band"></div>
+            <div class="zn-tag">HIT</div>
+          </div>
+
           <!-- transient pass / contact callout (kept off the radio bubble, which
                belongs to the Shift Change) -->
           <div id="passFlash" class="pass-flash" aria-hidden="true"></div>
+
+          <!-- BOOST indicator — how well the Enter was timed against the hit zone,
+               and how much of the boost is left. Also carries the "◀ ▶ SWERVE"
+               prompt, since the boost is when the arrow keys matter. Driven by
+               script.js showBoost() / updateBoost(). (config BOOST) -->
+          <div id="boostMeter" class="boost-meter" aria-hidden="true">
+            <div class="bm-head">
+              <span class="bm-tier" id="boostTier">PERFECT</span>
+              <span class="bm-lab">BOOST</span>
+            </div>
+            <div class="bm-track"><span class="bm-fill" id="boostFill"></span></div>
+            <div class="bm-steer">◀ ▶ SWERVE</div>
+          </div>
+
+          <!-- race start "Christmas Tree" — drag-strip tree for point-to-point
+               sprints, F1 five-light gantry for circuits. Built + run by
+               script.js runStartSequence(); gates command input until GO. -->
+          <div id="startLights" class="start-lights" hidden aria-hidden="true"></div>
 
           <!-- the car (3/4 from behind — white body, green + blue trim, unit number) -->
           <div class="rv-car" id="raceCar">
@@ -261,8 +324,16 @@ AHEAD</div>
         <div class="side-col">
           <!-- ▸ THEME INJECTION POINT: region minimap (challenge) -->
           <div class="minimap">
-            <div class="minimap-title">CHALLENGE · NEXT BASE</div>
-            <div class="map-target" id="mapTarget"></div>
+            <div class="base-heads">
+              <div class="base-box current">
+                <span class="bb-lab">CURRENT BASE</span>
+                <span class="bb-name" id="curBaseName">—</span>
+              </div>
+              <div class="base-box next">
+                <span class="bb-lab">NEXT BASE</span>
+                <span class="bb-name" id="nextBaseName">—</span>
+              </div>
+            </div>
             <svg id="regionMap" viewBox="0 0 100 80" preserveAspectRatio="xMidYMid meet"></svg>
           </div>
           <div class="gauges">
@@ -309,68 +380,114 @@ AHEAD</div>
     </div>
   </section>
 
-  <!-- =========================== PIT STOP (preview) =====================
-       Visual/preview screen implemented from design §03 (the namesake moment).
-       Reachable via the Developer screen-jump panel. NOT wired into the live
-       race — the pit/tire/fuel consequence layer is authorized separately
-       (Pitstop_Design_Note.md §10). Shown as a look-and-feel target. -->
-  <section id="pitScreen" class="screen pit-screen">
-    <div class="pit-wrap">
-      <div class="caution-band top"></div>
-      <div class="caution-band bottom"></div>
-      <div class="pit-cols">
-        <!-- left: the car in the box + crew -->
-        <div class="pit-left">
-          <div class="pit-title">⚑ PIT LANE — WESTWOOD</div>
-          <div class="pit-sub">Unit 2101 in the box · clear the damage before the clock runs</div>
-          <div class="pit-box">
-            <div class="pit-box-lines"></div>
-            <div class="pit-car">
-              <div class="pit-car-body"></div>
-              <div class="pit-car-stripe"></div>
-              <div class="pit-car-num">01</div>
-              <div class="pit-tire tl pulse"></div>
-              <div class="pit-tire tr"></div>
-              <div class="pit-tire bl"></div>
-              <div class="pit-tire br pulse"></div>
-              <div class="pit-spark"></div>
-            </div>
-          </div>
-        </div>
-        <!-- right: swap panel -->
-        <div class="pit-right">
-          <div class="pit-clock-row">
-            <span class="pit-clock-lab">PIT CLOCK</span>
-            <span class="pit-clock-val">00:07</span>
-          </div>
-          <div class="pit-damage">
-            <div class="pd-title">DAMAGE REPORT</div>
-            <div class="pd-row blown">
-              <span class="pd-lab">FL</span>
-              <div class="pd-bar"><span style="width:18%"></span></div>
-              <span class="pd-stat">BLOWN</span>
-            </div>
-            <div class="pd-row worn">
-              <span class="pd-lab">RR</span>
-              <div class="pd-bar"><span style="width:44%"></span></div>
-              <span class="pd-stat">WORN</span>
-            </div>
-            <div class="pd-row ok">
-              <span class="pd-lab">FR</span>
-              <div class="pd-bar"><span style="width:88%"></span></div>
-              <span class="pd-stat">OK</span>
-            </div>
-          </div>
-          <div class="pit-swap">
-            <div class="swap-hint">Type <span class="swap-cmd">SWAP FL</span> to fit fresh rubber</div>
-            <div class="swap-box"><span class="prompt">&gt;</span><span class="swap-typed">SWAP FL<i class="caret">▋</i></span></div>
-          </div>
-          <div class="pit-rejoin">↵ then <b>LA</b> to rejoin the course · the car never fully stops</div>
+  <!-- ===================== PIT STOP — IN-RACE GARAGE (preview §02) =========
+       The design's in-race pit garage scene (Pitstop Arcade.dc.html §② inPit):
+       the road view gives way to the box — the car pulls in, the crew jump the
+       corners, fresh rubber goes on, then it drives away. Reachable via the
+       Developer screen-jump panel and REBUILT each time it's shown by
+       script.js PitBox.
+
+       ⚠ PREVIEW / LOOK-AND-FEEL ONLY — deliberately NOT wired into the live
+       race. It runs on its own sandbox tire state (rendered through the shared
+       deriveTire()/CFG.TIRE table so the colours match the race), touches no
+       race speed / tire / fuel state, and its SWAP box is local to this screen —
+       it is NOT added to the race command parser. The pit/tire consequence layer
+       and the SWAP command are gated (NEMS500_Geography_Tire_Spec §0.9 / §9.1)
+       pending Andrew; this screen shows the target without clearing that gate. -->
+  <section id="pitScreen" class="screen pitbox-screen">
+    <div class="pitbox" id="pitBox">
+
+      <!-- garage back wall + overhead gantry -->
+      <div class="pbx-wall"></div>
+      <div class="pbx-post left"></div>
+      <div class="pbx-post right"></div>
+      <div class="pbx-gantry">⚑ PIT BOX · 72123</div>
+      <div class="pbx-board green"></div>
+      <div class="pbx-board blue"></div>
+
+      <!-- garage floor + pit-box markings -->
+      <div class="pbx-floor"></div>
+      <div class="pbx-marks"></div>
+      <div class="pbx-marks-line"></div>
+
+      <!-- fresh rubber staged on both sides -->
+      <div class="pbx-stack left"><i></i><i></i><i></i></div>
+      <div class="pbx-stack right"><i></i><i></i><i></i></div>
+
+      <!-- tyre-smoke puff as the car settles in -->
+      <div class="pbx-dust" id="pbxDust"></div>
+
+      <!-- ===== the parked car (3/4 from behind); tyres coloured by health ===== -->
+      <div class="pbx-car" id="pbxCar">
+        <div class="pbx-car-shadow"></div>
+
+        <!-- four corners: rubber greys with health, fill drops (deriveTire) -->
+        <div class="pbx-tire fl" data-corner="FL"><i class="fill"></i></div>
+        <div class="pbx-tire fr" data-corner="FR"><i class="fill"></i></div>
+        <div class="pbx-tire rl" data-corner="RL"><i class="fill"></i></div>
+        <div class="pbx-tire rr" data-corner="RR"><i class="fill"></i></div>
+        <!-- fresh-rubber flash on swap (toggled by JS) -->
+        <div class="pbx-swapflash fl" data-corner="FL"></div>
+        <div class="pbx-swapflash fr" data-corner="FR"></div>
+        <div class="pbx-swapflash rl" data-corner="RL"></div>
+        <div class="pbx-swapflash rr" data-corner="RR"></div>
+
+        <!-- body -->
+        <div class="pbx-nose"></div>
+        <div class="pbx-body"></div>
+        <div class="pbx-flank left"></div>
+        <div class="pbx-flank right"></div>
+        <div class="pbx-stripe"></div>
+        <div class="pbx-cockpit"></div>
+        <div class="pbx-unit" id="pbxUnit">2101</div>
+        <div class="pbx-wing"></div>
+        <div class="pbx-endplate left"></div>
+        <div class="pbx-endplate right"></div>
+
+        <!-- crew: one per corner, jumps in on that corner's swap -->
+        <div class="pbx-crew fl" data-corner="FL"><i class="body"></i><i class="gun"></i><i class="helmet"></i></div>
+        <div class="pbx-crew fr" data-corner="FR"><i class="body"></i><i class="gun"></i><i class="helmet"></i></div>
+        <div class="pbx-crew rl" data-corner="RL"><i class="body"></i><i class="gun"></i><i class="helmet"></i></div>
+        <div class="pbx-crew rr" data-corner="RR"><i class="body"></i><i class="gun"></i><i class="helmet"></i></div>
+        <!-- lollipop man out front (lifts on rejoin) -->
+        <div class="pbx-lollipop" id="pbxLollipop"><i class="disc">P</i><i class="stick"></i></div>
+      </div>
+
+      <!-- pit-lane speed limiter (engaged in the box) -->
+      <div class="pbx-limiter">
+        <div class="lim-badge">60</div>
+        <div class="lim-text">
+          <span class="lim-lab">PIT LIMITER</span>
+          <span class="lim-val"><i class="dot"></i>ENGAGED · 60 KM/H</span>
         </div>
       </div>
-      <div class="crt-scan"></div>
+
+      <!-- box timer -->
+      <div class="pbx-timer" id="pbxTimer">
+        <div class="t-lab">BOX TIME</div>
+        <div class="t-val" id="pbxClock">0.0<span>s</span></div>
+      </div>
+
+      <!-- tyre-select rows, docked top-right clear of the car -->
+      <div class="pbx-select">
+        <div class="sel-head">SELECT · SWAP</div>
+        <div class="sel-rows" id="pbxSelect"><!-- rows built by script.js PitBox --></div>
+      </div>
+
+      <!-- SWAP command (sandbox — not the race parser) -->
+      <div class="pbx-cmd">
+        <div class="pbx-status" id="pbxStatus">TYPE  SWAP &lt;FL·FR·RL·RR&gt;  or  SWAP ALL</div>
+        <div class="pbx-box">
+          <span class="prompt">&gt;</span>
+          <input id="pbxInput" type="text" autocomplete="off" spellcheck="false" placeholder="SWAP FL" />
+        </div>
+        <button class="pbx-rejoin" data-action="pitbox-rejoin">▸ REJOIN COURSE</button>
+      </div>
+
+      <div class="pbx-previewtag">PREVIEW · pit-box look-and-feel · not wired into the race</div>
     </div>
-    <div class="menu-list" style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);min-width:auto;flex-direction:row;gap:12px;">
+
+    <div class="menu-list" style="position:absolute;bottom:12px;left:12px;min-width:auto;">
       <button class="btn small" data-action="goto" data-target="gameScreen" data-primary>◀ Back to Race</button>
     </div>
   </section>
@@ -442,6 +559,14 @@ AHEAD</div>
 
 <!-- Core modules load in order: config → data → shiftchange → audio → script (Build Procedure §3) -->
 <script src="core/config.js?v=0.9.6"></script>
+<!-- Datasets baked from files/datasets/*.csv so this page runs by double-clicking
+     it (file:// blocks fetch of local files). Re-bake after ANY CSV edit:
+     node bake-data.mjs     — see files/datasets/embedded.js (auto-generated). -->
+<script src="datasets/embedded.js?v=0.9.6"></script>
+<script src="core/basegeo.js?v=0.9.6"></script>
+<script src="core/region-boundaries.js?v=0.9.6"></script>
+<script src="core/region.js?v=0.9.6"></script>
+<script src="core/course.js?v=0.9.6"></script>
 <script src="core/data.js?v=0.9.6"></script>
 <script src="core/shiftchange.js?v=0.9.6"></script>
 <script src="core/audio.js?v=0.9.6"></script>
