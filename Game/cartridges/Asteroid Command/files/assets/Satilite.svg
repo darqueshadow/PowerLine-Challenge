@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 96" width="128" height="96" shape-rendering="crispEdges">
+  <!-- Left Solar Panel -->
+  <rect x="8" y="36" width="40" height="24" fill="#2f6fb0" />
+  <rect x="8" y="36" width="40" height="2" fill="#4d94d1" /> <!-- Highlight -->
+  <rect x="8" y="58" width="40" height="2" fill="#1a4d80" /> <!-- Shadow -->
+  <!-- Left Panel Grid -->
+  <path d="M 16 36 v 24 M 24 36 v 24 M 32 36 v 24 M 40 36 v 24 M 8 44 h 40 M 8 52 h 40" stroke="#1a4d80" stroke-width="2" />
+
+  <!-- Right Solar Panel -->
+  <rect x="80" y="36" width="40" height="24" fill="#2f6fb0" />
+  <rect x="80" y="36" width="40" height="2" fill="#4d94d1" /> <!-- Highlight -->
+  <rect x="80" y="58" width="40" height="2" fill="#1a4d80" /> <!-- Shadow -->
+  <!-- Right Panel Grid -->
+  <path d="M 88 36 v 24 M 96 36 v 24 M 104 36 v 24 M 112 36 v 24 M 80 44 h 40 M 80 52 h 40" stroke="#1a4d80" stroke-width="2" />
+
+  <!-- Panel Connectors -->
+  <rect x="48" y="46" width="4" height="4" fill="#6b7280" />
+  <rect x="76" y="46" width="4" height="4" fill="#6b7280" />
+
+  <!-- Main Body -->
+  <rect x="52" y="32" width="24" height="32" fill="#b8bec8" />
+  <rect x="52" y="32" width="24" height="2" fill="#e2e8f0" /> <!-- Top Highlight -->
+  <rect x="52" y="62" width="24" height="2" fill="#6b7280" /> <!-- Bottom Shadow -->
+  <rect x="74" y="32" width="2" height="32" fill="#6b7280" /> <!-- Right Shadow -->
+
+  <!-- Body Panel Lines -->
+  <path d="M 52 42 h 24 M 52 54 h 24 M 64 32 v 32" stroke="#8b95a5" stroke-width="2" />
+
+  <!-- Dish Antenna Base -->
+  <rect x="62" y="24" width="4" height="8" fill="#8b95a5" />
+  <!-- Dish -->
+  <path d="M 58 20 h 12 v 4 h -12 z" fill="#e2e8f0" />
+  <path d="M 56 16 h 16 v 4 h -16 z" fill="#b8bec8" />
+  <rect x="63" y="14" width="2" height="6" fill="#8b95a5" />
+
+  <!-- Warning Lights -->
+  <!-- Red lens sits UNLIT in the art; drawSatelliteBeacon() lights it on the
+       blink cycle. Set this back to #ff0000 for a permanently-on lamp. -->
+  <rect x="54" y="34" width="4" height="4" fill="#5a1414" /> <!-- Red (unlit) -->
+  <rect x="70" y="34" width="4" height="4" fill="#ffbf00" /> <!-- Amber -->
+
+  <!-- Collectible Cyan Glint -->
+  <rect x="54" y="44" width="4" height="4" fill="#00ffff" opacity="0.6" />
+  <rect x="56" y="46" width="2" height="2" fill="#ffffff" />
+</svg>

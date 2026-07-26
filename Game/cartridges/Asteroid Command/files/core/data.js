@@ -10,6 +10,7 @@
 let DATA_ACTIONS = [];
 let DATA_UNITS_FULL = [];
 let DATA_LOCATIONS_FULL = [];
+let DATA_SHORTHAND = [];
 let BASE_LOOKUP = {};
 let DATA_UNITS_SAMPLE = [
     { id: "2100", weight: 10 }, { id: "2101", weight: 10 }, { id: "2105", weight: 10 },
@@ -57,6 +58,49 @@ function parseCSVLine(line) {
     return vals;
 }
 
+// ── Shorthand rows → banner records ───────────────────────────────────────────
+// The satellite tows the expanded text; the player types the shorthand.
+// Two header styles are accepted so the CAD export drops straight in:
+//   SH, Expanded              ← as exported from the CAD shorthand list
+//   Command, Challenge        ← matching commands.csv's vocabulary
+// Weight and Points are optional in both. The leading '/' is optional too —
+// the CAD list stores bare codes ("PDN"), and it is normalised in here.
+function parseShorthandRows(text) {
+    if (!text) return [];
+    const rows = parseCSV(text);
+    if (rows.length === 0) return [];
+
+    const has = name => name in rows[0];
+    const codeCol   = has('SH') ? 'SH' : 'Command';
+    const bannerCol = has('Expanded') ? 'Expanded' : 'Challenge';
+    const hasWeight = has('Weight');
+    const hasPoints = has('Points');
+
+    return rows.map(r => {
+        const code = (r[codeCol] || '').trim().toUpperCase();
+        return {
+            banner: (r[bannerCol] || '').trim(),
+            code: code.startsWith('/') ? code : '/' + code,
+            weight: hasWeight ? (parseInt(r['Weight'], 10) || 5) : 5,
+            points: hasPoints
+                ? (parseInt(r['Points'], 10) || SATELLITE.defaultPoints)
+                : SATELLITE.defaultPoints
+        };
+    }).filter(s => s.banner && s.code.length > 1);
+}
+
+// Fetch a dataset that the game can run without. Returns '' instead of throwing.
+async function fetchOptional(url, init) {
+    try {
+        const r = await fetch(url, init);
+        if (!r.ok) throw new Error(String(r.status));
+        return await r.text();
+    } catch (e) {
+        console.warn(`[DATA] Optional dataset unavailable: ${url} (${e.message})`);
+        return '';
+    }
+}
+
 // ============================================
 // ASYNC DATA LOADER
 // ============================================
@@ -77,7 +121,11 @@ async function loadGameData() {
         return;
     }
 
-    const [basesText, commandsText, unitsText, progressionText, scoringText] = results;
+    // Shorthand is optional — a missing shorthand.csv only disables the satellite
+    // bonus, it must not knock the five core datasets back to fallback data.
+    results.push(await fetchOptional(base + 'shorthand.csv'));
+
+    const [basesText, commandsText, unitsText, progressionText, scoringText, shorthandText] = results;
 
     // --- Units ---
     const unitRows = parseCSV(unitsText);
@@ -111,6 +159,9 @@ async function loadGameData() {
         type: r['Type'],
         weight: hasCmdWeight ? (parseInt(r['Weight'], 10) || 5) : 5
     }));
+
+    // --- Shorthand (satellite banner bonus) ---
+    DATA_SHORTHAND = parseShorthandRows(shorthandText);
 
     // --- Holodeck samples (first 6 units from the loaded dataset) ---
     DATA_UNITS_SAMPLE = DATA_UNITS_FULL.slice(0, 6);
@@ -298,6 +349,22 @@ function loadFallbackData() {
 
     DATA_LOCATIONS_SAMPLE = DATA_LOCATIONS_FULL.slice(0, 5);
 
+    // Synced with shorthand.csv — satellite banner bonuses
+    DATA_SHORTHAND = [
+        { banner: "Police have been notified",                   code: "/PDN",   weight: 10, points: 300 },
+        { banner: "Police are enroute",                          code: "/PDE",   weight: 10, points: 225 },
+        { banner: "Police are not yet enroute",                  code: "/PDNE",  weight: 8,  points: 300 },
+        { banner: "Police on scene",                             code: "/PDO",   weight: 10, points: 200 },
+        { banner: "Police have cancelled the call",              code: "/PDC",   weight: 8,  points: 325 },
+        { banner: "Fire Department Notified",                    code: "/FDN",   weight: 10, points: 275 },
+        { banner: "Hot / Cold Weather Advisory - Call Upgraded", code: "/HCA",   weight: 4,  points: 450 },
+        { banner: "Emergency Room Patch",                        code: "/ERP",   weight: 10, points: 250 },
+        { banner: "Emergency Room Notified",                     code: "/ERN",   weight: 10, points: 275 },
+        { banner: "Use Caution When Approaching",                code: "/UCWA",  weight: 8,  points: 325 },
+        { banner: "CPR in Progress",                             code: "/CPR",   weight: 10, points: 200 },
+        { banner: "SpecialEvent923",                             code: "/EVENT", weight: 2,  points: 200 }
+    ];
+
     // --- BASE_LOOKUP: Challenge Name → Command Code ---
     Object.keys(BASE_LOOKUP).forEach(k => delete BASE_LOOKUP[k]);
     DATA_LOCATIONS_FULL.forEach(loc => { BASE_LOOKUP[loc.c] = loc.m; });
@@ -338,10 +405,11 @@ async function reloadAllCSVs() {
                 return r.text();
             })
         ));
+        results.push(await fetchOptional(base + 'shorthand.csv', { cache: 'no-store' }));
     } catch (fetchErr) {
         // Fetch failed (likely file:// protocol) — use file picker
         console.warn('[UPDATE DATASETS] Fetch failed, opening file picker...', fetchErr.message);
-        if (statusEl) { statusEl.textContent = 'SELECT YOUR 5 CSV FILES...'; statusEl.className = 'dataset-status loading'; }
+        if (statusEl) { statusEl.textContent = 'SELECT YOUR CSV FILES...'; statusEl.className = 'dataset-status loading'; }
         try {
             results = await pickCSVFiles();
         } catch (pickErr) {
@@ -374,7 +442,10 @@ function pickCSVFiles() {
             const fileMap = {};
             for (const file of input.files) {
                 const name = file.name.toLowerCase();
-                if (name.includes('bases'))       fileMap.bases = file;
+                // 'shorthand' is tested before 'command' so a file named
+                // e.g. shorthand_commands.csv can't be mistaken for commands.csv
+                if (name.includes('shorthand'))    fileMap.shorthand = file;
+                else if (name.includes('bases'))   fileMap.bases = file;
                 else if (name.includes('command')) fileMap.commands = file;
                 else if (name.includes('unit'))    fileMap.units = file;
                 else if (name.includes('progress'))fileMap.progression = file;
@@ -388,9 +459,11 @@ function pickCSVFiles() {
                 return;
             }
 
-            Promise.all(required.map(k => fileMap[k].text()))
-                .then(resolve)
-                .catch(reject);
+            // shorthand.csv is optional — skipping it just disables the satellite bonus
+            Promise.all([
+                ...required.map(k => fileMap[k].text()),
+                fileMap.shorthand ? fileMap.shorthand.text() : Promise.resolve('')
+            ]).then(resolve).catch(reject);
         });
 
         input.addEventListener('cancel', () => {
@@ -404,7 +477,7 @@ function pickCSVFiles() {
 // Shared parsing logic — takes [basesText, commandsText, unitsText, progressionText, scoringText]
 function applyCSVData(results) {
     const statusEl = document.getElementById('dataset-status');
-    const [basesText, commandsText, unitsText, progressionText, scoringText] = results;
+    const [basesText, commandsText, unitsText, progressionText, scoringText, shorthandText] = results;
 
     // --- Re-parse Units ---
     const unitRows = parseCSV(unitsText);
@@ -438,6 +511,10 @@ function applyCSVData(results) {
         type: r['Type'],
         weight: hasCmdWeight ? (parseInt(r['Weight'], 10) || 5) : 5
     }));
+
+    // --- Re-parse Shorthand (keep the existing set if none was supplied) ---
+    const reloadedShorthand = parseShorthandRows(shorthandText);
+    if (reloadedShorthand.length > 0) DATA_SHORTHAND = reloadedShorthand;
 
     // --- Re-compute holodeck samples ---
     DATA_UNITS_SAMPLE = DATA_UNITS_FULL.slice(0, 6);
@@ -498,7 +575,7 @@ function applyCSVData(results) {
     if (typeof buildGodModeMenu === 'function') buildGodModeMenu();
 
     // --- Show success ---
-    const summary = `LOADED: ${DATA_UNITS_FULL.length} units, ${DATA_LOCATIONS_FULL.length} bases, ${DATA_ACTIONS.length} commands, ${Object.keys(TIERS).length} ranks`;
+    const summary = `LOADED: ${DATA_UNITS_FULL.length} units, ${DATA_LOCATIONS_FULL.length} bases, ${DATA_ACTIONS.length} commands, ${DATA_SHORTHAND.length} shorthand, ${Object.keys(TIERS).length} ranks`;
     console.log('[UPDATE DATASETS] ' + summary);
     if (statusEl) { statusEl.textContent = '✓ ' + summary; statusEl.className = 'dataset-status success'; }
     if (typeof showStatus === 'function') showStatus('DATASETS UPDATED', 'bonus');

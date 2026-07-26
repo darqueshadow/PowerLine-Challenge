@@ -78,6 +78,90 @@ const SCORING = {
     penaltyCap: -300            // Consecutive base destruction cap
 };
 
+// ============================================
+// SATELLITE BANNER BONUS
+// A satellite tows a beach-plane style banner across the sky. The banner shows
+// the long form of a CAD shorthand ("Police Department Notified"); the player
+// scores by typing the shorthand itself ("/PDN") before it leaves the screen.
+// Phrases + point values come from datasets/shorthand.csv.
+// ============================================
+
+const SATELLITE = {
+    enabled: true,
+
+    // ── Spawn cadence (random timer, ms) ──
+    // Measured spawn-to-spawn, not clear-to-spawn — see maintainSatellite().
+    spawnMinMs: 25000,
+    spawnMaxMs: 40000,
+    firstSpawnMinMs: 10000,     // first flyby of a run comes sooner
+    firstSpawnMaxMs: 18000,
+
+    // ── Flight ──
+    // Crosses the top of the sky, entering off-screen from a random side. Speed
+    // rides the same per-rank multiplier as the asteroids (progression.csv), so
+    // the flyby tightens as the game gets faster. Rough screen times, tail in:
+    //   TRAINEE ~16-24 s   SIGNED OFF ~11-16 s   FULL TIME ~6-8 s   O.A.S ~3-5 s
+    speed: 170,                 // virtual units/sec at 1.0x rank speed
+    speedScaling: 1.0,          // 0 = ignore rank entirely, 1 = full rank multiplier
+    maxSpeed: 700,              // safety rail only — lower it to ease off the top ranks
+    altitudeMin: 100,           // top band of the sky, well clear of the defense zones
+    altitudeMax: 200,
+    driftAmplitude: 6,          // gentle vertical bob of the satellite itself
+    driftSpeed: 0.9,
+
+    // ── Scoring ──
+    defaultPoints: 250,         // used when shorthand.csv omits the Points column
+    streakCap: 5,               // max multiplier — catch 5 in a row for 5x
+    resetStreakOnMisfire: true, // a wrong /shorthand also drops the multiplier
+
+    // ── Sprite orientation ──
+    // The source art draws the dish pointing up, so flipping on the x axis aims
+    // it at the earth; the tilt then angles it into the direction of travel.
+    flipY: true,
+    rotationDeg: 45,            // clockwise; negate to tilt the other way
+
+    // Sprite-local anchors, in the SVG's own 128x96 viewBox coordinates.
+    // Retarget these if the sprite art is ever swapped out.
+    dishX: 64, dishY: 15,       // mouth of the dish — radio signal emits from here
+    lampX: 56, lampY: 36,       // red warning light on the hull
+
+    // ── Dish radio signal ──
+    signalArcs: 3,              // concurrent expanding arcs
+    signalPeriod: 1.6,          // seconds for one arc to travel out and fade
+    signalInner: 7,             // starting radius, game units
+    signalReach: 26,            // how far an arc travels before it dies
+    signalSpread: 0.62,         // half-angle of the cone, radians
+    signalColor: '120, 220, 255',
+
+    // ── Beacon blink ──
+    blinkPeriod: 1.1,           // seconds per on/off cycle
+    blinkDuty: 0.32,            // fraction of the cycle the lamp is lit
+    blinkRadius: 4.5,
+
+    // ── Banner burn-up (a claimed banner detaches and falls) ──
+    debrisGravity: 150,         // units/sec^2
+    debrisTerminal: 125,        // fall speed cap — keeps it floating, not plummeting
+    debrisDrag: 0.8,            // horizontal bleed-off per second
+    debrisSpin: 2.4,            // max tumble, rad/sec
+    debrisBurnMin: 2.2,         // seconds for one strip to char away
+    debrisBurnMax: 4.0,
+    debrisIgniteSpread: 0.7,    // stagger, so the fire runs along the banner
+    debrisSwayAmp: 30,          // paper-like flutter, units/sec
+    debrisSwaySpeed: 2.6,
+    debrisFlakeRate: 7,         // average embers shed per strip per second
+
+    // ── Banner geometry ──
+    spriteW: 96,
+    spriteH: 72,
+    towLineLength: 70,
+    bannerHeight: 38,
+    charSpacing: 21,
+    bannerPadding: 14,
+    waveAmplitude: 8,           // ribbon ripple, in virtual units
+    waveLength: 110,
+    waveSpeed: 3.0
+};
+
 const godMode = {
     clickToDestroy: true,   // Left-click asteroid to fire / destroy
     godModeKill: true,      // Kill asteroids even when tower is down

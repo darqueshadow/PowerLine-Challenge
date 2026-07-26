@@ -40,7 +40,13 @@ const ASTEROID_SPRITE_PATHS = [
 let assetsLoaded = 0;
 const ZONE_OBJ_ASSET_LIST = ['Yellow_Bug']; // Zone Object sprites (Skylon elevator bug)
 
-const totalAssets = ZONE_ASSET_LIST.length + BG_ASSET_LIST.length + UI_ASSET_LIST.length + ZONE_OBJ_ASSET_LIST.length + ASTEROID_SPRITE_PATHS.length + 13; // +13 freighter sprites
+const totalAssets = ZONE_ASSET_LIST.length + BG_ASSET_LIST.length + UI_ASSET_LIST.length + ZONE_OBJ_ASSET_LIST.length + ASTEROID_SPRITE_PATHS.length + 13 + 1; // +13 freighter sprites, +1 satellite
+
+// Satellite bonus sprite (SVG — rasterized by the browser at draw time)
+ASSETS['Satellite'] = new Image();
+ASSETS['Satellite'].src = 'assets/Satilite.svg';
+ASSETS['Satellite'].onload = () => { assetsLoaded++; };
+ASSETS['Satellite'].onerror = () => { console.warn('Missing: assets/Satilite.svg'); assetsLoaded++; };
 
 ZONE_ASSET_LIST.forEach(name => {
     ASSETS[name] = new Image();
@@ -158,6 +164,11 @@ const state = {
     ambulance: null,
     ambulanceDestroyCount: 0,
     ambulancePendingTimer: null,
+    satellite: null,                 // Active banner satellite (one at a time)
+    bannerDebris: [],                // Burning strips of a claimed banner, falling
+    satelliteStreak: 0,              // Consecutive banners caught — drives the multiplier
+    satellitesCaught: 0,             // Session total, for the game-over stats
+    satellitesMissed: 0,
     beamActive: false,
     beamTimer: 0,
     gameOverPending: false,
@@ -1686,6 +1697,30 @@ function createShatter(x, y, spriteIndex) {
 // INPUT HANDLING
 // ============================================
 
+// Shared misfire penalty — empty command, unmatched command, or a bad /shorthand.
+// `reason` is the tail of the shield-absorbed message ("NO COMMAND", etc).
+function applyMisfire(reason) {
+    state.streak = 0;
+    state.perfectStreak = 0;
+    state.perfectMilestonesHit = [];
+    if (SATELLITE.resetStreakOnMisfire) state.satelliteStreak = 0;
+
+    const penalty = Math.max(SCORING.maxPenalty, -50);
+    applyScore(penalty);
+
+    if (state.shieldHP > 0) {
+        applyDamage(CONFIG.misfireDamage, 'misfire');
+        showStatus(`MISFIRE ${penalty} — ${reason}`, "miss");
+    } else {
+        fireBroken();
+        showStatus(`SYSTEM FAILURE ${penalty}`, "miss");
+    }
+
+    DOM.input.classList.add('error');
+    setTimeout(() => DOM.input.classList.remove('error'), 300);
+    flashScorePenalty();
+}
+
 function handleCommand(value) {
     const input = value.trim().toUpperCase();
     DOM.input.value = '';
@@ -1697,6 +1732,22 @@ function handleCommand(value) {
 
     const bs = state.backspaces;
     state.backspaces = 0;
+
+    // ── Shorthand bonus ──────────────────────────────────────────────────────
+    // Handled before everything else: real CAD commands are "AP 2100 72100" and
+    // never start with '/', so the prefix is an unambiguous split. Runs even
+    // while the tower rebuilds — see maintainSatellite().
+    if (input.startsWith('/')) {
+        const sat = state.satellite;
+        if (sat && sat.phase === 'flying' && sat.code === input) {
+            catchSatellite(sat);
+        } else {
+            applyMisfire('NO SUCH SHORTHAND');
+            updateHUD();
+            checkTier();
+        }
+        return;
+    }
 
     if (state.rebuilding) {
         showStatus("TOWER REBUILDING — STAND BY", "miss");
@@ -1721,22 +1772,7 @@ function handleCommand(value) {
         if (CONFIG.isHolodeck && state.asteroids.length > 0) {
             fireProjectile(state.asteroids[0]) ? showStatus("TARGETING OLDEST", "hit") : showStatus("TOWER OFFLINE", "miss");
         } else if (state.asteroids.length > 0) {
-            // Misfire: reset kill streak, break perfect streak
-            state.streak = 0;
-            state.perfectStreak = 0;
-            state.perfectMilestonesHit = [];
-            const penalty = Math.max(SCORING.maxPenalty, -50);
-            applyScore(penalty);
-            if (state.shieldHP > 0) {
-                applyDamage(CONFIG.misfireDamage, 'misfire');
-                showStatus(`MISFIRE ${penalty} — NO COMMAND`, "miss");
-            } else {
-                fireBroken();
-                showStatus(`SYSTEM FAILURE ${penalty}`, "miss");
-            }
-            DOM.input.classList.add('error');
-            setTimeout(() => DOM.input.classList.remove('error'), 300);
-            flashScorePenalty();
+            applyMisfire('NO COMMAND');
             updateHUD();
             checkTier();
         }
@@ -1800,25 +1836,7 @@ function handleCommand(value) {
             checkRegen();
         }
     } else {
-        // Misfire: reset kill streak, break perfect streak
-        state.streak = 0;
-        state.perfectStreak = 0;
-        state.perfectMilestonesHit = [];
-
-        const penalty = Math.max(SCORING.maxPenalty, -50);
-        applyScore(penalty);
-
-        if (state.shieldHP > 0) {
-            applyDamage(CONFIG.misfireDamage, 'misfire');
-            showStatus(`MISFIRE ${penalty} — SHIELD ABSORBS`, "miss");
-        } else {
-            fireBroken();
-            showStatus(`SYSTEM FAILURE ${penalty}`, "miss");
-        }
-
-        DOM.input.classList.add('error');
-        setTimeout(() => DOM.input.classList.remove('error'), 300);
-        flashScorePenalty();
+        applyMisfire('SHIELD ABSORBS');
     }
 
     updateHUD();
@@ -2222,8 +2240,293 @@ function checkTier() {
 }
 
 // ============================================
-// AMBULANCE
+// SATELLITE BANNER BONUS
+// A satellite tows an advertising banner across the sky showing the long form
+// of a CAD shorthand. Typing the shorthand ("/PDN") before it exits scores
+// Points × the current catch streak. Letting one leave un-attempted resets
+// that streak to 1x. See SATELLITE in core/config.js, datasets/shorthand.csv.
 // ============================================
+
+// Total length of the towed ribbon for a given phrase
+function bannerLength(text) {
+    return text.length * SATELLITE.charSpacing + SATELLITE.bannerPadding * 2;
+}
+
+function scheduleSatellite(first = false) {
+    const min = first ? SATELLITE.firstSpawnMinMs : SATELLITE.spawnMinMs;
+    const max = first ? SATELLITE.firstSpawnMaxMs : SATELLITE.spawnMaxMs;
+    state.timers.satelliteTimer = -(min + Math.random() * (max - min));
+}
+
+function spawnSatellite() {
+    if (!SATELLITE.enabled || state.satellite || DATA_SHORTHAND.length === 0) return;
+
+    const pick = weightedRandom(DATA_SHORTHAND);
+    const dir = Math.random() < 0.5 ? 1 : -1;      // 1 = flies left→right
+    const tail = SATELLITE.towLineLength + bannerLength(pick.banner);
+    const y = SATELLITE.altitudeMin + Math.random() * (SATELLITE.altitudeMax - SATELLITE.altitudeMin);
+
+    // Ride the rank's speed multiplier, same source the asteroids use, so the
+    // flyby tightens as the game speeds up. Randomised within the rank's band.
+    const tierData = TIERS[state.tier];
+    const rankMult = tierData
+        ? tierData.speedMin + Math.random() * (tierData.speedMax - tierData.speedMin)
+        : state.speedMult;
+    const scaled = 1 + (rankMult - 1) * SATELLITE.speedScaling;
+    const speed = Math.min(SATELLITE.speed * scaled, SATELLITE.maxSpeed);
+
+    // The satellite leads and the banner streams in behind it, so it only has to
+    // start one sprite-width off the entry edge — the tail is still off-screen.
+    const startX = dir === 1
+        ? -SATELLITE.spriteW
+        : COORD_SYSTEM.width + SATELLITE.spriteW;
+
+    state.satellite = {
+        x: startX,
+        y: y,
+        baseY: y,
+        dir: dir,
+        vx: speed * dir,
+        speed: speed,
+        banner: pick.banner,
+        code: pick.code,
+        points: pick.points,
+        tailLength: tail,
+        phase: 'flying',        // flying | caught
+        age: 0,
+        caughtAt: 0,
+        flash: 0
+    };
+
+    AudioManager.play('spawn');
+    showStatus(`SIGNAL INTERCEPT — ${pick.code}`, "bonus");
+}
+
+function maintainSatellite(dt) {
+    if (!SATELLITE.enabled) return;
+
+    // An airborne banner keeps flying through a rebuild — claiming one is a CAD
+    // entry, not a weapon discharge, so it shouldn't be lost to a tower outage.
+    // Timer counts up from a negative value; spawn when it reaches zero. It runs
+    // during flight as well, so the configured interval is measured spawn-to-spawn
+    // rather than clear-to-spawn — otherwise the real-world gap is the interval
+    // PLUS however long the last banner took to cross, which is 16-24 s at Trainee.
+    if (state.timers.satelliteTimer === undefined) scheduleSatellite(true);
+    state.timers.satelliteTimer += dt * 1000;
+
+    if (state.satellite) {
+        updateSatellite(dt);
+        return;                     // slot busy — a due spawn launches as it clears
+    }
+
+    if (state.rebuilding) return;   // ...but don't launch a new one mid-repair
+
+    if (state.timers.satelliteTimer >= 0) {
+        spawnSatellite();
+        scheduleSatellite();
+    }
+}
+
+function updateSatellite(dt) {
+    const sat = state.satellite;
+    sat.age += dt;
+    sat.x += sat.vx * dt;
+
+    // Gentle vertical bob so it never reads as a static sprite
+    sat.y = sat.baseY + Math.sin(sat.age * SATELLITE.driftSpeed) * SATELLITE.driftAmplitude;
+
+    if (sat.phase === 'caught') {
+        // Banner is gone — burning its own way down. The satellite just runs on.
+        sat.flash = Math.max(0, sat.flash - dt * 2.5);
+        if (isSatelliteOffscreen(sat)) state.satellite = null;
+        return;
+    }
+
+    // Left the screen without the player attempting it → streak resets
+    if (isSatelliteOffscreen(sat)) {
+        state.satellite = null;
+        state.satellitesMissed++;
+        if (state.satelliteStreak > 0) {
+            state.satelliteStreak = 0;
+            showStatus(`SIGNAL LOST — ${sat.code} BONUS RESET`, "miss");
+        }
+    }
+}
+
+function isSatelliteOffscreen(sat) {
+    const tail = sat.tailLength + SATELLITE.spriteW;
+    return sat.dir === 1
+        ? sat.x - tail > COORD_SYSTEM.width
+        : sat.x + tail < 0;
+}
+
+// Player typed the banner's shorthand correctly
+function catchSatellite(sat) {
+    sat.phase = 'caught';
+    sat.caughtAt = Date.now();
+    sat.flash = 1;
+    shredBanner(sat);           // banner tears free and starts burning down
+
+    state.satellitesCaught++;
+    state.satelliteStreak = Math.min(state.satelliteStreak + 1, SATELLITE.streakCap);
+
+    const mult = state.satelliteStreak;
+    const total = sat.points * mult;
+
+    AudioManager.play('hit');
+    createExplosion(satelliteBannerCenter(sat).x, sat.y, '#4d94d1', 45);
+    applyScore(total);
+
+    showStatus(`${sat.code} +${total}`, "bonus");
+    if (mult > 1) showStatus(`BONUS CHAIN ${mult}x`, "bonus");
+
+    updateHUD();
+    checkTier();
+    checkCalibration();
+}
+
+// ── Banner burn-up ──────────────────────────────────────────────────────────
+// A claimed banner tears free of the tow line, catches light, and flutters down
+// charring away. It comes apart into one strip per character, so the ribbon
+// breaks along its own lettering rather than into anonymous confetti.
+
+function shredBanner(sat) {
+    const d = sat.dir;
+    const hookX = sat.x - (SATELLITE.spriteW / 2) * d;
+    const chars = sat.banner.toUpperCase().split('');
+
+    chars.forEach((ch, i) => {
+        // Same walk drawSatellite uses, so each strip starts exactly where its
+        // glyph was sitting on the ribbon
+        const idx = d === 1 ? (chars.length - 1 - i) : i;
+        const t = SATELLITE.towLineLength + SATELLITE.bannerPadding
+                + idx * SATELLITE.charSpacing + SATELLITE.charSpacing / 2;
+
+        state.bannerDebris.push({
+            x: hookX - t * d,
+            y: sat.y + bannerWave(sat, t),
+            vx: sat.vx * 0.25 + (Math.random() - 0.5) * 45,
+            vy: -12 - Math.random() * 28,          // kicks up before it falls
+            rot: 0,
+            rotSpeed: (Math.random() - 0.5) * 2 * SATELLITE.debrisSpin,
+            w: SATELLITE.charSpacing,
+            h: SATELLITE.bannerHeight,
+            char: ch === ' ' ? '' : ch,
+            burn: 0,
+            burnRate: 1 / (SATELLITE.debrisBurnMin +
+                       Math.random() * (SATELLITE.debrisBurnMax - SATELLITE.debrisBurnMin)),
+            ignite: (idx / Math.max(1, chars.length)) * SATELLITE.debrisIgniteSpread,
+            sway: Math.random() * Math.PI * 2,
+            // Per-strip "mass" so they string out vertically instead of
+            // dropping as one tidy rank
+            fall: 0.72 + Math.random() * 0.56,
+            age: 0
+        });
+    });
+}
+
+function updateBannerDebris(dt) {
+    for (let i = state.bannerDebris.length - 1; i >= 0; i--) {
+        const f = state.bannerDebris[i];
+        f.age += dt;
+
+        // Drag toward a terminal speed so it drifts down like burning paper
+        f.vy = Math.min(f.vy + SATELLITE.debrisGravity * f.fall * dt,
+                        SATELLITE.debrisTerminal * f.fall);
+        f.vx *= Math.max(0, 1 - SATELLITE.debrisDrag * dt);
+        f.sway += SATELLITE.debrisSwaySpeed * dt;
+
+        f.x += (f.vx + Math.cos(f.sway) * SATELLITE.debrisSwayAmp) * dt;
+        f.y += f.vy * dt;
+        f.rot += f.rotSpeed * dt;
+
+        if (f.age >= f.ignite) {
+            f.burn = Math.min(1, f.burn + f.burnRate * dt);
+            if (f.burn < 0.95 && Math.random() < SATELLITE.debrisFlakeRate * dt) {
+                spawnBannerFlake(f);
+            }
+        }
+
+        if (f.burn >= 1 || f.y > COORD_SYSTEM.height + 40) {
+            state.bannerDebris.splice(i, 1);
+        }
+    }
+}
+
+// Embers and ash flaking off a burning strip. Rides the existing environmental
+// particle system, which steps per frame rather than per second.
+function spawnBannerFlake(f) {
+    const warm = Math.random();
+    state.environmentalParticles.push({
+        x: f.x + (Math.random() - 0.5) * f.w,
+        y: f.y + (Math.random() - 0.5) * f.h * (1 - f.burn),
+        vx: (Math.random() - 0.5) * 1.3,
+        vy: -0.5 - Math.random() * 0.9,          // embers lift on their own heat
+        radius: 1.8 + Math.random() * 2.2,
+        color: warm > 0.62 ? 'rgba(255, 216, 130, 1)'
+             : warm > 0.24 ? 'rgba(255, 134, 42, 1)'
+             : 'rgba(126, 126, 134, 1)',          // the occasional grey ash flake
+        life: 1.0,
+        decay: 0.014 + Math.random() * 0.022,
+        type: 'ember'
+    });
+}
+
+function drawBannerDebris(ctx) {
+    for (const f of state.bannerDebris) {
+        const left = 1 - f.burn;                 // how much strip is still there
+        if (left <= 0.03) continue;
+
+        const h = f.h * left;
+        const lit = f.age >= f.ignite && f.burn > 0.015;
+
+        ctx.save();
+        ctx.translate(f.x, f.y);
+        ctx.rotate(f.rot);
+
+        // Panel darkens from the banner's own navy toward charcoal as it burns
+        const tone = Math.round(10 + 16 * left);
+        ctx.fillStyle = `rgba(${tone}, ${tone + 6}, ${tone + 16}, ${0.55 + 0.4 * left})`;
+        ctx.fillRect(-f.w / 2, -h / 2, f.w, h);
+
+        if (lit) {
+            // The burning front, eating in from the bottom edge
+            const flicker = 0.6 + 0.4 * Math.sin(f.age * 24 + f.sway);
+            ctx.shadowColor = '#ff7a1e';
+            ctx.shadowBlur = 14 * left;
+            ctx.fillStyle = `rgba(255, ${Math.round(90 + 120 * left)}, 40, ${0.9 * flicker})`;
+            ctx.fillRect(-f.w / 2, h / 2 - 2.5, f.w, 2.5);
+            ctx.shadowBlur = 0;
+            // Cooling rim on the intact edges
+            ctx.strokeStyle = `rgba(255, 96, 24, ${0.5 * left})`;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-f.w / 2, -h / 2, f.w, h);
+        } else {
+            // Not yet alight — still reads as banner
+            ctx.strokeStyle = `rgba(77, 148, 209, ${0.8 * left})`;
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(-f.w / 2, -h / 2, f.w, h);
+        }
+
+        // Glyph scorches from white through ember, then goes with the strip
+        if (f.char && left > 0.35) {
+            const g = Math.round(236 * left);
+            ctx.font = 'bold 22px Consolas, "Courier New", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = `rgba(255, ${Math.max(90, g)}, ${Math.round(140 * left)}, ${left})`;
+            ctx.fillText(f.char, 0, 0);
+        }
+
+        ctx.restore();
+    }
+}
+
+// Midpoint of the towed ribbon — used for the catch VFX
+function satelliteBannerCenter(sat) {
+    const offset = SATELLITE.towLineLength + bannerLength(sat.banner) / 2;
+    return { x: sat.x - offset * sat.dir, y: sat.y };
+}
 
 function startAmbulance() {
     // If a previous ambulance is still on screen (departing), remove it
@@ -3871,7 +4174,11 @@ function drawAftermathVFX(ctx) {
 let lastTime = 0;
 
 function gameLoop(ts) {
-    const dt = (ts - lastTime) / 1000;
+    // Clamp the step. requestAnimationFrame is paused while the tab is in the
+    // background, so an unclamped delta on refocus advances the sim by the whole
+    // absence in one frame — asteroids teleport into the impact zone and the
+    // satellite jumps clean off screen. Cap at 100 ms (10 fps floor).
+    const dt = Math.min((ts - lastTime) / 1000, 0.1);
     lastTime = ts;
     update(dt);
     render();
@@ -4007,6 +4314,8 @@ function update(dt) {
     try {
         if (state.ambulance) updateAmbulance(dt);
         maintainAsteroids(dt);  // Pass delta-time for spawn timer
+        maintainSatellite(dt);  // Banner bonus flyby
+        updateBannerDebris(dt); // Claimed banners burning down — outlives the satellite
         updateRicochets(dt);
         updateAftermathVFX(dt);
         updateCanal(dt);
@@ -5242,6 +5551,14 @@ function render() {
         ctx.restore();
     }
 
+    // Satellite banner sits behind the asteroid field so it never masks a target
+    if (state.satellite) {
+        try { drawSatellite(ctx, state.satellite); } catch (e) { console.error('Satellite render failed:', e); }
+    }
+    if (state.bannerDebris.length) {
+        try { drawBannerDebris(ctx); } catch (e) { console.error('Banner debris render failed:', e); }
+    }
+
     [...state.asteroids].forEach(a => {
         try { drawAsteroid(ctx, a); } catch (e) { console.error('Asteroid render failed:', e); }
     });
@@ -5263,6 +5580,216 @@ function render() {
     });
 
     // Restore canvas transform (undo virtual-coordinate scale)
+    ctx.restore();
+}
+
+// ============================================
+// SATELLITE + TOWED BANNER
+// The ribbon is sampled as a chain of points running back from the tow hook.
+// Each point lags the one ahead of it on a travelling sine, which gives the
+// banner the lazy snake of a real beach-plane advert.
+// ============================================
+
+// Vertical offset of the ribbon at `dist` units back from the tow hook
+function bannerWave(sat, dist) {
+    const phase = sat.age * SATELLITE.waveSpeed - dist / SATELLITE.waveLength;
+    // Ripple builds along the ribbon — flat at the hook, loosest at the free end
+    const slack = Math.min(1, dist / 140);
+    return Math.sin(phase) * SATELLITE.waveAmplitude * slack;
+}
+
+function drawSatellite(ctx, sat) {
+    const img = ASSETS['Satellite'];
+    const d = sat.dir;                       // 1 = flying right, -1 = flying left
+    const alpha = sat.phase === 'caught' ? Math.max(0, sat.flash) : 1;
+    const hookX = sat.x - (SATELLITE.spriteW / 2) * d;
+    const bannerLen = bannerLength(sat.banner);
+    const halfH = SATELLITE.bannerHeight / 2;
+
+    ctx.save();
+
+    // ── Tow line ──
+    // Once claimed, the banner has torn free and is burning down on its own
+    // (see drawBannerDebris), so only a severed stub of cable is left trailing.
+    const towLen = sat.phase === 'caught'
+        ? SATELLITE.towLineLength * 0.35
+        : SATELLITE.towLineLength;
+
+    ctx.globalAlpha = alpha * 0.8;
+    ctx.strokeStyle = '#8b939e';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(hookX, sat.y);
+    for (let t = 0; t <= towLen; t += 10) {
+        ctx.lineTo(hookX - t * d, sat.y + bannerWave(sat, t));
+    }
+    ctx.stroke();
+
+    if (sat.phase === 'caught') {
+        drawSatelliteBody(ctx, sat, img, d);
+        ctx.restore();
+        return;
+    }
+
+    // ── Ribbon body ──
+    const start = SATELLITE.towLineLength;
+    const end = start + bannerLen;
+    const step = 12;
+    const topEdge = [];
+    const bottomEdge = [];
+
+    for (let t = start; t <= end; t += step) {
+        const px = hookX - t * d;
+        const py = sat.y + bannerWave(sat, t);
+        topEdge.push({ x: px, y: py - halfH });
+        bottomEdge.push({ x: px, y: py + halfH });
+    }
+    // Guarantee the trailing edge lands exactly on `end`
+    const tailY = sat.y + bannerWave(sat, end);
+    topEdge.push({ x: hookX - end * d, y: tailY - halfH });
+    bottomEdge.push({ x: hookX - end * d, y: tailY + halfH });
+
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    topEdge.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    for (let i = bottomEdge.length - 1; i >= 0; i--) ctx.lineTo(bottomEdge[i].x, bottomEdge[i].y);
+    ctx.closePath();
+
+    // Caught banners flare white before fading out
+    if (sat.phase === 'caught') {
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.35 + 0.5 * sat.flash})`;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 25 * sat.flash;
+    } else {
+        ctx.fillStyle = 'rgba(10, 22, 34, 0.88)';
+        ctx.shadowColor = 'rgba(77, 148, 209, 0.55)';
+        ctx.shadowBlur = 12;
+    }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = sat.phase === 'caught' ? '#ffffff' : '#4d94d1';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // ── Banner text — each glyph sits on the ribbon and tilts with its slope ──
+    ctx.font = 'bold 22px Consolas, "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = sat.phase === 'caught' ? '#0a1622' : '#d8ecff';
+
+    const chars = sat.banner.toUpperCase().split('');
+    chars.forEach((ch, i) => {
+        if (ch === ' ') return;
+        // Text always reads left→right, so walk the ribbon from whichever end
+        // is on the left of the screen for this heading.
+        const idx = d === 1 ? (chars.length - 1 - i) : i;
+        const t = start + SATELLITE.bannerPadding + idx * SATELLITE.charSpacing + SATELLITE.charSpacing / 2;
+        const px = hookX - t * d;
+        const py = sat.y + bannerWave(sat, t);
+        const slope = bannerWave(sat, t + step) - bannerWave(sat, t - step);
+        const angle = Math.atan2(slope, step * 2) * -d;
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle);
+        ctx.fillText(ch, 0, 0);
+        ctx.restore();
+    });
+
+    // ── Satellite sprite (mirrored when flying left) ──
+    ctx.globalAlpha = 1;
+    drawSatelliteBody(ctx, sat, img, d);
+
+    ctx.restore();   // function-level save taken at the top of drawSatellite
+}
+
+// Mirrored for the direction of travel, flipped on the x axis so the dish faces
+// the earth, then tilted. The signal and beacon are drawn inside the same
+// transform so they ride the sprite instead of floating beside it.
+function drawSatelliteBody(ctx, sat, img, d) {
+    ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.translate(sat.x, sat.y);
+    ctx.scale(d, SATELLITE.flipY ? -1 : 1);
+    ctx.rotate(SATELLITE.rotationDeg * Math.PI / 180);
+
+    drawDishSignal(ctx, sat);   // behind the hull, so it reads as leaving the dish
+
+    if (img?.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, -SATELLITE.spriteW / 2, -SATELLITE.spriteH / 2, SATELLITE.spriteW, SATELLITE.spriteH);
+    } else {
+        // Fallback body so the bonus still reads if the SVG is missing
+        ctx.fillStyle = '#b8bec8';
+        ctx.fillRect(-12, -16, 24, 32);
+    }
+
+    drawSatelliteBeacon(ctx, sat);
+
+    ctx.restore();
+}
+
+// Convert a point in the sprite's own SVG viewBox (128x96) into the local draw
+// space used inside drawSatellite's transform, where (0,0) is the sprite centre.
+function spritePoint(sx, sy) {
+    const k = SATELLITE.spriteW / 128;
+    return { x: -SATELLITE.spriteW / 2 + sx * k, y: -SATELLITE.spriteH / 2 + sy * k };
+}
+
+// Expanding arcs leaving the mouth of the dish. Drawn in sprite-local space, so
+// they follow the flip and tilt automatically. The dish points along -y in the
+// source art, hence the -PI/2 centre angle.
+function drawDishSignal(ctx, sat) {
+    const dish = spritePoint(SATELLITE.dishX, SATELLITE.dishY);
+    const fade = sat.phase === 'caught' ? Math.max(0, sat.flash) : 1;
+    if (fade <= 0) return;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (let i = 0; i < SATELLITE.signalArcs; i++) {
+        const phase = ((sat.age / SATELLITE.signalPeriod) + i / SATELLITE.signalArcs) % 1;
+        const radius = SATELLITE.signalInner + phase * SATELLITE.signalReach;
+        // Fade in off the rim, then out as it travels — no hard pop at either end
+        const alpha = Math.min(phase * 4, 1) * (1 - phase) * fade;
+        if (alpha <= 0.01) continue;
+
+        ctx.strokeStyle = `rgba(${SATELLITE.signalColor}, ${alpha.toFixed(3)})`;
+        ctx.lineWidth = 2.2 - phase;
+        ctx.beginPath();
+        ctx.arc(dish.x, dish.y, radius,
+                -Math.PI / 2 - SATELLITE.signalSpread,
+                -Math.PI / 2 + SATELLITE.signalSpread);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+// Hard on/off blink on the hull lamp — a sine pulse read as a steady glow at
+// this size, so it snaps instead.
+function drawSatelliteBeacon(ctx, sat) {
+    const phase = (sat.age % SATELLITE.blinkPeriod) / SATELLITE.blinkPeriod;
+    if (phase > SATELLITE.blinkDuty) return;
+
+    const fade = sat.phase === 'caught' ? Math.max(0, sat.flash) : 1;
+    if (fade <= 0) return;
+
+    // Brightest at the start of the pulse, trailing off over the lit window
+    const strength = fade * (1 - (phase / SATELLITE.blinkDuty) * 0.45);
+    const lamp = spritePoint(SATELLITE.lampX, SATELLITE.lampY);
+
+    ctx.save();
+    ctx.shadowColor = '#ff3b3b';
+    ctx.shadowBlur = 14 * strength;
+    ctx.fillStyle = `rgba(255, 60, 60, ${(0.95 * strength).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(lamp.x, lamp.y, SATELLITE.blinkRadius, 0, Math.PI * 2);
+    ctx.fill();
+    // Hot core
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = `rgba(255, 210, 210, ${(0.9 * strength).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(lamp.x, lamp.y, SATELLITE.blinkRadius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
 }
 
@@ -5505,6 +6032,7 @@ function startGame(holodeck = false) {
         maxTargets: TIERS.trainee ? TIERS.trainee.maxTargets : 6,
         asteroids: [], projectiles: [], brokenProjectiles: [], explosions: [],
         towerDisabled: false, rebuilding: false, ambulance: null, ambulanceDestroyCount: 0,
+        satellite: null, bannerDebris: [], satelliteStreak: 0, satellitesCaught: 0, satellitesMissed: 0,
         beamActive: false, gameOverPending: false,
         backspaces: 0, cleanHits: 0, environmentalParticles: [],
         timers: { spawnTimer: TIERS.trainee ? TIERS.trainee.spawnMin : 5000 }, // Start ready to spawn first asteroid
@@ -5665,6 +6193,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'NANOMEDIC REPAIR PROTOCOL . . . STANDING BY',
         'WELLAND CANAL BRIDGE CONTROLLER . . . OK',
         'FREIGHTER FLEET: 13 SPRITES / 5 CLASSES',
+        'SYS 50176: SHORTHAND LIBRARY . . . STANDING BY',
+        'ORBITAL BANNER RELAY . . . LISTENING',
     ];
     const FONT_SIZE = Math.max(12, Math.min(16, Math.floor(canvas.height / 45)));
     const LINE_HEIGHT = FONT_SIZE + 4;

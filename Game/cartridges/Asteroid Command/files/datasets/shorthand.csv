@@ -1,0 +1,30 @@
+SH,Expanded
+PDN,Police have been notified
+PDE,Police are enroute
+PDNE,Police are not yet enroute
+PDO,Police on scene
+PDC,Police have cancelled the call
+FDN,Fire Department Notified
+HCA,Hot / Cold Weather Advisory - Call Upgraded
+ERP,Emergency Room Patch
+ERN,Emergency Room Notified
+Event,SpecialEvent923
+UCWA,Use Caution When Approaching
+Delay,"Crew Delayed, completing admin duty"
+3PTY,Call received from 3rd/4th party (PD/FD) caller
+ACK,Shift Log Acknowledged
+BHP,Base Hospital Patch
+CCC,Call Cancelled by Caller
+DD,Double Dispatch
+ED,Emergency Disconnect
+GIS,Address Information for GIS
+HOLD,Alert Status - Call being held due to vehicle count
+ORNGE,Air Ambulance Notified
+PDW,Crew to stage and wait for PD
+PS,Paramedic Supervisor Notified
+PSR,Paramedic Supervisor responding to call
+RC,Road Closure
+RHP,Call from Registered Health Professional (Dr's or NH)
+UD,Urgent Disconnect
+RNE,Patient assessed/treated & referred
+DNE,Patient assessed/treated & discharged
