@@ -33,8 +33,18 @@
     /* ----------------------------------------------------------
        STATE
        ---------------------------------------------------------- */
+    /* ALL_CARTRIDGES is the full roster; `cartridges` is what the player can
+       actually see and what selectedIndex indexes into. They are two arrays on
+       purpose: filtering in place would make every index in this file mean
+       something different depending on whether Developer Mode happened to be
+       on, which is the kind of bug that only shows up for one person. */
+    var ALL_CARTRIDGES = [];
     var cartridges = [];
     var selectedIndex = 0;
+
+    /* Laws 0.15/0.16: the Empty Cartridge is Developer Mode content behind
+       Ctrl+Shift+B. No such gate existed anywhere in this hub until now. */
+    var devUnlocked = false;
 
 
     /* ----------------------------------------------------------
@@ -44,7 +54,8 @@
     function init() {
 
         // Load cartridge data
-        cartridges = loadCartridges();
+        ALL_CARTRIDGES = loadCartridges();
+        cartridges = visibleCartridges();
 
         // Render cassettes
         renderCassettes();
@@ -83,6 +94,18 @@
         return [
             {
                 id: "blank-cassette",
+
+                /* 🚨 DEVELOPER-MODE ONLY, AND THIS FLAG IS NOW THE ONLY THING
+                   ENFORCING THAT. It used to sit in the ordinary player-facing
+                   row, fully playable. ⚠️ It ALSO looked unreachable because
+                   the launch path below pointed at a file that does not exist
+                   — that was a coincidence, never a safeguard, and fixing the
+                   path without adding this flag would have quietly handed every
+                   player a Developer-Mode cartridge. Both changed together. */
+                dev: true,
+                /* CORRECTED. Was "cartridges/blank/index.html", which has not
+                   existed since the folder moved up a level. */
+                launch: "blank/index.html",
                 displayName: "Blank Cassette",
                 status: "test",
                 screenshot: "assets/images/coming-soon-placeholder.svg",
@@ -91,6 +114,7 @@
             },
             {
                 id: "asteroid-command",
+                launch: "cartridges/Asteroid Command/files/index.html",
                 displayName: "Asteroid Command",
                 status: "available",
                 screenshot: "cartridges/Asteroid Command/files/assets/Menus/title_screen.png",
@@ -99,13 +123,59 @@
             },
             {
                 id: "pitstop",
+                launch: "cartridges/Pitstop/files/index.html",
                 displayName: "Pitstop",
                 status: "test",
                 screenshot: "assets/images/coming-soon-placeholder.svg",
                 synopsis: "Top-down Niagara Region race: post your unit base-to-base with real PowerLine commands — AP → ENP → BSE. Fast, accurate typing is your throttle. Race the laps, work the pit lane, finish first. (Early test build.)",
                 cassetteImage: "assets/images/Cassette_BLANK.png"
+            },
+            {
+                /* 🚨 PRE-EXISTING BUG, FIXED HERE. The Aquanaut is fully built
+                   — its own 11k-line script.js and design docs — but was never
+                   registered, so it could not be launched from this hub at all.
+                   Nothing was wrong with the game; it simply was not on the
+                   list that the list is built from. */
+                id: "aquanaut",
+                launch: "cartridges/The Aquanaut/files/index.html",
+                displayName: "The Aquanaut",
+                status: "available",
+                screenshot: "assets/images/coming-soon-placeholder.svg",
+                synopsis: "Below the black. Work the dive, read the water, and keep your air honest \u2014 a slower cartridge that punishes rushing.",
+                cassetteImage: "assets/images/Cassette_BLANK.png"
             }
         ];
+    }
+
+
+    /* ----------------------------------------------------------
+       visibleCartridges()
+
+       What the player may see. Developer-Mode entries are held back
+       here, before render \u2014 so they can never be selected, never be
+       started, and never be reached by the keyboard, rather than being
+       hidden with CSS and still sitting in the array.
+       ---------------------------------------------------------- */
+    function visibleCartridges() {
+        return ALL_CARTRIDGES.filter(function (c) {
+            return !c.dev || devUnlocked;
+        });
+    }
+
+
+    /* ----------------------------------------------------------
+       toggleDeveloperMode()
+
+       The Ctrl+Shift+B gate (Laws 0.15/0.16). Rebuilds the visible
+       roster and re-renders, then re-selects from the start so
+       selectedIndex can never point past the end of a list that
+       just got shorter.
+       ---------------------------------------------------------- */
+    function toggleDeveloperMode() {
+        devUnlocked = !devUnlocked;
+        cartridges = visibleCartridges();
+        renderCassettes();
+        selectCartridge(0);
     }
 
 
@@ -231,6 +301,15 @@
         var submenu = document.getElementById('cartridge-submenu');
         if (!submenu.classList.contains('visible')) return;
 
+        /* Ctrl+Shift+B \u2014 Developer Mode (Laws 0.15/0.16). Checked before the
+           switch below, because that switch matches on e.key alone and would
+           otherwise swallow the B as ordinary navigation input. */
+        if (e.ctrlKey && e.shiftKey && (e.key === 'b' || e.key === 'B')) {
+            e.preventDefault();
+            toggleDeveloperMode();
+            return;
+        }
+
         switch (e.key) {
 
             case 'ArrowLeft':
@@ -298,14 +377,16 @@
 
         // After 5 seconds, navigate to the cassette
         setTimeout(function() {
-            if (cartridge.id === 'blank-cassette') {
-                window.location.href = "cartridges/blank/index.html";
-            } else if (cartridge.id === 'asteroid-command') {
-                window.location.href = "cartridges/Asteroid Command/files/index.html";
-            } else if (cartridge.id === 'pitstop') {
-                window.location.href = "cartridges/Pitstop/files/index.html";
+            /* 🚨 ONE SOURCE OF TRUTH. This used to be an if/else chain of
+               hardcoded paths beside the registry, which is how Blank Cassette
+               ended up pointing at a file that no longer existed while the
+               registry looked perfectly fine, and how The Aquanaut could be
+               "added" without becoming launchable. A cartridge now carries its
+               own entry point and this reads it. 🚫 Do not put a path back in
+               here \u2014 a new cartridge is a registry change, not a code change. */
+            if (cartridge.launch) {
+                window.location.href = cartridge.launch;
             }
-            // Future cassettes will be added here
             else {
                 // Fallback for unimplemented cassettes
                 alert(
