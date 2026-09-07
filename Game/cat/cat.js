@@ -34,6 +34,7 @@
   var btnInsert = document.getElementById("btn-insert");
   var btnEject  = document.getElementById("btn-eject");
   var btnExit   = document.getElementById("btn-exit");
+  var swapBar   = document.getElementById("play-disks");
 
   var DISKS = (window.CAT_DISKS || []).slice();
 
@@ -47,6 +48,14 @@
   var typed    = "";
   var busy     = false;   /* true while the load theatre is playing */
   var devUnlocked = false;
+  var running  = null;    /* the disk currently up in the play overlay */
+
+  /* The crack intro, with a no-op stand-in when crackintro.js is not on the
+     page. 🚨 The stand-in is not politeness — `theatre()` chains the LAUNCH
+     off this promise, so a missing file without it would leave every load
+     hanging forever at "run" with no error anywhere. A hub that cannot start
+     a game because a decoration is absent is the worse failure by far. */
+  var CRACK = window.CAT_CRACK || { play: function () { return Promise.resolve("no-intro"); } };
 
   /* A per-disk tint for the sleeve stripe. Cosmetic only — derived from the
      id so a new cartridge gets a colour without anyone choosing one. */
@@ -297,22 +306,33 @@
   }
 
   /* 🚨 RUNNER DISPATCH. The `runner` field decides which system loads a disk.
-     Only "plc" exists today. An "emulator" disk is a cracked disk from the
-     separate Easter-egg spec and needs two things this repo does NOT contain:
-     ROM images, and an emulator core. So this branch answers honestly.
-     🚫 Do NOT "fix" that by routing emulator disks to the plc runner. A disk
+     "plc" is a cartridge and loads its own page. "emulator" is a real C64
+     image out of Game/disks/, scanned at runtime by library.js, and loads in
+     emulator/index.html.
+     🚫 Do NOT "fix" anything here by routing one runner to the other. A disk
      loaded by the wrong runner is exactly the silent-wrong-destination
-     failure the shell routing above it was built to end. */
+     failure the shell routing above it was built to end.
+
+     ⭐ THE HONEST REFUSAL THAT USED TO LIVE HERE MOVED; IT WAS NOT DELETED.
+     It is emulator/emu.js's job now, because only that page can tell the
+     three "no" cases apart — no core installed, an origin that cannot run
+     WebAssembly, and a core that would not execute. One message here would
+     have had to guess between them, and would have been wrong two times in
+     three. 🚫 Do not reinstate a core check in this file; it cannot see any
+     of the three things it would be claiming. */
   function runGame(disk, entry) {
     if (busy) return;
 
     if (disk.runner === "emulator") {
-      write("searching for " + String(entry.filename).toUpperCase());
-      write("?device not present  error", "err");
-      write("no emulator core is installed on this machine, and this disk", "warn");
-      write("carries no rom image. cracked disks need both. nothing was", "warn");
-      write("loaded - a plc cartridge was not substituted.", "warn");
-      ready();
+      if (!disk.files || !disk.files.length) {
+        /* Only reachable if the scanner built a group with no sides in it.
+           Reported as a hub fault rather than blamed on the drive. */
+        write("?file not found  error", "err");
+        write("this disk has no image behind it.", "warn");
+        ready();
+        return;
+      }
+      theatre(disk, entry);
       return;
     }
     if (disk.runner !== "plc") {
@@ -344,7 +364,15 @@
       .then(function () { write("run", "hi"); return wait(340); })
       .then(function () {
         led.classList.remove("on");
-        launch(disk);
+        /* 🚨 THE CRACK INTRO SITS HERE, BETWEEN "RUN" AND THE LAUNCH, AND IT
+           RUNS FOR EVERY DISK. His ruling: "not flag-gated, not a one-time
+           hidden Easter egg". Spec: cat-computer-cracked-disk-easter-egg-spec.md.
+           ⚠️ `busy` stays TRUE across it. The intro swallows keys in the
+           capture phase, but the resolver must not be reachable by any other
+           route either while a load is mid-flight. */
+        return CRACK.play(disk).then(function () { launch(disk); });
+      })
+      .then(function () {
         busy = false;
         line.classList.remove("idle");
       });
@@ -355,9 +383,23 @@
      the disk is still in the drive where the player left it. */
   function launch(disk) {
     playTitle.textContent = disk.displayName;
-    frame.src = encodeURI(disk.launch);
+    running = disk;
+    frame.src = sourceFor(disk);
+    renderSwap(disk);
     play.hidden = false;
     frame.focus();
+  }
+
+  /* Where a disk's iframe actually points. A cartridge names its own entry
+     point; a library disk is handed to the drive with every side listed in
+     order, so the swap control has something to swap TO without the emulator
+     page having to re-scan anything. */
+  function sourceFor(disk) {
+    if (disk.runner !== "emulator") return encodeURI(disk.launch);
+    var q = "?title=" + encodeURIComponent(disk.displayName);
+    disk.files.forEach(function (f) { q += "&d=" + encodeURIComponent(f.url); });
+    if (disk.port === 1) q += "&port=1";
+    return "emulator/index.html" + q;
   }
 
   function exitToHub() {
@@ -365,10 +407,133 @@
        than running on behind a hidden panel — audio included. */
     frame.src = "about:blank";
     play.hidden = true;
+    running = null;
+    renderSwap(null);
     blank();
     write("cartridge stopped.", "dim");
     ready();
     focusTerminal();
+  }
+
+  /* =======================================================================
+     DISK SWAPPING — ruling 4, built now rather than deferred, because Andrew
+     hand-picks the library and multi-disk titles are an ordinary near-term
+     case rather than a someday one.
+
+     The control lives in the PLAY BAR, next to Exit — the hub's own chrome,
+     not the emulator's. The emulator page owns the actual swap; this owns
+     saying which side is in and letting the player pick another.
+     ===================================================================== */
+  function renderSwap(disk) {
+    swapBar.textContent = "";
+    if (!disk || disk.runner !== "emulator" || !disk.files || disk.files.length < 2) {
+      swapBar.hidden = true;
+      return;
+    }
+    swapBar.hidden = false;
+
+    var label = document.createElement("span");
+    label.className = "swap-label";
+    label.textContent = "Disk";
+    swapBar.appendChild(label);
+
+    disk.files.forEach(function (f, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn swap";
+      b.textContent = String(i + 1);
+      b.title = f.name;
+      b.setAttribute("aria-pressed", String(i === (disk.side || 0)));
+      b.addEventListener("click", function () {
+        /* 🚫 The hub does NOT change `disk.side` here. It asks, and waits to
+           be told. Marking the button as done before the emulator confirmed
+           would make the UI claim a swap that may not have happened — the
+           exact class of lie the swapfailed branch below exists to prevent. */
+        frame.contentWindow.postMessage({ type: "cat:swap", index: i }, "*");
+      });
+      swapBar.appendChild(b);
+    });
+  }
+
+  /* Messages from the emulator page. 🚨 Everything here is validated by SHAPE
+     rather than by origin: on file:// the origin is the string "null", so an
+     origin check would reject our own child frame. Nothing below acts on
+     message content beyond a bounded index into a list the hub itself built,
+     and no message can cause a navigation. */
+  window.addEventListener("message", function (e) {
+    var m = e.data;
+    if (!m || typeof m !== "object" || !running) return;
+
+    if (m.type === "cat:exit") { exitToHub(); return; }
+
+    if (m.type === "cat:swapped") {
+      running.side = Number(m.index) || 0;
+      renderSwap(running);
+      var f = running.files[running.side];
+      write("disk " + (running.side + 1) + " in drive: " + (f ? f.name : ""), "dim");
+      return;
+    }
+
+    if (m.type === "cat:swapfailed") {
+      /* ⭐ THE REFUSAL, SURFACED RATHER THAN PAPERED OVER. Reloading the drive
+         with the other image would look like a swap and would actually be a
+         restart — the game loses everything and lands back on its title
+         screen, and the player blames the game. So the restart is offered as
+         a thing the player chooses, in words, and never done automatically. */
+      write("cannot swap disks while this game is running.", "warn");
+      write("(" + String(m.reason || "no disk-control interface") + ")", "dim");
+      write("exit and load disk " + (Number(m.index) + 1) + " to start from that side.", "dim");
+      return;
+    }
+
+    if (m.type === "cat:swapnote") { write(String(m.note), "dim"); return; }
+  });
+
+  /* =======================================================================
+     THE DISK LIBRARY. Scanned once at boot, appended to the roster, and
+     rendered by exactly the same code that renders a cartridge — his ruling
+     was "One mixed box, all equal", so there is no separate shelf, no badge
+     and no section header distinguishing the two.
+     ⭐ THE EMPTY CASE IS THE NORMAL CASE. `Game/disks/*` is gitignored, so a
+     fresh clone has none, and the hub says so as information rather than as
+     a fault.
+     ===================================================================== */
+  function loadLibrary() {
+    if (!window.CAT_LIBRARY) return Promise.resolve(null);
+    return window.CAT_LIBRARY.scan().then(function (res) {
+      if (res.state === "present") {
+        /* Sorted as one list. A cartridge and a disk are peers here. */
+        DISKS = res.disks.concat(DISKS).sort(function (a, b) {
+          /* Favourites first, in the order _favourites.txt lists them; then
+             everything else alphabetically, cartridges and disks together.
+             ⚠️ `favRank` can be 0, so it is tested against undefined and
+             never for truthiness — the first favourite in the file would
+             otherwise sort as though it had none. */
+          var ra = a.favRank, rb = b.favRank;
+          if (ra !== undefined && rb !== undefined) return ra - rb;
+          if (ra !== undefined) return -1;
+          if (rb !== undefined) return 1;
+          return a.displayName.localeCompare(b.displayName, undefined, { sensitivity: "base" });
+        });
+        renderBox();
+        blank();
+        write("disk library: " + res.disks.length +
+              (res.disks.length === 1 ? " disk found." : " disks found."), "dim");
+      } else if (res.state === "empty") {
+        blank();
+        write("disk library: empty. drop .d64 files into game/disks/.", "dim");
+      } else {
+        /* 🚨 NOT phrased as an error, and NOT the same line as "empty". This
+           origin cannot list a directory — the ordinary state on file:// and
+           on a fresh clone served from Pages. Saying "no disks found" here
+           would send someone looking for files that are sitting right there. */
+        blank();
+        write("disk library: not readable from this origin.", "dim");
+        write("(cartridges are unaffected. see game/disks/readme.md)", "dim");
+      }
+      renderLine();
+      return res;
+    });
   }
 
   /* ---- input ------------------------------------------------------------ */
@@ -458,6 +623,22 @@
     ready();
 
     setTimeout(function () { screen.classList.remove("booting"); }, 700);
+
+    /* 🚨 The library scan is fired AFTER the machine says "ready.", never
+       awaited before it. The boot banner is what tells a player the terminal
+       is alive; holding it back behind a directory request would make a slow
+       or absent disk folder look like a hub that failed to start. The disks
+       arrive in the box a moment later, which is exactly what a real machine
+       reading a drive looks like. */
+    loadLibrary().catch(function (err) {
+      /* scan() is documented never to reject, so reaching here means a fault
+         in the hub rather than in the folder. Say which, rather than leaving
+         a silent empty box that looks like an empty library. */
+      blank();
+      write("disk library: scan failed inside the hub.", "err");
+      write("(" + String((err && err.message) || err) + ")", "dim");
+      renderLine();
+    });
   }
 
   boot();
@@ -484,6 +665,26 @@
     playing: function () { return !play.hidden; },
     playingSrc: function () { return play.hidden ? null : frame.getAttribute("src"); },
     exit: exitToHub,
+
+    /* The library and the drive, for the rig. `library()` re-runs the real
+       scan rather than returning a cache, so a test can drop a fixture in and
+       watch the box change. 🚫 Nothing here does anything the UI cannot. */
+    library: loadLibrary,
+    running: function () { return running ? running.id : null; },
+    sides: function () { return running && running.files ? running.files.length : 0; },
+    side: function () { return running ? (running.side || 0) : -1; },
+    swap: function (i) {
+      if (!running || !running.files || !running.files[i]) return false;
+      frame.contentWindow.postMessage({ type: "cat:swap", index: i }, "*");
+      return true;
+    },
+    swapVisible: function () { return !swapBar.hidden; },
+    crack: function () {
+      return window.CAT_CRACK
+        ? { group: window.CAT_CRACK.group, appliesTo: window.CAT_CRACK.appliesTo,
+            greetz: window.CAT_CRACK.greetz, onScreen: !!document.getElementById("crack") }
+        : null;
+    },
     text: function () { return out.textContent; },
     lines: function () {
       return Array.prototype.map.call(out.children, function (c) { return c.textContent; });

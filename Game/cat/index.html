@@ -84,6 +84,10 @@
   <div id="play-bar">
     <span>Running</span>
     <span id="play-title"></span>
+    <!-- Disk swapping for multi-disk C64 titles. Hidden for cartridges and
+         for single-disk titles alike — the hub grows the control only when
+         there is genuinely another side to swap to. Populated by cat.js. -->
+    <span id="play-disks" role="group" aria-label="Disk side" hidden></span>
     <button class="btn" id="btn-exit" type="button">Exit to CAT</button>
   </div>
   <iframe id="play-frame" title="Cartridge" src="about:blank"></iframe>
@@ -95,7 +99,16 @@
   inserted disk.
 </p>
 
+<!-- 🚨 LOAD ORDER IS LOAD-BEARING, and only in one direction: cat.js reads
+     window.CAT_DISKS, window.CAT_LIBRARY and window.CAT_CRACK at IIFE time,
+     so all three must be defined before it. The first three are independent
+     of each other and may be reordered freely; cat.js must stay last.
+     ⭐ A missing crackintro.js or library.js is a SUPPORTED state — cat.js
+     stands in for both rather than failing — but a cat.js that runs first
+     would silently lose the disk library with nothing on screen to say so. -->
 <script src="disks.js"></script>
+<script src="library.js"></script>
+<script src="crackintro.js"></script>
 <script src="cat.js"></script>
 </body>
 </html>

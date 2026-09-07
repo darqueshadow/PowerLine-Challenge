@@ -115,17 +115,32 @@ window.CAT_DISKS = [
 ];
 
 /* ===========================================================================
-   ⚠️ NO DISK USES runner:"emulator" TODAY, AND THAT IS NOT AN OVERSIGHT.
+   🔄 `runner:"emulator"` IS LIVE AS OF 2026-09-07, AND NO ENTRY FOR ONE
+   BELONGS IN THIS FILE.
 
-   Cracked disks are a separate spec (cat-computer-cracked-disk-easter-egg-
-   spec.md) and depend on two things that DO NOT EXIST in this repo: local ROM
-   images, and an emulator core. There are zero .d64/.prg/.crt/.t64/.tap files
-   anywhere here, and no emulator is bundled or installed.
+   This note used to say no disk used that runner, that cracked disks needed
+   ROM images and a core that did not exist here, and that cat.js answered
+   honestly instead of pretending. All three have been overtaken:
 
-   cat.js still dispatches on `runner` rather than assuming "plc", so the
-   branch is real and the shape is right — but it answers honestly that the
-   emulator is not installed rather than pretending. 🚫 Do not "fix" that by
-   quietly routing emulator disks to the plc runner: a cracked disk loaded by
-   the wrong runner is the silent-wrong-destination failure this whole hub was
-   built to stop, one layer down.
+     - The core is EmulatorJS + the vice_x64sc libretro core, self-hosted in
+       `emulator/data/`. Gitignored — this repo is PUBLIC and publishes to
+       Pages. `emulator/README.md` has the one command that installs it.
+     - Disk images live in `../disks/`, also gitignored, for the same reason.
+       ⭐ AN EMPTY LIBRARY IS THE NORMAL STATE, not a fault: a fresh clone has
+       none, and the hub says so as information.
+     - `library.js` SCANS that folder at runtime and builds emulator disks in
+       exactly the shape above. There is no manifest and no count written down
+       anywhere — his ruling. So a C64 disk never appears in this file.
+
+   ⭐ WHAT THIS FILE IS NOW: the CARTRIDGE roster only. A hand-written entry
+   here is a PLC cartridge; anything with `runner:"emulator"` arrived from the
+   scanner. 🚫 Do not hand-add an emulator entry to "test something" — it
+   would be the one disk in the box that a real folder scan cannot explain,
+   and the next person to compare the two would be chasing a ghost.
+
+   🚫 The original warning still stands and is not softened by any of this:
+   never route a disk to the wrong runner. The box renders both kinds
+   identically, on purpose ("one mixed box, all equal"), which is exactly why
+   the `runner` field — not the look of the row — has to stay the only thing
+   that decides where a disk loads.
    ========================================================================= */

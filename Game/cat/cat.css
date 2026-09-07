@@ -381,8 +381,154 @@ html, body {
   clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
+/* ---- disk swapping (multi-disk C64 titles) ------------------------------ */
+/* ⚠️ `#play-bar .btn` above carries `margin-left:auto` to push Exit to the
+   far right. That selector also matches these, and an auto margin on the
+   FIRST swap button would eat all the free space and shove the whole group
+   right. Cancelled here rather than by narrowing the rule above, so Exit
+   keeps its behaviour unchanged whether or not the swap group is present. */
+#play-disks {
+  display: flex;
+  align-items: center;
+  gap: .5ch;
+}
+#play-disks[hidden] { display: none !important; }
+#play-disks .swap-label { color: var(--cat-ink-dim); margin-right: .3ch; }
+#play-bar #play-disks .btn {
+  margin-left: 0;
+  min-width: 2.6em;
+  padding: .3em .55em;
+}
+#play-bar #play-disks .btn[aria-pressed="true"] {
+  background: linear-gradient(#fff6d0, #e0cf88);
+  box-shadow: 0 0 0 #9a9068, inset 0 1px 0 #fffdf2;
+  transform: translateY(2px);
+}
+
+/* ---- the crack intro ----------------------------------------------------
+   Spec: cat-computer-cracked-disk-easter-egg-spec.md, in this folder.
+   Plays before EVERY disk load — his ruling, not flag-gated. Sits above the
+   play overlay (z-index 40) because it covers the frame while the drive is
+   already being handed the disk behind it. */
+.crack {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #05040c;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  cursor: pointer;
+  transition: opacity .26s linear;
+}
+.crack.out { opacity: 0; }
+
+/* Raster bars. Two counter-rolling gradients rather than a stack of elements
+   — same look, one paint, and nothing to keep in sync. */
+.crack-bars {
+  position: absolute;
+  inset: -20% 0;
+  background:
+    repeating-linear-gradient(180deg,
+      rgba(255, 90, 120, .16) 0 6px, transparent 6px 26px),
+    repeating-linear-gradient(180deg,
+      rgba(120, 220, 255, .13) 0 4px, transparent 4px 34px);
+  animation: crack-roll 2.4s linear infinite;
+}
+@keyframes crack-roll {
+  from { transform: translateY(0); }
+  to   { transform: translateY(34px); }
+}
+
+.crack-stage {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .35em;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.crack-title {
+  display: flex;
+  gap: .02em;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: clamp(22px, 7.5vw, 74px);
+  letter-spacing: .04em;
+  line-height: 1;
+}
+.crack-title span {
+  display: inline-block;
+  white-space: pre;
+  /* The chrome-letter look: a warm gradient clipped to the glyph, with a hard
+     offset shadow under it. Hard edges, no soft glow — house rule for the
+     1980s layer. */
+  background: linear-gradient(#fff6d0 18%, #ffb03a 42%, #b4451f 58%, #ffd479 82%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, .55);
+  animation: crack-wob 1.1s ease-in-out infinite alternate;
+}
+@keyframes crack-wob {
+  from { transform: translateY(-.06em); }
+  to   { transform: translateY(.06em); }
+}
+
+.crack-sub {
+  font-size: clamp(9px, 1.6vw, 14px);
+  letter-spacing: .55em;
+  text-indent: .55em;
+  color: var(--cat-ink-dim);
+}
+.crack-game {
+  font-size: clamp(13px, 3vw, 30px);
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--cat-hi);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .6);
+}
+
+.crack-scroll {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: .5em 0;
+  background: #0d0a1e;
+  border-top: 2px solid #2a2340;
+  font-size: clamp(11px, 2vw, 17px);
+  letter-spacing: .12em;
+  color: var(--cat-warn);
+}
+/* 🚨 THE LEAD-IN AND THE DURATION ARE BOTH TUNED TO `HOLD_MS`, not chosen for
+   feel. This was `padding-left:100%` at 13s, and a screenshot showed the
+   consequence: the greetz had not reached the glass before the intro ended,
+   so the mascot names — the whole point of the ruling — were never once seen.
+   The element contained them, which is exactly why every assertion passed.
+   ⭐ Budget: ~0.35s of lead, leaving ~2.2s of readable travel inside a 2600ms
+   hold. 🚫 If you change either number here or HOLD_MS in crackintro.js, TAKE
+   A SCREENSHOT — this cannot be checked by reading the text. */
+.crack-scroll-text {
+  display: inline-block;
+  padding-left: 12%;
+  animation: crack-scroll 7s linear infinite;
+}
+@keyframes crack-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #caret { animation: none; }
   #screen.booting::after { animation-duration: 1ms; }
   .sleeve { transition: none; }
+  /* 🚫 The intro is SHORTENED, never removed — crackintro.js drops its hold
+     to a beat. The spec wants the splash seen; hiding it entirely would
+     change what the machine does, not merely how much it moves. */
+  .crack-bars,
+  .crack-title span,
+  .crack-scroll-text { animation: none; }
+  .crack { transition: none; }
 }

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAT — disk drive</title>
+<link rel="icon" href="data:,">
+<!--
+  ===========================================================================
+  THE EMULATOR ROOM. Loaded into the CAT hub's play overlay, never navigated
+  to directly by a player. The hub hands it a title and one or more disk URLs
+  on the query string and gets out of the way.
+
+  🚫 NOTHING IS FETCHED FROM A NETWORK. The core lives in ./data/ on this
+  machine. That folder is gitignored — it is a ~10-15MB third-party GPL build
+  artefact, and this repo is public. `./data/README.md` (and the one beside
+  this file) says how to put it there.
+
+  🚨 THIS PAGE CANNOT WORK FROM file://. WebAssembly instantiation goes
+  through fetch, and fetch refuses the file: scheme outright — the failure is
+  a bare "Failed to fetch" that says nothing about the cause. That is why the
+  Fang Rock shell needs `protocol.handle()` (arcade-origin.patch.md, filed to
+  the shell track). boot() below detects the scheme and says so in plain words
+  rather than letting the core fail with a shrug.
+  ===========================================================================
+-->
+<style>
+  :root {
+    --ink:     #b9b0f5;
+    --ink-dim: #8479d8;
+    --hi:      #f2f0ff;
+    --warn:    #ffd479;
+    --err:     #ff8a7a;
+    --mono: "Consolas", "DejaVu Sans Mono", "Courier New", ui-monospace, monospace;
+  }
+  html, body {
+    height: 100%; margin: 0;
+    background: #000; color: var(--ink);
+    font: 15px/1.6 var(--mono);
+    overflow: hidden;
+  }
+  #game { width: 100%; height: 100%; }
+
+  /* The honest-failure surface. Every state this page can be in that is not
+     "a game is running" renders here, in words, naming the cause. */
+  #say {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    padding: 2rem; text-align: left;
+    background: #05040c;
+  }
+  #say[hidden] { display: none !important; }
+  #say .box { max-width: 62ch; }
+  #say h1 {
+    font-size: 1rem; font-weight: 700; letter-spacing: .08em;
+    color: var(--warn); margin: 0 0 1rem; text-transform: uppercase;
+  }
+  #say p { margin: .55rem 0; }
+  #say .dim { color: var(--ink-dim); }
+  #say .err { color: var(--err); }
+  #say code {
+    color: var(--hi); background: #17123a;
+    padding: .1em .4em; border-radius: 3px;
+    display: inline-block; word-break: break-all;
+  }
+  #say pre {
+    color: var(--hi); background: #17123a;
+    padding: .7em .9em; border-radius: 5px;
+    overflow-x: auto; margin: .8rem 0;
+  }
+</style>
+</head>
+<body>
+
+<div id="game"></div>
+
+<div id="say" hidden><div class="box" id="say-body"></div></div>
+
+<script src="emu.js"></script>
+</body>
+</html>
