@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tommodore CAT — PowerLine Challenge</title>
+<link rel="icon" href="data:,"><!-- empty icon: no favicon ships, this suppresses the default 404 -->
+<!--
+  ===========================================================================
+  THE CAT COMPUTER TERMINAL — the Arcade landing screen inside Fang Rock.
+
+  Reached by `fangrock://arcade`. The shell reads the room off that url and
+  resolves it from its own config.json; this page is that room's destination.
+  🚨 Before 2026-09-06 the shell threw the room away at both entry points, so
+  every fangrock:// link opened Morbius. If you are reading this because the
+  Arcade opened Morbius again, the fault is in Morbius/shell/main.js, not here
+  — and `node verify-routing.cjs` in that folder will say so in one run.
+
+  🚫 NOTHING IS FETCHED. No webfont, no CDN, no remote asset. This runs off a
+  file:// origin inside an Electron shell on a CAD workstation; anything
+  remote is a thing that breaks when the network is not there.
+
+  🚫 No literal Commodore branding. The machine is a TOMMODORE CAT — the look
+  is the tribute, the trademarked words are not reproduced (core spec, Boot
+  Screen Text).
+  ===========================================================================
+-->
+<link rel="stylesheet" href="cat.css">
+</head>
+<body>
+
+<div id="cat">
+
+  <!-- ---- the screen ---------------------------------------------------- -->
+  <div id="screen-shell">
+    <div id="screen" class="booting">
+      <!-- The terminal transcript. aria-live so a screen reader hears the
+           machine answer, which is the whole interface here. -->
+      <div id="out" role="log" aria-live="polite" aria-label="CAT terminal"></div>
+
+      <!-- The live input line. Blind typing is a first-class surface: a player
+           can type LOAD"PITSTOP",8,1 without ever opening the directory. -->
+      <div id="line">
+        <span aria-hidden="true">&gt;&nbsp;</span><span id="typed"></span><span id="caret" aria-hidden="true"></span>
+      </div>
+
+      <div id="crt" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- ---- the deck ------------------------------------------------------ -->
+  <div id="deck">
+
+    <div id="deck-top">
+      <!-- 🚨 SINGLE EXECUTION PATH. These buttons do not have their own
+           behaviour: each one submits the exact command string a player could
+           have typed, through the same resolver. A button and its typed
+           equivalent must always produce the identical on-screen sequence. -->
+      <button class="btn" id="btn-load" type="button" data-cmd='LOAD"*",8,1'>Load&nbsp;"*",8,1</button>
+      <button class="btn" id="btn-list" type="button" data-cmd='LOAD"$",8'>List&nbsp;&mdash;&nbsp;Load&nbsp;"$",8</button>
+      <button class="btn" id="btn-insert" type="button" disabled>Insert&nbsp;Disk</button>
+      <button class="btn" id="btn-eject" type="button" disabled>Eject</button>
+
+      <div id="drive">
+        <span id="drive-led" aria-hidden="true"></span>
+        <span>Drive&nbsp;8</span>
+        <span id="drive-slot" role="status">&ndash;&ndash;&nbsp;empty&nbsp;&ndash;&ndash;</span>
+      </div>
+    </div>
+
+    <div id="box-label">Disk Box &mdash; click a disk, then Insert</div>
+    <div id="box" role="group" aria-label="Disk box"></div>
+
+  </div>
+</div>
+
+<!-- ---- a cartridge running in-hub --------------------------------------
+     An overlay, deliberately NOT a navigation. The hub stays alive
+     underneath, so returning is a hide rather than a reload: no second boot
+     sequence, no flash, and the disk is still in the drive where it was
+     left. The iframe's src is emptied on exit so the cartridge is really
+     stopped rather than left running behind a hidden panel. -->
+<div id="play" hidden>
+  <div id="play-bar">
+    <span>Running</span>
+    <span id="play-title"></span>
+    <button class="btn" id="btn-exit" type="button">Exit to CAT</button>
+  </div>
+  <iframe id="play-frame" title="Cartridge" src="about:blank"></iframe>
+</div>
+
+<p class="sr-only" id="help-text">
+  The CAT terminal accepts typed commands. Type LOAD, quote, a program name,
+  quote, comma 8 and press Enter to load it, or LOAD "$",8 to list the
+  inserted disk.
+</p>
+
+<script src="disks.js"></script>
+<script src="cat.js"></script>
+</body>
+</html>

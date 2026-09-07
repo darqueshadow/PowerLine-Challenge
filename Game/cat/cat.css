@@ -1,0 +1,388 @@
+/* ===========================================================================
+   THE CAT COMPUTER TERMINAL — presentation.
+
+   Everything here is drawn in CSS. 🚫 No webfont, no CDN, no remote asset of
+   any kind: this hub runs inside the Fang Rock shell off a file:// origin on
+   a CAD workstation, and a tool that needs the internet is a tool that breaks
+   when the internet is not there. The typeface is a system monospace stack,
+   the disks are boxes and gradients, and the CRT is a repeating-gradient — so
+   there is nothing to fetch and nothing to 404.
+
+   🚫 No literal Commodore branding anywhere, deliberately (core spec, Boot
+   Screen Text). The machine is a TOMMODORE CAT: the look is the tribute, the
+   trademarked words are not reproduced.
+   ========================================================================= */
+
+:root {
+  /* A C64-adjacent palette, deliberately shifted so it reads as a tribute
+     rather than a pixel-copy of someone else's hardware. */
+  --cat-border:  #7a6ec8;
+  --cat-screen:  #3f329b;
+  --cat-ink:     #b9b0f5;
+  --cat-ink-dim: #8479d8;
+  --cat-hi:      #f2f0ff;
+  --cat-warn:    #ffd479;
+  --cat-err:     #ff8a7a;
+  --cat-case:    #d8cfa8;   /* the machine's beige shell */
+  --cat-case-sh: #b3a980;
+  --cat-slot:    #2a2340;
+
+  --mono: "Consolas", "DejaVu Sans Mono", "Courier New", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #12101c;
+  color: var(--cat-ink);
+  font-family: var(--mono);
+  overflow: hidden;
+}
+
+/* ---- the machine -------------------------------------------------------- */
+#cat {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  padding: clamp(8px, 1.6vh, 22px);
+  gap: clamp(8px, 1.4vh, 18px);
+}
+
+/* ---- the screen --------------------------------------------------------- */
+#screen-shell {
+  position: relative;
+  background: var(--cat-border);
+  border-radius: 10px;
+  padding: clamp(10px, 1.8vh, 26px);
+  min-height: 0;
+  box-shadow: inset 0 0 0 2px #8f84d6, 0 10px 30px rgba(0, 0, 0, .55);
+}
+
+#screen {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--cat-screen);
+  border-radius: 4px;
+  padding: clamp(8px, 1.4vh, 18px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The CRT: scanlines and a soft vignette, both pure CSS so there is no image
+   to load and nothing to go missing. aria-hidden — a screen reader should get
+   the terminal text, not a description of the glass. */
+#crt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, .16) 0px,
+      rgba(0, 0, 0, .16) 1px,
+      rgba(255, 255, 255, .02) 1px,
+      rgba(255, 255, 255, .02) 3px
+    ),
+    radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, .45) 100%);
+}
+
+/* The warm-up flash on boot. One animation, then it is done. */
+#screen.booting::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--cat-hi);
+  animation: warmup 620ms ease-out forwards;
+  pointer-events: none;
+}
+@keyframes warmup {
+  0%   { opacity: .9; transform: scaleY(.004); }
+  35%  { opacity: .7; transform: scaleY(1); }
+  100% { opacity: 0;  transform: scaleY(1); }
+}
+
+#out {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: clamp(12px, 1.55vh, 17px);
+  line-height: 1.42;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cat-ink-dim) transparent;
+}
+#out::-webkit-scrollbar { width: 8px; }
+#out::-webkit-scrollbar-thumb { background: var(--cat-ink-dim); border-radius: 4px; }
+
+#out .hi   { color: var(--cat-hi); }
+#out .dim  { color: var(--cat-ink-dim); }
+#out .warn { color: var(--cat-warn); }
+#out .err  { color: var(--cat-err); }
+
+/* The live input line. A real caret, and the whole screen is click-to-focus,
+   because blind typing is a first-class input surface here (core spec,
+   Interaction Model 4) — not a fallback for people who cannot find a button. */
+#line {
+  display: flex;
+  align-items: baseline;
+  gap: .1ch;
+  font-size: clamp(12px, 1.55vh, 17px);
+  line-height: 1.42;
+  text-transform: uppercase;
+  color: var(--cat-hi);
+}
+#typed { white-space: pre-wrap; word-break: break-all; }
+#caret {
+  display: inline-block;
+  width: 1ch;
+  height: 1.15em;
+  background: var(--cat-hi);
+  transform: translateY(.18em);
+  animation: blink 1.06s steps(1, end) infinite;
+}
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+#line.idle #caret { animation: none; opacity: .35; }
+
+/* ---- the deck: drive status, buttons, disk box -------------------------- */
+#deck {
+  background: linear-gradient(#e6ddb6, var(--cat-case) 38%, var(--cat-case-sh));
+  border-radius: 10px;
+  padding: clamp(8px, 1.3vh, 16px) clamp(10px, 1.6vw, 20px);
+  color: #3a3320;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45), inset 0 1px 0 #fff8dd;
+  display: grid;
+  gap: clamp(7px, 1.1vh, 14px);
+}
+
+#deck-top {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.2vw, 16px);
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: var(--mono);
+  font-size: clamp(11px, 1.35vh, 14px);
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #2b2517;
+  background: linear-gradient(#fdf6dd, #ded3aa);
+  border: 1px solid #9a9068;
+  border-radius: 5px;
+  padding: .55em 1em;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #9a9068, inset 0 1px 0 #fffdf2;
+}
+.btn:hover:not(:disabled) { background: linear-gradient(#fffbe9, #e9dfb8); }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 #9a9068, inset 0 1px 0 #fffdf2; }
+.btn:disabled { opacity: .42; cursor: not-allowed; box-shadow: 0 2px 0 #9a9068; }
+.btn:focus-visible { outline: 2px solid #3f329b; outline-offset: 2px; }
+
+/* The drive. Its slot is the honest answer to "what is loaded right now" —
+   the one piece of state the player has to be able to read at a glance. */
+#drive {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: .7ch;
+  font-size: clamp(10px, 1.25vh, 13px);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #4a4229;
+}
+#drive-slot {
+  min-width: 17ch;
+  padding: .45em .8em;
+  border-radius: 4px;
+  background: var(--cat-slot);
+  color: var(--cat-ink);
+  border: 1px solid #17122a;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, .6);
+  text-align: center;
+}
+#drive-slot.loaded { color: var(--cat-hi); }
+#drive-led {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #6b3a34; box-shadow: inset 0 0 3px #000;
+}
+#drive-led.on { background: #ff5f48; box-shadow: 0 0 8px #ff5f48; }
+
+/* ---- the disk box ------------------------------------------------------- */
+#box-label {
+  font-size: clamp(9px, 1.15vh, 12px);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #6a5f3c;
+}
+
+#box {
+  display: flex;
+  gap: clamp(8px, 1.1vw, 16px);
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+/* A disk in its sleeve — a physical object per game, not a row in a list.
+   Drawn entirely in CSS: sleeve, label, hub ring, shutter. */
+.disk {
+  flex: 0 0 auto;
+  width: clamp(108px, 12vw, 148px);
+  /* 🚨 A <button> CENTRES ITS CONTENT VERTICALLY BY DEFAULT, and the flex row
+     stretches every disk to the height of the tallest. Pitstop carries a TEST
+     badge, so it is the tallest — and the other two, being shorter, were then
+     centred inside that height and sat 8px LOWER than it. Measured: sleeve.top
+     657 vs Pitstop's 649. Nothing asserted it and the row still looked wrong,
+     which is the whole argument for looking at the picture. These three
+     declarations pin the content to the top so a badge on one disk can never
+     move the others. */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--mono);
+  text-align: center;
+  color: #3a3320;
+}
+.disk:focus-visible { outline: 2px solid #3f329b; outline-offset: 3px; border-radius: 6px; }
+
+.sleeve {
+  position: relative;
+  aspect-ratio: 1 / 1.02;
+  border-radius: 3px 3px 2px 2px;
+  background: linear-gradient(160deg, #33323a, #17161c 62%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .13);
+  transition: transform .16s ease, box-shadow .16s ease;
+  overflow: hidden;
+}
+.disk:hover .sleeve { transform: translateY(-4px); }
+.disk[aria-pressed="true"] .sleeve {
+  transform: translateY(-9px);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, .55), 0 0 0 2px var(--cat-warn);
+}
+
+/* the shutter across the top of the disk */
+.sleeve::before {
+  content: "";
+  position: absolute;
+  top: 7%; left: 27%; width: 46%; height: 13%;
+  background: linear-gradient(#c9ccd6, #8d919e);
+  border-radius: 2px;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .35);
+}
+/* the hub ring showing through */
+.sleeve::after {
+  content: "";
+  position: absolute;
+  bottom: 12%; left: 50%; transform: translateX(-50%);
+  width: 26%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, #0d0c11 38%, #46454f 40%, #23222a 70%);
+}
+
+/* the paper label the player actually reads */
+.sleeve .label {
+  position: absolute;
+  top: 26%; left: 9%; width: 82%;
+  background: linear-gradient(#fdfbef, #e6e1cc);
+  border-radius: 2px;
+  padding: .42em .3em;
+  font-size: clamp(8px, .95vh, 10.5px);
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: #23201a;
+  line-height: 1.2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+}
+.sleeve .stripe {
+  display: block;
+  height: 3px;
+  margin: .32em .5em 0;
+  border-radius: 2px;
+  background: var(--tint, #7a6ec8);
+}
+
+.disk .name {
+  display: block;
+  margin-top: .5em;
+  font-size: clamp(9px, 1.1vh, 12px);
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.disk .badge {
+  display: inline-block;
+  margin-top: .25em;
+  font-size: clamp(8px, .92vh, 10px);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  padding: .1em .5em;
+  border-radius: 3px;
+  background: #6a5f3c;
+  color: #fdf8e4;
+}
+.disk .badge.dev { background: #7a3f6d; }
+
+/* ---- the game, running in-hub ------------------------------------------- */
+/* An overlay, NOT a navigation. The hub stays alive underneath, so coming back
+   is a hide rather than a reload — no flash, no boot sequence a second time,
+   and the disk stays in the drive exactly where the player left it. */
+#play {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #000;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+#play[hidden] { display: none !important; }
+
+#play-bar {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  padding: .45em .8em;
+  background: linear-gradient(#2a2340, #1b1730);
+  border-bottom: 1px solid #0d0b16;
+  font-size: clamp(10px, 1.25vh, 13px);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--cat-ink);
+}
+#play-title { color: var(--cat-hi); font-weight: 700; }
+#play-bar .btn { margin-left: auto; padding: .4em .9em; }
+
+#play-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+
+/* ---- accessibility ------------------------------------------------------ */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #caret { animation: none; }
+  #screen.booting::after { animation-duration: 1ms; }
+  .sleeve { transition: none; }
+}
