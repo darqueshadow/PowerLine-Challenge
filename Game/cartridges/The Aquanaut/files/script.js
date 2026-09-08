@@ -1209,19 +1209,6 @@ function init() {
             return;
         }
 
-        // ── DEBUG (temporary — REMOVE before commit): fire a creature's kill cam to eyeball
-        // the §0.9 cinematics. In a dive, click off the command box, then press
-        // 7 / 8 / 9 / 0 = Great White / Moray / Box Jelly / Pufferfish. ──
-        if (state.running && !state.killCamActive && !state.abyssDeathActive
-            && !(e.target && e.target.tagName === 'INPUT') && '7890'.includes(e.key)) {
-            const dbg = { '7': 'greatWhite', '8': 'moray', '9': 'boxJellyfish', '0': 'pufferfish' }[e.key];
-            if (dbg && typeof CREATURE_TYPES !== 'undefined' && CREATURE_TYPES[dbg]) {
-                e.preventDefault();
-                triggerKillCam({ creatureType: CREATURE_TYPES[dbg] });
-                return;
-            }
-        }
-
         // ── Title screen: ANY key advances to the main menu (mirrors the
         // click-anywhere dismiss). Excludes modifier combos / bare modifier keys
         // so Ctrl+Shift+D / Ctrl+Shift+H and the F-key hotkeys above still reach
@@ -1719,10 +1706,20 @@ function getCreatureType() {
         return currentTierIdx >= ct.minTier;
     });
 
-    // Holodeck: filter by active creature types
+    // Holodeck: the TARGET SPAWN FILTER is authoritative.
+    // This used to read `if (filtered.length > 0) available = filtered;` — an empty match
+    // silently DISCARDED the filter, so a set that matched nothing spawned EVERYTHING. That
+    // was reachable from the menu: pufferfish is TOC-only (minTier 99) and never appears in
+    // `available`, so switching the other three off left {pufferfish}, which matches nothing
+    // here — every creature then spawned while the panel showed only PUFFERFISH as ON.
+    // An empty match now fails CLOSED: return null and let the caller skip this spawn.
+    // NOTE: this deliberately does NOT decide whether TOC-only creatures belong in the
+    // filter list at all — that question is still open. The menu guard in buildGodModeMenu
+    // keeps the {pufferfish-only} state unreachable in the first place.
     if (CONFIG.isHolodeck && godMode.activeCreatureTypes && godMode.activeCreatureTypes.size > 0) {
         const filtered = available.filter(([key]) => godMode.activeCreatureTypes.has(key));
-        if (filtered.length > 0) available = filtered;
+        if (!filtered.length) return null;
+        available = filtered;
     }
 
     const totalWeight = available.reduce((sum, [k, ct]) => sum + ct.spawnWeight, 0);
@@ -1731,7 +1728,10 @@ function getCreatureType() {
         roll -= ct.spawnWeight;
         if (roll <= 0) return { key, ...ct };
     }
-    // Fallback to first available creature type
+    // Weighted roll fell through — every entry had spawnWeight 0, or `available` was empty
+    // because the TIER filter matched nothing (state.tier not a key of TIERS => idx -1).
+    // The tier case keeps its original whole-roster safety net so normal play still spawns.
+    // The holodeck case can no longer land here: it returned null above.
     const fallbackKey = Object.keys(CREATURE_TYPES)[0];
     return { key: fallbackKey, ...CREATURE_TYPES[fallbackKey] };
 }
@@ -2154,6 +2154,9 @@ function spawnCreature() {
     const sy = laneSpawnY(lane.row);
 
     const creatureType = getCreatureType();
+    // Holodeck TARGET SPAWN FILTER matched nothing — skip this spawn rather than
+    // ignoring the filter (see getCreatureType).
+    if (!creatureType) return;
 
     const tierData = TIERS[state.tier];
     const effectiveSpeed = tierData
@@ -2316,6 +2319,7 @@ function spawnTocCreature() {
     const creatureType = CREATURE_TYPES.pufferfish
         ? { key: 'pufferfish', ...CREATURE_TYPES.pufferfish }
         : getCreatureType();
+    if (!creatureType) return;
 
     // Free-roam the bottom zone (Q4). TOC units are no longer locked to a fixed
     // back-and-forth lane — they wander to random destinations across the FULL width
@@ -8260,6 +8264,16 @@ function buildGodModeMenu() {
     creatureHeader.appendChild(creatureHeaderText);
     colChallenges.appendChild(creatureHeader);
 
+    // A creature whose minTier sits past the end of the tier ladder (pufferfish, minTier 99)
+    // is listed in this panel but can never be rolled by getCreatureType(). It must not count
+    // toward the "you can't switch the last one off" guard below — otherwise the panel can be
+    // driven to {pufferfish}, which matches nothing and now stops all cross-screen spawns.
+    // Seeding is deliberately UNCHANGED: pufferfish stays listed and stays ON by default, so
+    // this does not answer whether TOC-only creatures belong in the filter at all.
+    // (Mirrors the tier eligibility test in getCreatureType — keep the two in step.)
+    const tierCount = Object.keys(TIERS).length;
+    const isSpawnable = (k) => !!CREATURE_TYPES[k] && CREATURE_TYPES[k].minTier < tierCount;
+
     if (!godMode.activeCreatureTypes) {
         godMode.activeCreatureTypes = new Set(Object.keys(CREATURE_TYPES));
     }
@@ -8286,7 +8300,12 @@ function buildGodModeMenu() {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (godMode.activeCreatureTypes.has(key)) {
-                if (godMode.activeCreatureTypes.size > 1) {
+                // Refuse only if this click would empty the set outright, or remove the last
+                // entry that can actually spawn. Turning pufferfish off is always allowed.
+                const spawnableOn = Array.from(godMode.activeCreatureTypes).filter(isSpawnable).length;
+                const lastAny = godMode.activeCreatureTypes.size <= 1;
+                const lastSpawnable = isSpawnable(key) && spawnableOn <= 1;
+                if (!lastAny && !lastSpawnable) {
                     godMode.activeCreatureTypes.delete(key);
                 }
             } else {
@@ -9842,7 +9861,10 @@ const SONAR = {
 // ============================================
 
 const SCREEN_SWEEP = {
-    periodSec: 3.0,        // seconds per full rotation
+    // NOTE: no periodSec here on purpose. The rotation period is PER-RANK and comes from
+    // game_difficulty_progression.csv, column "Sweep Period (sec)" (6/5/4/3), reached via
+    // getSweepConfig(). A hardcoded 3.0 used to live here and silently disagreed with the
+    // CSV — DEFAULT_SWEEP_CFG.periodSec is now the single fallback.
     morphFadeMs: 350       // sprite fade-in duration after detection
 };
 
@@ -9850,7 +9872,7 @@ const SCREEN_SWEEP = {
 // Falls back to a level-1-ish default so the file:// embedded-data path still works.
 const DEFAULT_SWEEP_CFG = {
     periodSec: 6, unitAppear: 0, unitFade: 180, unitClear: 270,
-    chalWipeEnd: 180, chalFade: 270, chalClear: 330, chalMode: 'cumulative', chalFrac: 1
+    chalWipeEnd: 180, chalFade: 180, chalClear: 270, chalMode: 'cumulative', chalFrac: 1
 };
 function getSweepConfig() {
     const t = (typeof TIERS !== 'undefined' && state && state.tier) ? TIERS[state.tier] : null;
@@ -9953,7 +9975,7 @@ function updateGameSonarSweep(dt) {
 
     // Advance angle (degrees CW from 12 o'clock)
     state._lastSweepAngle = state.sweepAngle || 0;
-    const degPerSec = 360 / (getSweepConfig().periodSec || SCREEN_SWEEP.periodSec);
+    const degPerSec = 360 / (getSweepConfig().periodSec || DEFAULT_SWEEP_CFG.periodSec);
     state.sweepAngle = (state._lastSweepAngle + degPerSec * dt) % 360;
 
     // Position arm at aquanaut origin (in % of wrapper) and apply rotation.
@@ -9994,6 +10016,10 @@ function updateGameSonarSweep(dt) {
 // ============================================
 // CHALLENGE BUBBLE — Rectangular command box (tethered above creature)
 // ============================================
+
+// Spawn-in duration, shared by the JS scale pop and the setTimeout that clears the CSS
+// class. Keep in step with the 0.6s on `.sonar-spawn-in` in style.css.
+const SPAWN_ANIM_MS = 600;
 
 // ── Sonar Overlay DOM Management ──
 // DOM-based circular challenge display with radar sweep highlight
@@ -10121,12 +10147,18 @@ function ensureSonarOverlay(creature) {
     creature._chalThirdRevealTimes = [0, 0, 0];
     creature._chalSweepPos = 0;     // Challenge box sweep position (0-1)
     creature._spawnAnimDone = false;
+    creature._spawnAnimStart = performance.now();
 
     // Remove spawn animation class after it completes
+    // ⚠️ SPAWN_ANIM_MS must stay in step with the 0.6s on `.sonar-spawn-in` in style.css.
+    // The CSS half of the spawn-in animates opacity + brightness ONLY; the scale pop is
+    // driven from JS (see the transform write in updateSonarOverlay) because a CSS
+    // animation on `transform` outranks the inline style attribute and would pin the
+    // overlay to the playfield origin for the whole 600ms.
     setTimeout(() => {
         el.classList.remove('sonar-spawn-in');
         creature._spawnAnimDone = true;
-    }, 600);
+    }, SPAWN_ANIM_MS);
 
     return el;
 }
@@ -10458,7 +10490,20 @@ function drawBubble(ctx, creature) {
     const gapScreen = (spriteH * 0.20 + 2) * scaleY;
     el.style.setProperty('--creature-gap', `${gapScreen.toFixed(1)}px`);
 
-    el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`;
+    // Spawn pop: ramp scale 0 -> 1 over SPAWN_ANIM_MS, appended to THIS transform rather
+    // than animated in CSS. Order matters — `scale()` sits to the RIGHT of the translates,
+    // so it shrinks the overlay about its own centre and leaves that centre exactly where
+    // the translate put it. (Measured: at scale 0.5 the rect centre is unchanged.)
+    // The individual `scale:` property is NOT interchangeable here: per CSS Transforms L2
+    // it composes to the LEFT of `transform`, multiplying the translate — measured at
+    // scale 0.5 it drags the overlay to the midpoint between the origin and its true spot.
+    let popScale = 1;
+    if (!creature._spawnAnimDone && creature._spawnAnimStart != null) {
+        const p = Math.min(1, (performance.now() - creature._spawnAnimStart) / SPAWN_ANIM_MS);
+        popScale = 1 - Math.pow(1 - p, 3);   // ease-out, matching the CSS cubic-bezier curve
+    }
+    el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`
+        + (popScale < 1 ? ` scale(${popScale.toFixed(4)})` : '');
 
     // Keep the bubble on-screen: when a target is near the BOTTOM, parking the bubble below
     // it would run off the screen edge (the issue with low TOC units). Flip the stack so the
@@ -10648,7 +10693,13 @@ function drawBubble(ctx, creature) {
     // — which springs to the creature centre — so we read the real DOM rect). TOC units carry
     // no challenge box (their readout is the status panel, gated by the unit sweep), so skip
     // them. Detection + reveal both consume this, one frame behind — imperceptible.
-    if (!creature.isToc && creature._sonarTextEl) {
+    // ⚠️ Skipped while the spawn pop is running. The overlay is a vertical flex column, so
+    // scaling it about its centre pulls the challenge text toward that centre — the rect is
+    // real but transient, and caching it would hand the sweep arm a bearing that drifts for
+    // 600ms. Leaving _chalAnchor unset is an already-handled state: the reveal falls back to
+    // getCreatureSweepPhase(creature), exactly as it does on the first frame, and
+    // _chalSweepDetected simply cannot latch until the anchor exists.
+    if (!creature.isToc && creature._sonarTextEl && creature._spawnAnimDone) {
         const tr = creature._sonarTextEl.getBoundingClientRect();
         if (tr.width > 0 && rect.width > 0) {
             const cxV = ((tr.left + tr.width / 2) - rect.left) / rect.width * COORD_SYSTEM.width;
@@ -11471,10 +11522,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    function startTitleScreenMusic() {
-        AudioManager.playMusic(MUSIC.titleScreen, { loop: true, volume: MUSIC.volume });
-    }
-
     const BOOT_LINES = [
         '*** KIRBY MORGAN DIVE COMPUTER v3.7 ***',
         '',
@@ -11607,7 +11654,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function revealTitleScreen() {
-        startTitleScreenMusic();
+        // No title music by design — the sonar ping (initTitleSonarPing, line ~434) is the
+        // only title-screen audio. MUSIC.titleScreen pointed at an MP3 that does not exist.
         bootOverlay.style.transition = 'opacity 0.3s ease-out';
         bootOverlay.style.opacity = '0';
         setTimeout(() => {

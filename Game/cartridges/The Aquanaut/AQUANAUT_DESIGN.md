@@ -29,6 +29,29 @@ A second build lives in `v2/` (entry: `v2/The Aquanaut v2.html`). v1 is untouche
 sonar-blip→sprite morph per tier), `files/core/config.js` → `TIERS[].coneAngle` (headlamp cone)
 and `CREATURE_TYPES[].minTier` / `spawnWeight` (which targets appear per depth).
 
+> **Correction (2026-09-08) — every pointer in the paragraph above is now stale.** Left
+> in place as the dated record; this note is the current map.
+>
+> - **`SONAR.revealZones` never existed.** `git log -S revealZones` finds it in this
+>   document and nowhere else, in every commit. The name meant was almost certainly
+>   `SONAR.ruleOfThirds` (`script.js:9834`).
+> - **Per-tier sweep reveal is now `getSweepConfig()`** (`script.js:9877`), reading the
+>   `TIERS[].sweep` block that `core/data.js` builds from the `Sweep Period (sec)` /
+>   `Unit Appear|Fade|Clear (deg)` / `Chal Wipe End|Fade|Clear (deg)` / `Chal Reveal Mode` /
+>   `Chal Reveal Frac` columns of `Game_mechanics/game_difficulty_progression.csv`.
+> - **`SONAR.ruleOfThirds` and `SONAR.morphThreshold` are both dead.** `morphThreshold` has
+>   no readers at all; `ruleOfThirds` is read only by `getSonarThirdsTiming()`
+>   (`script.js:10201`), which is itself never called. Note `morphThreshold`'s successor is
+>   *not* `getSweepConfig` — the blip→sprite morph is now the flat, non-per-tier
+>   `SCREEN_SWEEP.morphFadeMs` (`script.js:9863`, consumed at `script.js:5362`).
+> - **`TIERS[].coneAngle` is live but does not live in `config.js`.** The `config.js` TIERS
+>   literal is deleted and rebuilt on every load; depth/cone come from `TIER_DEPTH_BY_KEY`
+>   in `core/data.js` (keyed by tier slug, not row index) and from the embedded fallback
+>   literal in `loadFallbackData()`.
+> - **`CREATURE_TYPES[].minTier` depth-gating is shelved** (`config.js:315`) — every
+>   cross-screen creature sits at `minTier: 0`, so only `spawnWeight` varies the roster.
+>   (`minTier: 99` on the pufferfish is the TOC-only exclusion, not depth gating.)
+
 **v2 second pass (same day):**
 - **Unit number rides ON the creature** — canvas tag with soft spring physics: a dart leaves it
   trailing at the tail, then it floats back on top. The circular sonar probe still carries the ID
@@ -1066,6 +1089,55 @@ sprite size, bubble wrap width, `highlightKeywords` (keyword words drawn amber i
   correctly excluded; 0 statements fail their own keywords). **Not yet eyeballed in-browser** —
   the rise/bob/bubble look + the 18–38 s cadence are first-pass and CSV/config-tunable (preview
   rAF is paused here; see [[headless-playtest-pump]] to drive it, or open it in a real tab).
+
+## Menu SFX — loop-artifact fix before the first listen (2026-08-12)
+
+The scene engine was built (2026-06-30) but **never actually heard** — the first attempt ran
+on `file://`, which blocks `fetch`, so it was silent. Before re-running it over http, the
+stems were measured. All 12 resolve 200 over the dev server, but the **beds did not survive
+inspection**: four of the five looping layers are exactly **1.00 s** and end in a fade or
+decay to silence, so `src.loop = true` snapped from silence back to a full-level attack —
+an audible **tick once per second** under both menu screens.
+
+Measured seam levels (worst level at the join vs the bed's own median):
+
+| stem | length | as a hard loop | after |
+|---|---|---|---|
+| `Deep_ocean_ambient` | 30.0 s | −5.9 dB | −4.6 dB (crossfade) — a swell every 29.5 s, inaudible |
+| `Electrical_hum` | 1.00 s | **silence (−∞)** | **+0.4 dB (crossfade)** — seamless |
+| `Bubbling_pressure` | 1.00 s (0.25 s of content) | **silence (−∞)** | now a trigger |
+| `Deep_underwater_hull` | 1.00 s (0.6 s of content) | **silence (−∞)** | now a trigger |
+
+Two fixes, because the stems fall into two classes:
+
+- **Real beds that just aren't loop-ready** → new **`xfade`** option on a loop entry.
+  `_sceneLoopSeamless` overlaps successive copies by `xfade` seconds with an **equal-power**
+  (sin/cos) crossfade instead of `src.loop`, scheduling each copy on the **audio clock**
+  (`start(when)`) with a look-ahead `setTimeout` that only queues ahead — so the seam never
+  rides on timer jitter. `_stemUsableEnd` scans the decoded buffer for the last window still
+  carrying content (≥ ½ the median RMS) and loops to **that**, so a baked-in fade-out is
+  never played; without this the crossfade still dipped 9 dB because it was fading across
+  dead air. Applied to `Deep_ocean_ambient` (0.50 s) and `Electrical_hum` (0.12 s).
+- **One-shots masquerading as beds** → moved to `triggers`. `Bubbling_pressure` is 0.25 s of
+  content in a 1 s file and `Deep_underwater_hull` 0.6 s; no crossfade rescues them (still
+  −9.3 dB / −18.7 dB at the join) because the material genuinely stops. As irregular events
+  they give the intended flooding-and-damage rattle without a metronome. New **`leadIn`** on
+  a trigger sets the delay before its *first* fire only, so Game Over opens on the rattle
+  instead of waiting out a random gap. Specced volumes/pans are unchanged.
+
+Game Over is now one bed + three triggers: ocean 0.60 (xfade 0.50) · bubbling 0.80 @ 4–9 s
+(leadIn 0.2 s) · hull 0.70 @ 8–15 s (leadIn 1.2 s) · impact 1.00 @ 5–12 s → chained buzz 0.50.
+
+**Verified** headlessly against the real WAVs under a Web Audio shim: seam levels above; scene
+lifecycle (bed start, `_sceneSources` bounded at 6 handles across a 5-minute sit while 402
+copies come and go, `stopScene` teardown, no scheduling after stop, re-entry idempotent); and
+the Game Over cadence over 120 s (bubbling first@0.2 s avg 6.9 s · hull first@1.2 s avg 11.2 s
+· impact avg 8.1 s · every impact chains a buzz).
+
+**Still unheard.** ⚠️ Known, deliberately left alone: `playLaunchSequence` loops the same
+1 s `Bubbling_pressure` for its 3 s fade-out, so the water entry gets ~3 blurps — under a
+0.90 steam hit and fading, so it may well pass. Judge it by ear. Other likely knobs: the
+game-over impacts hit `_sceneBus` untrimmed at 1.00 and may be hot.
 
 > 📌 **Preserved game design.** These notes used to live in `CLAUDE.md`. They were
 > moved here on 2026-06-03 so that, while the project is on hold, opening this folder

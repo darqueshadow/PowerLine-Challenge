@@ -242,6 +242,24 @@ let canvasScaleX = 1, canvasScaleY = 1;
 // ============================================
 // DEPTH TIERS (4 dive career ranks)
 // ============================================
+// ⚠️ NOT AUTHORITATIVE — DO NOT TUNE HERE. This literal is a bootstrap shape only.
+// Every key below is DELETED on every load: data.js clears TIERS
+// (`Object.keys(TIERS).forEach(k => delete TIERS[k])`) and rebuilds it, either from
+// datasets/Game_mechanics/game_difficulty_progression.csv over http, or — on file:// and
+// on any fetch/parse failure — from the embedded fallback literal in loadFallbackData().
+// Edits made here are silently discarded. The CSVs are the cartridge's source of truth
+// (see CLAUDE.md). This is documentation of the shape, not data.
+//
+// To retune a rank:
+//   • speed / spawn / maxTargets / baseHit / impactPenalty / creatureRadius / sonarSpeed /
+//     every TOC * / every Sweep * column  ->  edit game_difficulty_progression.csv, AND
+//     mirror it into the embedded fallback literal in core/data.js.
+//   • depth / depthMin / depthMax / coneAngle  ->  NOT CSV columns. They live in
+//     TIER_DEPTH_BY_KEY in core/data.js (keyed by tier slug), and are repeated in that
+//     same fallback literal. Edit those, not this file.
+//
+// Kept only so TIERS exists before the async loadGameData() resolves. It is already a
+// stale subset of the live shape (no toc*/sweep keys).
 
 const TIERS = {
     bubblehopper:         { label: "BUBBLE HOPPER",         min: 0,     max: 5000,     speedMin: 0.5, speedMax: 0.8, spawnMin: 7500, spawnMax: 10500, maxTargets: 3,  baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55 },

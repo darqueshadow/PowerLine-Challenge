@@ -28,10 +28,17 @@
     <canvas id="boot-canvas"></canvas>
 
     <script>
-        // ── Total blank slate on every launch ──
-        // Wipe ALL persisted state — high scores, progression, prefs, caches —
-        // so a relaunch never carries anything from a previous session.
-        try { localStorage.clear(); } catch (e) {}
+        // ── Per-launch reset (localStorage deliberately NOT touched) ──
+        // This used to run `localStorage.clear()` on every launch. Two reasons it is gone:
+        //   1. It destroyed the Dive Log. saveScore()/getTop10() persist to 'aquanaut-scores',
+        //      so a leaderboard could never survive a relaunch through this entry point —
+        //      while the hub / dev-server entry (files/index.html) never wiped, so the two
+        //      launchers disagreed about whether progression was a real feature.
+        //   2. localStorage is scoped to the ORIGIN, not the cartridge. The whole arcade
+        //      shares one origin, so this also wiped 'asteroid-command-scores',
+        //      'ac_difficulty', 'cmdRefPos' and the emulator's 'ejs-settings' — clicking
+        //      The Aquanaut silently deleted another cartridge's save.
+        // sessionStorage is still cleared: it is per-tab and holds nothing durable.
         try { sessionStorage.clear(); } catch (e) {}
         if ('caches' in window) {
             caches.keys().then(names => names.forEach(name => caches.delete(name)));

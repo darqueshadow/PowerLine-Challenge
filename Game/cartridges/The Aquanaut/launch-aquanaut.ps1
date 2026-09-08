@@ -82,14 +82,17 @@ try {
 
     # --- 4. Launch fullscreen and block until the game window closes ---
     if ($browser) {
-        # Total blank slate: wipe the browser profile so nothing (cache, cookies,
-        # localStorage) survives from a previous session. The game also clears its
-        # own storage on load; this is the belt-and-suspenders at the browser level.
-        if (Test-Path $ProfileDir) { Remove-Item $ProfileDir -Recurse -Force -ErrorAction SilentlyContinue }
+        # NOTE: the profile is deliberately NOT wiped here any more. It used to be deleted
+        # on every launch as a "total blank slate", which meant the Dive Log leaderboard
+        # ('aquanaut-scores' in localStorage) could never survive a relaunch through this
+        # kiosk launcher. Persisting the profile is what makes progression a real feature,
+        # and it matches the hub / dev-server entry point, which never wiped anything.
+        # The in-page localStorage.clear() in The Aquanaut.html was removed for the same
+        # reason — keep the two in step if either is ever revisited.
 
         Write-Host "Launching The Aquanaut (fullscreen). Quit with the in-game menu or Alt+F4."
         $browserArgs = @(
-            "--user-data-dir=$ProfileDir",   # fresh, dedicated profile (wiped above) so the launch is a clean slate
+            "--user-data-dir=$ProfileDir",   # dedicated, PERSISTENT profile — carries the Dive Log between launches
             '--no-first-run',
             '--no-default-browser-check',
             '--kiosk',

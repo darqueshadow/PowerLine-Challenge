@@ -347,22 +347,47 @@ async function loadGameData() {
         };
     });
 
-    // Assign depth & cone data (not in CSV — derived from tier index)
-    const DEPTH_MAP = [
-        { depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55 },
-        { depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42 },
-        { depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30 },
-        { depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20 }
-    ];
-    tierKeys.forEach((k, i) => {
-        const dm = DEPTH_MAP[i] || DEPTH_MAP[DEPTH_MAP.length - 1];
+    // Depth & sonar cone are NOT in the CSV — they are keyed by TIER SLUG, the same key
+    // TIERS is built under above (name.toLowerCase().replace(/[^a-z0-9]/g, '')).
+    // Row POSITION is deliberately not used: a reordered CSV, or a 5th rank, must never
+    // silently inherit another rank's depth band / cone.
+    // ⚠️ Adding a 5th rank needs MORE than an entry here — these are all still keyed to the
+    // four shipped slugs: CONFIG.TOC_ACTIVATION_ZONES, DESCENT.anchors and ZONE_CARDS in
+    // core/config.js, and the `order` array in getDepthRatio() in script.js.
+    const TIER_DEPTH_BY_KEY = {
+        bubblehopper:       { depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55 },
+        rigwalker:          { depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42 },
+        crushdepthoperator: { depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30 },
+        theaquanaut:        { depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20 }
+    };
+    // An unknown rank gets the SURFACE band + the base cone, loudly — never the abyss.
+    // Surface is the least-punishing default; a 20° cone on an unconfigured rank would read
+    // as a rendering bug rather than a config gap.
+    const UNKNOWN_TIER_DEPTH = { depth: 30, depthMin: 0, depthMax: 100, coneAngle: CONFIG.baseConeAngle };
+    tierKeys.forEach(k => {
+        const dm = TIER_DEPTH_BY_KEY[k];
+        if (!dm) {
+            console.warn('[TIERS] No depth/cone entry for tier key "' + k + '" (Rank / Tier "' +
+                (TIERS[k] && TIERS[k].label) + '" in Game_mechanics/game_difficulty_progression.csv). ' +
+                'Falling back to the SURFACE band (0-100 m, ' + CONFIG.baseConeAngle +
+                ' deg cone). Add "' + k + '" to TIER_DEPTH_BY_KEY in core/data.js.');
+            Object.assign(TIERS[k], UNKNOWN_TIER_DEPTH);
+            return;
+        }
         Object.assign(TIERS[k], dm);
     });
 
-    // Set max for each tier = next tier's min - 1
-    for (let i = 0; i < tierKeys.length - 1; i++) {
-        TIERS[tierKeys[i]].max = TIERS[tierKeys[i + 1]].min - 1;
-    }
+    // Score ceiling: each tier ends one point below the NEXT-HIGHEST threshold. "Next" is
+    // derived from the Points Required values themselves (sorted ascending), not from CSV
+    // row order — a tier learns its successor from the data, so a reordered file still
+    // produces the same ladder. The highest tier keeps max = Infinity.
+    // slice() because sort() mutates and tierKeys must stay in CSV-row order for the
+    // Object.keys(TIERS)-indexing consumers elsewhere (creature minTier, visibility, etc).
+    const byThreshold = tierKeys.slice().sort((a, b) => TIERS[a].min - TIERS[b].min);
+    byThreshold.forEach((k, i) => {
+        const nextKey = byThreshold[i + 1];
+        TIERS[k].max = nextKey ? TIERS[nextKey].min - 1 : Infinity;
+    });
 
     // --- Scoring → update SCORING multipliers from scoring.csv v2 ---
     // scoring.csv carries two banner rows ("SCORING SYSTEM" + a blank line) BEFORE its
@@ -453,16 +478,118 @@ async function loadGameData() {
         return;
     }
 
-    // --- Call-Lifecycle package (non-fatal, additive data layer) ---
-    // Loads the normalized progression CSVs. Missing files degrade gracefully
-    // (LIFECYCLE_READY stays false; the live spawn path is unaffected). See the
-    // "CALL-LIFECYCLE DATA LAYER" section at the bottom of this file.
+    // --- Call-Lifecycle package ---
+    // The first two files are STRUCTURAL, not additive: without them LIFECYCLE_READY is
+    // false, generateStageSpec() returns null, getTargetSpecs() returns null, and the first
+    // spawn throws on `specs.unitID`. (The old comment here claimed "the live spawn path is
+    // unaffected" — that has not been true since the spawn path moved onto this package.)
+    // They get the same protection as the core CSVs, but a TARGETED one: re-parse from the
+    // embedded package alone. Calling loadFallbackData() here would also revert TIERS —
+    // losing every rank's `sweep` block to DEFAULT_SWEEP_CFG — plus the incident-number pool
+    // and the hospital table, silently retuning a game whose core CSVs loaded fine.
+    // The check is on the post-parse verdict, so it covers a failed FETCH and a structurally
+    // broken PARSE (renamed header, blank stage_id column, header-only file) alike.
     const lifecycleFiles = ['Gameplay/call_lifecycle.csv', 'Gameplay/lifecycle_transitions.csv', 'Gameplay/status_colors.csv', 'Gameplay/ctas.csv', 'Gameplay/priority.csv', 'Gameplay/TOC.csv', 'Gameplay/toc_colors.csv', 'Gameplay/challenge_phrases.csv', 'Gameplay/toc_chevrons.csv'];
     const lifecycleResults = await Promise.all(lifecycleFiles.map(f =>
         fetch(base + f, { cache: 'no-store' }).then(r => r.ok ? r.text() : null).catch(() => null)
     ));
     parseLifecyclePackage(lifecycleResults);
+
+    if (!LIFECYCLE_READY || !LIFECYCLE_STAGES[LIFECYCLE_START]) {
+        // LIFECYCLE_START ('NTF') is checked too: rollSpawnStage() returns it when the walk
+        // never advances, and buildStageSpec() returns null on an unknown stage — so a
+        // package that parsed but lost the start node is still a null-spec source.
+        console.warn('Lifecycle CSVs missing or unparseable — repairing from the embedded package. '
+            + 'Core CSV data (TIERS/scoring/units) is left as loaded.');
+        parseLifecyclePackage(LIFECYCLE_FALLBACK_CSVS);
+    }
 }
+
+// ============================================
+// EMBEDDED CALL-LIFECYCLE PACKAGE
+// ============================================
+// Mirrors all NINE files/datasets/Gameplay/{call_lifecycle,lifecycle_transitions,
+// status_colors,ctas,priority,TOC,toc_colors,challenge_phrases,toc_chevrons}.csv EXACTLY,
+// in the same order as `lifecycleFiles` in loadGameData() — keep in sync when those change.
+// (The old comment here said seven; the array has always carried nine.)
+//
+// Two consumers:
+//   1. loadFallbackData() — the whole-dataset file:// fallback, where fetch() is blocked.
+//   2. loadGameData() — a targeted repair when the two STRUCTURAL lifecycle CSVs fetch or
+//      parse to nothing over http. That path must NOT call loadFallbackData(), which would
+//      also revert TIERS (losing each rank's `sweep` block), the incident-number pool and
+//      the hospital table to embedded copies, silently retuning a game whose core CSVs
+//      loaded perfectly well.
+const LIFECYCLE_FALLBACK_CSVS = [
+        `stage_id,stage_name,command_template,unit_color,challenge_color,variable,stage_type
+NTF,Notified,NTF {units} {inc_numbers},AVA,Black / Sonar Green (#000000 / #00FF41),inc_numbers,normal
+ENR,En Route,ENR {units},NTF,Black / Sonar Green (#000000 / #00FF41),none,normal
+ARR,Arrived,ARR {units},ENR,Black / Sonar Green (#000000 / #00FF41),none,normal
+PTC,Patient Contact,PTC {units},ARR,Black / Sonar Green (#000000 / #00FF41),none,normal
+DPT,Depart,"DPT {units} {hospitals},,,,{ctas},{ctas}",ARR,{ctas},hospital+ctas,normal
+ARD,Arrived Destination,ARD {units},DPT,Black / Sonar Green (#000000 / #00FF41),none,normal
+TOC,Transfer of Care,TOC {units},ARD,gated,none,gated
+AVA,Available,AVA {units} CC,ARD,,none,terminal`,
+        `from_stage,to_stage,weight
+NTF,ENR,1
+ENR,ARR,1
+ARR,DPT,0.95
+ARR,PTC,0.05
+PTC,DPT,1
+DPT,ARD,1
+ARD,TOC,1
+TOC,AVA,1`,
+        `status,color
+AVA,Lime Green / Cream (#2DB704 / #FFFFCE)
+NTF,Blue / White (#0000FF / #FFFFFF)
+ENR,Blue / White (#0000FF / #FFFFFF)
+ARR,Blue / Light Blue (#0000FF / #ADD8E6)
+PTC,Blue / Light Blue (#0000FF / #ADD8E6)
+DPT,Blue / Pink (#0000FF / #D86DCD)
+ARD,Blue / Orange (#0000FF / #FF8000)
+TOC,Muted Plum / Dark Purple (#995B87 / #3E2778)`,
+        `ctas,color
+1,Purple / White (#7030A0 / #FFFFFF)
+2,Coral Orange / Black (#FF854A / #000000)
+3,Yellow / Black (#FFFF00 / #000000)
+4,Cyan / Black (#00FFFF / #000000)
+5,Neon Green / Black (#41FA45 / #000000)`,
+        `priority,color
+1,Purple / White (#7030A0 / #FFFFFF)
+2H,Red / White (#FF0000 / #FFFFFF)
+2,Coral Orange / Black (#FF854A / #000000)
+3,Yellow / Black (#FFFF00 / #000000)
+4,Cyan / Black (#00FFFF / #000000)
+5,Neon Green / Black (#41FA45 / #000000)`,
+        `from_color,to_color
+White,Pink
+White,Blue
+Pink,Blue`,
+        `state,color,hittable
+White,White / Black (#FFFFFF / #000000),FALSE
+Pink,Pink / Black (#F1B0B7 / #000000),FALSE
+Blue,Blue / Black (#2E90FF / #000000),TRUE`,
+        `stage_id,voice,phrase
+NTF,cad,New Call {inc_numbers}
+ENR,radio,En Route
+ENR,radio,Switching to OPS2
+ENR,radio,On OPS2
+ENR,radio,Mobile to call
+ARR,radio,Arriving Scene
+ARR,radio,Switching to OPS3
+ARR,radio,On OPS3
+ARR,radio,On scene
+PTC,radio,Patient Contact
+DPT,radio,Departing {hospitals}
+ARD,radio,Arriving {hospitals}
+TOC,cad,TOC Completed`,
+        `seq,key,label
+1,ARR_DEST,Arrived at Destination
+2,ARR_ED,Arrived in ED
+3,TRIAGED,Triaged
+4,TOC_REQ,TOC Requested
+5,TOC_CMP,TOC Completed`
+];
 
 // ============================================
 // FALLBACK DATA (used when CSV fetch fails, e.g. file:// protocol)
@@ -533,6 +660,23 @@ function loadFallbackData() {
         theaquanaut:          { label: "THE AQUANAUT",            min: 50001, max: Infinity, speedMin: 2.2, speedMax: 3.5, spawnMin: 1200, spawnMax: 2700, maxTargets: 4,  baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20, tocSpawnMin: 2500, tocSpawnMax: 4000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 5000, tocDespawnMax: 8000, bedAssignChance: 0.60, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 }
     });
 
+    // Sweep-reveal block — the one thing these literals were missing, and the whole reason
+    // a file:// game played differently from a served one: without `sweep`, getSweepConfig()
+    // fell through to DEFAULT_SWEEP_CFG for EVERY rank, so the sonar never sped up as you
+    // descended (flat 6s instead of 6/5/4/3) and the challenge text lingered ~60° longer.
+    // Mirrors the sweep columns of Game_mechanics/game_difficulty_progression.csv: only the
+    // period ramps per rank; the reveal angles are identical on all four rows, so they are
+    // written once. Keep in sync if those columns change.
+    const FALLBACK_SWEEP_PERIODS = { bubblehopper: 6, rigwalker: 5, crushdepthoperator: 4, theaquanaut: 3 };
+    Object.keys(TIERS).forEach(k => {
+        TIERS[k].sweep = {
+            periodSec: FALLBACK_SWEEP_PERIODS[k] !== undefined ? FALLBACK_SWEEP_PERIODS[k] : 6,
+            unitAppear: 0, unitFade: 180, unitClear: 270,
+            chalWipeEnd: 180, chalFade: 180, chalClear: 270,
+            chalMode: 'cumulative', chalFrac: 1
+        };
+    });
+
     // Fallback PowerLine prompts
     const plFallback = [
         ['NTF', 'NTF <Unit List> Incident, [Comment]', 'Notify. Assign a Unit to an incident'],
@@ -549,81 +693,8 @@ function loadFallbackData() {
     parsePowerlinePrompts(fakeCsv);
 
     // --- Embedded Call-Lifecycle package (file:// fallback) ---
-    // Mirrors files/datasets/{call_lifecycle,lifecycle_transitions,status_colors,
-    // ctas,priority,TOC,toc_colors}.csv EXACTLY — keep in sync when those change.
-    // Lets generateCall() + validateLifecyclePackage() work on a plain double-click
-    // (file://), where fetch() is blocked. (http via Start Dev Server.bat uses the
-    // real CSVs.) See the CALL-LIFECYCLE DATA LAYER section below.
-    parseLifecyclePackage([
-        `stage_id,stage_name,command_template,unit_color,challenge_color,variable,stage_type
-NTF,Notified,NTF {units} {inc_numbers},AVA,Black / Sonar Green (#000000 / #00FF41),inc_numbers,normal
-ENR,En Route,ENR {units},NTF,Black / Sonar Green (#000000 / #00FF41),none,normal
-ARR,Arrived,ARR {units},ENR,Black / Sonar Green (#000000 / #00FF41),none,normal
-PTC,Patient Contact,PTC {units},ARR,Black / Sonar Green (#000000 / #00FF41),none,normal
-DPT,Depart,"DPT {units} {hospitals},,,,{ctas},{ctas}",ARR,{ctas},hospital+ctas,normal
-ARD,Arrived Destination,ARD {units},DPT,Black / Sonar Green (#000000 / #00FF41),none,normal
-TOC,Transfer of Care,TOC {units},ARD,gated,none,gated
-AVA,Available,AVA {units} CC,ARD,,none,terminal`,
-        `from_stage,to_stage,weight
-NTF,ENR,1
-ENR,ARR,1
-ARR,DPT,0.95
-ARR,PTC,0.05
-PTC,DPT,1
-DPT,ARD,1
-ARD,TOC,1
-TOC,AVA,1`,
-        `status,color
-AVA,Lime Green / Cream (#2DB704 / #FFFFCE)
-NTF,Blue / White (#0000FF / #FFFFFF)
-ENR,Blue / White (#0000FF / #FFFFFF)
-ARR,Blue / Light Blue (#0000FF / #ADD8E6)
-PTC,Blue / Light Blue (#0000FF / #ADD8E6)
-DPT,Blue / Pink (#0000FF / #D86DCD)
-ARD,Blue / Orange (#0000FF / #FF8000)
-TOC,Muted Plum / Dark Purple (#995B87 / #3E2778)`,
-        `ctas,color
-1,Purple / White (#7030A0 / #FFFFFF)
-2,Coral Orange / Black (#FF854A / #000000)
-3,Yellow / Black (#FFFF00 / #000000)
-4,Cyan / Black (#00FFFF / #000000)
-5,Neon Green / Black (#41FA45 / #000000)`,
-        `priority,color
-1,Purple / White (#7030A0 / #FFFFFF)
-2H,Red / White (#FF0000 / #FFFFFF)
-2,Coral Orange / Black (#FF854A / #000000)
-3,Yellow / Black (#FFFF00 / #000000)
-4,Cyan / Black (#00FFFF / #000000)
-5,Neon Green / Black (#41FA45 / #000000)`,
-        `from_color,to_color
-White,Pink
-White,Blue
-Pink,Blue`,
-        `state,color,hittable
-White,White / Black (#FFFFFF / #000000),FALSE
-Pink,Pink / Black (#F1B0B7 / #000000),FALSE
-Blue,Blue / Black (#2E90FF / #000000),TRUE`,
-        `stage_id,voice,phrase
-NTF,cad,New Call {inc_numbers}
-ENR,radio,En Route
-ENR,radio,Switching to OPS2
-ENR,radio,On OPS2
-ENR,radio,Mobile to call
-ARR,radio,Arriving Scene
-ARR,radio,Switching to OPS3
-ARR,radio,On OPS3
-ARR,radio,On scene
-PTC,radio,Patient Contact
-DPT,radio,Departing {hospitals}
-ARD,radio,Arriving {hospitals}
-TOC,cad,TOC Completed`,
-        `seq,key,label
-1,ARR_DEST,Arrived at Destination
-2,ARR_ED,Arrived in ED
-3,TRIAGED,Triaged
-4,TOC_REQ,TOC Requested
-5,TOC_CMP,TOC Completed`
-    ]);
+    // See LIFECYCLE_FALLBACK_CSVS above the fallback section for the data + rationale.
+    parseLifecyclePackage(LIFECYCLE_FALLBACK_CSVS);
 
     // COM radio-call bonus pool (mirrors com_radio_calls.csv for file:// double-click play).
     parseComRadioCalls(

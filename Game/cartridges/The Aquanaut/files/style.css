@@ -2414,14 +2414,21 @@ button.menu-kb-selected {
     transition: opacity 0.3s ease;
 }
 
-/* Sonar spawn-in: scale up from nothing with a ping ripple */
+/* Sonar spawn-in: fade up with a ping-bright flash.
+   NOTE: this keyframe must NOT animate `transform`. The overlay's position is driven
+   per-frame by an inline style.transform (script.js, updateSonarOverlay) and CSS
+   animation declarations outrank the style attribute, so any transform here wins for
+   the full 0.6s and pins the overlay to the playfield origin. The old rule animated
+   translate3d(var(--spawn-x), var(--spawn-y), ...) — variables nothing ever set, so
+   they resolved to 0. The scale(0)->scale(1) pop went with it: an independent
+   `scale:` property cannot substitute, because it multiplies the inline translate and
+   would collapse the overlay to the origin again. */
 .sonar-spawn-in {
     animation: sonar-spawn-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 @keyframes sonar-spawn-in {
     0% {
         opacity: 0;
-        transform: translate3d(var(--spawn-x, 0), var(--spawn-y, 0), 0) translate(-50%, -50%) scale(0);
         filter: brightness(3);
     }
     40% {
@@ -2430,7 +2437,6 @@ button.menu-kb-selected {
     }
     100% {
         opacity: 1;
-        transform: translate3d(var(--spawn-x, 0), var(--spawn-y, 0), 0) translate(-50%, -50%) scale(1);
         filter: brightness(1);
     }
 }

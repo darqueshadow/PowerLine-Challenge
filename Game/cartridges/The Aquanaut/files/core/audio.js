@@ -161,6 +161,18 @@ const AudioManager = {
             case 'jawSnap':      this._stdJawSnap(t); break;
             case 'tentacle':     this._stdTentacle(t); break;
             case 'hullCreak':    this._stdHullCreak(t); break;
+            // ── UI ──
+            // Deliberately routed to the _holo* routine rather than a duplicated _std* copy.
+            // This is NOT a mode leak: _holoLcarsButton only uses _track/_gain/_osc, all of
+            // which hang off masterGain and carry no holodeck state, so it is mode-agnostic
+            // despite the name. The four call sites (holodeck-btn, exit-holodeck-btn,
+            // update-datasets-btn, quitGame) are the LCARS panel controls the cue was
+            // authored for — sfx-test.html lists it as "Holodeck panel touch" — but three of
+            // them fire while mode is still 'standard', so they were silent no-ops.
+            // ⚠️ Do not "tidy" this by editing _holoLcarsButton: 'heartbeat' also routes
+            // through it in _playHolodeck. Standard mode has its own _stdHeartbeat, so the
+            // two heartbeats stay independent.
+            case 'lcarsButton':  this._holoLcarsButton(t); break;
         }
     },
 
@@ -1455,8 +1467,10 @@ const AudioManager = {
         //    unsettling sounds outside the hull ──
         main: {
             loops: [
-                { file: 'Deep_ocean_ambient_d_#1-1782846528547.wav', volume: 0.40, pan: 0 },
-                { file: 'Electrical_hum_with__#1-1782846215337.wav',  volume: 0.25, pan: 0 },
+                { file: 'Deep_ocean_ambient_d_#1-1782846528547.wav', volume: 0.40, pan: 0, xfade: 0.50 },
+                // 1.00s stem that fades out over its last ~50ms — a hard loop
+                // ticks once a second, so crossfade over the dead tail.
+                { file: 'Electrical_hum_with__#1-1782846215337.wav',  volume: 0.25, pan: 0, xfade: 0.12 },
             ],
             triggers: [
                 { file: 'Slow_rhythmic_stress_#1-1782843552461.wav', volume: 0.30, pan: 0,           minGap: 15000, maxGap: 30000 },
@@ -1468,11 +1482,16 @@ const AudioManager = {
         //    each hull strike shorts the lights (chained buzz) ──
         gameOver: {
             loops: [
-                { file: 'Deep_ocean_ambient_d_#1-1782846528547.wav', volume: 0.60, pan: 0 },
-                { file: 'Bubbling_pressure_re_#3-1782845221283.wav', volume: 0.80, pan: 0 },
-                { file: 'Deep_underwater_hull_#1-1782839689638.wav', volume: 0.70, pan: 0 },
+                { file: 'Deep_ocean_ambient_d_#1-1782846528547.wav', volume: 0.60, pan: 0, xfade: 0.50 },
             ],
             triggers: [
+                // Flooding + hull damage. Both stems are one-shots (~0.25s and
+                // ~0.6s of content, then silence), so they fire as irregular
+                // events rather than beds — looped they throbbed on an exact
+                // 1.00s grid. `leadIn` starts the rattle immediately on death
+                // instead of waiting out a first random gap.
+                { file: 'Bubbling_pressure_re_#3-1782845221283.wav', volume: 0.80, pan: 0,           minGap: 4000, maxGap: 9000,  leadIn: 200 },
+                { file: 'Deep_underwater_hull_#1-1782839689638.wav', volume: 0.70, pan: 0,           minGap: 8000, maxGap: 15000, leadIn: 1200 },
                 { file: 'Single_muffled_impac_#1-1782846398450.wav', volume: 1.00, pan: [-0.5, 0.5], minGap: 5000, maxGap: 12000,
                   chain: { file: 'Short_electrical_buz_#1-1782846287028.wav', volume: 0.50, pan: 0, delay: 500 } },
             ],
@@ -1571,8 +1590,116 @@ const AudioManager = {
         return { src, g };
     },
 
-    _scheduleTrigger(id, gen, trig) {
-        const gap = trig.minGap + Math.random() * (trig.maxGap - trig.minGap);
+    // Equal-power crossfade ramps (sin/cos), shared by every seamless loop.
+    _EQP: null,
+    _eqpCurves() {
+        if (this._EQP) return this._EQP;
+        const N = 64, inC = new Float32Array(N), outC = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+            const t = (i / (N - 1)) * (Math.PI / 2);
+            inC[i] = Math.sin(t);
+            outC[i] = Math.cos(t);
+        }
+        this._EQP = { inC, outC };
+        return this._EQP;
+    },
+
+    _stemEnds: {},   // file → usable end (s), cached
+
+    // Where does the stem's real content stop? Several beds were exported with
+    // a fade-out (or a decayed tail) baked into the last slice. Crossfading
+    // across that tail still dips, because the outgoing copy is already silent
+    // before the incoming one is up. So find the last window that still carries
+    // content and treat THAT as the loop end — the dead tail is never played.
+    _stemUsableEnd(file, buf) {
+        if (this._stemEnds[file] != null) return this._stemEnds[file];
+        let end = buf.duration;
+        try {
+            const d = buf.getChannelData(0), rate = buf.sampleRate;
+            const win = Math.max(1, Math.round(rate * 0.02));         // 20ms
+            const rms = [];
+            for (let i = 0; i + win <= d.length; i += win) {
+                let s = 0;
+                for (let k = i; k < i + win; k++) s += d[k] * d[k];
+                rms.push(Math.sqrt(s / win));
+            }
+            if (rms.length > 4) {
+                const med = rms.slice().sort((a, b) => a - b)[rms.length >> 1];
+                const floor = med * 0.5;
+                let last = rms.length - 1;
+                while (last > 0 && rms[last] < floor) last--;
+                end = Math.min(buf.duration, (last + 1) * win / rate);
+            }
+        } catch (e) { /* no channel data → use full duration */ }
+        this._stemEnds[file] = end;
+        return end;
+    },
+
+    // Seamless loop for stems that are NOT loop-ready. Several of the SFX beds
+    // are exactly 1.00s and end in a fade to silence, so `src.loop = true`
+    // snaps from silence back to a full-level attack — an audible tick once per
+    // second. Instead, overlap successive copies by `xfade` seconds with an
+    // equal-power crossfade, so the outgoing copy's fade is covered by the next
+    // copy's head. The loop period is `duration - xfade`, which also skips the
+    // stem's own dead tail. Copies are scheduled on the AUDIO clock (`start(when)`);
+    // the setTimeout only queues ahead, so seam timing never rides on timer jitter.
+    _sceneLoopSeamless(file, opts, gen) {
+        const buf = this._sceneBuffers[file];
+        if (!buf || !this.ctx || !this._sceneBus) return;
+        const dur = this._stemUsableEnd(file, buf);   // ignore any baked-in tail
+        const xf = Math.max(0.01, Math.min(opts.xfade, dur / 2));
+        const period = dur - xf;
+        const vol = opts.volume != null ? opts.volume : 1;
+        const { inC, outC } = this._eqpCurves();
+        const inV = new Float32Array(inC.length), outV = new Float32Array(outC.length);
+        for (let i = 0; i < inC.length; i++) { inV[i] = inC[i] * vol; outV[i] = outC[i] * vol; }
+
+        const startCopy = (when) => {
+            if (this._sceneGen !== gen) return;
+            const src = this.ctx.createBufferSource();
+            src.buffer = buf;
+            const g = this.ctx.createGain();
+            src.connect(g);
+            let tail = g;
+            if (this.ctx.createStereoPanner) {
+                const p = this.ctx.createStereoPanner();
+                p.pan.value = opts.pan || 0;
+                g.connect(p); tail = p;
+            }
+            tail.connect(this._sceneBus);
+            g.gain.setValueAtTime(0.0001, when);
+            g.gain.setValueCurveAtTime(inV, when, xf);
+            g.gain.setValueAtTime(vol, when + xf);
+            g.gain.setValueCurveAtTime(outV, when + dur - xf, xf);
+            src.start(when);
+            try { src.stop(when + dur + 0.02); } catch (e) {}
+            const entry = { src, g };
+            this._sceneSources.push(entry);
+            // Drop finished copies so a long menu sit doesn't grow the array.
+            src.onended = () => {
+                const i = this._sceneSources.indexOf(entry);
+                if (i >= 0) this._sceneSources.splice(i, 1);
+            };
+        };
+
+        // Look-ahead pump: keep ~2 periods queued on the audio clock.
+        let next = this.ctx.currentTime + 0.06;
+        const pump = () => {
+            if (this._sceneGen !== gen) return;
+            const horizon = this.ctx.currentTime + 2 * period + xf;
+            while (next < horizon) { startCopy(next); next += period; }
+            const h = setTimeout(pump, Math.max(200, period * 1000));
+            this._sceneTimers.push(h);
+        };
+        pump();
+    },
+
+    // `first` uses the trigger's `leadIn` (if set) instead of a random gap, so a
+    // scene can open on an event rather than waiting out a full silent window.
+    _scheduleTrigger(id, gen, trig, first) {
+        const gap = (first && trig.leadIn != null)
+            ? trig.leadIn
+            : trig.minGap + Math.random() * (trig.maxGap - trig.minGap);
         const handle = setTimeout(() => {
             if (this._sceneGen !== gen || this._sceneActive !== id) return;   // scene changed
             this._scenePlayBuffer(trig.file, { volume: trig.volume, pan: this._scenePan(trig.pan) });
@@ -1612,10 +1739,14 @@ const AudioManager = {
         if (this._sceneGen !== gen || this._sceneActive !== id) return;   // switched during load
 
         (cfg.loops || []).forEach((l) => {
+            if (l.xfade) {
+                this._sceneLoopSeamless(l.file, { volume: l.volume, pan: this._scenePan(l.pan), xfade: l.xfade }, gen);
+                return;
+            }
             const node = this._scenePlayBuffer(l.file, { volume: l.volume, pan: this._scenePan(l.pan), loop: true });
             if (node) this._sceneSources.push(node);
         });
-        (cfg.triggers || []).forEach((t) => this._scheduleTrigger(id, gen, t));
+        (cfg.triggers || []).forEach((t) => this._scheduleTrigger(id, gen, t, true));
     },
 
     // Stop the active scene: bump the generation (kills pending starts +
