@@ -368,6 +368,62 @@
       );
     }
 
+
+  /* -----------------------------------------------------------------------
+     REPAIRING A CACHED CONTROL TABLE - a one-time migration, and the reason
+     the arrow fix did not take on a machine that had already played.
+
+     EmulatorJS SAVES the resolved control table to localStorage on the very
+     first run of every title, keyed per game (ejs-1-<core>-<title>-settings).
+     loadSettings() then does `this.controls = coreSpecific.controlSettings`,
+     replacing EJS_defaultControls wholesale. So once a table has been saved,
+     THIS FILE'S BINDINGS ARE NEVER READ AGAIN for that title.
+
+     During the era when the arrows were bound to "up"/"down"/"left"/"right" -
+     names absent from EmulatorJS's keyMap - setupKeys() resolved them to -1
+     and that -1 was saved. Fire survived because "ctrl" IS a keyMap name and
+     resolved to 17 correctly. The result on an already-played machine is
+     exactly the reported fault: fire works, arrows do nothing, in confirmed
+     joystick mode, with the corrected file loaded.
+     Reproduced deliberately 2026-09-08 by poisoning a clean profile:
+       clean  {0:17, 4:38, 5:40, 6:37, 7:39}   Up -> simulateInput [[0,4,1],..]
+       cached {0:17, 4:-1, 5:-1, 6:-1, 7:-1}   Up -> simulateInput []
+
+     WHAT THIS DOES, and the narrowness is the point: it drops a saved blob
+     ONLY when that blob contains a control resolved to -1. A -1 can only come
+     from a name that is not in the keyMap, which is this bug and nothing else;
+     a deliberate custom binding always resolves to a real keyCode and is left
+     untouched. EmulatorJS then rebuilds from the corrected defaults and saves a
+     good table, so this runs at most once per title.
+
+     🚫 Do not widen it to "clear saved settings on version change" - that
+     throws away bindings people set on purpose, to fix a fault they may not
+     even have.
+     --------------------------------------------------------------------- */
+  function repairCachedControls() {
+    var repaired = [];
+    try {
+      if (!window.localStorage) return repaired;
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var k = localStorage.key(i);
+        if (!k || k.indexOf("ejs-") !== 0 || k.slice(-9) !== "-settings") continue;
+        var blob;
+        try { blob = JSON.parse(localStorage.getItem(k)); } catch (e) { continue; }
+        var cs = blob && blob.controlSettings;
+        if (!cs || typeof cs !== "object") continue;
+        var bad = false;
+        for (var p in cs) {
+          for (var b in cs[p]) {
+            if (cs[p][b] && cs[p][b].value === -1) { bad = true; break; }
+          }
+          if (bad) break;
+        }
+        if (bad) { localStorage.removeItem(k); repaired.push(k); }
+      }
+    } catch (e) { /* a profile we cannot read is not a reason to refuse to boot */ }
+    return repaired;
+  }
+
     head("data/loader.js").then(function (loaderOk) {
       if (!loaderOk) {
         tell("no emulator core on this machine", [
@@ -389,6 +445,13 @@
             { text: "Then reload.", cls: "dim" }
           ]);
           return;
+        }
+        /* BEFORE the loader runs, or loadSettings() reads the poisoned table
+           first and the repair is a frame too late. */
+        var repaired = repairCachedControls();
+        if (repaired.length) {
+          console.log("[cat] cleared " + repaired.length +
+            " cached control table(s) holding an unresolvable key: " + repaired.join(", "));
         }
         var s = document.createElement("script");
         s.src = "data/loader.js";
