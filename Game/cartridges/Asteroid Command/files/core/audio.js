@@ -80,6 +80,8 @@ const AudioManager = {
             case 'fire':      this._stdFire(t); break;
             case 'hit':       this._stdHit(t); break;
             case 'misfire':   this._stdMisfire(t); break;
+            case 'laser':     this._stdLaser(t); break;
+            case 'laserMisfire': this._stdLaserMisfire(t); break;
             case 'targetImpact': this._stdTargetImpact(t); break;
             case 'shieldHit': this._stdShieldHit(t); break;
             case 'shieldDown': this._stdShieldDown(t); break;
@@ -143,6 +145,49 @@ const AudioManager = {
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
         o.start(t);
         o.stop(t + 0.4);
+    },
+
+    // ── Laser: hard zap 1800→260Hz with a noise transient off the front ──
+    _stdLaser(t) {
+        if (!this._track(300)) return;
+        const g = this._gain(0.11);
+        const o = this._osc('sawtooth', 1800, g);
+        o.frequency.exponentialRampToValueAtTime(260, t + 0.16);
+        g.gain.setValueAtTime(0.11, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        o.start(t);
+        o.stop(t + 0.25);
+
+        const gn = this._gain(0.06);
+        const n = this._noise(gn);
+        gn.gain.setValueAtTime(0.06, t);
+        gn.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+        n.start(t);
+        n.stop(t + 0.06);
+    },
+
+    // ── Laser misfire: the same zap strangled. It starts to climb, drops out,
+    //    then slides away into static instead of firing ──
+    _stdLaserMisfire(t) {
+        if (!this._track(450)) return;
+        const g = this._gain(0.1);
+        const o = this._osc('sawtooth', 900, g);
+        o.frequency.exponentialRampToValueAtTime(1400, t + 0.04);   // starts to fire...
+        o.frequency.exponentialRampToValueAtTime(70, t + 0.22);     // ...and collapses
+        g.gain.setValueAtTime(0.1, t);
+        g.gain.setValueAtTime(0.02, t + 0.05);                      // the drop-out
+        g.gain.linearRampToValueAtTime(0.09, t + 0.09);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.34);
+        o.start(t);
+        o.stop(t + 0.38);
+
+        const gn = this._gain(0.07);
+        const n = this._noise(gn);
+        gn.gain.setValueAtTime(0.001, t);
+        gn.gain.linearRampToValueAtTime(0.07, t + 0.08);
+        gn.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        n.start(t);
+        n.stop(t + 0.32);
     },
 
     // ── Target Impact: heavy thud 60Hz + noise ──
@@ -249,6 +294,8 @@ const AudioManager = {
             case 'fire':         this._holoFire(t); break;
             case 'hit':          this._holoHit(t); break;
             case 'misfire':      this._holoMisfire(t); break;
+            case 'laser':        this._holoLaser(t); break;
+            case 'laserMisfire': this._holoLaserMisfire(t); break;
             case 'targetImpact': this._holoTargetImpact(t); break;
             case 'shieldHit':    this._holoShieldHit(t); break;
             case 'shieldDown':   this._holoShieldDown(t); break;
@@ -302,6 +349,37 @@ const AudioManager = {
         g2.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
         o2.start(t);
         o2.stop(t + 0.18);
+    },
+
+    // ── Laser: clean phaser sweep, 2400→900Hz over a doubled lower voice ──
+    _holoLaser(t) {
+        if (!this._track(280)) return;
+        [[2400, 900, 0.09], [1600, 600, 0.05]].forEach(([from, to, vol]) => {
+            const g = this._gain(vol);
+            const o = this._osc('sine', from, g);
+            o.frequency.exponentialRampToValueAtTime(to, t + 0.14);
+            g.gain.setValueAtTime(vol, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+            o.start(t);
+            o.stop(t + 0.22);
+        });
+    },
+
+    // ── Laser misfire: the sweep stalls, warbles, and slides off the bottom ──
+    _holoLaserMisfire(t) {
+        if (!this._track(450)) return;
+        const g = this._gain(0.08);
+        const o = this._osc('sine', 1400, g);
+        o.frequency.linearRampToValueAtTime(1700, t + 0.05);
+        o.frequency.linearRampToValueAtTime(500, t + 0.14);
+        o.frequency.linearRampToValueAtTime(760, t + 0.2);
+        o.frequency.linearRampToValueAtTime(180, t + 0.32);
+        g.gain.setValueAtTime(0.08, t);
+        g.gain.setValueAtTime(0.015, t + 0.06);
+        g.gain.linearRampToValueAtTime(0.07, t + 0.11);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.36);
+        o.start(t);
+        o.stop(t + 0.4);
     },
 
     // ── Misfire: descending three-tone ──

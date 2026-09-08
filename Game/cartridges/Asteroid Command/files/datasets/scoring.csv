@@ -7,11 +7,11 @@ Perfect Shot,0.25x,0 Backspaces used on the command.,25% bonus of current Base H
 Early Intercept,0.5x,Target cleared within the top 25% of the screen.,50% bonus of current Base Hit. Rewards fast reaction.,"""EARLY INTERCEPT""","Per event, stacks with Perfect Shot"
 ,,,,,
 ?? STREAK BONUSES ??,,,,,
-5x Perfect Streak,75,5 consecutive Perfect Shots (0 backspaces).,NEW — Mini-streak milestone. Keeps players motivated before the big bonuses.,"""LOCKED IN""",One-time per streak
+5x Perfect Streak,75,5 consecutive Perfect Shots (0 backspaces).,NEW ï¿½ Mini-streak milestone. Keeps players motivated before the big bonuses.,"""LOCKED IN""",One-time per streak
 8x Perfect Streak,150,8 consecutive Perfect Shots (0 backspaces).,Reduced from 10. More achievable at higher tiers where speed is brutal.,"""EXCELLENT""",One-time per streak
 15x Perfect Streak,400,15 consecutive Perfect Shots (0 backspaces).,Reduced from 20. Keeps the big bonus within reach at high-tier speeds.,"""UNSTOPPABLE""",One-time per streak
-25x Perfect Streak,1000,25 consecutive Perfect Shots (0 backspaces).,NEW — Elite tier reward. Extremely difficult but achievable for the best players.,"""LEGEND""",One-time per streak
-Streak Forgiveness,n/a,1 backspace allowed per target without breaking streak.,"NEW — Instead of hard reset on any error, 1 backspace is forgiven. 2+ backspaces on a single target breaks streak.",,Passive rule
+25x Perfect Streak,1000,25 consecutive Perfect Shots (0 backspaces).,NEW ï¿½ Elite tier reward. Extremely difficult but achievable for the best players.,"""LEGEND""",One-time per streak
+Streak Forgiveness,n/a,1 backspace allowed per target without breaking streak.,"NEW ï¿½ Instead of hard reset on any error, 1 backspace is forgiven. 2+ backspaces on a single target breaks streak.",,Passive rule
 ,,,,,
 ?? TYPING PENALTIES ??,,,,,
 Key Dust (1-2 Backspaces),-0.1x,1-2 Backspaces used while clearing a target.,Flat 10% penalty of current Base Hit. Minor slip.,"""KEY DUST""",Per event
@@ -26,6 +26,7 @@ Consecutive Base Destruction Rule,See below,Tracks consecutive bases destroyed W
 3rd Base Destroyed (consecutive),-200,Third base destroyed without destroying an asteroid in between.,-200 point penalty. Escalating consequence.,"""CRITICAL FAILURE""",Counter = 3
 4th+ Base Destroyed (consecutive),-300,Fourth or more base destroyed without destroying an asteroid in between.,-300 point penalty per additional base. Capped at -300 to prevent total wipeout spirals.,"""SYSTEM COLLAPSE""","Counter = 4+, capped penalty"
 Asteroid Destroyed (Counter Reset),0,Player destroys any asteroid.,Resets the consecutive base destruction counter to 0. Next base destroyed will be treated as the 1st (no penalty).,,Counter ? 0
+Debris Strike (Post-Destruction),-0.25x,Target impacts a zone that has already been destroyed.,"-25% of current Base Hit, clamped by the -300 penalty cap. Asteroids keep getting aimed at dead zones, so those calls still have to be cleared. NOT a base loss - leaves the consecutive-destruction counter and the kill streak untouched.","""DEBRIS STRIKE""",Per event
 Penalty Formula,n/a,"penalty = MAX(0, (consecutive_count - 1)) * -100","Capped at -300 per event. E.g.: count=1 ? 0, count=2 ? -100, count=3 ? -200, count=4+ ? -300.",,Code logic
 Legacy: Target Impact,REMOVED,Old per-base Rank Penalty from progression.csv.,REPLACED by the Consecutive Base Destruction system above. Old behavior penalized every single base loss.,,Deprecated
 ,,,,,
@@ -39,12 +40,12 @@ Streak Count,Multiplier Applied to Base Hit,Description,,,
 25+ kills,1.75x,Elite streak. +75% to Base Hit. Maximum multiplier.,,"""LEGEND MODE""",
 ,,,,,
 ?? MICRO-REWARDS & MILESTONES ??,,,,,
-Calibration Bonus,50,Every 500 points earned within a rank tier.,NEW — Flat +50 bonus every 500 points to keep momentum between rank-ups. Prevents the grind feeling.,"""SYSTEMS CALIBRATED""",Repeatable within tier
-Comeback Bonus,25,Destroy 3 asteroids in a row after losing a base.,NEW — Small reward for recovering after a base loss. Encourages players to keep fighting instead of giving up.,"""BACK ONLINE""",One-time per base loss event
-Speed Demon,0.15x,Target cleared within 1.5 seconds of appearing on screen.,NEW — 15% bonus of Base Hit. Rewards lightning-fast reactions regardless of screen position.,"""SPEED DEMON""","Per event, stacks with Perfect Shot"
-First Blood,25,First asteroid destroyed in a session.,NEW — Small session-start bonus. Gets the dopamine flowing immediately.,"""ONLINE""",Once per session
-Rank-Up Bonus,Rank Base x 2,Player reaches a new rank tier.,NEW — 2x the new rank's Base Hit value as a one-time bonus. Celebrates the achievement.,"""RANK UP!""",Once per rank transition
-Near-Miss Save,15,Target destroyed in the bottom 10% of the screen (just before impact).,NEW — Flat +15 bonus. Clutch save reward. Adds tension and excitement.,"""CLOSE CALL!""",Per event
+Calibration Bonus,50,Every 500 points earned within a rank tier.,NEW ï¿½ Flat +50 bonus every 500 points to keep momentum between rank-ups. Prevents the grind feeling.,"""SYSTEMS CALIBRATED""",Repeatable within tier
+Comeback Bonus,25,Destroy 3 asteroids in a row after losing a base.,NEW ï¿½ Small reward for recovering after a base loss. Encourages players to keep fighting instead of giving up.,"""BACK ONLINE""",One-time per base loss event
+Speed Demon,0.15x,Target cleared within 1.5 seconds of appearing on screen.,NEW ï¿½ 15% bonus of Base Hit. Rewards lightning-fast reactions regardless of screen position.,"""SPEED DEMON""","Per event, stacks with Perfect Shot"
+First Blood,25,First asteroid destroyed in a session.,NEW ï¿½ Small session-start bonus. Gets the dopamine flowing immediately.,"""ONLINE""",Once per session
+Rank-Up Bonus,Rank Base x 2,Player reaches a new rank tier.,NEW ï¿½ 2x the new rank's Base Hit value as a one-time bonus. Celebrates the achievement.,"""RANK UP!""",Once per rank transition
+Near-Miss Save,15,Target destroyed in the bottom 10% of the screen (just before impact).,NEW ï¿½ Flat +15 bonus. Clutch save reward. Adds tension and excitement.,"""CLOSE CALL!""",Per event
 ,,,,,
 ?? RULES & CODE NOTES ??,,,,,
 Rule,Detail,,,,

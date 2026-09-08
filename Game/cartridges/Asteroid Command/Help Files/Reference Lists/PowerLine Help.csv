@@ -1,0 +1,5 @@
+﻿Command,Required Code,Description,Example
+AP,"AP <Unit> [Post/Station Code], [Comment]",Assign Unit to post,AP 2105 72122
+ENP,"ENP <Unit> [Post/Station Code], [Comment]",Place vehicle in En Route status,ENP 2105 72122
+BSE,"BSE <Unit> [Post/Station Code], [Comment]",Place Unit at Base,BSE 2105 72122
+LA,"LA <Unit> [Post/Station Code], [Comment]",Local Area,LA 2115 72111

@@ -1187,7 +1187,7 @@ async function buildDocument() {
                     codeLine('Arriving at,BSE,radio'),
 
                     para('units.csv', { bold: true }),
-                    para('List of unit IDs. Columns: Units, Weight (optional). Includes regular units (2100-2126), superintendent units (2040-2046), special event units (2302-2398), bike/CARE/FIT/MHRT units.'),
+                    para('List of unit IDs. Columns: Units, Weight (optional). Includes regular units (2100-2126, 2130-2150, 2200-2208), superintendent units (2040-2046, 2095-2099), transfer units (2520-2523), and the low-weight named units (MRHT, FIT, CARE1-CARE6, 2B01).'),
 
                     para('progression.csv', { bold: true }),
                     para('Defines rank tiers. Columns: Rank / Tier, Points Required, Speed (Min), Speed (Max), Spawn (Min sec), Spawn (Max sec), Max Targets, Base Hit (Clear), Target Impact (Penalty), Asteroid Radius, Projectile Speed.'),

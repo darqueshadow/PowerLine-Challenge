@@ -7,6 +7,10 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Asteroid Command — PowerLine Challenge</title>
+    <!-- Tab icon. The .ico carries 16/32/48 and is what file:// and older
+         browsers pick up; the .svg wins wherever it is understood. -->
+    <link rel="icon" href="favicon.ico" sizes="48x48">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="style.css" id="main-css">
     <script>document.getElementById('main-css').href = 'style.css?t=' + Date.now();</script>
 </head>
@@ -76,6 +80,22 @@
                     <!-- Aircraft Warning Lights — CSS animated, JS-positioned -->
                     <div id="skylon-light" class="aircraft-light"></div>
                     <div id="canal-light" class="aircraft-light canal-light-orange"></div>
+
+                    <!-- CARD Shorthand help card — the paid lifeline. Play continues
+                         behind it; it only clears when the shown code is typed. -->
+                    <div id="card-help" class="hidden">
+                        <div id="card-help-inner">
+                            <div id="card-help-head">
+                                <span id="card-help-badge">CARD</span>
+                                <span id="card-help-title">SHORTHAND LOOKUP</span>
+                            </div>
+                            <div id="card-help-banner"></div>
+                            <div id="card-help-instruction">
+                                Type <code id="card-help-code">/PDN</code> in PowerLine
+                            </div>
+                            <div id="card-help-cost">STREAK RESET &mdash; NO POINTS FOR THIS BANNER</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -160,6 +180,8 @@
 
                 <div id="normal-menu-buttons" class="menu-buttons hidden">
                     <button id="start-btn">BEGIN MISSION</button>
+                    <button id="howtoplay-btn">HOW TO PLAY</button>
+                    <button id="difficulty-btn">DIFFICULTY</button>
                     <button id="scoring-btn">SCORING &amp; PROGRESSION</button>
                     <div class="menu-buttons-row">
                         <button id="settings-btn">SETTINGS</button>
@@ -189,15 +211,7 @@
                 </div><!-- /title-top -->
 
                 <div id="title-credits">
-                    <span class="credit-line"><span class="credit-role">Creator &amp; Game Director:</span> Andrew Samitz</span>
-                    <span class="credit-sep">&#x2022;</span>
-                    <span class="credit-line"><span class="credit-role">Lead Engineer:</span> Claude A. Renaud</span>
-                    <span class="credit-sep">&#x2022;</span>
-                    <span class="credit-line"><span class="credit-role">Integration &amp; UX:</span> G.E. Minsky</span>
-                    <span class="credit-sep">&#x2022;</span>
-                    <span class="credit-line"><span class="credit-role">Technical Producer:</span> C.J. Vireo</span>
-                    <span class="credit-sep">&#x2022;</span>
-                    <span class="credit-line"><span class="credit-role">Composer:</span> Suno Vanta</span>
+                    <span class="studio-name">Between Calls Interactive</span>
                 </div>
             </div>
 
@@ -276,6 +290,56 @@
                     <button id="highscores-back-btn">BACK TO MAIN MENU</button>
                 </div>
             </div>
+
+            <!-- Difficulty Submenu -->
+            <div id="difficulty-bg-layer" class="hidden"></div>
+            <div id="difficulty-page" class="menu-page hidden">
+                <h1>ASTEROID COMMAND</h1>
+                <p class="subtitle">DIFFICULTY</p>
+
+                <div id="difficulty-panel">
+                    <p class="diff-intro">
+                        Pick the shift you're walking into. The run opens at that rank's speed,
+                        spawn rate and scoring &mdash; you still promote upward as you earn points.
+                    </p>
+
+                    <div class="diff-select-row">
+                        <span class="diff-select-label">START AT</span>
+                        <div id="difficulty-dropdown" class="ac-dropdown">
+                            <button type="button" id="difficulty-trigger" class="ac-dropdown-trigger"
+                                    aria-haspopup="listbox" aria-expanded="false">
+                                <span id="difficulty-current">NOVICE</span>
+                                <span class="ac-dropdown-caret">&#x25BC;</span>
+                            </button>
+                            <ul id="difficulty-list" class="ac-dropdown-list hidden" role="listbox"></ul>
+                        </div>
+                    </div>
+
+                    <div id="difficulty-readout"></div>
+                </div>
+
+                <div class="menu-buttons">
+                    <button id="difficulty-back-btn">BACK TO MAIN MENU</button>
+                </div>
+            </div>
+
+            <!-- How To Play Submenu — a menu of cards, not a document. Content
+                 and structure come from Help Files/AsteroidCommand_HowToPlay_ContentSpec.md;
+                 every panel is rendered by core/howtoplay.js. -->
+            <div id="howtoplay-bg-layer" class="hidden"></div>
+            <div id="howtoplay-page" class="menu-page hidden">
+                <h1>ASTEROID COMMAND</h1>
+                <p class="subtitle">HOW TO PLAY</p>
+                <div id="htp-crumb">CONTENTS</div>
+
+                <div id="howtoplay-scroll"></div>
+
+                <div class="menu-buttons htp-nav">
+                    <button id="howtoplay-back-btn">BACK TO MAIN MENU</button>
+                    <button id="htp-next-btn" class="hidden">NEXT</button>
+                </div>
+            </div>
+
         </div>
 
         <!-- Dev Mode Password Prompt (hidden by default) -->
@@ -304,9 +368,14 @@
     <script>
         // Dynamic loading prevents file:// caching issues
         var t = Date.now();
+        // Offline data pack — a <script> copy of datasets/*.csv, because a page
+        // opened straight off the disk is not allowed to fetch() them. Harmless
+        // over http://, where the real CSVs win. Rebuild Offline Data.bat regenerates it.
+        document.write('<script src="datasets/offline-data.js?t=' + t + '"><\/script>');
         document.write('<script src="core/config.js?t=' + t + '"><\/script>');
         document.write('<script src="core/data.js?t=' + t + '"><\/script>');
         document.write('<script src="core/audio.js?t=' + t + '"><\/script>');
+        document.write('<script src="core/howtoplay.js?t=' + t + '"><\/script>');
         document.write('<script src="script.js?t=' + t + '"><\/script>');
     </script>
 </body>

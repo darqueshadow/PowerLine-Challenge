@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 96" width="128" height="96" shape-rendering="crispEdges">
+  <!-- VARIANT A — boxy / utilitarian. Faces right; engine mirrors for left runs. -->
+
+  <!-- Tow hardpoint — the banner cable is drawn from exactly (0,48) -->
+  <rect x="0" y="43" width="8" height="10" fill="#50627c" />
+  <rect x="0" y="43" width="8" height="2" fill="#a4d5ff" />
+  <rect x="2" y="47" width="3" height="3" fill="#121e36" />
+  <rect x="8" y="47" width="22" height="2" fill="#8ca0b8" />
+  <rect x="8" y="49" width="22" height="1" fill="#323f51" />
+
+  <!-- Top Solar Wing -->
+  <rect x="44" y="33" width="4" height="8" fill="#8ca0b8" />
+  <rect x="38" y="9" width="16" height="2" fill="#a4d5ff" />
+  <rect x="38" y="11" width="16" height="20" fill="#3b63a0" />
+  <rect x="38" y="31" width="16" height="2" fill="#1b2f5b" />
+  <rect x="40" y="13" width="5" height="7" fill="#121e36" />
+  <rect x="47" y="13" width="5" height="7" fill="#121e36" />
+  <rect x="40" y="22" width="5" height="7" fill="#121e36" />
+  <rect x="47" y="22" width="5" height="7" fill="#121e36" />
+
+  <!-- Bottom Solar Wing -->
+  <rect x="44" y="55" width="4" height="8" fill="#50627c" />
+  <rect x="38" y="63" width="16" height="2" fill="#a4d5ff" />
+  <rect x="38" y="65" width="16" height="20" fill="#3b63a0" />
+  <rect x="38" y="85" width="16" height="2" fill="#1b2f5b" />
+  <rect x="40" y="67" width="5" height="7" fill="#121e36" />
+  <rect x="47" y="67" width="5" height="7" fill="#121e36" />
+  <rect x="40" y="76" width="5" height="7" fill="#121e36" />
+  <rect x="47" y="76" width="5" height="7" fill="#121e36" />
+
+  <!-- Central Bus -->
+  <rect x="30" y="41" width="32" height="2" fill="#ffffff" />
+  <rect x="30" y="43" width="32" height="8" fill="#e2efff" />
+  <rect x="30" y="51" width="32" height="2" fill="#8ca0b8" />
+  <rect x="30" y="53" width="32" height="2" fill="#323f51" />
+  <rect x="36" y="45" width="6" height="4" fill="#1b2f5b" />
+  <rect x="48" y="45" width="6" height="4" fill="#3b63a0" />
+
+  <!-- Forward Communications Horns -->
+  <rect x="62" y="45" width="10" height="4" fill="#8ca0b8" />
+  <rect x="72" y="41" width="2" height="12" fill="#e2efff" />
+  <rect x="74" y="39" width="4" height="4" fill="#a4d5ff" />
+  <rect x="74" y="51" width="4" height="4" fill="#a4d5ff" />
+
+  <!-- Beacon mast — the engine paints its blinking red lamp on top at (72,5) -->
+  <rect x="70" y="8" width="4" height="34" fill="#8ca0b8" />
+  <rect x="70" y="8" width="4" height="2" fill="#e2efff" />
+
+  <!-- Forward whip antenna -->
+  <rect x="78" y="47" width="26" height="2" fill="#e2efff" />
+  <rect x="104" y="45" width="4" height="6" fill="#a4d5ff" />
+</svg>

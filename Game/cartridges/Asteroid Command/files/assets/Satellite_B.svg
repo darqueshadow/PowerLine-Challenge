@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 96" width="128" height="96" shape-rendering="crispEdges">
+  <!-- VARIANT B — large parabolic dish. Faces right; engine mirrors for left runs. -->
+
+  <!-- Tow hardpoint — the banner cable is drawn from exactly (0,48) -->
+  <rect x="0" y="43" width="8" height="10" fill="#50627c" />
+  <rect x="0" y="43" width="8" height="2" fill="#a4d5ff" />
+  <rect x="2" y="47" width="3" height="3" fill="#121e36" />
+  <rect x="8" y="47" width="34" height="2" fill="#8ca0b8" />
+  <rect x="8" y="49" width="34" height="1" fill="#323f51" />
+
+  <!-- Compact Panels, top and bottom -->
+  <rect x="60" y="18" width="4" height="18" fill="#50627c" />
+  <rect x="56" y="20" width="12" height="14" fill="#3b63a0" />
+  <rect x="56" y="20" width="12" height="2" fill="#a4d5ff" />
+  <rect x="58" y="24" width="8" height="3" fill="#121e36" />
+  <rect x="58" y="29" width="8" height="3" fill="#121e36" />
+
+  <rect x="60" y="60" width="4" height="18" fill="#50627c" />
+  <rect x="56" y="62" width="12" height="14" fill="#3b63a0" />
+  <rect x="56" y="62" width="12" height="2" fill="#a4d5ff" />
+  <rect x="58" y="66" width="8" height="3" fill="#121e36" />
+  <rect x="58" y="71" width="8" height="3" fill="#121e36" />
+
+  <!-- Main Bus / Dish Mount -->
+  <rect x="42" y="40" width="20" height="2" fill="#ffffff" />
+  <rect x="42" y="42" width="20" height="12" fill="#8ca0b8" />
+  <rect x="42" y="54" width="20" height="2" fill="#323f51" />
+
+  <!-- Dish neck -->
+  <rect x="62" y="46" width="8" height="4" fill="#50627c" />
+  <rect x="62" y="46" width="8" height="1" fill="#e2efff" />
+
+  <!-- Parabolic dish, stepped to fake the curve -->
+  <rect x="70" y="32" width="3" height="32" fill="#323f51" />
+  <rect x="73" y="28" width="3" height="40" fill="#8ca0b8" />
+  <rect x="73" y="28" width="3" height="2" fill="#ffffff" />
+  <rect x="76" y="24" width="3" height="48" fill="#e2efff" />
+  <rect x="79" y="22" width="3" height="52" fill="#ffffff" />
+
+  <!-- Beacon mast — the engine paints its blinking red lamp on top at (72,5) -->
+  <rect x="70" y="6" width="4" height="26" fill="#8ca0b8" />
+  <rect x="70" y="6" width="4" height="2" fill="#e2efff" />
+
+  <!-- Feed horn on its boom -->
+  <rect x="70" y="47" width="18" height="2" fill="#ffffff" />
+  <rect x="88" y="44" width="3" height="8" fill="#a4d5ff" />
+  <rect x="91" y="46" width="2" height="4" fill="#ffffff" />
+
+  <!-- Forward whip antenna -->
+  <rect x="93" y="47" width="20" height="2" fill="#e2efff" />
+  <rect x="113" y="45" width="4" height="6" fill="#a4d5ff" />
+</svg>

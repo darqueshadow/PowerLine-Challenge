@@ -1,0 +1,53 @@
+﻿Group,Name,Hex,RGB,Where Used,Defined In
+Core palette,--color-bg,#0A0A12,"10, 10, 18",Page and body background,style.css
+Core palette,--color-primary,#00FFFF,"0, 255, 255",Cyan - borders and accents throughout,style.css
+Core palette,--color-secondary,#FF6600,"255, 102, 0",Orange - secondary accent,style.css
+Core palette,--color-accent,#FFD700,"255, 215, 0","Gold - highlights, score",style.css
+Core palette,--color-danger,#FF3366,"255, 51, 102","Alerts, damage, impacts",style.css
+Core palette,--color-success,#00FF88,"0, 255, 136",Successful command feedback,style.css
+Core palette,--color-text,#E0E0FF,"224, 224, 255",Default body text,style.css
+Core palette,--color-dim,#6688AA,"102, 136, 170",Muted / secondary text,style.css
+Core palette,--color-white,#FFFFFF,"255, 255, 255",Pure white,style.css
+Arcade menu,Arcade amber,#FFB300,"255, 179, 0","Selected/hover plate fill, headings, blinking pointer",style.css
+Arcade menu,Amber plate text,#140C00,"20, 12, 0",Near-black text sitting on the amber plate,style.css
+Arcade menu,Arcade cyan,#00E5FF,"0, 229, 255","3px menu and card borders, scrollbar thumb",style.css
+Arcade menu,Plate top,#0A0A0E,"10, 10, 14",Top of the menu plate gradient,style.css
+Arcade menu,Plate bottom,#0D0D12,"13, 13, 18",Bottom of the menu plate gradient,style.css
+Arcade menu,Panel ground,#05070D,"5, 7, 13",HOW TO PLAY card background,style.css
+Arcade menu,Body copy,#B9C9D8,"185, 201, 216",HOW TO PLAY paragraph text,style.css
+Arcade menu,Emphasis copy,#DCE8F2,"220, 232, 242",Italic / emphasised text,style.css
+Arcade menu,Muted steel,#7FA8CC,"127, 168, 204",Secondary labels and borders,style.css
+Arcade menu,Dim steel,#6F8BA3,"111, 139, 163",Tertiary labels,style.css
+DEFCON HUD,Gunmetal,#323840,"50, 56, 64",Top HUD bar,style.css
+DEFCON HUD,Battleship grey,#3A4048,"58, 64, 72",Left and right side panels,style.css
+DEFCON HUD,VDS well,#24282E,"36, 40, 46",Recessed VDS readout containers,style.css
+DEFCON HUD,Command box recess,#282E36,"40, 46, 54",Command entry box background,style.css
+Terrain,Rock light,#6B4226,"107, 66, 38","Gorge wall stripe, light band",style.css
+Terrain,Rock dark,#4A2E18,"74, 46, 24","Gorge wall stripe, dark band",style.css
+Terrain,Water,#00FFFF,"0, 255, 255","Lake Ontario fill, right wing",style.css
+Boot phosphor,Phosphor green,#33FF33,"51, 255, 51","Boot sequence text, cassette load",style.css
+Boot phosphor,Command green,#00FF41,"0, 255, 65",Command prompt caret and command box border,style.css
+Asteroid 0 emerald,Accent,#00FF66,"0, 255, 102","Asteroid body, tier 0",config.js
+Asteroid 0 emerald,Glow,#00CC44,"0, 204, 68","Asteroid glow, tier 0",config.js
+Asteroid 1 chartreuse,Accent,#7FFF00,"127, 255, 0","Asteroid body, tier 1",config.js
+Asteroid 1 chartreuse,Glow,#66CC00,"102, 204, 0","Asteroid glow, tier 1",config.js
+Asteroid 2 seafoam,Accent,#00FFAA,"0, 255, 170","Asteroid body, tier 2",config.js
+Asteroid 2 seafoam,Glow,#00CC88,"0, 204, 136","Asteroid glow, tier 2",config.js
+Asteroid 3 neon green,Accent,#39FF14,"57, 255, 20","Asteroid body, tier 3",config.js
+Asteroid 3 neon green,Glow,#2BCC10,"43, 204, 16","Asteroid glow, tier 3",config.js
+Asteroid 4 lime,Accent,#88FF44,"136, 255, 68","Asteroid body, tier 4",config.js
+Asteroid 4 lime,Glow,#66CC22,"102, 204, 34","Asteroid glow, tier 4",config.js
+Asteroid 5 jade,Accent,#00E5A0,"0, 229, 160","Asteroid body, tier 5",config.js
+Asteroid 5 jade,Glow,#00B87D,"0, 184, 125","Asteroid glow, tier 5",config.js
+Satellite / laser,Dish signal,#78DCFF,"120, 220, 255",Radio signal arcs off the satellite dish,config.js
+Satellite / laser,Laser core,#7DD4FF,"125, 212, 255",Clean hitscan beam; matches catch explosion,config.js
+Satellite / laser,Laser misfire,#FF603C,"255, 96, 60",Broken beam and sparks on a wrong shorthand,config.js
+LCARS god mode,--lcars-gold,#FFBE00,"255, 190, 0",Panel border and primary blocks,style.css
+LCARS god mode,--lcars-tangerine,#FF9900,"255, 153, 0",Secondary blocks,style.css
+LCARS god mode,--lcars-peach,#FFCC99,"255, 204, 153",Light accent blocks,style.css
+LCARS god mode,--lcars-lavender,#CC99CC,"204, 153, 204",Accent blocks,style.css
+LCARS god mode,--lcars-violet,#9977AA,"153, 119, 170",Accent blocks,style.css
+LCARS god mode,--lcars-blue,#99CCFF,"153, 204, 255",Accent blocks,style.css
+LCARS god mode,--lcars-sky,#6688CC,"102, 136, 204",Accent blocks,style.css
+LCARS god mode,--lcars-bg,#000000,"0, 0, 0",Panel background,style.css
+LCARS god mode,--lcars-text,#FF9900,"255, 153, 0",Panel text,style.css

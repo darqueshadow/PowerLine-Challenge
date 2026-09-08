@@ -166,9 +166,17 @@ const state = {
     ambulancePendingTimer: null,
     satellite: null,                 // Active banner satellite (one at a time)
     bannerDebris: [],                // Burning strips of a claimed banner, falling
+    lasers: [],                      // Tower shots at a banner — clean and misfired
     satelliteStreak: 0,              // Consecutive banners caught — drives the multiplier
     satellitesCaught: 0,             // Session total, for the game-over stats
     satellitesMissed: 0,
+    cardHelp: null,                  // Open CARD Shorthand card: { code, banner }
+    cardHelpUsed: 0,                 // Session total, for the game-over stats
+    cardHelpFailed: 0,
+    // Difficulty chosen on the DIFFICULTY screen — a tier key from progression.csv.
+    // Survives restarts (it's a menu setting, not run state) and doubles as the
+    // demotion floor, so picking EXPERT can't drop you back to TRAINEE speed.
+    selectedDifficulty: 'trainee',
     beamActive: false,
     beamTimer: 0,
     gameOverPending: false,
@@ -234,6 +242,9 @@ function init() {
     DOM.holodeckPrompt = document.getElementById('holodeck-prompt');
     DOM.holodeckInput = document.getElementById('holodeck-password-input');
     DOM.tetherLayer = document.getElementById('tether-layer');
+    DOM.cardHelp = document.getElementById('card-help');
+    DOM.cardHelpBanner = document.getElementById('card-help-banner');
+    DOM.cardHelpCode = document.getElementById('card-help-code');
 
     resize();
     window.addEventListener('resize', resize);
@@ -629,6 +640,182 @@ function init() {
         highscoresBgLayer.classList.add('hidden');
     });
 
+    // ── Generic submenu open/close ──────────────────────────────────────────
+    // Same shape as Settings and High Scores above: swap the overlay background
+    // class and reveal the greyscale art layer behind the page.
+    function openSubPage(pageId, layerEl, bgClass, before) {
+        if (before) before();
+        document.getElementById('start-content').classList.add('hidden');
+        document.getElementById(pageId).classList.remove('hidden');
+        DOM.startOverlay.classList.remove('main-menu-bg');
+        DOM.startOverlay.classList.add(bgClass);
+        if (layerEl) layerEl.classList.remove('hidden');
+    }
+    function closeSubPage(pageId, layerEl, bgClass) {
+        document.getElementById(pageId).classList.add('hidden');
+        document.getElementById('start-content').classList.remove('hidden');
+        DOM.startOverlay.classList.remove(bgClass);
+        DOM.startOverlay.classList.add('main-menu-bg');
+        if (layerEl) layerEl.classList.add('hidden');
+    }
+
+    // ── Main menu ↔ Difficulty ──────────────────────────────────────────────
+    const difficultyBgLayer = document.getElementById('difficulty-bg-layer');
+    const diffTrigger  = document.getElementById('difficulty-trigger');
+    const diffCurrent  = document.getElementById('difficulty-current');
+    const diffList     = document.getElementById('difficulty-list');
+    const diffReadout  = document.getElementById('difficulty-readout');
+
+    // Tier keys in ladder order — TIERS is rebuilt from progression.csv, so read
+    // the order off the data rather than hard-coding it.
+    function tierKeysInOrder() {
+        return Object.keys(TIERS).sort((a, b) => TIERS[a].min - TIERS[b].min);
+    }
+
+    function renderDifficultyList() {
+        if (!diffList) return;
+        diffList.innerHTML = tierKeysInOrder().map(key => {
+            const t = TIERS[key];
+            const sel = key === state.selectedDifficulty ? ' selected' : '';
+            return `<li class="ac-dropdown-item${sel}" role="option" data-key="${key}">
+                        <span class="ac-opt-level">${t.difficulty || t.label}</span>
+                        <span class="ac-opt-rank">${t.label}</span>
+                    </li>`;
+        }).join('');
+    }
+
+    function renderDifficultyReadout() {
+        if (!diffReadout) return;
+        const t = TIERS[state.selectedDifficulty];
+        if (!t) { diffReadout.innerHTML = ''; return; }
+        const spawn = (t.spawnMin / 1000).toFixed(1) + '–' + (t.spawnMax / 1000).toFixed(1) + 's';
+        const rows = [
+            ['RANK',          t.label],
+            ['TARGET SPEED',  t.speedMin.toFixed(1) + '× – ' + t.speedMax.toFixed(1) + '×'],
+            ['SPAWN EVERY',   spawn],
+            ['MAX ON SCREEN', t.maxTargets],
+            ['CLEAN KILL',    '+' + t.baseHit],
+            ['IMPACT',        t.impactPenalty],
+            ['CARD FAILURE',  t.impactPenalty * CARD_HELP.failPenaltyMultiplier]
+        ];
+        diffReadout.innerHTML =
+            '<div class="diff-readout-head">SHIFT CONDITIONS</div>' +
+            rows.map(([k, v]) =>
+                `<div class="diff-stat"><span class="diff-stat-k">${k}</span>` +
+                `<span class="diff-stat-v">${v}</span></div>`).join('');
+    }
+
+    function setDropdownOpen(open) {
+        if (!diffList) return;
+        diffList.classList.toggle('hidden', !open);
+        diffTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        diffTrigger.classList.toggle('open', open);
+        // Menu nav reads this so arrow keys drive the list, not the buttons.
+        state.dropdownOpen = open;
+    }
+
+    function selectDifficulty(key) {
+        if (!TIERS[key]) return;
+        state.selectedDifficulty = key;
+        diffCurrent.textContent = TIERS[key].difficulty || TIERS[key].label;
+        try { localStorage.setItem('ac_difficulty', key); } catch (e) { /* private mode */ }
+        renderDifficultyList();
+        renderDifficultyReadout();
+    }
+
+    if (diffTrigger) {
+        diffTrigger.addEventListener('click', e => {
+            e.stopPropagation();
+            setDropdownOpen(diffList.classList.contains('hidden'));
+        });
+        diffList.addEventListener('click', e => {
+            const item = e.target.closest('.ac-dropdown-item');
+            if (!item) return;
+            selectDifficulty(item.dataset.key);
+            setDropdownOpen(false);
+        });
+        // Arrow/Enter/Escape while the list is open
+        document.addEventListener('keydown', e => {
+            if (!state.dropdownOpen) return;
+            const keys = tierKeysInOrder();
+            const idx = keys.indexOf(state.selectedDifficulty);
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                e.preventDefault(); e.stopPropagation();
+                selectDifficulty(keys[Math.min(idx + 1, keys.length - 1)]);
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                e.preventDefault(); e.stopPropagation();
+                selectDifficulty(keys[Math.max(idx - 1, 0)]);
+            } else if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+                e.preventDefault(); e.stopPropagation();
+                setDropdownOpen(false);
+            }
+        }, true);
+        document.addEventListener('click', () => { if (state.dropdownOpen) setDropdownOpen(false); });
+    }
+
+    // Guarded: a browser holding a cached index.html against fresh JS would
+    // otherwise throw here and abort the rest of init(), taking unrelated menu
+    // wiring down with it.
+    const diffBtn = document.getElementById('difficulty-btn');
+    if (diffBtn) diffBtn.addEventListener('click', () => {
+        openSubPage('difficulty-page', difficultyBgLayer, 'difficulty-menu-bg', () => {
+            selectDifficulty(state.selectedDifficulty);
+            setDropdownOpen(false);
+        });
+    });
+    const diffBackBtn = document.getElementById('difficulty-back-btn');
+    if (diffBackBtn) diffBackBtn.addEventListener('click', () => {
+        setDropdownOpen(false);
+        closeSubPage('difficulty-page', difficultyBgLayer, 'difficulty-menu-bg');
+    });
+
+    // ── Main menu ↔ How To Play ─────────────────────────────────────────────
+    // The manual itself — panel copy, the card menu, and the data-rendered
+    // tables — lives in core/howtoplay.js. This block only owns the doorway.
+    const howtoplayBgLayer = document.getElementById('howtoplay-bg-layer');
+
+    const htpBtn = document.getElementById('howtoplay-btn');
+    if (htpBtn) htpBtn.addEventListener('click', () => {
+        openSubPage('howtoplay-page', howtoplayBgLayer, 'howtoplay-menu-bg',
+                    () => HowToPlay.open());
+    });
+
+    // BACK walks the manual back a level first — sub-page → panel 6 → contents
+    // → main menu — so a player three screens deep isn't dumped out of help.
+    const htpBackBtn = document.getElementById('howtoplay-back-btn');
+    if (htpBackBtn) htpBackBtn.addEventListener('click', () => {
+        if (HowToPlay.back()) return;
+        closeSubPage('howtoplay-page', howtoplayBgLayer, 'howtoplay-menu-bg');
+    });
+
+    const htpNextBtn = document.getElementById('htp-next-btn');
+    if (htpNextBtn) htpNextBtn.addEventListener('click', () => HowToPlay.next());
+
+    const htpScroll = document.getElementById('howtoplay-scroll');
+    if (htpScroll) htpScroll.addEventListener('click', HowToPlay.onCardClick);
+
+
+    // Restore the saved difficulty once the CSVs have populated TIERS.
+    (function restoreDifficulty() {
+        let saved = null;
+        try { saved = localStorage.getItem('ac_difficulty'); } catch (e) { /* private mode */ }
+        const apply = () => {
+            if (saved && TIERS[saved]) state.selectedDifficulty = saved;
+            if (diffCurrent && TIERS[state.selectedDifficulty]) {
+                diffCurrent.textContent = TIERS[state.selectedDifficulty].difficulty
+                                       || TIERS[state.selectedDifficulty].label;
+            }
+            renderDifficultyList();
+            renderDifficultyReadout();
+        };
+        // TIERS is rebuilt by loadGameData(); poll briefly rather than racing it.
+        if (Object.keys(TIERS).length) apply();
+        let tries = 0;
+        const t = setInterval(() => {
+            if (Object.keys(TIERS).length || ++tries > 40) { apply(); clearInterval(t); }
+        }, 100);
+    })();
+
     // ── Change Dispatcher (re-login as different player) ──
     document.getElementById('change-player-btn').addEventListener('click', () => {
         normalMenuBtns.classList.add('hidden');
@@ -653,12 +840,18 @@ function init() {
             const scoringPage = document.getElementById('scoring-page');
             const settingsPage = document.getElementById('settings-page');
             const highscoresPage = document.getElementById('highscores-page');
+            const difficultyPage = document.getElementById('difficulty-page');
+            const howtoplayPage = document.getElementById('howtoplay-page');
             if (scoringPage && !scoringPage.classList.contains('hidden')) {
                 container = scoringPage;
             } else if (settingsPage && !settingsPage.classList.contains('hidden')) {
                 container = settingsPage;
             } else if (highscoresPage && !highscoresPage.classList.contains('hidden')) {
                 container = highscoresPage;
+            } else if (difficultyPage && !difficultyPage.classList.contains('hidden')) {
+                container = difficultyPage;
+            } else if (howtoplayPage && !howtoplayPage.classList.contains('hidden')) {
+                container = howtoplayPage;
             } else if (startContent && !startContent.classList.contains('hidden')) {
                 container = startContent;
             }
@@ -701,6 +894,7 @@ function init() {
         // Menu navigation — only when a menu overlay is visible and game is NOT running
         // Skip menu nav while any prompt/input is active, or event came from an input element
         const skipMenuNav = state.holodeckPromptActive || state.devPromptActive
+                         || state.dropdownOpen
                          || (e.target && e.target.tagName === 'INPUT');
         const menuButtons = skipMenuNav ? [] : getVisibleMenuButtons();
         if (menuButtons.length > 0 && (!state.running || state.paused)) {
@@ -749,6 +943,16 @@ function init() {
 
         if (e.key === 'Escape') {
             e.preventDefault();
+            // Inside the manual, ESCAPE is the same "one level up" as BACK.
+            const htpPage = document.getElementById('howtoplay-page');
+            if (htpPage && !htpPage.classList.contains('hidden')) {
+                if (!HowToPlay.back()) {
+                    closeSubPage('howtoplay-page',
+                                 document.getElementById('howtoplay-bg-layer'),
+                                 'howtoplay-menu-bg');
+                }
+                return;
+            }
             if (state.paused) {
                 resumeGame();
             } else if (state.running && !state.devPromptActive && !state.holodeckPromptActive) {
@@ -1733,6 +1937,24 @@ function handleCommand(value) {
     const bs = state.backspaces;
     state.backspaces = 0;
 
+    // ── CARD Shorthand lifeline ──────────────────────────────────────────────
+    // Checked ahead of everything else. While a card is open the player is
+    // locked to answering it — that lockout, plus the dead streak, is the price
+    // of the hint. See CARD_HELP in core/config.js.
+    if (CARD_HELP.enabled) {
+        if (isCardTrigger(input)) { openCardHelp(); return; }
+        if (state.cardHelp) {
+            if (input === state.cardHelp.code) {
+                resolveCardHelp('rescued');
+            } else {
+                showStatus(`CARD OPEN — TYPE ${state.cardHelp.code}`, "miss");
+                DOM.input.classList.add('error');
+                setTimeout(() => DOM.input.classList.remove('error'), 300);
+            }
+            return;
+        }
+    }
+
     // ── Shorthand bonus ──────────────────────────────────────────────────────
     // Handled before everything else: real CAD commands are "AP 2100 72100" and
     // never start with '/', so the prefix is an unambiguous split. Runs even
@@ -1742,6 +1964,7 @@ function handleCommand(value) {
         if (sat && sat.phase === 'flying' && sat.code === input) {
             catchSatellite(sat);
         } else {
+            fireStrayLaser(sat);        // the gun still goes off, just badly
             applyMisfire('NO SUCH SHORTHAND');
             updateHUD();
             checkTier();
@@ -2205,6 +2428,18 @@ function checkRegen() {
     // Shield never regenerates — only the tower can be repaired (by ambulance)
 }
 
+// A run never drops below the difficulty the player chose. Starting at EXPERT
+// with a score of 0 would otherwise be demoted straight back to TRAINEE on the
+// first checkTier(), silently undoing the selection.
+function clampTierToFloor(tierKey) {
+    const floorKey = state.selectedDifficulty;
+    if (!tierKey || !floorKey || floorKey === 'trainee') return tierKey;
+    const floor = TIERS[floorKey];
+    const candidate = TIERS[tierKey];
+    if (!floor || !candidate) return tierKey;
+    return candidate.min < floor.min ? floorKey : tierKey;
+}
+
 function checkTier() {
     // If holodeck tier override is active, lock to that tier
     if (godMode.overrideTier && TIERS[godMode.overrideTier]) {
@@ -2214,7 +2449,7 @@ function checkTier() {
         }
         return;
     }
-    const newTierKey = getTierForScore(state.score);
+    const newTierKey = clampTierToFloor(getTierForScore(state.score));
     if (!newTierKey || newTierKey === state.tier) return;
 
     const oldTier = state.tier;
@@ -2262,7 +2497,11 @@ function spawnSatellite() {
     if (!SATELLITE.enabled || state.satellite || DATA_SHORTHAND.length === 0) return;
 
     const pick = weightedRandom(DATA_SHORTHAND);
-    const dir = Math.random() < 0.5 ? 1 : -1;      // 1 = flies left→right
+    // 1 = flies left→right (enters on the left), -1 = right→left (enters on the right)
+    const side = SATELLITE.entrySide || 'right';
+    const dir = side === 'random' ? (Math.random() < 0.5 ? 1 : -1)
+              : side === 'left'   ? 1
+              : -1;
     const tail = SATELLITE.towLineLength + bannerLength(pick.banner);
     const y = SATELLITE.altitudeMin + Math.random() * (SATELLITE.altitudeMax - SATELLITE.altitudeMin);
 
@@ -2346,6 +2585,14 @@ function updateSatellite(dt) {
     if (isSatelliteOffscreen(sat)) {
         state.satellite = null;
         state.satellitesMissed++;
+
+        // A card was open on this banner and never answered — that's the
+        // expensive failure, not a plain miss.
+        if (state.cardHelp && state.cardHelp.code === sat.code) {
+            resolveCardHelp('escaped');
+            return;
+        }
+
         if (state.satelliteStreak > 0) {
             state.satelliteStreak = 0;
             showStatus(`SIGNAL LOST — ${sat.code} BONUS RESET`, "miss");
@@ -2360,14 +2607,30 @@ function isSatelliteOffscreen(sat) {
         : sat.x + tail < 0;
 }
 
-// Player typed the banner's shorthand correctly
-function catchSatellite(sat) {
+// Player typed the banner's shorthand correctly.
+// `viaCard` — the answer came off a CARD Shorthand lookup, so the banner still
+// dies but scores nothing and builds no chain. See resolveCardHelp().
+function catchSatellite(sat, viaCard = false) {
+    // Aim at the ribbon before it's shredded, so the beam and the blast agree
+    fireLaser(satelliteBannerCenter(sat).x, sat.y, false);
+
     sat.phase = 'caught';
     sat.caughtAt = Date.now();
     sat.flash = 1;
     shredBanner(sat);           // banner tears free and starts burning down
 
     state.satellitesCaught++;
+
+    if (viaCard) {
+        AudioManager.play('hit');
+        createExplosion(satelliteBannerCenter(sat).x, sat.y, '#7a8a99', 45);
+        showStatus(`${sat.code} CLEARED — NO POINTS`, "miss");
+        updateHUD();
+        checkTier();
+        checkCalibration();
+        return;
+    }
+
     state.satelliteStreak = Math.min(state.satelliteStreak + 1, SATELLITE.streakCap);
 
     const mult = state.satelliteStreak;
@@ -2383,6 +2646,117 @@ function catchSatellite(sat) {
     updateHUD();
     checkTier();
     checkCalibration();
+}
+
+// ============================================
+// CARD SHORTHAND — the paid lifeline
+// "CARD SHORTHAND" reveals the code the banner in flight is asking for. Play
+// carries on underneath; the card locks the input line until that code is typed.
+// Answer in time and the banner dies for nothing. Let it escape and the tower
+// takes the hit. Either way the streak is gone. See CARD_HELP in core/config.js.
+// ============================================
+
+// Accepts any configured phrasing, but every one of them has to start with CARD.
+// Slashes and punctuation are stripped first so "/CARD /Shorthand Comment" and
+// "CARD SHORTHAND" land in the same place.
+function isCardTrigger(input) {
+    const norm = input
+        .replace(/[^A-Z0-9 ]/g, ' ')     // slashes, commas, hyphens → space
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!norm.startsWith('CARD')) return false;
+    return CARD_HELP.triggers.includes(norm);
+}
+
+function openCardHelp() {
+    if (state.cardHelp) {
+        showStatus(`CARD OPEN — TYPE ${state.cardHelp.code}`, "miss");
+        return;
+    }
+
+    const sat = state.satellite;
+    if (!sat || sat.phase !== 'flying') {
+        // Nothing in the sky to look up — no hint, but no punishment either.
+        showStatus("NO BANNER IN RANGE", "miss");
+        DOM.input.classList.add('error');
+        setTimeout(() => DOM.input.classList.remove('error'), 300);
+        return;
+    }
+
+    state.cardHelp = { code: sat.code, banner: sat.banner };
+    state.cardHelpUsed++;
+
+    // The cost lands the moment they ask, not when it resolves.
+    if (CARD_HELP.resetStreak) {
+        state.streak = 0;
+        state.perfectStreak = 0;
+        state.perfectMilestonesHit = [];
+        state.satelliteStreak = 0;
+    }
+
+    if (DOM.cardHelp) {
+        DOM.cardHelpBanner.textContent = sat.banner;
+        DOM.cardHelpCode.textContent = sat.code;
+        DOM.cardHelp.classList.remove('hidden', 'card-win', 'card-fail');
+    }
+
+    AudioManager.play('misfire');
+    showStatus("CARD PULLED — STREAK RESET", "miss");
+    updateHUD();
+}
+
+// outcome: 'rescued' (typed in time) | 'escaped' (banner left with the card open)
+function resolveCardHelp(outcome) {
+    const card = state.cardHelp;
+    if (!card) return;
+    state.cardHelp = null;
+
+    if (outcome === 'rescued') {
+        const sat = state.satellite;
+        flashCardHelp('card-win');
+        if (sat && sat.phase === 'flying' && sat.code === card.code) {
+            catchSatellite(sat, true);          // dies, scores nothing
+        } else {
+            showStatus(`${card.code} CLEARED — NO POINTS`, "miss");
+            updateHUD();
+        }
+        return;
+    }
+
+    // Escaped — the expensive ending.
+    state.cardHelpFailed++;
+    flashCardHelp('card-fail');
+
+    const tier = TIERS[state.tier] || {};
+    const base = tier.impactPenalty || -50;
+    const penalty = base * CARD_HELP.failPenaltyMultiplier;
+
+    applyScore(penalty);
+    // 'impact' so it behaves like a real strike: crack, shield hit, and a
+    // downed tower if the shields were already gone.
+    applyDamage(CARD_HELP.failDamage, 'impact');
+    showStatus(`${card.code} LOST — ${penalty}`, "miss");
+    flashScorePenalty();
+    updateHUD();
+    checkTier();
+}
+
+function flashCardHelp(cls) {
+    if (!DOM.cardHelp) return;
+    DOM.cardHelp.classList.add(cls);
+    setTimeout(() => {
+        DOM.cardHelp.classList.add('hidden');
+        DOM.cardHelp.classList.remove('card-win', 'card-fail');
+    }, CARD_HELP.flashMs);
+}
+
+// Restart / game-over teardown — never leave a card locking the input line.
+function clearCardHelp() {
+    state.cardHelp = null;
+    if (DOM.cardHelp) {
+        DOM.cardHelp.classList.add('hidden');
+        DOM.cardHelp.classList.remove('card-win', 'card-fail');
+    }
 }
 
 // ── Banner burn-up ──────────────────────────────────────────────────────────
@@ -2470,6 +2844,199 @@ function spawnBannerFlake(f) {
         decay: 0.014 + Math.random() * 0.022,
         type: 'ember'
     });
+}
+
+// ============================================
+// SATELLITE LASER
+// The tower's shot at a banner. Hitscan, and purely cosmetic — the caller has
+// already settled the catch or the penalty by the time the beam is created, so
+// a downed tower silently skips the visual rather than costing anything.
+// See LASER in core/config.js.
+// ============================================
+
+// Same mast tip fireProjectile() shoots from.
+function laserMuzzle() {
+    const tower = getTower();
+    if (!tower || state.towerDisabled || state.rebuilding) return null;
+    return { x: tower.x, y: tower.y - tower.h * 0.93 };
+}
+
+function fireLaser(tx, ty, misfire = false) {
+    if (!LASER.enabled) return;
+    const m = laserMuzzle();
+    if (!m) return;                       // no gun to fire
+
+    const dx = tx - m.x, dy = ty - m.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    let angle = Math.atan2(dy, dx);
+    let len = dist;
+
+    const L = {
+        x: m.x, y: m.y,
+        misfire,
+        age: 0,
+        life: misfire ? LASER.misfireDuration : LASER.duration,
+        seed: Math.random() * 1000,
+        sparks: []
+    };
+
+    if (misfire) {
+        const skew = LASER.misfireSkewMin +
+                     Math.random() * (LASER.misfireSkewMax - LASER.misfireSkewMin);
+        angle += (Math.random() < 0.5 ? -1 : 1) * skew;
+        len = dist * (LASER.misfireReachMin +
+                      Math.random() * (LASER.misfireReachMax - LASER.misfireReachMin));
+    }
+
+    L.ex = m.x + Math.cos(angle) * len;
+    L.ey = m.y + Math.sin(angle) * len;
+
+    if (misfire) {
+        spawnLaserSparks(L, m.x, m.y, angle);        // blowback at the gun
+        spawnLaserSparks(L, L.ex, L.ey, angle);      // and where the beam breaks
+    }
+
+    AudioManager.play(misfire ? 'laserMisfire' : 'laser');
+    state.lasers.push(L);
+}
+
+// A bad /shorthand still pulls the trigger. With a banner up the shot is aimed
+// at it and visibly misses; with an empty sky it just goes wide.
+function fireStrayLaser(sat) {
+    if (sat && sat.phase === 'flying') {
+        fireLaser(satelliteBannerCenter(sat).x, sat.y, true);
+        return;
+    }
+    const m = laserMuzzle();
+    if (!m) return;
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2 * LASER.straySpread;
+    fireLaser(m.x + Math.cos(angle) * LASER.strayReach,
+              m.y + Math.sin(angle) * LASER.strayReach, true);
+}
+
+function spawnLaserSparks(L, x, y, angle) {
+    for (let i = 0; i < LASER.sparkCount; i++) {
+        const a = angle + (Math.random() - 0.5) * 2 * LASER.sparkSpread;
+        const sp = LASER.sparkSpeed * (0.35 + Math.random() * 0.65);
+        L.sparks.push({
+            x, y,
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            life: 1,
+            decay: 1 / (LASER.sparkLifeMin +
+                        Math.random() * (LASER.sparkLifeMax - LASER.sparkLifeMin))
+        });
+    }
+}
+
+function updateLasers(dt) {
+    for (let i = state.lasers.length - 1; i >= 0; i--) {
+        const L = state.lasers[i];
+        L.age += dt;
+
+        for (let s = L.sparks.length - 1; s >= 0; s--) {
+            const p = L.sparks[s];
+            p.vy += LASER.sparkGravity * dt;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= p.decay * dt;
+            if (p.life <= 0) L.sparks.splice(s, 1);
+        }
+
+        // Sparks outlive the beam, so the shot isn't retired until both are done
+        if (L.age >= L.life && L.sparks.length === 0) state.lasers.splice(i, 1);
+    }
+}
+
+// Stable hash — the stutter pattern has to hold still for a few frames rather
+// than shimmering every one, so it can't come from Math.random().
+function laserNoise(n) {
+    const s = Math.sin(n) * 43758.5453;
+    return s - Math.floor(s);
+}
+
+function laserBloom(ctx, x, y, r, rgb, bright) {
+    if (r <= 0.5) return;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255, 255, 255, ${0.85 * bright})`);
+    g.addColorStop(0.35, `rgba(${rgb}, ${0.5 * bright})`);
+    g.addColorStop(1, `rgba(${rgb}, 0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawLasers(ctx) {
+    for (const L of state.lasers) {
+        if (L.age < L.life) {
+            const rgb = L.misfire ? LASER.misfireColor : LASER.color;
+            const bright = (1 - L.age / L.life) * (1 - Math.random() * LASER.flicker);
+
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = `rgba(${rgb}, ${0.8 * bright})`;
+            if (L.misfire) drawBrokenBeam(ctx, L, rgb, bright);
+            else drawCleanBeam(ctx, L, rgb, bright);
+            ctx.restore();
+        }
+
+        // Sparks are drawn unshadowed and outlive the beam itself
+        for (const p of L.sparks) {
+            const a = Math.max(0, p.life);
+            ctx.fillStyle = `rgba(255, ${120 + Math.floor(110 * a)}, 60, ${a})`;
+            ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+        }
+    }
+}
+
+// Wide bloom, coloured body, then a hot white filament down the middle.
+function drawCleanBeam(ctx, L, rgb, bright) {
+    const stroke = (w, style) => {
+        ctx.strokeStyle = style;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(L.x, L.y);
+        ctx.lineTo(L.ex, L.ey);
+        ctx.stroke();
+    };
+    stroke(LASER.glowWidth, `rgba(${rgb}, ${0.20 * bright})`);
+    stroke(LASER.coreWidth * 2.2, `rgba(${rgb}, ${0.45 * bright})`);
+    stroke(LASER.coreWidth, `rgba(255, 255, 255, ${0.95 * bright})`);
+
+    laserBloom(ctx, L.x, L.y, LASER.muzzleFlash * bright, rgb, bright);
+    laserBloom(ctx, L.ex, L.ey, LASER.impactFlash * bright, rgb, bright);
+}
+
+// A misfire never leaves the tower in one piece: the beam is chopped into
+// segments and a shifting subset is blanked out, so it reads as a shot failing
+// to strike rather than a solid line that merely stops short.
+function drawBrokenBeam(ctx, L, rgb, bright) {
+    const n = LASER.misfireSegments;
+    const phase = Math.floor(L.age * LASER.misfireStutter);
+
+    for (let i = 0; i < n; i++) {
+        if (laserNoise(L.seed + i * 7.3 + phase * 13.1) < LASER.misfireGapChance) continue;
+
+        const t0 = i / n, t1 = (i + 1) / n;
+        // The further down the beam, the further it thrashes off the line
+        const wob = t0 * LASER.misfireWander;
+        const ox = (laserNoise(L.seed + i + phase * 3.7) - 0.5) * wob;
+        const oy = (laserNoise(L.seed + i + phase * 5.1) - 0.5) * wob;
+        const x0 = L.x + (L.ex - L.x) * t0 + ox, y0 = L.y + (L.ey - L.y) * t0 + oy;
+        const x1 = L.x + (L.ex - L.x) * t1 + ox, y1 = L.y + (L.ey - L.y) * t1 + oy;
+
+        ctx.strokeStyle = `rgba(${rgb}, ${0.5 * bright})`;
+        ctx.lineWidth = LASER.coreWidth * 2;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+
+        ctx.strokeStyle = `rgba(255, 220, 190, ${0.8 * bright})`;
+        ctx.lineWidth = LASER.coreWidth * 0.8;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    }
+
+    laserBloom(ctx, L.x, L.y, LASER.muzzleFlash * 0.8 * bright, rgb, bright);
 }
 
 function drawBannerDebris(ctx) {
@@ -4316,6 +4883,7 @@ function update(dt) {
         maintainAsteroids(dt);  // Pass delta-time for spawn timer
         maintainSatellite(dt);  // Banner bonus flyby
         updateBannerDebris(dt); // Claimed banners burning down — outlives the satellite
+        updateLasers(dt);       // Tower shots at a banner
         updateRicochets(dt);
         updateAftermathVFX(dt);
         updateCanal(dt);
@@ -4454,11 +5022,26 @@ function update(dt) {
 }
 
 function damageDefense(def, initiator, receiver) {
-    if (def.hp <= 0 && def.type !== 'tower') return;
-
     // Dual Naming: initiator = Target Impact (asteroid), receiver = Impact Zone (defense)
     const initiatorLabel = initiator ? `[${initiator.unitID || 'UNKNOWN'}]` : '';
     const receiverLabel = receiver ? receiver.name : def.name;
+
+    // ── Debris Strike: the Impact Zone is already rubble ──
+    // Asteroids keep getting aimed at dead zones, so these calls still have to
+    // be cleared. Nothing is left to destroy — the consecutive-destruction
+    // counter and the kill streak stay untouched — but the miss costs points.
+    if (def.hp <= 0 && def.type !== 'tower') {
+        AudioManager.play('targetImpact');
+        createExplosion(def.x, def.y, '#8a7f6b', 30);   // dust off the ruin, not fire
+        const baseHit = (TIERS[state.tier] || {}).baseHit || 100;
+        const penalty = Math.max(SCORING.maxPenalty,
+                                 -Math.floor(baseHit * SCORING.debrisStrikeMult));
+        applyScore(penalty);
+        showStatus(`DEBRIS STRIKE ${penalty} — ${initiatorLabel} → ${receiverLabel.toUpperCase()}`, "impact");
+        flashScorePenalty();
+        updateHUD();
+        return;
+    }
 
     if (def.type === 'tower') {
         AudioManager.play('targetImpact');
@@ -5579,6 +6162,11 @@ function render() {
         try { drawExplosion(ctx, e); } catch (err) { console.error('Explosion render failed:', err); }
     });
 
+    // Laser rides on top — it's the shot, it should read over everything
+    if (state.lasers.length) {
+        try { drawLasers(ctx); } catch (e) { console.error('Laser render failed:', e); }
+    }
+
     // Restore canvas transform (undo virtual-coordinate scale)
     ctx.restore();
 }
@@ -6016,6 +6604,13 @@ function startGame(holodeck = false) {
     if (state._holodeckMenuShownAt && Date.now() - state._holodeckMenuShownAt < 400) return;
     if (state.ambulancePendingTimer) { clearTimeout(state.ambulancePendingTimer); state.ambulancePendingTimer = null; }
     clearTimeout(state.timers.gameOverDelay);
+    clearCardHelp();
+
+    // Opening rank comes from the DIFFICULTY screen. Everything below that used
+    // to read TIERS.trainee directly — it now reads the chosen tier.
+    const startKey = TIERS[state.selectedDifficulty] ? state.selectedDifficulty : 'trainee';
+    const startTier = TIERS[startKey];
+
     Object.assign(state, {
         running: true, score: 0, shieldHP: 9, towerExposed: false, repairCount: 0,
         cracks: [], ricochetProjectiles: [], streak: 0, streakSinceShieldHit: 0,
@@ -6026,16 +6621,17 @@ function startGame(holodeck = false) {
         firstBloodAwarded: false,
         rankScoreAccum: 0, lastCalibrationAt: 0,
         // ── End new scoring state ──
-        tier: 'trainee',
-        speedMult: TIERS.trainee ? TIERS.trainee.speedMax : 0.8,
-        spawnInterval: TIERS.trainee ? TIERS.trainee.spawnMin : 5000,
-        maxTargets: TIERS.trainee ? TIERS.trainee.maxTargets : 6,
+        tier: startKey,
+        speedMult: startTier ? startTier.speedMax : 0.8,
+        spawnInterval: startTier ? startTier.spawnMin : 5000,
+        maxTargets: startTier ? startTier.maxTargets : 6,
         asteroids: [], projectiles: [], brokenProjectiles: [], explosions: [],
         towerDisabled: false, rebuilding: false, ambulance: null, ambulanceDestroyCount: 0,
-        satellite: null, bannerDebris: [], satelliteStreak: 0, satellitesCaught: 0, satellitesMissed: 0,
+        satellite: null, bannerDebris: [], lasers: [], satelliteStreak: 0, satellitesCaught: 0, satellitesMissed: 0,
+        cardHelp: null, cardHelpUsed: 0, cardHelpFailed: 0,
         beamActive: false, gameOverPending: false,
         backspaces: 0, cleanHits: 0, environmentalParticles: [],
-        timers: { spawnTimer: TIERS.trainee ? TIERS.trainee.spawnMin : 5000 }, // Start ready to spawn first asteroid
+        timers: { spawnTimer: startTier ? startTier.spawnMin : 5000 }, // Start ready to spawn first asteroid
         spawnHistory: [],                            // Zone spread tracking (16-zone system)
         bridgeStartTime: Date.now(),                 // Bridge starts lowered, raises after 10 s
         holodeckSelectedAsteroid: null,              // Right-click redirect selection
@@ -6050,7 +6646,7 @@ function startGame(holodeck = false) {
     state.usedChallenges.clear();
 
     // Apply initial tier settings via setTier (bridges config.js ↔ progression.csv)
-    setTier('trainee');
+    setTier(startKey);
 
     CONFIG.isHolodeck = holodeck;
 
@@ -6179,7 +6775,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '',
         'POWERLINE TELEMETRY LINK . . . OK',
         'SYS 49152: LOADING DISPATCH MATRIX',
-        'SYS 49408: UNIT ROSTER . . . 54 UNITS LOADED',
+        'SYS 49408: UNIT ROSTER . . . 67 UNITS LOADED',
         'SYS 49664: BASE CODES . . . 21 LOCATIONS MAPPED',
         'SYS 49920: ACTION TABLE . . . 4 COMMAND TYPES',
         'INIT ASTEROID TRACKING ARRAY . . . OK',
@@ -6213,6 +6809,15 @@ document.addEventListener('DOMContentLoaded', () => {
         '#ff8800', '#88ff00', '#00ffaa', '#aa00ff', '#ffaacc',
         '#884400', '#448844', '#444488', '#cc8800',
     ];
+
+    // ── Glitch-tail timing ──
+    // The scramble → flood → flash that ends the load. A short, sharp hit (~1.4s
+    // all in) rather than something to sit through — the flood still builds to the
+    // same density, it just gets there in fewer frames.
+    const JITTER_FRAMES  = 24;    // text scrambles apart (~0.4s)
+    const CORRUPT_FRAMES = 48;    // multicoloured flood (~0.8s)
+    const CHAOS_HOLD_MS  = 120;   // beat on the full flood
+    const FLASH_MS       = 160;   // white flash into the title screen
 
     let bootLines = [];
     let bootIndex = 0;
@@ -6423,7 +7028,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Jitter intensity increases for lines near the end
             if (jitterPhase && i >= 14) {
-                const intensity = Math.min(1.0, (jitterFrame / 80) * ((i - 13) / 7));
+                const intensity = Math.min(1.0, (jitterFrame / JITTER_FRAMES) * 1.5 * ((i - 13) / 7));
                 x += (Math.random() - 0.5) * intensity * 20;
                 y += (Math.random() - 0.5) * intensity * 6;
                 // Scramble some characters in the line
@@ -6453,10 +7058,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // First draw the jittering boot text as the base
         drawBootWithJitter();
 
-        const progress = corruptFrame / 240;
+        const progress = corruptFrame / CORRUPT_FRAMES;
 
-        // Add new chaos elements each frame — small shapes like the reference
-        const newPerFrame = Math.floor(5 + progress * 25);
+        // Add new chaos elements each frame — small shapes like the reference.
+        // Rate is set so the screen reaches full flood by the last frame.
+        const newPerFrame = Math.floor(25 + progress * 125);
         for (let i = 0; i < newPerFrame; i++) {
             const color = CORRUPT_COLORS[Math.floor(Math.random() * CORRUPT_COLORS.length)];
             const x = Math.random() * canvas.width;
@@ -6539,8 +7145,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Screen shake intensifies
-        if (corruptFrame > 20) {
-            const shake = (corruptFrame - 20) * 0.4;
+        if (progress > 0.08) {
+            const shake = (progress - 0.08) * 96;
             canvas.style.transform = `translate(${(Math.random()-0.5)*shake}px, ${(Math.random()-0.5)*shake}px)`;
         }
 
@@ -6581,7 +7187,7 @@ document.addEventListener('DOMContentLoaded', () => {
             jitterFrame++;
             drawBootWithJitter();
 
-            if (jitterFrame < 120) {
+            if (jitterFrame < JITTER_FRAMES) {
                 requestAnimationFrame(jitterTick);
             } else {
                 // Jitter done — start chaos overlay
@@ -6601,7 +7207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             corruptFrame++;
             drawCorruption();
 
-            if (corruptFrame < 240) {
+            if (corruptFrame < CORRUPT_FRAMES) {
                 requestAnimationFrame(corruptTick);
             } else {
                 // Hold the full chaos screen briefly
@@ -6618,8 +7224,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Corruption done — seamless reveal: title screen + music
                         canvas.style.transform = '';
                         revealTitleScreen();
-                    }, 250);
-                }, 500);
+                    }, FLASH_MS);
+                }, CHAOS_HOLD_MS);
             }
         }
         corruptTick();

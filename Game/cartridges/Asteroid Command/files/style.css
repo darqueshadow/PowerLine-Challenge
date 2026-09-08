@@ -1001,7 +1001,9 @@ body { background: var(--color-bg); color: var(--color-text); font-family: var(-
     padding: 30px 40px;
 }
 
-#start-content, #scoring-page, #game-over-content, #pause-content { text-align: center; padding: 30px; max-width: 800px; }
+#start-content, #scoring-page, #game-over-content, #pause-content,
+#difficulty-page, #howtoplay-page { text-align: center; padding: 30px; max-width: 800px; }
+#difficulty-page, #howtoplay-page { max-width: 100%; width: 100%; box-sizing: border-box; }
 #start-content { background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; width: 100%; max-width: 100%; padding: 0; text-align: center; box-sizing: border-box; }
 #scoring-page, #game-over-content { max-width: 600px; }
 .menu-page.hidden { display: none; }
@@ -1230,20 +1232,26 @@ body { background: var(--color-bg); color: var(--color-text); font-family: var(-
     paint-order: stroke fill;
 }
 
-/* Title screen press-any-key prompt */
+/* Title screen press-any-key prompt — wears the same arcade-cabinet plate as the
+   main-menu buttons below it (see #start-btn et al), so the title screen and the
+   menu it becomes read as one machine. Still a <div>, not a <button>:
+   dismissTitleScreen() deliberately ignores clicks that land on a button. */
 #title-press-prompt {
-    color: #33ff33;
-    font-size: 22px;
+    display: inline-block;
+    border: 3px solid #00e5ff;
+    background: #0a0a14;
+    color: #ffffff;
+    font-family: var(--font-arcade);
     font-weight: bold;
+    font-size: 15px;
     letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 14px 34px;
     margin-top: 30px;
+    border-radius: 0;
+    text-shadow: 2px 2px 0 #000;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
     animation: blink-prompt 1s infinite;
-    text-shadow: 0 0 8px rgba(255, 160, 0, 0.7), 0 0 20px rgba(255, 120, 0, 0.5), 0 0 40px rgba(255, 80, 0, 0.3), 0 0 60px rgba(255, 60, 0, 0.15);
-    -webkit-text-stroke: 1.5px #000000;
-    paint-order: stroke fill;
-    border: 2px solid red;
-    background: rgba(255, 0, 0, 0.25);
-    padding: 8px 16px;
 }
 #title-press-prompt.hidden { display: none; }
 @keyframes blink-prompt { 50% { opacity: 0; } }
@@ -1288,22 +1296,16 @@ body { background: var(--color-bg); color: var(--color-text); font-family: var(-
     position: relative;
     z-index: 1;
 }
-.credit-line {
-    font-size: 15px;
+/* Studio mark — replaces the old per-person credit roll */
+.studio-name {
+    font-size: 17px;
     color: #00ff88;
     font-weight: bold;
-    text-shadow: 0 0 6px rgba(0, 255, 136, 0.5), 1px 1px 3px rgba(0, 0, 0, 0.95);
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.45), 2px 2px 0 rgba(0, 0, 0, 0.95);
     font-family: 'Consolas', 'Courier New', monospace;
     white-space: nowrap;
-}
-.credit-role {
-    color: #00cc66;
-    font-weight: normal;
-}
-.credit-sep {
-    color: #00aa55;
-    margin: 0 10px;
-    font-size: 10px;
 }
 #final-stats { margin: 15px 0; padding: 10px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; font-size: 12px; color: var(--color-dim); }
 
@@ -1417,7 +1419,7 @@ body { background: var(--color-bg); color: var(--color-text); font-family: var(-
 }
 
 /* === Buttons === */
-#start-btn, #restart-btn, #main-menu-btn, #eject-btn, #holodeck-btn, #exit-holodeck-btn, #scoring-btn, #back-to-menu-btn, #resume-btn, #restart-pause-btn, #quit-btn, #settings-btn, #highscores-btn, #settings-back-btn, #highscores-back-btn, #submit-score-btn, #change-player-btn {
+#start-btn, #restart-btn, #main-menu-btn, #eject-btn, #holodeck-btn, #exit-holodeck-btn, #scoring-btn, #back-to-menu-btn, #resume-btn, #restart-pause-btn, #quit-btn, #settings-btn, #highscores-btn, #settings-back-btn, #highscores-back-btn, #submit-score-btn, #change-player-btn, #howtoplay-btn, #difficulty-btn, #difficulty-back-btn, #howtoplay-back-btn {
     background: transparent;
     border: 2px solid var(--color-primary);
     color: var(--color-primary);
@@ -1430,12 +1432,25 @@ body { background: var(--color-bg); color: var(--color-text); font-family: var(-
     transition: all 0.2s ease;
     margin: 5px;
 }
-/* PET green buttons with transparent backdrop for main menu */
-#start-btn, #scoring-btn, #settings-btn, #highscores-btn, #change-player-btn {
-    border: 2px solid #33ff33;
-    color: #33ff33;
-    background: rgba(40, 40, 50, 0.6);
-    text-shadow: 0 0 6px rgba(51, 255, 51, 0.5);
+/* === Main-menu buttons — 1980s arcade cabinet ===
+   The PET look belongs to the CAT boot shell, not to the game. In here:
+   chunky opaque plates, hard edges, hard offset shadows, no soft glow on the
+   glyphs. Fully opaque so the (bright green/teal) console art can never bleed
+   through a label. */
+#start-btn, #scoring-btn, #settings-btn, #highscores-btn, #change-player-btn,
+#howtoplay-btn, #difficulty-btn {
+    border: 3px solid #00e5ff;
+    color: #ffffff;
+    background: #0a0a14;
+    font-weight: bold;
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 14px 34px;
+    border-radius: 0;
+    text-shadow: 2px 2px 0 #000;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
+    position: relative;
+    transition: none;
 }
 
 #start-btn:hover, #restart-btn:hover, #main-menu-btn:hover, #resume-btn:hover, #restart-pause-btn:hover, #quit-btn:hover, #submit-score-btn:hover {
@@ -1454,17 +1469,42 @@ button.menu-kb-selected {
     0%, 100% { box-shadow: 0 0 25px var(--color-primary), 0 0 50px rgba(0, 255, 204, 0.3); }
     50%      { box-shadow: 0 0 35px var(--color-primary), 0 0 70px rgba(0, 255, 204, 0.5); }
 }
-/* PET green buttons selected */
-#start-btn:hover, #start-btn.menu-kb-selected {
-    background: rgba(51, 255, 51, 0.25) !important; color: #33ff33 !important;
-    box-shadow: 0 0 25px rgba(51, 255, 51, 0.5), 0 0 50px rgba(51, 255, 51, 0.2) !important;
-    outline: 2px solid #33ff33; outline-offset: 3px;
+/* Selected/hover — full invert to a solid amber plate with black text (matches
+   the title's amber). Reads at a glance against any part of the artwork. */
+#start-btn:hover, #start-btn.menu-kb-selected,
+#scoring-btn:hover, #scoring-btn.menu-kb-selected,
+#settings-btn:hover, #settings-btn.menu-kb-selected,
+#highscores-btn:hover, #highscores-btn.menu-kb-selected,
+#change-player-btn:hover, #change-player-btn.menu-kb-selected,
+#howtoplay-btn:hover, #howtoplay-btn.menu-kb-selected,
+#difficulty-btn:hover, #difficulty-btn.menu-kb-selected {
+    background: #ffb300 !important;
+    color: #140c00 !important;
+    border-color: #fff2a8 !important;
+    text-shadow: none !important;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85), 0 0 22px rgba(255, 179, 0, 0.55) !important;
+    outline: none !important;
+    animation: none !important;
 }
-#scoring-btn:hover, #scoring-btn.menu-kb-selected {
-    background: rgba(51, 255, 51, 0.2) !important; color: #33ff33 !important;
-    box-shadow: 0 0 25px rgba(51, 255, 51, 0.4), 0 0 50px rgba(51, 255, 51, 0.15) !important;
-    outline: 2px solid #33ff33; outline-offset: 3px;
+/* Classic arcade blinking pointer on the keyboard-selected entry */
+#start-btn.menu-kb-selected::before,
+#scoring-btn.menu-kb-selected::before,
+#settings-btn.menu-kb-selected::before,
+#highscores-btn.menu-kb-selected::before,
+#change-player-btn.menu-kb-selected::before,
+#howtoplay-btn.menu-kb-selected::before,
+#difficulty-btn.menu-kb-selected::before {
+    content: '\25B6';
+    position: absolute;
+    left: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #ffb300;
+    font-size: 16px;
+    text-shadow: 2px 2px 0 #000;
+    animation: arcade-blink 0.6s steps(1) infinite;
 }
+@keyframes arcade-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 #holodeck-btn {
     border: none;
     background: var(--lcars-tangerine, #ff9900);
@@ -1495,22 +1535,53 @@ button.menu-kb-selected {
 }
 #eject-btn { border-color: var(--color-secondary); color: var(--color-secondary); }
 #eject-btn:hover { background: var(--color-secondary); color: var(--color-bg); }
-/* scoring-btn uses PET green from above */
-#back-to-menu-btn, #settings-back-btn, #highscores-back-btn { border-color: var(--color-dim); color: var(--color-dim); margin-top: 10px; }
+/* Back buttons — same arcade plate, cooler colour so they read as "retreat"
+   rather than "go". */
+#back-to-menu-btn, #settings-back-btn, #highscores-back-btn,
+#difficulty-back-btn, #howtoplay-back-btn {
+    border: 3px solid #7fa8cc;
+    color: #ffffff;
+    background: #0a0a14;
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 14px 34px;
+    border-radius: 0;
+    text-shadow: 2px 2px 0 #000;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
+    position: relative;
+    transition: none;
+}
 #back-to-menu-btn:hover, #back-to-menu-btn.menu-kb-selected,
 #settings-back-btn:hover, #settings-back-btn.menu-kb-selected,
-#highscores-back-btn:hover, #highscores-back-btn.menu-kb-selected {
-    background: var(--color-dim) !important; color: var(--color-bg) !important;
-    box-shadow: 0 0 25px var(--color-dim), 0 0 50px rgba(102, 102, 102, 0.3) !important;
-    outline: 2px solid var(--color-dim); outline-offset: 3px;
+#highscores-back-btn:hover, #highscores-back-btn.menu-kb-selected,
+#difficulty-back-btn:hover, #difficulty-back-btn.menu-kb-selected,
+#howtoplay-back-btn:hover, #howtoplay-back-btn.menu-kb-selected {
+    background: #cfe4f7 !important;
+    color: #05080f !important;
+    border-color: #ffffff !important;
+    text-shadow: none !important;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85), 0 0 22px rgba(207, 228, 247, 0.5) !important;
+    outline: none !important;
+    animation: none !important;
 }
-/* Settings & High Scores PET green hover */
-#settings-btn:hover, #settings-btn.menu-kb-selected,
-#highscores-btn:hover, #highscores-btn.menu-kb-selected {
-    background: rgba(51, 255, 51, 0.2) !important; color: #33ff33 !important;
-    box-shadow: 0 0 25px rgba(51, 255, 51, 0.4), 0 0 50px rgba(51, 255, 51, 0.15) !important;
-    outline: 2px solid #33ff33; outline-offset: 3px;
+#back-to-menu-btn.menu-kb-selected::before,
+#settings-back-btn.menu-kb-selected::before,
+#highscores-back-btn.menu-kb-selected::before,
+#difficulty-back-btn.menu-kb-selected::before,
+#howtoplay-back-btn.menu-kb-selected::before {
+    content: '\25B6';
+    position: absolute;
+    left: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #cfe4f7;
+    font-size: 16px;
+    text-shadow: 2px 2px 0 #000;
+    animation: arcade-blink 0.6s steps(1) infinite;
 }
+/* (Settings & High Scores share the arcade selected style defined above.) */
 /* Settings & High Scores submenu background layers */
 #settings-bg-layer, #highscores-bg-layer {
     position: absolute;
@@ -1975,4 +2046,688 @@ button.menu-kb-selected {
     28%  { opacity: 1; }
     35%  { opacity: 0; }
     100% { opacity: 0; }
+}
+
+/* ==========================================================================
+   DIFFICULTY  ·  HOW TO PLAY  ·  CARD SHORTHAND
+   Arcade-cabinet styling, not a spreadsheet: dark plates, hard offset shadows,
+   amber for "you", cyan for structure, red for what it costs you.
+   ========================================================================== */
+
+/* Shared greyscale art layer behind both new submenus, matching Settings. */
+#difficulty-bg-layer, #howtoplay-bg-layer {
+    position: absolute;
+    inset: 0;
+    background:
+        url('assets/Menus/main_menu.png') center center / contain no-repeat,
+        linear-gradient(180deg, #0a0a0e 0%, #0d0d12 100%);
+    filter: grayscale(100%) brightness(0.38);
+    z-index: 0;
+    pointer-events: none;
+}
+#start-overlay.difficulty-menu-bg,
+#start-overlay.howtoplay-menu-bg {
+    background: linear-gradient(180deg, #0a0a0e 0%, #0d0d12 100%);
+}
+#start-overlay.difficulty-menu-bg #difficulty-page,
+#start-overlay.howtoplay-menu-bg #howtoplay-page {
+    position: relative;
+    z-index: 1;
+}
+/* The manual owns the full height of the overlay: the panel scrolls, the
+   BACK/NEXT row never does. Otherwise a short window pushes the nav off the
+   bottom of the screen. */
+#start-overlay.howtoplay-menu-bg #howtoplay-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    padding: 18px 24px 14px;
+}
+
+/* ── DIFFICULTY ─────────────────────────────────────────────────────────── */
+
+#difficulty-panel {
+    width: min(620px, 90vw);
+    margin: 0 auto;
+    padding: 22px 26px;
+    background: rgba(6, 8, 14, 0.94);
+    border: 3px solid #00e5ff;
+    box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.85);
+}
+.diff-intro {
+    color: #b9c9d8;
+    font-size: 12px;
+    line-height: 1.7;
+    margin: 0 0 20px;
+    letter-spacing: 0.5px;
+}
+.diff-select-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.diff-select-label {
+    color: #7fa8cc;
+    font-size: 12px;
+    letter-spacing: 3px;
+    font-weight: bold;
+}
+
+/* Custom dropdown — a native <select> popup renders OS-chrome and breaks the
+   cabinet look, so the list is ours. */
+.ac-dropdown { position: relative; min-width: 300px; text-align: left; }
+.ac-dropdown-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: #ffb300;
+    color: #140c00;
+    border: 3px solid #fff2a8;
+    border-radius: 0;
+    padding: 12px 16px;
+    font-family: var(--font-arcade);
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
+    transition: none;
+}
+.ac-dropdown-trigger:hover { background: #ffc738; }
+/* The trigger is a <button>, so the generic menu-nav highlight would repaint it
+   cyan. Keep it amber and show selection as an outline instead. */
+.ac-dropdown-trigger.menu-kb-selected {
+    background: #ffc738 !important;
+    color: #140c00 !important;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85), 0 0 22px rgba(255, 179, 0, 0.55) !important;
+    outline: 3px solid #ffffff !important;
+    outline-offset: 3px;
+    animation: none !important;
+}
+.ac-dropdown-caret { font-size: 11px; }
+.ac-dropdown-trigger.open .ac-dropdown-caret { transform: rotate(180deg); }
+
+.ac-dropdown-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: #05070d;
+    border: 3px solid #00e5ff;
+    box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.9);
+    z-index: 40;
+    max-height: 320px;
+    overflow-y: auto;
+}
+.ac-dropdown-list.hidden { display: none; }
+.ac-dropdown-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.18);
+}
+.ac-dropdown-item:last-child { border-bottom: none; }
+.ac-opt-level {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+.ac-opt-rank {
+    color: #6f8ba3;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+}
+.ac-dropdown-item:hover,
+.ac-dropdown-item.selected {
+    background: #ffb300;
+}
+.ac-dropdown-item:hover .ac-opt-level,
+.ac-dropdown-item.selected .ac-opt-level { color: #140c00; }
+.ac-dropdown-item:hover .ac-opt-rank,
+.ac-dropdown-item.selected .ac-opt-rank { color: #5a4200; }
+.ac-dropdown-item.selected .ac-opt-level::before {
+    content: '\25B6  ';
+    font-size: 10px;
+}
+
+/* Stat readout for the highlighted difficulty */
+#difficulty-readout {
+    border-top: 2px solid rgba(0, 229, 255, 0.3);
+    padding-top: 14px;
+}
+.diff-readout-head {
+    color: #00e5ff;
+    font-size: 10px;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+}
+.diff-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 2px;
+    border-bottom: 1px dotted rgba(127, 168, 204, 0.22);
+}
+.diff-stat:last-child { border-bottom: none; }
+.diff-stat-k { color: #7fa8cc; font-size: 11px; letter-spacing: 2px; }
+.diff-stat-v { color: #ffffff; font-size: 13px; font-weight: bold; letter-spacing: 1px; }
+
+/* ── HOW TO PLAY ────────────────────────────────────────────────────────────
+   A menu of cards, not a document. The player picks the one screen they need
+   and every panel comes back here. Copy and structure per
+   Help Files/AsteroidCommand_HowToPlay_ContentSpec.md; markup from
+   core/howtoplay.js. One idea per screen — if a panel starts needing a
+   scrollbar for prose, split it rather than shrinking the type. */
+
+#htp-crumb {
+    color: #7fa8cc;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin: -6px 0 14px;
+}
+
+#howtoplay-scroll {
+    width: min(880px, 94vw);
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0 auto;
+    overflow-y: auto;
+    padding: 0 16px 4px 0;
+    text-align: left;
+}
+#howtoplay-scroll::-webkit-scrollbar { width: 10px; }
+#howtoplay-scroll::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.5); }
+#howtoplay-scroll::-webkit-scrollbar-thumb { background: #00e5ff; border: 2px solid #05070d; }
+
+/* .menu-buttons stacks its children; the manual's footer is a row. */
+.htp-nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: none;
+    margin-top: 12px;
+}
+
+/* NEXT is deliberately quieter than BACK — reading straight through is the
+   optional path, returning to the card menu is the default one. */
+#htp-next-btn {
+    background: transparent;
+    border: 3px solid #ffb300;
+    color: #ffb300;
+    font-family: var(--font-arcade);
+    font-weight: bold;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 12px 22px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
+    max-width: 340px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: none;
+}
+#htp-next-btn.hidden { display: none; }
+#htp-next-btn:hover,
+#htp-next-btn.menu-kb-selected {
+    background: #ffb300 !important;
+    color: #140c00 !important;
+    border-color: #fff2a8 !important;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85), 0 0 22px rgba(255, 179, 0, 0.55) !important;
+    outline: none !important;
+    animation: none !important;
+}
+
+/* ── The eight cards ─────────────────────────────────────────────────────── */
+
+.htp-contents-head {
+    color: #00e5ff;
+    font-size: 10px;
+    letter-spacing: 5px;
+    margin-bottom: 12px;
+}
+.htp-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.htp-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    text-align: left;
+    background: rgba(6, 8, 14, 0.94);
+    border: 3px solid #2a4356;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8);
+    padding: 12px 14px;
+    margin: 0;
+    font-family: var(--font-arcade);
+    cursor: pointer;
+    transition: none;
+}
+.htp-card-n {
+    flex: none;
+    min-width: 34px;
+    padding: 7px 0;
+    text-align: center;
+    background: #00e5ff;
+    color: #041016;
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+.htp-card-text { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.htp-card-title {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+.htp-card-blurb { color: #7fa8cc; font-size: 10px; line-height: 1.5; letter-spacing: 0.5px; }
+.htp-card-arrow { flex: none; color: #2a4356; font-size: 11px; }
+
+/* Beats the generic button.menu-kb-selected invert, which would repaint the
+   whole card teal and pulse it. */
+.htp-card:hover,
+.htp-card.menu-kb-selected {
+    background: rgba(10, 14, 24, 0.98) !important;
+    border-color: #ffb300 !important;
+    color: inherit !important;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 179, 0, 0.35) !important;
+    outline: none !important;
+    animation: none !important;
+}
+.htp-card:hover .htp-card-n,
+.htp-card.menu-kb-selected .htp-card-n { background: #ffb300; color: #140c00; }
+.htp-card:hover .htp-card-arrow,
+.htp-card.menu-kb-selected .htp-card-arrow { color: #ffb300; }
+
+/* ── A panel ─────────────────────────────────────────────────────────────── */
+
+.htp-panel {
+    display: block;
+    background: rgba(6, 8, 14, 0.94);
+    border: 3px solid #2a4356;
+    box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.8);
+    padding: 20px 24px 22px;
+}
+.htp-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 2px solid rgba(0, 229, 255, 0.25);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+}
+.htp-panel-n {
+    flex: none;
+    background: #00e5ff;
+    color: #041016;
+    font-weight: bold;
+    font-size: 15px;
+    letter-spacing: 1px;
+    padding: 6px 11px;
+}
+.htp-panel-head h3 { margin: 0; color: #ffffff; font-size: 16px; letter-spacing: 3px; }
+
+/* Fiction on top, facts underneath — the kicker is the line of voice each
+   panel opens with. */
+.htp-kicker {
+    color: #ffb300;
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 1px;
+    border-left: 4px solid #ffb300;
+    padding: 4px 0 4px 14px;
+    margin: 0 0 16px;
+}
+.htp-kicker strong { color: #ffd166; }
+.htp-kicker em { color: #d9a441; font-style: italic; }
+
+.htp-panel p { color: #b9c9d8; font-size: 12.5px; line-height: 1.8; margin: 0 0 12px; }
+.htp-panel p:last-child { margin-bottom: 0; }
+.htp-panel em { color: #dce8f2; font-style: italic; }
+.htp-panel strong { color: #ffffff; }
+.htp-panel code {
+    color: #ffb300;
+    background: rgba(255, 179, 0, 0.1);
+    padding: 1px 5px;
+    letter-spacing: 1px;
+}
+.htp-note-line { color: #6f8ba3 !important; font-size: 11px !important; }
+
+.htp-sub {
+    color: #00e5ff;
+    font-size: 11px;
+    letter-spacing: 4px;
+    margin: 24px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.22);
+}
+
+/* Terminal example — the one place the manual shows the console verbatim */
+.htp-screen {
+    background: #05070d;
+    border: 2px dashed rgba(0, 229, 255, 0.35);
+    color: #dce8f2;
+    font-family: var(--font-arcade);
+    font-size: 12px;
+    line-height: 1.9;
+    padding: 12px 14px;
+    margin: 0 0 14px;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* Callouts — THE TRAP, F12, the CARD warning. Load-bearing, not decoration:
+   these are the parts players actually retain, so they get the Atari-manual
+   warning-box treatment. */
+.htp-callout {
+    border: 3px solid #00e5ff;
+    background: rgba(0, 229, 255, 0.07);
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8);
+    padding: 14px 16px;
+    margin: 16px 0;
+}
+.htp-callout-head {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #00e5ff;
+    margin-bottom: 8px;
+}
+.htp-callout-body { color: #dce8f2; font-size: 12.5px; line-height: 1.75; }
+.htp-callout-body strong { color: #ffffff; }
+.htp-callout-warn   { border-color: #ffb300; background: rgba(255, 179, 0, 0.09); }
+.htp-callout-warn   .htp-callout-head { color: #ffb300; }
+.htp-callout-danger { border-color: #ff4444; background: rgba(255, 68, 68, 0.09); }
+.htp-callout-danger .htp-callout-head { color: #ff5555; }
+
+/* Reference tables — for looking things up, never for learning a mechanic */
+.htp-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 14px;
+    font-size: 11.5px;
+}
+.htp-tbl th {
+    color: #00e5ff;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 2px solid rgba(0, 229, 255, 0.3);
+    white-space: nowrap;
+}
+.htp-tbl td {
+    color: #b9c9d8;
+    line-height: 1.6;
+    padding: 8px 10px;
+    border-bottom: 1px dotted rgba(127, 168, 204, 0.22);
+    vertical-align: top;
+}
+.htp-tbl tr:last-child td { border-bottom: none; }
+.htp-tbl td strong { color: #ffffff; }
+.htp-tbl td em { color: #6f8ba3; font-style: italic; }
+.htp-tbl .htp-row-bad  td { background: rgba(255, 85, 85, 0.06); }
+.htp-tbl .htp-row-warn td { background: rgba(255, 179, 0, 0.06); }
+.htp-tbl .htp-row-key  td { background: rgba(0, 229, 255, 0.09); color: #dce8f2; }
+.htp-tbl-keys td:first-child { width: 150px; }
+.htp-tbl-bonus td:nth-child(2),
+.htp-tbl-streak td:nth-child(2) { color: #4dff88; font-weight: bold; white-space: nowrap; }
+.htp-tbl-pen td:first-child { width: 150px; }
+.htp-tbl-pen td:last-child  { color: #ff8f8f; }
+.htp-tbl-flat td:first-child { width: 250px; color: #4dff88; }
+.htp-tbl-card td:first-child { width: 260px; }
+.htp-tbl-ranks td { padding: 7px 10px; white-space: nowrap; }
+.htp-tbl-ranks td:first-child { color: #ffffff; }
+.htp-tbl-codes td:first-child { width: 68px; }
+.htp-tbl-codes td:nth-child(2) { width: 240px; }
+.htp-code-chip {
+    display: inline-block;
+    background: #00e5ff;
+    color: #041016;
+    font-weight: bold;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+}
+.htp-phrases { color: #b9c9d8; }
+
+/* Base numbers — a long lookup list, two columns wide */
+.htp-bases {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2px 22px;
+    margin-bottom: 14px;
+}
+.htp-base {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px dotted rgba(127, 168, 204, 0.2);
+}
+.htp-base-name { color: #b9c9d8; font-size: 11.5px; }
+.htp-base-dots { flex: 1; border-bottom: 1px dotted rgba(127, 168, 204, 0.28); }
+.htp-base-num  { color: #ffb300; font-size: 12px; font-weight: bold; letter-spacing: 1px; }
+
+.htp-ol { color: #b9c9d8; font-size: 12.5px; line-height: 1.8; margin: 0 0 12px; padding-left: 22px; }
+.htp-ol li { margin-bottom: 10px; }
+.htp-ol li::marker { color: #00e5ff; font-weight: bold; }
+.htp-ol-tips li { margin-bottom: 14px; }
+.htp-ol-tips strong { color: #ffb300; letter-spacing: 1px; }
+
+.htp-milestones {
+    color: #4dff88 !important;
+    font-size: 14px !important;
+    font-weight: bold;
+    letter-spacing: 1px;
+    background: #05070d;
+    border-left: 4px solid #4dff88;
+    padding: 10px 14px !important;
+}
+
+/* Bullet lists — shared with the panels above */
+.htp-list { list-style: none; margin: 12px 0; padding: 0; }
+.htp-list-tight { margin-top: 8px; }
+.htp-list li {
+    display: flex;
+    gap: 9px;
+    color: #b9c9d8;
+    font-size: 12.5px;
+    line-height: 1.7;
+    padding: 5px 0;
+}
+.htp-bullet { flex: none; font-size: 10px; line-height: 2; }
+/* Text must be one flex item — bare text nodes beside a <strong> would each
+   become their own item and pick up the gap. */
+.htp-li-text { flex: 1; }
+.htp-ok   { color: #4dff88; }
+.htp-warn { color: #ffb300; }
+.htp-bad  { color: #ff5555; }
+
+.htp-key {
+    display: inline-block;
+    background: #ffb300;
+    color: #140c00;
+    font-weight: bold;
+    padding: 2px 8px;
+    letter-spacing: 2px;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Shorthand master list */
+.htp-chart-sh {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 3px 20px;
+}
+.htp-sh {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px dotted rgba(127, 168, 204, 0.2);
+}
+.htp-sh-code {
+    flex: none;
+    color: #ffb300;
+    font-weight: bold;
+    font-size: 12px;
+    letter-spacing: 1px;
+    min-width: 62px;
+}
+.htp-sh-dots { flex: 1; border-bottom: 1px dotted rgba(127, 168, 204, 0.28); }
+.htp-sh-text { color: #b9c9d8; font-size: 11px; text-align: right; }
+
+/* Closing card — the sign-off, on the contents screen and after the last tip */
+.htp-closing {
+    border: 3px double #ffb300;
+    background: rgba(255, 179, 0, 0.06);
+    padding: 18px 20px;
+    margin-top: 20px;
+    text-align: center;
+}
+.htp-closing-title { color: #ffb300; font-size: 16px; font-weight: bold; letter-spacing: 5px; }
+.htp-closing-sub {
+    color: #7fa8cc;
+    font-size: 10px;
+    letter-spacing: 3px;
+    font-style: italic;
+    margin-top: 4px;
+}
+.htp-closing p {
+    color: #b9c9d8 !important;
+    font-size: 11.5px !important;
+    line-height: 1.75;
+    margin: 12px auto 0 !important;
+    max-width: 620px;
+}
+.htp-closing-sign {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    margin-top: 12px;
+}
+
+/* A short window loses the big title before it loses the manual. */
+@media (max-height: 800px) {
+    #start-overlay.howtoplay-menu-bg #howtoplay-page h1 { font-size: 26px; margin-bottom: 2px; }
+    #start-overlay.howtoplay-menu-bg #howtoplay-page .subtitle { margin-bottom: 4px; }
+    #htp-crumb { margin: 0 0 8px; }
+}
+
+/* ── IN-GAME CARD SHORTHAND ─────────────────────────────────────────────── */
+
+#card-help {
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, -50%);
+    z-index: 60;
+    pointer-events: none;          /* play continues underneath */
+    animation: card-drop 0.18s steps(3) both;
+}
+#card-help.hidden { display: none; }
+#card-help-inner {
+    min-width: 340px;
+    background: #05070d;
+    border: 4px solid #ffb300;
+    box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.9), 0 0 40px rgba(255, 179, 0, 0.35);
+    padding: 16px 22px 14px;
+    text-align: center;
+}
+#card-help-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+#card-help-badge {
+    background: #ffb300;
+    color: #140c00;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    padding: 3px 9px;
+}
+#card-help-title {
+    color: #ffb300;
+    font-size: 11px;
+    letter-spacing: 3px;
+}
+#card-help-banner {
+    color: #dce8f2;
+    font-size: 13px;
+    font-style: italic;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+#card-help-instruction {
+    color: #ffffff;
+    font-size: 15px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+#card-help-code {
+    display: inline-block;
+    background: #ffb300;
+    color: #140c00;
+    font-weight: bold;
+    font-size: 18px;
+    letter-spacing: 3px;
+    padding: 3px 12px;
+    margin: 0 4px;
+}
+#card-help-cost {
+    color: #ff5555;
+    font-size: 9px;
+    letter-spacing: 2px;
+    border-top: 1px solid rgba(255, 85, 85, 0.35);
+    padding-top: 9px;
+    animation: card-cost-pulse 1.2s ease-in-out infinite;
+}
+#card-help.card-win #card-help-inner {
+    border-color: #4dff88;
+    box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.9), 0 0 40px rgba(77, 255, 136, 0.45);
+}
+#card-help.card-fail #card-help-inner {
+    border-color: #ff4444;
+    box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.9), 0 0 46px rgba(255, 68, 68, 0.55);
+    animation: card-shake 0.2s steps(2) 2;
+}
+@keyframes card-drop {
+    from { transform: translate(-50%, -62%); opacity: 0; }
+    to   { transform: translate(-50%, -50%); opacity: 1; }
+}
+@keyframes card-cost-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
+}
+@keyframes card-shake {
+    0%   { transform: translate(-50%, -50%); }
+    25%  { transform: translate(-53%, -50%); }
+    75%  { transform: translate(-47%, -50%); }
+    100% { transform: translate(-50%, -50%); }
 }

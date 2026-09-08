@@ -73,6 +73,12 @@ const SCORING = {
     nearMissFlat: 15,          // Near-Miss Save: target in bottom 10% of screen
     nearMissThreshold: 0.90,   // Bottom 10% = y > 90% of screen height
 
+    // ── Debris Strike ──
+    // A target that lands on a zone already reduced to rubble. There's nothing
+    // left to destroy, so it never counts as a base loss — but the call still
+    // got through, and a call that gets through costs points.
+    debrisStrikeMult: 0.25,     // -25% of Base Hit, clamped by maxPenalty
+
     // ── Penalty Caps ──
     maxPenalty: -300,           // No single event deducts more than -300
     penaltyCap: -300            // Consecutive base destruction cap
@@ -97,10 +103,11 @@ const SATELLITE = {
     firstSpawnMaxMs: 18000,
 
     // ── Flight ──
-    // Crosses the top of the sky, entering off-screen from a random side. Speed
+    // Crosses the top of the sky, entering off-screen from the right. Speed
     // rides the same per-rank multiplier as the asteroids (progression.csv), so
     // the flyby tightens as the game gets faster. Rough screen times, tail in:
     //   TRAINEE ~16-24 s   SIGNED OFF ~11-16 s   FULL TIME ~6-8 s   O.A.S ~3-5 s
+    entrySide: 'right',         // 'right' | 'left' | 'random' — edge it flies in from
     speed: 170,                 // virtual units/sec at 1.0x rank speed
     speedScaling: 1.0,          // 0 = ignore rank entirely, 1 = full rank multiplier
     maxSpeed: 700,              // safety rail only — lower it to ease off the top ranks
@@ -160,6 +167,93 @@ const SATELLITE = {
     waveAmplitude: 8,           // ribbon ripple, in virtual units
     waveLength: 110,
     waveSpeed: 3.0
+};
+
+// ============================================
+// CARD SHORTHAND — the paid lifeline
+// Typing "CARD SHORTHAND" mid-flight reveals the code the banner is asking for.
+// Play does not pause, the card only clears when that code is typed, and asking
+// always costs the streak. Clear it in time and the banner dies for zero points;
+// let it escape and the tower takes a hit plus a rank-scaled points penalty.
+// See handleCardHelp() / resolveCardHelp() in script.js.
+// ============================================
+
+const CARD_HELP = {
+    enabled: true,
+
+    // Every accepted phrasing must be prefixed with CARD, so a panicking player
+    // has several ways in but can't trip it by accident. Matched after the input
+    // is trimmed + upper-cased; punctuation and extra spaces are stripped first.
+    triggers: [
+        'CARD SHORTHAND',
+        'CARD SHORTHAND COMMENT',
+        'CARD SHORTHANDS',
+        'CARD SHORT HAND',
+        'CARD SHORT HAND COMMENT',
+        'CARD SH',
+        'CARD HELP',
+        'CARD'
+    ],
+
+    // ── Cost ──
+    resetStreak: true,          // asking always zeroes the streak, win or lose
+    scoreOnRescue: 0,           // points for a card-assisted kill — the whole point is zero
+    // Failure penalty = tier impactPenalty × this. -50 at Trainee → -600 at O.A.S
+    // becomes -100 → -1200. Raise it to make a failed lifeline hurt more.
+    failPenaltyMultiplier: 2,
+    failDamage: 1,              // tower hit when the banner escapes with a card open
+
+    // ── Presentation ──
+    flashMs: 450                // success/failure flash on the card before it clears
+};
+
+// ============================================
+// SATELLITE LASER
+// The radio tower's answer to a banner. Typing the shorthand snaps a hitscan
+// beam onto it; a bad /shorthand fires the same gun badly. Cosmetic only — the
+// catch, the score and the misfire penalty are all settled before the beam
+// exists, so a downed tower never costs the player a bonus.
+// ============================================
+
+const LASER = {
+    enabled: true,
+
+    // ── Clean shot ──
+    duration: 0.28,             // seconds the beam stays lit
+    coreWidth: 3.2,             // hot inner filament, virtual units
+    glowWidth: 15,              // outer bloom
+    color: '125, 212, 255',     // bonus blue — matches the catch explosion
+    flicker: 0.22,              // brightness jitter per frame, 0 = rock steady
+    muzzleFlash: 26,            // bloom radius at the tower
+    impactFlash: 34,            // bloom radius at the banner
+
+    // ── Misfire ──
+    // The gun still goes off, it just goes off badly: the beam leaves the muzzle
+    // off axis, breaks up, and dies short of whatever it was pointed at.
+    misfireDuration: 0.42,
+    misfireColor: '255, 96, 60',
+    misfireSkewMin: 0.10,       // angular error, radians
+    misfireSkewMax: 0.30,
+    misfireReachMin: 0.25,      // fraction of the way to the target it manages
+    misfireReachMax: 0.55,
+    misfireSegments: 7,         // beam is chopped into this many pieces...
+    misfireGapChance: 0.45,     // ...each with this chance of being blanked out
+    misfireStutter: 26,         // times/sec the break pattern is re-rolled
+    misfireWander: 7,           // how far the far end of the beam thrashes
+
+    // ── Sparks (misfire only) ──
+    sparkCount: 16,             // shed at the muzzle and again where it breaks
+    sparkSpread: 0.5,           // half-angle of the spray cone, radians
+    sparkSpeed: 210,            // units/sec
+    sparkGravity: 340,
+    sparkLifeMin: 0.35,
+    sparkLifeMax: 0.85,
+
+    // ── Empty sky ──
+    // A /shorthand typed with no banner up still pulls the trigger; with nothing
+    // to aim at the shot just goes wide of vertical.
+    straySpread: 0.5,           // radians either side of straight up
+    strayReach: 320
 };
 
 const godMode = {

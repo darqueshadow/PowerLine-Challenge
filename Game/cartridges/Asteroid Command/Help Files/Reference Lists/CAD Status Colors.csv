@@ -1,0 +1,5 @@
+Code,Status,Hex,RGB,Text On Plate,Rationale
+AP,Assigned / Posted,#4DA3FF,"77, 163, 255",#0A0A12,"Azure. Blue is the CAD 'unit attached' colour, so the assigned state anchors the set."
+ENP,Enroute,#C77DFF,"199, 125, 255",#0A0A12,"Violet. One step off the AP anchor - the crew is committed and moving."
+BSE,At Base / On Scene,#FF5FA8,"255, 95, 168",#0A0A12,"Magenta. Loudest and most distinct - arrival is the operationally significant state."
+LA,Local Area,#8FA8BF,"143, 168, 191",#0A0A12,"Slate. Deliberately desaturated - roaming is the ambient state and should not compete."

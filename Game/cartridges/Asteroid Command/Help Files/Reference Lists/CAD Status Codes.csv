@@ -1,0 +1,5 @@
+﻿Code,Meaning,Trigger Type,Call Sounds Like
+AP,Assign / Post - post a unit to a base,direction,Post to | Assign to | Required at | Needed at
+ENP,Enroute - the unit is travelling there,radio,Enroute to | Mobile to | On our way to | Heading to
+BSE,Base / Arriving - the unit has arrived on scene,radio,Arriving | Arriving at | Made it to | At
+LA,Local Area - mobile around a district,radio,Mobile around | On the air by | Area of | Staying local at

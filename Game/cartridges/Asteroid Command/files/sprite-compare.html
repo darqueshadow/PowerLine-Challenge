@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!-- DEV TOOL — safe to delete. Renders satellite candidates the way the game does. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Satellite sprite compare</title>
+<style>
+  body { background:#050a14; color:#d8ecff; font:14px Consolas,"Courier New",monospace; margin:0; padding:24px; }
+  h1 { font-size:15px; letter-spacing:2px; color:#4d94d1; font-weight:normal; margin:0 0 4px; }
+  p.sub { color:#5d6f85; margin:0 0 24px; font-size:12px; }
+  .row { display:flex; align-items:center; gap:20px; padding:14px 0; border-bottom:1px solid #16233a; }
+  .tag { width:58px; color:#4d94d1; letter-spacing:1px; }
+  .stage { position:relative; background:linear-gradient(#050d1c,#0d2036); border:1px solid #16233a; height:96px; flex:1; overflow:hidden; }
+  canvas { display:block; }
+  .note { width:200px; color:#5d6f85; font-size:11px; line-height:1.5; }
+</style>
+</head>
+<body>
+<h1>SATELLITE SPRITE COMPARE</h1>
+<p class="sub">Drawn at the game's real 96&times;72 size, on the sky colour, with the tow cable and code-drawn beacon exactly where the engine puts them. Left column flies right; right column is the mirrored pass.</p>
+<div id="out"></div>
+<script>
+const SPRITES = [
+  ['CURRENT', 'assets/Satilite.svg'],
+  ['A', 'assets/Satellite_A.svg'],
+  ['B', 'assets/Satellite_B.svg'],
+  ['C', 'assets/Satellite_C.svg']
+];
+const W = 96, H = 72;              // SATELLITE.spriteW / spriteH
+const out = document.getElementById('out');
+
+function drawOne(ctx, img, cx, cy, dir, t) {
+  // Tow cable — engine draws it from the sprite's trailing edge, mid-height
+  const hookX = cx - (W / 2) * dir;
+  ctx.strokeStyle = '#8b939e'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(hookX, cy);
+  ctx.lineTo(hookX - 70 * dir, cy);
+  ctx.stroke();
+  // A stub of banner so the attachment reads
+  ctx.fillStyle = 'rgba(10,22,34,0.88)';
+  ctx.strokeStyle = '#4d94d1'; ctx.lineWidth = 2;
+  const bx = hookX - (70 + 60) * dir, bw = 60 * dir;
+  ctx.fillRect(Math.min(bx, bx + bw), cy - 19, Math.abs(bw), 38);
+  ctx.strokeRect(Math.min(bx, bx + bw), cy - 19, Math.abs(bw), 38);
+  // Sprite
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(dir, 1);
+  ctx.drawImage(img, -W / 2, -H / 2, W, H);
+  ctx.restore();
+  // Beacon, exactly as drawSatellite() paints it
+  const blink = (Math.sin(t * 6) + 1) / 2;
+  ctx.fillStyle = `rgba(255,80,80,${0.35 + blink * 0.65})`;
+  ctx.beginPath();
+  ctx.arc(cx + 6 * dir, cy - H / 2 + 4, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+SPRITES.forEach(([label, src]) => {
+  const row = document.createElement('div'); row.className = 'row';
+  const tag = document.createElement('div'); tag.className = 'tag'; tag.textContent = label;
+  const stage = document.createElement('div'); stage.className = 'stage';
+  const note = document.createElement('div'); note.className = 'note';
+  const cv = document.createElement('canvas'); cv.height = 96;
+  stage.appendChild(cv); row.append(tag, stage, note); out.appendChild(row);
+
+  const img = new Image();
+  img.onload = () => {
+    note.textContent = `${img.naturalWidth}×${img.naturalHeight} source`;
+    const resize = () => { cv.width = stage.clientWidth; };
+    resize(); addEventListener('resize', resize);
+    const loop = (ts) => {
+      const t = ts / 1000;
+      cv.width = cv.width;                       // clear
+      const c = cv.getContext('2d');
+      drawOne(c, img, cv.width * 0.32, 48,  1, t);
+      drawOne(c, img, cv.width * 0.80, 48, -1, t);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  };
+  img.onerror = () => { note.textContent = 'FAILED TO LOAD — ' + src; note.style.color = '#ff6666'; };
+  img.src = src;
+});
+</script>
+</body>
+</html>

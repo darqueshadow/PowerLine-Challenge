@@ -110,20 +110,33 @@ async function loadGameData() {
     const files = ['bases.csv', 'commands.csv', 'units.csv', 'progression.csv', 'scoring.csv'];
 
     let results;
+    let pack = null;
     try {
-        results = await Promise.all(files.map(f => fetch(base + f).then(r => {
+        // no-store: the browser will otherwise serve a stale CSV from its own
+        // cache after a dataset edit, silently dropping new columns. The
+        // Holodeck reload path already did this — the initial load must too.
+        results = await Promise.all(files.map(f => fetch(base + f, { cache: 'no-store' }).then(r => {
             if (!r.ok) throw new Error(`Failed to fetch ${f}: ${r.status}`);
             return r.text();
         })));
     } catch (e) {
-        console.warn('CSV fetch failed, using embedded fallback data. (' + e.message + ')');
-        loadFallbackData();
-        return;
+        // Opened straight off the disk: file:// pages are not allowed to fetch,
+        // so take the CSV text from the offline pack instead. It is the same text,
+        // parsed by the same code below — the only difference is how it arrived.
+        pack = (window.OFFLINE_DATASETS && window.OFFLINE_DATASETS.files) || null;
+        if (!pack) {
+            console.warn('CSV fetch failed and no offline pack found, using embedded fallback data. (' + e.message + ')');
+            loadFallbackData();
+            return;
+        }
+        console.info(`[DATA] Offline data pack, built ${window.OFFLINE_DATASETS.built}. ` +
+                     'Run "Rebuild Offline Data.bat" after editing a CSV to refresh it.');
+        results = files.map(f => pack[f] || '');
     }
 
     // Shorthand is optional — a missing shorthand.csv only disables the satellite
     // bonus, it must not knock the five core datasets back to fallback data.
-    results.push(await fetchOptional(base + 'shorthand.csv'));
+    results.push(pack ? (pack['shorthand.csv'] || '') : await fetchOptional(base + 'shorthand.csv'));
 
     const [basesText, commandsText, unitsText, progressionText, scoringText, shorthandText] = results;
 
@@ -192,6 +205,10 @@ async function loadGameData() {
 
         TIERS[key] = {
             label: name.toUpperCase(),
+            // Plain-English skill label shown beside the rank on the DIFFICULTY
+            // screen (Novice → Expert). Falls back to the rank name if the
+            // Difficulty column is missing from progression.csv.
+            difficulty: (r['Difficulty'] || name).toUpperCase(),
             min: points,
             max: Infinity,
             speedMin: speedMin,
@@ -298,27 +315,23 @@ function loadFallbackData() {
         { c: "Staying local at", m: "LA", type: "radio", weight: 5 }
     ];
 
-    // Synced with units.csv — full roster including 23xx, CARE, FIT, MHRT, bikes
+    // Synced with units.csv — the trimmed roster: ambulances plus the handful of
+    // named units. The 23xx/27xx special-event blocks are no longer carried.
     const fullUnitIds = [
+        "2040","2041","2042","2043","2044","2045","2046",
+        "2095","2096","2097","2098","2099",
         "2100","2101","2102","2103","2104","2105","2106","2107","2108","2109",
         "2110","2111","2112","2113","2114","2115","2116","2117","2118","2119",
-        "2120","2121","2122","2123","2124","2125","2126","2040","2041","2042",
-        "2043","2044","2045","2046","2095","2096","2097","2098","2099","2133",
-        "2134","2135","2136","2130","2137","2138","2139","2150","2200","2201",
-        "2202","2203","2205","2208"
+        "2120","2121","2122","2123","2124","2125","2126",
+        "2130","2133","2134","2135","2136","2137","2138","2139","2150",
+        "2200","2201","2202","2203","2205","2208",
+        "2520","2521","2522","2523"
     ];
-    const specialUnitIds = [
-        "2302","2321","2335","2336","2337","2338","2339","2345","2346",
-        "2360","2361","2362","2363","2364","2365","2366","2367","2368","2369",
-        "2391","2392","2393","2394","2395","2396","2397","2398",
-        "2520","2521","2522","2523","2720","2721","2722","2723","2724","2725",
-        "2B01","2B02"
-    ];
-    const namedUnits = ["FIT","MHRT","CARE1","CARE2","CARE3","CARE4","CARE5","CARE6","CARE7","CARE8"];
+    // Weight 1 against the ambulances' 10 — these turn up, but rarely.
+    const namedUnits = ["MRHT","FIT","CARE1","CARE2","CARE3","CARE4","CARE5","CARE6","2B01"];
     DATA_UNITS_FULL = [
         ...fullUnitIds.map(id => ({ id, weight: 10 })),
-        ...specialUnitIds.map(id => ({ id, weight: 2 })),
-        ...namedUnits.map(id => ({ id, weight: 4 }))
+        ...namedUnits.map(id => ({ id, weight: 1 }))
     ];
 
     // Synced with bases.csv — includes custom weights
@@ -349,21 +362,58 @@ function loadFallbackData() {
 
     DATA_LOCATIONS_SAMPLE = DATA_LOCATIONS_FULL.slice(0, 5);
 
-    // Synced with shorthand.csv — satellite banner bonuses
-    DATA_SHORTHAND = [
-        { banner: "Police have been notified",                   code: "/PDN",   weight: 10, points: 300 },
-        { banner: "Police are enroute",                          code: "/PDE",   weight: 10, points: 225 },
-        { banner: "Police are not yet enroute",                  code: "/PDNE",  weight: 8,  points: 300 },
-        { banner: "Police on scene",                             code: "/PDO",   weight: 10, points: 200 },
-        { banner: "Police have cancelled the call",              code: "/PDC",   weight: 8,  points: 325 },
-        { banner: "Fire Department Notified",                    code: "/FDN",   weight: 10, points: 275 },
-        { banner: "Hot / Cold Weather Advisory - Call Upgraded", code: "/HCA",   weight: 4,  points: 450 },
-        { banner: "Emergency Room Patch",                        code: "/ERP",   weight: 10, points: 250 },
-        { banner: "Emergency Room Notified",                     code: "/ERN",   weight: 10, points: 275 },
-        { banner: "Use Caution When Approaching",                code: "/UCWA",  weight: 8,  points: 325 },
-        { banner: "CPR in Progress",                             code: "/CPR",   weight: 10, points: 200 },
-        { banner: "SpecialEvent923",                             code: "/EVENT", weight: 2,  points: 200 }
+    // Synced with shorthand.csv — satellite banner bonuses. The list is flat-rated
+    // for points (that file has no Points column, so the parser hands everything
+    // SATELLITE.defaultPoints), but it does carry weights — see below.
+    const shorthandPairs = [
+        ["PDN",   "Police have been notified"],
+        ["PDE",   "Police are enroute"],
+        ["PDNE",  "Police are not yet enroute"],
+        ["PDO",   "Police on scene"],
+        ["PDC",   "Police have cancelled the call"],
+        ["FDN",   "Fire Department Notified"],
+        ["HCA",   "Hot / Cold Weather Advisory - Call Upgraded"],
+        ["ERP",   "Emergency Room Patch"],
+        ["ERN",   "Emergency Room Notified"],
+        ["EVENT", "SpecialEvent923"],
+        ["UCWA",  "Use Caution When Approaching"],
+        ["DELAY", "Crew Delayed, completing admin duty"],
+        ["3PTY",  "Call received from 3rd/4th party (PD/FD) caller"],
+        ["ACK",   "Shift Log Acknowledged"],
+        ["BHP",   "Base Hospital Patch"],
+        ["CCC",   "Call Cancelled by Caller"],
+        ["DD",    "Double Dispatch"],
+        ["ED",    "Emergency Disconnect"],
+        ["GIS",   "Address Information for GIS"],
+        ["HOLD",  "Alert Status - Call being held due to vehicle count"],
+        ["ORNGE", "Air Ambulance Notified"],
+        ["PDW",   "Crew to stage and wait for PD"],
+        ["PS",    "Paramedic Supervisor Notified"],
+        ["PSR",   "Paramedic Supervisor responding to call"],
+        ["RC",    "Road Closure"],
+        ["RHP",   "Call from Registered Health Professional (Dr's or NH)"],
+        ["UD",    "Urgent Disconnect"],
+        ["RNE",   "Patient assessed/treated & referred"],
+        ["DNE",   "Patient assessed/treated & discharged"],
+        ["LAM0",  "Los Angeles Motor Scale - 0"],
+        ["LAM1",  "Los Angeles Motor Scale - 1"],
+        ["LAM2",  "Los Angeles Motor Scale - 2"],
+        ["LAM3",  "Los Angeles Motor Scale - 3"],
+        ["LAM4",  "Los Angeles Motor Scale - 4"],
+        ["LAM5",  "Los Angeles Motor Scale - 5"]
     ];
+    // Every code rides at the same weight bar the low end of the Motor Scale.
+    // LAM0-LAM5 are six banners that differ only in their last digit, so leaving
+    // all six at full weight made one flyby in six a Motor Scale. LAM4/LAM5 — the
+    // scores that actually flag a stroke — stay in the main pool; LAM0-LAM3 drop
+    // back to occasional. Mirrors the Weight column in shorthand.csv.
+    const shorthandRare = ['LAM0', 'LAM1', 'LAM2', 'LAM3'];
+    DATA_SHORTHAND = shorthandPairs.map(([code, banner]) => ({
+        banner,
+        code: '/' + code,
+        weight: shorthandRare.includes(code) ? 3 : 10,
+        points: SATELLITE.defaultPoints
+    }));
 
     // --- BASE_LOOKUP: Challenge Name → Command Code ---
     Object.keys(BASE_LOOKUP).forEach(k => delete BASE_LOOKUP[k]);
@@ -372,14 +422,14 @@ function loadFallbackData() {
     // Rebuild TIERS from fallback progression data (synced with progression.csv)
     Object.keys(TIERS).forEach(k => delete TIERS[k]);
     Object.assign(TIERS, {
-        trainee:        { label: "TRAINEE",          min: 0,     max: 2000,     speedMin: 0.6, speedMax: 0.8, spawnMin: 5000, spawnMax: 6500, maxTargets: 6,  baseHit: 100,  impactPenalty: -50,  asteroidRadius: 20, projectileSpeed: 800 },
-        mentoring:      { label: "MENTORING",        min: 2001,  max: 5000,     speedMin: 0.8, speedMax: 1.0, spawnMin: 4500, spawnMax: 5500, maxTargets: 8,  baseHit: 125,  impactPenalty: -60,  asteroidRadius: 19, projectileSpeed: 850 },
-        signedoff:      { label: "SIGNED OFF",       min: 5001,  max: 10000,    speedMin: 1.0, speedMax: 1.2, spawnMin: 4000, spawnMax: 5000, maxTargets: 10, baseHit: 200,  impactPenalty: -100, asteroidRadius: 18, projectileSpeed: 900 },
-        outofprobation: { label: "OUT OF PROBATION", min: 10001, max: 20000,    speedMin: 1.2, speedMax: 1.4, spawnMin: 3500, spawnMax: 4000, maxTargets: 12, baseHit: 300,  impactPenalty: -150, asteroidRadius: 17, projectileSpeed: 1000 },
-        "2yearsin":     { label: "2 YEARS IN",       min: 20001, max: 35000,    speedMin: 1.5, speedMax: 1.8, spawnMin: 3000, spawnMax: 3500, maxTargets: 14, baseHit: 450,  impactPenalty: -225, asteroidRadius: 16, projectileSpeed: 1100 },
-        fulltime:       { label: "FULL TIME",        min: 35001, max: 55000,    speedMin: 1.8, speedMax: 2.2, spawnMin: 2500, spawnMax: 3000, maxTargets: 16, baseHit: 600,  impactPenalty: -300, asteroidRadius: 15, projectileSpeed: 1200 },
-        veteran:        { label: "VETERAN",          min: 55001, max: 80000,    speedMin: 2.5, speedMax: 3.0, spawnMin: 1500, spawnMax: 2000, maxTargets: 20, baseHit: 850,  impactPenalty: -500, asteroidRadius: 14, projectileSpeed: 1300 },
-        oas:            { label: "O.A.S",            min: 80001, max: Infinity, speedMin: 3.0, speedMax: 4.0, spawnMin: 800,  spawnMax: 1200, maxTargets: 25, baseHit: 1200, impactPenalty: -600, asteroidRadius: 13, projectileSpeed: 1400 }
+        trainee:        { label: "TRAINEE",          difficulty: "NOVICE",     min: 0,     max: 2000,     speedMin: 0.6, speedMax: 0.8, spawnMin: 5000, spawnMax: 6500, maxTargets: 6,  baseHit: 100,  impactPenalty: -50,  asteroidRadius: 20, projectileSpeed: 800 },
+        mentoring:      { label: "MENTORING",        difficulty: "BEGINNER",   min: 2001,  max: 5000,     speedMin: 0.8, speedMax: 1.0, spawnMin: 4500, spawnMax: 5500, maxTargets: 8,  baseHit: 125,  impactPenalty: -60,  asteroidRadius: 19, projectileSpeed: 850 },
+        signedoff:      { label: "SIGNED OFF",       difficulty: "APPRENTICE", min: 5001,  max: 10000,    speedMin: 1.0, speedMax: 1.2, spawnMin: 4000, spawnMax: 5000, maxTargets: 10, baseHit: 200,  impactPenalty: -100, asteroidRadius: 18, projectileSpeed: 900 },
+        outofprobation: { label: "OUT OF PROBATION", difficulty: "COMPETENT",  min: 10001, max: 20000,    speedMin: 1.2, speedMax: 1.4, spawnMin: 3500, spawnMax: 4000, maxTargets: 12, baseHit: 300,  impactPenalty: -150, asteroidRadius: 17, projectileSpeed: 1000 },
+        "2yearsin":     { label: "2 YEARS IN",       difficulty: "PROFICIENT", min: 20001, max: 35000,    speedMin: 1.5, speedMax: 1.8, spawnMin: 3000, spawnMax: 3500, maxTargets: 14, baseHit: 450,  impactPenalty: -225, asteroidRadius: 16, projectileSpeed: 1100 },
+        fulltime:       { label: "FULL TIME",        difficulty: "ADVANCED",   min: 35001, max: 55000,    speedMin: 1.8, speedMax: 2.2, spawnMin: 2500, spawnMax: 3000, maxTargets: 16, baseHit: 600,  impactPenalty: -300, asteroidRadius: 15, projectileSpeed: 1200 },
+        veteran:        { label: "VETERAN",          difficulty: "ELITE",      min: 55001, max: 80000,    speedMin: 2.5, speedMax: 3.0, spawnMin: 1500, spawnMax: 2000, maxTargets: 20, baseHit: 850,  impactPenalty: -500, asteroidRadius: 14, projectileSpeed: 1300 },
+        oas:            { label: "O.A.S",            difficulty: "EXPERT",     min: 80001, max: Infinity, speedMin: 3.0, speedMax: 4.0, spawnMin: 800,  spawnMax: 1200, maxTargets: 25, baseHit: 1200, impactPenalty: -600, asteroidRadius: 13, projectileSpeed: 1400 }
     });
 }
 
