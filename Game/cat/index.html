@@ -88,6 +88,13 @@
          for single-disk titles alike — the hub grows the control only when
          there is genuinely another side to swap to. Populated by cat.js. -->
     <span id="play-disks" role="group" aria-label="Disk side" hidden></span>
+    <!-- INPUT MODE. Joystick and keyboard are mutually exclusive inside
+         EmulatorJS, so this is a mode SWITCH rather than a preference, and the
+         label always names the mode that is LIVE. Without it a dead joystick
+         reads as a broken game and a dead keyboard reads as a dead key.
+         Painted from the cartridge's own report, never assumed - see emu.js. -->
+    <button class="btn" id="btn-input" type="button" hidden aria-live="polite"
+            title="Switch between joystick and keyboard (F2)">Input: &mdash;</button>
     <button class="btn" id="btn-exit" type="button">Exit to CAT</button>
   </div>
   <iframe id="play-frame" title="Cartridge" src="about:blank"></iframe>

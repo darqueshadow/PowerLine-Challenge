@@ -34,6 +34,7 @@
   var btnInsert = document.getElementById("btn-insert");
   var btnEject  = document.getElementById("btn-eject");
   var btnExit   = document.getElementById("btn-exit");
+  var btnInput  = document.getElementById("btn-input");
   var swapBar   = document.getElementById("play-disks");
 
   var DISKS = (window.CAT_DISKS || []).slice();
@@ -386,6 +387,12 @@
     running = disk;
     frame.src = sourceFor(disk);
     renderSwap(disk);
+    /* 🚨 Hidden, NOT set to a guess. Only a cartridge running EmulatorJS has an
+       input mode at all - a plain cartridge has none - so this stays out of the
+       bar until the frame reports one. Showing "Joystick" here would be the hub
+       asserting something it has not been told and cannot see. */
+    btnInput.hidden = true;
+    btnInput.textContent = "Input: —";
     play.hidden = false;
     frame.focus();
   }
@@ -478,6 +485,23 @@
     if (!m || typeof m !== "object" || !running) return;
 
     if (m.type === "cat:exit") { exitToHub(); return; }
+
+    /* INPUT MODE. 🚨 The cartridge is the only thing that knows which mode is
+       really live - EmulatorJS owns the setting - so the hub PAINTS this and
+       never sets it. The button asks for a flip and waits to be told what
+       happened; it does not toggle its own label optimistically, because a
+       label that disagrees with the machine is worse than no label at all. */
+    if (m.type === "cat:inputmode") {
+      btnInput.hidden = false;
+      btnInput.textContent = m.keyboard ? "Input: Keyboard" : "Input: Joystick";
+      return;
+    }
+
+    if (m.type === "cat:inputfailed") {
+      write("cannot switch input mode on this build.", "warn");
+      write("(" + String(m.reason || "no settings interface") + ")", "dim");
+      return;
+    }
 
     if (m.type === "cat:swapped") {
       running.side = Number(m.index) || 0;
@@ -620,6 +644,16 @@
   btnInsert.addEventListener("click", function () { if (!busy) insertSelected(); });
   btnEject.addEventListener("click", function () { if (!busy) ejectDisk(); });
   btnExit.addEventListener("click", exitToHub);
+
+  /* Ask the cartridge to FLIP; it answers with what actually took. 🚨 Focus
+     goes straight back to the frame - a mode switch that leaves the caret on
+     the hub's own button hands the next keystroke to the wrong document, which
+     is precisely the confusion this control exists to remove. */
+  btnInput.addEventListener("click", function () {
+    if (!running) return;
+    try { frame.contentWindow.postMessage({ type: "cat:input" }, "*"); } catch (e) {}
+    frame.focus();
+  });
 
   /* ---- boot -------------------------------------------------------------
      🚫 No literal Commodore banner text. Tommodore/CAT branding instead — the

@@ -63,6 +63,36 @@ checks the scheme first and says what is actually wrong.
 The PLC cartridges are unaffected either way — they keep working from `file://` as they always
 have.
 
+## Input modes — joystick and keyboard, never both
+
+A C64 needs the keyboard for a loader menu or a Y/N prompt and the stick for the game, and
+**EmulatorJS treats those as one mode**: `keyChange()` returns early while its `keyboardInput`
+setting is `enabled`, so the RetroPad mapping (Ctrl + arrows) is bypassed wholesale the moment
+free keyboard input is on. It is therefore a *mode switch*, not a preference.
+
+His ruling, 2026-09-08 — a **hub-level toggle**, not a per-title default and not left to
+EmulatorJS's own settings menu: most disks hit a menu or a prompt before the game starts, and a
+real session flips between the two constantly, so pre-classifying a disk would describe a session
+that does not happen.
+
+- The play bar's **Input:** button names the mode that is live. Click it, or press **F2**.
+- The label is painted from the cartridge's own report, never assumed — `emu.js` owns the truth.
+
+### 🔴 Known limitation — Shift+Escape means two different things
+
+**Parked 2026-09-08, deliberately not fixed.** Inside a running game, `emu.js` catches
+**Shift+Escape** and **Ctrl+Escape** in capture phase and forwards them to the hub as *exit*. At
+the hub's own terminal, Shift+Escape means **Shift+RUN/STOP** (it runs `LOAD"*",8`). Same
+keystroke, two meanings, depending on whether a cartridge is up.
+
+The practical cost: **you cannot send Shift+RUN/STOP to a running game.** Plain Escape is
+unaffected — neither handler touches it — so RUN/STOP alone does reach the core in keyboard mode.
+
+🚫 Do not "fix" this by moving the exit chord on your own initiative. It is the one key that
+guarantees a way out of a game, and Andrew's call is that this waits for **a concrete case where
+Shift+RUN/STOP actually matters** before choosing between moving the chord and adding a
+pass-through. Until then it is a known limitation, stated rather than hidden.
+
 ## ⚠️ First-run checklist — three things that are written but not yet watched working
 
 `data/` was absent when this was built, so there was no core to run and no disk to run in it.

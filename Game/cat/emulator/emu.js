@@ -79,14 +79,25 @@
        0 = B (fire)   4 = Up   5 = Down   6 = Left   7 = Right
      🚨 The C64 joystick has ONE button. Mapping a second key to a second
      RetroPad button would do nothing on this core; it is not an oversight.
+
+     🚨🚨 THE `value` STRINGS ARE NOT FREE TEXT. EmulatorJS resolves each one
+     through keyLookup(), a REVERSE lookup over its own keyMap, and stores the
+     numeric keyCode. A name that is not in that map resolves to -1 and the key
+     is then dead — silently, because the emulator loads and runs perfectly and
+     only the input is gone. The arrows shipped as "up"/"down"/"left"/"right",
+     which are NOT keyMap names; the map calls them "up arrow" and so on
+     (37-40). Measured 2026-09-08: player 0 read {0:17, 4:-1, 5:-1, 6:-1, 7:-1}
+     and gameManager.simulateInput fired for Ctrl and for nothing else.
+     🚫 Do not shorten these back. If a binding ever appears dead, read
+     EJS_emulator.controls[0] first — a -1 there names the fault immediately.
      --------------------------------------------------------------------- */
   window.EJS_defaultControls = {
     0: {
       0: { value: "ctrl" },
-      4: { value: "up" },
-      5: { value: "down" },
-      6: { value: "left" },
-      7: { value: "right" }
+      4: { value: "up arrow" },
+      5: { value: "down arrow" },
+      6: { value: "left arrow" },
+      7: { value: "right arrow" }
     }
   };
 
@@ -138,13 +149,86 @@
       e.preventDefault();
       e.stopPropagation();
       toHub({ type: "cat:exit" });
+      return;
+    }
+    /* KNOWN LIMITATION, parked 2026-09-08 and deliberately not fixed: this
+       swallows Shift+Escape, which at the hub terminal means Shift+RUN/STOP -
+       so that chord cannot be sent to a running game. Plain Escape is
+       untouched and does reach the core in keyboard mode. His call is that
+       this waits for a concrete case where Shift+RUN/STOP matters before
+       choosing between moving the exit chord and adding a pass-through.
+       Do not move the exit chord unilaterally: it is the one key that
+       guarantees a way out. See ./README.md. */
+    /* 🚨 F2 MUST BE CAUGHT HERE, IN CAPTURE, FOR THE SAME REASON THE EXIT
+       CHORD IS. In keyboard mode every keystroke is being handed to the C64,
+       so a bubble-phase handler would be racing the machine for its own mode
+       switch — and losing it strands the player in the mode they are trying to
+       leave, with no key that works to get out. 🚫 Never move this to bubble.
+       ⭐ A function key is deliberate: it is the one class of key a C64 has no
+       use for, so it cannot collide with anything the game wants. */
+    if (e.key === "F2") {
+      e.preventDefault();
+      e.stopPropagation();
+      setInputMode(!kbdMode);
     }
   }, true);
+
+  /* -----------------------------------------------------------------------
+     INPUT MODE — joystick or keyboard, and never both at once.
+
+     🚨 THAT EXCLUSIVITY IS EmulatorJS'S, NOT A CHOICE MADE HERE. keyChange()
+     returns early while its "keyboardInput" setting is "enabled", so the
+     RetroPad mapping above (Ctrl + arrows) is bypassed wholesale the moment
+     free keyboard input is on. A C64 needs both — the keyboard for a loader
+     menu or a Y/N prompt, the stick for the game itself.
+
+     ⭐ HIS RULING, 2026-09-08: a HUB-LEVEL TOGGLE, not a per-title default and
+     not left to EmulatorJS's own settings menu. The reasoning is worth keeping
+     because it is about how these are actually played: most disks hit a menu
+     or a prompt before the game starts, and a real session flips between the
+     two constantly. Pre-classifying a disk as "keyboard" or "joystick" would
+     describe a session that does not happen.
+
+     🚨 THE LIVE MODE MUST BE VISIBLE, and that is the whole reason this
+     reports rather than just acts. A player who cannot see the mode reads a
+     dead joystick as a broken game, or a dead keyboard as a dead key — the
+     exact confusion this switch exists to end. The hub owns the label; this
+     file owns the truth and re-reports it after every change rather than
+     letting the hub assume its request landed.
+     --------------------------------------------------------------------- */
+  var kbdMode = false;
+
+  function reportInputMode() {
+    var e = window.EJS_emulator;
+    if (e && typeof e.getSettingValue === "function") {
+      kbdMode = (e.getSettingValue("keyboardInput") === "enabled");
+    }
+    toHub({ type: "cat:inputmode", keyboard: kbdMode });
+  }
+
+  function setInputMode(on) {
+    var e = window.EJS_emulator;
+    /* 🚫 Do not call gameManager.setKeyboardEnabled() directly. That tells the
+       CORE about the keyboard but leaves the SETTING untouched, so keyChange()
+       keeps mapping the RetroPad as well and both inputs go live together -
+       which is the one state this is supposed to make impossible.
+       changeSettingOption() writes the setting AND fires the change handler
+       that reaches setKeyboardEnabled, so the two can never disagree. */
+    if (!e || typeof e.changeSettingOption !== "function") {
+      toHub({ type: "cat:inputfailed", reason: "this build exposes no settings interface" });
+      return;
+    }
+    e.changeSettingOption("keyboardInput", on ? "enabled" : "disabled");
+    reportInputMode();
+  }
 
   window.addEventListener("message", function (e) {
     var m = e.data;
     if (!m || typeof m !== "object") return;
     if (m.type === "cat:swap") swapDisk(Number(m.index));
+    /* The hub asks for a FLIP, not for a specific state - it has no business
+       holding the authoritative value. This answers with what actually took. */
+    if (m.type === "cat:input") setInputMode(!kbdMode);
   });
 
   /* -----------------------------------------------------------------------
@@ -322,6 +406,9 @@
   window.EJS_onGameStart = function () {
     say.hidden = true;
     toHub({ type: "cat:running", title: TITLE, disks: DISKS.length });
+    /* Report the mode the moment there is a game to have one. The hub paints a
+       label from this and never assumes a default of its own. */
+    reportInputMode();
   };
 
   window.CAT_EMU = {
