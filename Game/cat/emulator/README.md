@@ -6,19 +6,49 @@ play overlay; never opened directly by a player.
 ## Installing the core (once per machine)
 
 `data/` is **gitignored** — it is ~10–15 MB of third-party GPL build output, and this repo is
-public. From this folder:
+public.
+
+🚨 **THIS IS TWO DOWNLOADS, NOT ONE.** The clone gives you the **loader**; it leaves
+`data/cores/` holding nothing but a `README.md` and a `package.json`. **The core is a separate
+package.** Corrected 2026-09-08 — the earlier instructions here stopped after step 1 and were
+wrong.
+
+From this folder:
 
 ```
+# 1. the loader
 git clone --depth 1 https://github.com/EmulatorJS/EmulatorJS.git _ejs
 mv _ejs/data data
 rm -rf _ejs
+
+# 2. the CORE — the clone does NOT include this.
+#    Match the version in data/version.json.
+npm install @emulatorjs/core-vice_x64sc@4.2.3
+mkdir -p data/cores/reports
+cp node_modules/@emulatorjs/core-vice_x64sc/vice_x64sc-*.data data/cores/
+cp node_modules/@emulatorjs/core-vice_x64sc/reports/vice_x64sc.json data/cores/reports/
+rm -rf node_modules package.json package-lock.json
 ```
 
-Nothing else needs configuring. `emu.js` already points at `data/` and asks for the `c64` core,
-which carries the KERNAL / BASIC / CHARGEN ROMs itself — **there is no ROM-supply step.**
+`data/cores/` should end up holding four `vice_x64sc-*.data` builds (~6 MB) and
+`reports/vice_x64sc.json`. EmulatorJS picks between the plain and `-legacy` builds at runtime
+from what the browser supports, which is why all of them are copied.
 
-Until you do this, the page says so in plain words and names the command. That is a normal
-state, not a fault.
+### 🔴 Why step 2 matters more than it looks
+
+**If the core is missing, EmulatorJS does not fail — it silently fetches the core from
+`cdn.emulatorjs.org` at runtime.** Two problems with that: the arcade is not allowed to need the
+internet to run, and a core quietly arriving over the network makes the emulator *look* like it
+works, which hides whatever else is wrong. On 2026-09-08 that masked a disk-path 404 in the hub
+and sent the investigation at the core instead.
+
+`emu.js` now checks for the **core**, not just the loader, and refuses with a named message
+before EmulatorJS ever gets the chance to reach for the CDN. ⚠️ The old check HEAD-ed
+`data/loader.js` alone, so once `data/` existed it could never fail — the "no core" message was
+unreachable on exactly the machines that had no core.
+
+`emu.js` already points at `data/` and asks for the `c64` core, which carries the KERNAL / BASIC
+/ CHARGEN ROMs itself — **there is no ROM-supply step.**
 
 ## 🚨 It cannot run from `file://`
 

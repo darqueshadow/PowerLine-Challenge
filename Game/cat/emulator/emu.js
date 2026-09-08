@@ -239,27 +239,83 @@
       return;
     }
 
-    /* Is the core actually on this machine? A HEAD is enough and costs
-       nothing next to the core itself. */
-    fetch("data/loader.js", { method: "HEAD" }).then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      var s = document.createElement("script");
-      s.src = "data/loader.js";
-      s.onerror = function () {
-        tell("the core is there but would not load", [
-          { text: "data/loader.js answered a HEAD request and then failed to execute.", cls: "err" },
-          "That usually means a partial or corrupt download. Delete Game/cat/emulator/data/ and fetch it again."
+    /* -------------------------------------------------------------------
+       IS THE CORE ACTUALLY HERE?
+
+       🚨 THE LOADER AND THE CORE ARE TWO SEPARATE INSTALLS, AND THIS USED TO
+       CHECK ONLY THE FIRST. The git clone in the README brings `data/loader.js`
+       and an EMPTY `data/cores/`. The core is a different download entirely.
+       Because this HEAD-checked `data/loader.js`, it could never fail once
+       `data/` existed at all — so "no emulator core on this machine" was
+       unreachable on precisely the machines that had no core.
+
+       🔴 What happens when it is missing is worse than a plain failure:
+       EmulatorJS's own fallback is to SILENTLY FETCH THE CORE FROM
+       cdn.emulatorjs.org at runtime. That breaks the no-runtime-CDN rule, and
+       it hides the real state behind an emulator that looks like it works —
+       which is exactly how a disk-path 404 got read as a core problem on
+       2026-09-08. 🚫 Never let this check pass on the loader alone again.
+       ------------------------------------------------------------------- */
+    var CORE = "vice_x64sc";              /* what EJS_core "c64" resolves to */
+    /* ⭐ ANY variant is enough. EmulatorJS chooses between the plain and
+       -legacy builds at runtime from what the browser supports, so demanding a
+       specific one would refuse to start on a machine that would have run. */
+    var CORE_FILES = [
+      "data/cores/" + CORE + "-wasm.data",
+      "data/cores/" + CORE + "-legacy-wasm.data"
+    ];
+
+    var INSTALL = "# 1. the loader\n"
+      + "git clone --depth 1 https://github.com/EmulatorJS/EmulatorJS.git _ejs\n"
+      + "mv _ejs/data data\n"
+      + "rm -rf _ejs\n\n"
+      + "# 2. the CORE — the clone does NOT include this\n"
+      + "#    match the version in data/version.json\n"
+      + "npm install @emulatorjs/core-vice_x64sc@4.2.3\n"
+      + "mkdir -p data/cores/reports\n"
+      + "cp node_modules/@emulatorjs/core-vice_x64sc/vice_x64sc-*.data data/cores/\n"
+      + "cp node_modules/@emulatorjs/core-vice_x64sc/reports/vice_x64sc.json data/cores/reports/\n"
+      + "rm -rf node_modules package.json package-lock.json";
+
+    function head(u) {
+      return fetch(u, { method: "HEAD" }).then(
+        function (r) { return r.ok; },
+        function () { return false; }
+      );
+    }
+
+    head("data/loader.js").then(function (loaderOk) {
+      if (!loaderOk) {
+        tell("no emulator core on this machine", [
+          "EmulatorJS is not installed here. It is a third-party GPL build of roughly 10-15MB, gitignored on purpose because this repo is public — so it is fetched per machine rather than committed.",
+          { text: "From Game/cat/emulator/ — BOTH steps, the second is not optional:", cls: "dim" },
+          { code: INSTALL },
+          { text: "Then reload. Nothing else needs configuring — this page already points at data/ and asks for the c64 core.", cls: "dim" },
+          { text: "The PLC cartridges do not use any of this and are unaffected.", cls: "dim" }
         ]);
-      };
-      document.body.appendChild(s);
-    }).catch(function () {
-      tell("no emulator core on this machine", [
-        "The vice_x64sc core is not installed here. It is a third-party GPL build of roughly 10-15MB, gitignored on purpose because this repo is public — so it is fetched per machine rather than committed.",
-        { text: "From Game/cat/emulator/ :", cls: "dim" },
-        { code: "git clone --depth 1 https://github.com/EmulatorJS/EmulatorJS.git _ejs\nmv _ejs/data data\nrm -rf _ejs" },
-        { text: "Then reload. Nothing else needs configuring — this page already points at data/ and asks for the c64 core.", cls: "dim" },
-        { text: "The PLC cartridges do not use any of this and are unaffected.", cls: "dim" }
-      ]);
+        return;
+      }
+      return Promise.all(CORE_FILES.map(head)).then(function (found) {
+        if (found.indexOf(true) === -1) {
+          tell("the loader is installed, but the core is not", [
+            { text: "data/loader.js is here, and data/cores/ has no " + CORE + " build in it. These are two separate downloads and the git clone only provides the first.", cls: "err" },
+            "🚨 Left alone, EmulatorJS would quietly fetch the core from cdn.emulatorjs.org instead of saying anything. This page refuses that on purpose: the arcade is not allowed to depend on the internet at runtime, and a core arriving over the network hides whatever else is actually wrong.",
+            { text: "From Game/cat/emulator/ :", cls: "dim" },
+            { code: INSTALL.split("\n\n")[1] },
+            { text: "Then reload.", cls: "dim" }
+          ]);
+          return;
+        }
+        var s = document.createElement("script");
+        s.src = "data/loader.js";
+        s.onerror = function () {
+          tell("the core is there but would not load", [
+            { text: "data/loader.js answered a HEAD request and then failed to execute.", cls: "err" },
+            "That usually means a partial or corrupt download. Delete Game/cat/emulator/data/ and fetch it again."
+          ]);
+        };
+        document.body.appendChild(s);
+      });
     });
   }
 

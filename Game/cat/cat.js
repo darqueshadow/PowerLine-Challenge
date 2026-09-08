@@ -397,7 +397,20 @@
   function sourceFor(disk) {
     if (disk.runner !== "emulator") return encodeURI(disk.launch);
     var q = "?title=" + encodeURIComponent(disk.displayName);
-    disk.files.forEach(function (f) { q += "&d=" + encodeURIComponent(f.url); });
+    /* 🚨 ABSOLUTE, NOT THE RELATIVE STRING library.js BUILT. `f.url` is
+       "../disks/<name>", which is correct RELATIVE TO THIS PAGE (Game/cat/) —
+       and this query is handed to Game/cat/emulator/index.html, one level
+       deeper, where the same string resolves to Game/cat/disks/ and 404s.
+       EmulatorJS reports that as a bare "Network Error" after the core has
+       already loaded, which sends you looking at the core.
+       ⭐ Resolving against location.href here fixes it from any depth and on
+       any origin — arcade://, http://localhost, or file://.
+       🚫 Do not "fix" this by adding a ../ to library.js's DIR: that string is
+       also what the hub scans and displays from, and this is its only consumer
+       that crosses into a different directory. */
+    disk.files.forEach(function (f) {
+      q += "&d=" + encodeURIComponent(new URL(f.url, location.href).href);
+    });
     if (disk.port === 1) q += "&port=1";
     return "emulator/index.html" + q;
   }
