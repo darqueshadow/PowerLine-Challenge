@@ -1,0 +1,19 @@
+# Batch files are Windows-only and MUST arrive with CRLF endings.
+#
+# A .bat or .cmd saved with bare LF can execute its own REM banner as commands
+# rather than skipping it - it fails silently and can create stray files. That
+# was measured in a sibling repo on 2026-09-06, and the lesson worth keeping is
+# that only RUNNING one found it: two separate probes read the endings as fine
+# and both were false negatives.
+#
+# `eol=crlf` forces CRLF on checkout regardless of core.autocrlf or the
+# platform, so this holds for a clone on any machine instead of depending on a
+# local git setting that a fresh clone may not share. Every .bat/.cmd blob here
+# is already stored LF-normalised, which is what this attribute expects, so
+# adding it renormalises nothing and produces no churn.
+#
+# 🚫 Deliberately NOT `* text=auto`. That would renormalise the entire repo in
+# one commit and bury every real change in the noise. This is scoped to the one
+# file type where the wrong ending is not cosmetic but a genuine failure.
+*.bat text eol=crlf
+*.cmd text eol=crlf
