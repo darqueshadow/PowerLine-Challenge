@@ -699,6 +699,7 @@ const KILL_SCREEN = {
 const MUSIC = {
     titleScreen: 'music/Aquanaut - Title Screen.mp3',  // boot / title screen — loops
     menu:        'music/Aquanaut - Menus.mp3',          // main + sub menus — loops
+    menuBed:     'music/Background1.ogg',               // menu music bed, under the SFX scene — loops
     gameplay: [                                         // in-dive shuffle (non-holodeck)
         'music/Jelly Fish Bop (Remastered).mp3'
     ],

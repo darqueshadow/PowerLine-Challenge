@@ -12,9 +12,17 @@ desktop.ini
 *~
 *.tmp
 
-# Oversized uncompressed source audio — exceeds GitHub's 100MB per-file limit.
-# Kept on local disk only; convert to a compressed format before adding to the repo.
-Game/cartridges/The Aquanaut/files/assets/SFX/Background1.wav
+# Oversized uncompressed source audio — GitHub rejects any file over 100MB.
+# POLICY: compress before committing. Web Audio decodeAudioData handles OGG/MP3/Opus/
+# FLAC natively, and the loaders build URLs by filename, so the container is a free
+# choice — no code change is needed to swap a stem's format.
+# Resolved 2026-09-08: Background1.wav (241 MiB, 32-bit float, 11:56) was the only
+# entry here. It is now files/music/Background1.ogg (8.9 MiB, OGG Vorbis, byte-for-byte
+# the same 31,588,605 frames), wired as the menu bed and COMMITTED, so this rule had
+# nothing left to ignore.
+# Deliberately NOT replaced with a blanket *.wav rule: the SFX library is WAV-based
+# and 12 stems are tracked, so a wildcard would silently hide legitimate new ones.
+# Add a specific path here if another oversized master ever lands.
 
 # === C64 disk library (Game/disks/) ==========================================
 # 🚨 THIS REPO IS PUBLIC AND HAS NO PRE-PUSH HOOK. Disk images committed here

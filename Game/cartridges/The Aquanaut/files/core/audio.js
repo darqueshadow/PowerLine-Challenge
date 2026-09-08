@@ -1321,6 +1321,50 @@ const AudioManager = {
     },
 
     // ============================================
+    // MENU MUSIC BED
+    // A long looping bed that plays UNDER the menu SFX scene. It gets its own
+    // <audio> element rather than sharing _musicEl, because _musicEl is a single
+    // slot owned by the in-dive playlist (playMusic calls stopMusic first, and
+    // _playNextFromPlaylist re-arms itself on every 'ended'). Sharing it means the
+    // quit path — which returns to the menu WITHOUT stopping the dive playlist —
+    // either kills the bed or leaves the dive track shuffling over the main menu.
+    // Streamed, never decodeAudioData'd: at 11:56 this file would expand to ~262 MB
+    // of resident float32 in the scene engine's buffer cache.
+    // Follows the MUSIC toggle, not SFX.
+    // ============================================
+    _bedEl: null,
+
+    /** Start the looping menu bed. Idempotent — re-entering the menu won't restart it. */
+    startBed(src, volume = 0.5) {
+        if (this._bedEl) return;
+        const el = new Audio(src);
+        el.loop = true;
+        el.volume = this._musicMuted ? 0 : Math.max(0, Math.min(1, volume));
+        this._bedEl = el;
+
+        el.play().catch(() => {
+            // Autoplay blocked — retry on first user gesture
+            const resume = () => {
+                if (this._bedEl === el) el.play().catch(() => {});
+                document.removeEventListener('keydown', resume);
+                document.removeEventListener('click', resume);
+                document.removeEventListener('touchstart', resume);
+            };
+            document.addEventListener('keydown', resume);
+            document.addEventListener('click', resume);
+            document.addEventListener('touchstart', resume);
+        });
+    },
+
+    /** Stop the menu bed. Safe to call when nothing is playing. */
+    stopBed() {
+        if (!this._bedEl) return;
+        this._bedEl.pause();
+        this._bedEl.currentTime = 0;
+        this._bedEl = null;
+    },
+
+    // ============================================
     // SHUFFLE PLAYLIST (play all tracks before repeating)
     // ============================================
     _playlist: null,
@@ -1808,11 +1852,12 @@ const AudioManager = {
 
 // Pause/resume music when the tab is hidden/visible
 document.addEventListener('visibilitychange', () => {
-    const el = AudioManager._musicEl;
-    if (!el) return;
-    if (document.hidden) {
-        el.pause();
-    } else if (!AudioManager._musicMuted) {
-        el.play().catch(() => {});
+    for (const el of [AudioManager._musicEl, AudioManager._bedEl]) {
+        if (!el) continue;
+        if (document.hidden) {
+            el.pause();
+        } else if (!AudioManager._musicMuted) {
+            el.play().catch(() => {});
+        }
     }
 });

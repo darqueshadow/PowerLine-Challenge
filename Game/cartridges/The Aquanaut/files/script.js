@@ -748,6 +748,11 @@ function init() {
         titleDismissed = true;
         if (titlePrompt) titlePrompt.classList.add('hidden');
         if (normalMenuBtns) normalMenuBtns.classList.remove('hidden');
+        // Quitting mid-dive has to tear the dive audio down the way gameOver does.
+        // Without this the shuffle playlist keeps re-arming itself on every 'ended'
+        // and the depth pressure drone keeps running, both over the main menu.
+        AudioManager.stopMusic();
+        try { AudioManager.stopAmbient(); } catch (e) {}
         startMenuMusic();
         selectDefaultMenuButton('start-btn');
     });
@@ -803,6 +808,9 @@ function init() {
         // assembled from the assets/SFX library. playScene is idempotent, so menu
         // navigation re-triggering this won't restart the bed.
         AudioManager.playScene('main');
+        // Music bed underneath it, on its own <audio> element so the dive playlist
+        // can never clobber it (see AudioManager.startBed). Also idempotent.
+        AudioManager.startBed(MUSIC.menuBed, MUSIC.volume);
     }
 
     function showMainMenu() {
@@ -1015,11 +1023,9 @@ function init() {
         musicToggleBtn.textContent = musicEnabled ? 'ON' : 'OFF';
         musicToggleBtn.classList.toggle('on', musicEnabled);
         musicToggleBtn.classList.toggle('off', !musicEnabled);
-        if (musicEnabled) {
-            if (AudioManager._musicEl) AudioManager._musicEl.volume = MUSIC.volume;
-        } else {
-            if (AudioManager._musicEl) AudioManager._musicEl.volume = 0;
-        }
+        const musicLevel = musicEnabled ? MUSIC.volume : 0;
+        if (AudioManager._musicEl) AudioManager._musicEl.volume = musicLevel;
+        if (AudioManager._bedEl) AudioManager._bedEl.volume = musicLevel;
         AudioManager._musicMuted = !musicEnabled;
         AudioManager.refreshSceneVolume();   // the menu/game-over soundscape follows the MUSIC toggle
     });
@@ -11398,6 +11404,7 @@ function startGame(holodeck = false) {
 function _beginGameplay(holodeck) {
     if (state.running) return;   // idempotent — never start a second gameLoop chain (would run update/render at double rate)
     state.running = true;
+    AudioManager.stopBed();          // the menu bed does not follow you down
     if (!holodeck) {
         AudioManager.startPlaylist(MUSIC.gameplay, MUSIC.volume);
     }
