@@ -48,6 +48,82 @@ Leg loop, impulse movement, command validation wired to play, laps/timer logic, 
 
 ## Changelog — gameplay refinements
 
+**2026-07-19 — The pit comes OFF the map; the course stops crossing water; names-only
+labels; animated start/finish.** All four directly requested by Andrew.
+*(Ships under the existing **v0.9.6** stamp — no version bump was made, so
+`index.html` / `config.js` still read 0.9.6. Bumping them is Andrew's call.)*
+
+- ⚠ **SUPERSEDES the pit lane of v0.5.0 and v0.7.0.** Those entries describe Fleet
+  drawn on the map as a dashed cubic bypass that *splits off the course and rejoins*
+  at the start/finish junction. **That is gone.** Andrew: *"Having the pitstop
+  physically on the map is not working, and come to think of it, is not necessary.
+  Let's just include it in the instructions."* Removed: the `.map-spur` lane, the
+  ⛽/tire marker, the `tireSVG()` helper, the pit `pitPos`/`junction` placement
+  block, and both pit legend swatches. The two older entries stay as written — they
+  are a record of what was built then, not a description of the game now.
+  **Why it never worked:** the pit is a *building*, not a stop on a course made of
+  bases, so it had no honest position. Its real address (2 Westwood Ct, shared with
+  Glendale) sat far enough off some courses to drag the whole map fit sideways, which
+  is why v0.9.x had already stopped projecting it and started *placing* it beside the
+  start node. At that point the lane was invented geometry sitting on the busiest
+  corner of the map, pointing at something you cannot currently drive into.
+- **The pit is now TOLD, not drawn** — in the two places it is actionable. A new
+  *"The Pit — 72123 Fleet"* section on the Instructions screen, and a new in-race
+  advisory (`updatePitAdvisory`, called from `updateRaceHUD`) that raises
+  `⛽ PIT OPEN · 72123 FLEET — off the line ahead` once you are **55%** (`PIT_CUE_AT`)
+  into the leg whose destination is `course.startId`. Dark the rest of the lap, and
+  never on a point-to-point course, which does not return to the line.
+  ⚠ The old `#pitIndicator` markup was static and always-on and said *"type LA to
+  peel off"* — a live-mechanic promise the race cannot honour while the gate holds.
+  The new cue carries a **PREVIEW** mark, asserts nothing about `LA`, and adds
+  nothing to the race command parser. **Open decision #4 below is still open.**
+- **The course no longer drives over water** (Andrew: *"on the River Run the Course
+  runs over water — keep it in the muni areas"*). Measured: River Run's **Fort Erie →
+  Niagara Falls** leg ran **53% off-land**, because the Niagara River bulges east
+  around Grand Island and the straight chord cuts the river *and* clips New York
+  State. `core/region.js` now **bends** a wet leg back onto land (`routeLeg`/`routeFor`
+  — recursive midpoint split, dragging wet midpoints to the nearest land and one step
+  further inland) and `renderMap` draws **one polyline per leg** instead of one line
+  through all the stops. That leg is now 17–25 waypoints hugging the Canadian bank,
+  effectively the Niagara Parkway. `municipalitiesFor` walks the *bent* path too, so
+  the lit municipalities and the drawn line still agree by construction.
+  ⚠ **A circuit closes via a real closing leg, not `<polygon>`.** The auto-close would
+  draw that leg straight and silently undo the bending on it.
+  ⚠ **Seam tolerance, and why it exists.** The first pass also "fixed" St Paul →
+  Glendale, which turned out to be an **~80 m** artifact where the independently
+  decimated St. Catharines and Niagara Falls rings do not share an exact edge. Bending
+  around a seam in the art would kink a road that is fine, so a leg is judged on its
+  **longest continuous** wet run against `SEAM_DEG` (~400 m). The river is ~2 km at its
+  narrowest, an order of magnitude clear, so nothing real hides under the threshold.
+  Verified: all 7 courses, every leg incl. closing legs — no run over 218 m.
+- **Map labels are NAME ONLY** (Andrew: *"just list the base by name, not with the
+  721## code"*). The `721##` second line is gone from every label. It had been added
+  so the map reinforced what you type; it doubled the label count on a map already
+  carrying twelve coloured cells, a kerb and a dozen dots, and the code is on the road
+  sign and in the command box at the moment you need it.
+  Start labels now clear by `ringR`, not `nodeR` — the checkered start disc is nearly
+  twice a plain node's radius and the label was tucking under its own flag.
+- **The START / FINISH label runs the Christmas Tree.** Andrew asked for *"a different
+  colour font for the Start/Stop base — multi-coloured, animated, whatever would be
+  fun."* The name sits in checker-white; the `▚ START / FINISH ▚` tag beneath cycles
+  the staging lights — three ambers, GREEN, held green, dark — the same sequence the
+  race launches on. Pure CSS (`.sf-label`/`.sf-tag`): the map re-renders on every
+  arrival and a JS blink would restart from black each time. It is the only animated
+  type on the map, and it never carries meaning by colour alone (the word and the
+  checkered ring do that). `prefers-reduced-motion` gets the green end state.
+  ⚠ **Known, pre-existing, now louder:** `startId` is just `ordered[0]` and there is no
+  finish concept, so a **point-to-point** course tags its FIRST base "START / FINISH" —
+  River Run starts at Fort Erie but finishes at NOTL. That was always wrong; animating
+  it made it the loudest thing on the map. Not fixed here.
+- Verified in-browser: River Run's bent leg (19 points, follows the bank); no pit lane
+  / tire / pit legend on any course; name-only labels; all six tree colours cycling;
+  circuits drawing their closing leg. Pit advisory driven with `PITSTOP_DEBUG` on the
+  closing leg (Vineland → Grimsby, `toId === startId`): **hidden at pos 0.54, live at
+  0.56**, stays dark at pos 0.95 of a mid-lap leg and at pos 0.1 of the closing leg.
+  ⚠ `PITSTOP_DEBUG.step()` advances physics but does **not** run `loop()`'s
+  leg-completion check, so it cannot drive a race across legs on its own — jump legs
+  with `race.legIndex` + `startLeg()`.
+
 **v0.9.6 (2026-07-16) — Real km/h + roll-to-stop, opponent cars, damage on a miss, brake light.**
 All four directly requested by Andrew.
 - **The gauge is now REAL KM/H and the car rolls to a stop.** Top speed **200**
@@ -232,6 +308,8 @@ Directly requested by Andrew.
 
 **v0.7.0 (2026-07-12) — Pit lane at start/finish, course/position fixes, map-as-
 challenge, speed/WPM model.** All directly requested by Andrew.
+- ⚠ **SUPERSEDED 2026-07-19 — there is no pit lane on the map any more.** See the
+  2026-07-19 entry at the top. Kept as a record of what was built here.
 - **Pit lane now branches around the START/FINISH base** (Linwell on Niagara Loop),
   not the nearest base to Fleet. (`renderMap` junction = `course.startId`.)
 - **Niagara Loop reordered to 02 01 03 00 16** (order from Thorold = 03 00 16 02);
@@ -293,6 +371,10 @@ Both directly requested by Andrew.
   `baseNum`, `requiresBaseCode`, and `homeCode:'BSEH'` on the BSE beat). The
   arrival prompt surfaces both forms; the command reference lists a BSEH row.
   (Consistent with the existing Shift-Change chain, which already uses `BSEH`.)
+- ⚠ **SUPERSEDED 2026-07-19 — the pit lane below no longer exists.** Fleet came off
+  the map entirely; the pit is stated in the Instructions and cued in-race on the
+  approach to the line. See the 2026-07-19 entry at the top. Kept as a record of what
+  was built here.
 - **Fleet = pit LANE, not a dead-end spur.** The map/minimap now draws Fleet as a
   lane that *splits off the main course and rejoins* — a dashed cubic bypass whose
   midpoint passes through the Fleet ⛽ marker (control points at k=4/3 so the apex

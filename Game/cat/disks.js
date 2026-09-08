@@ -63,7 +63,11 @@ window.CAT_DISKS = [
        absent from core/submenu.js's runtime registry, so it could not be
        launched from the old hub at all. The disk box cannot offer three player
        disks if one of the three is unreachable underneath. */
-    launch: "../cartridges/The Aquanaut/files/index.html",
+    /* Routed through the cartridge's OWN launcher on purpose: it plays the sonar
+       power-on intro, then hands off to files/index.html itself. Do not shortcut
+       past it back to files/index.html — that skips the intro and drops the game
+       onto its redundant PRESS ENTER gate (script.js `cameFromLauncher`). */
+    launch: "../cartridges/The Aquanaut/The Aquanaut.html",
     blurb:
       "Below the black. Work the dive, read the water, and keep your air " +
       "honest — a slower cartridge that punishes rushing.",

@@ -1,10 +1,25 @@
 # PowerLine Challenge (PLC) — Training Console
 
-A retro-computer-styled arcade / "training console" (Commodore-PET, cassette-load
-aesthetic) that hosts several self-contained game **cartridges**. The `index.html`
-in this folder is the main-menu **hub** that launches each cartridge.
+A retro arcade / "training console" that hosts several self-contained game
+**cartridges**. The `index.html` in this folder is the main-menu **hub** that
+launches each cartridge.
 
 *(Heads up: the folder is named `(PCL)`, but the project is **PowerLine Challenge / PLC**.)*
+
+## Two visual eras — don't conflate them
+
+The in-universe machine is the **CAT Computer**, a 1970s box that loads 1980s games.
+That split governs the styling:
+
+- **Shell / boot layer = 1970s Commodore-PET.** The hub, the cassette-load sequence,
+  and the login terminal. Green phosphor, block cursor, chunky serif-less caps.
+- **Inside a cartridge = 1980s.** Once a game launches it gets its own look — think
+  C64, NES, Sega Genesis, 1980s arcade cabinet. Bold, saturated, high-contrast; hard
+  edges and hard offset shadows rather than soft glows.
+
+So a cartridge's own menus and HUD are **not** bound to PET green. Contrast and
+legibility beat palette fidelity — especially over photoreal background art, where a
+translucent plate lets the artwork bleed through the text.
 
 ## Tech
 - Plain browser **HTML / CSS / JS** — Canvas, SVG, Web Audio. **No build system, no frameworks.**
@@ -20,3 +35,5 @@ in this folder is the main-menu **hub** that launches each cartridge.
 ## Working here
 - Stay within the PLC arcade. Do **not** borrow themes from one cartridge for another
   (e.g. the Aquanaut's deep-sea theme) unless I explicitly say I'm working on that cartridge.
+- The two-era rule above frees the **era/styling** of a cartridge, not its **subject
+  matter** — an 80s-arcade treatment is always fair game; another cartridge's theme is not.

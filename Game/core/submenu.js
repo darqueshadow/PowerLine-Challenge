@@ -137,7 +137,9 @@
                    Nothing was wrong with the game; it simply was not on the
                    list that the list is built from. */
                 id: "aquanaut",
-                launch: "cartridges/The Aquanaut/files/index.html",
+                /* Through the cartridge's own launcher — see the note in cat/disks.js.
+                   It plays the sonar power-on intro, then redirects to files/index.html. */
+                launch: "cartridges/The Aquanaut/The Aquanaut.html",
                 displayName: "The Aquanaut",
                 status: "available",
                 screenshot: "assets/images/coming-soon-placeholder.svg",
