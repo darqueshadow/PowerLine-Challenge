@@ -21,6 +21,15 @@ let DATA_UNITS_SAMPLE = [
 ];
 let DATA_LOCATIONS_SAMPLE = [];
 
+// Holodeck/God-Mode samples are DERIVED, never hand-written — the single place both load
+// paths call, so a file:// game and an http game always show the same sample. (loadFallbackData
+// used to set DATA_LOCATIONS_SAMPLE and forget DATA_UNITS_SAMPLE six lines away, leaving the
+// fallback on a stale 2100-2202 literal while http served 2040-2045.)
+function deriveHolodeckSamples() {
+    DATA_UNITS_SAMPLE = DATA_UNITS_FULL.slice(0, 6);
+    DATA_LOCATIONS_SAMPLE = DATA_LOCATIONS_FULL.slice(0, 5);
+}
+
 // ============================================
 // CSV PARSER (manual — no external libraries)
 // ============================================
@@ -131,11 +140,18 @@ function parseAuxiliaryPools(auxResults) {
     }
     if (DATA_HOSPITALS.length === 0) {
         // Fallback hospitals
+        // Mirrors hospitals.csv exactly: name + the two command codes, and `variants` holds
+        // ONE element (the full name) just as the CSV branch above builds it. It used to carry
+        // spoken abbreviations ('St Catharines', 'The County', 'WL Memorial') from the retired
+        // "Challenge V1-V3" columns, which made DATA_POOLS['Hospitals'] 11 entries here versus
+        // 4 on the CSV path. This block is guarded only by DATA_HOSPITALS.length === 0, so it
+        // also fires over http if hospitals.csv ever fails to load — it must not reintroduce
+        // retired content when it does.
         DATA_HOSPITALS = [
-            { name: 'SCS', variants: ['SCS', 'St Catharines'], cmd1: '/23000', cmd2: 'NHS-SCS' },
-            { name: 'WCGH', variants: ['WCGH', 'Welland', 'The County'], cmd1: '/4227', cmd2: 'NHS-WCH' },
-            { name: 'GNGH', variants: ['GNGH', 'GNG'], cmd1: '/4213', cmd2: 'NHS-GNG' },
-            { name: 'WLMH', variants: ['WLMH', 'West Lincoln', 'WL Memorial'], cmd1: '/1538', cmd2: 'HHS-WLMH' }
+            { name: 'SCS', variants: ['SCS'], cmd1: '/23000', cmd2: 'NHS-SCS' },
+            { name: 'WCGH', variants: ['WCGH'], cmd1: '/4227', cmd2: 'NHS-WCH' },
+            { name: 'GNGH', variants: ['GNGH'], cmd1: '/4213', cmd2: 'NHS-GNG' },
+            { name: 'WLMH', variants: ['WLMH'], cmd1: '/1538', cmd2: 'HHS-WLMH' }
         ];
         DATA_HOSPITALS.forEach(h => {
             if (h.cmd1) HOSPITAL_ALIAS_LOOKUP.push({ alias: h.cmd1, canonical: h.cmd1, alt: h.cmd2, hospitalName: h.name });
@@ -244,9 +260,8 @@ async function loadGameData() {
     Object.keys(BASE_LOOKUP).forEach(k => delete BASE_LOOKUP[k]);
     DATA_LOCATIONS_FULL.forEach(loc => { BASE_LOOKUP[loc.c] = loc.m; });
 
-    // --- Holodeck samples (first 6 units from the loaded dataset) ---
-    DATA_UNITS_SAMPLE = DATA_UNITS_FULL.slice(0, 6);
-    DATA_LOCATIONS_SAMPLE = DATA_LOCATIONS_FULL.slice(0, 5);
+    // --- Holodeck samples ---
+    deriveHolodeckSamples();
 
     // --- Progression → rebuild TIERS ---
     const progRows = parseCSV(progressionText);
@@ -610,43 +625,28 @@ function loadFallbackData() {
     ];
     DATA_UNITS_FULL = fullUnitIds.map(id => ({ id, weight: 10 }));
 
-    // Synced with bases.csv — stations + hospitals with custom weights
-    DATA_LOCATIONS_FULL = [
-        { c: "Niagara Falls", m: "72100", weight: 10 },
-        { c: "Ontario St", m: "72101", weight: 10 },
-        { c: "Linwell", m: "72102", weight: 10 },
-        { c: "Thorold", m: "72103", weight: 10 },
-        { c: "NOTL", m: "72104", weight: 10 },
-        { c: "Grimsby", m: "72105", weight: 10 },
-        { c: "Port Colborne", m: "72107", weight: 10 },
-        { c: "King St", m: "72108", weight: 10 },
-        { c: "Smithville", m: "72109", weight: 10 },
-        { c: "Vineland", m: "72110", weight: 8 },
-        { c: "Pelham", m: "72111", weight: 10 },
-        { c: "Ridgeway", m: "72113", weight: 8 },
-        { c: "Glendale", m: "72115", weight: 10 },
-        { c: "St Paul", m: "72116", weight: 8 },
-        { c: "Fort Erie", m: "72117", weight: 10 },
-        { c: "Merittville", m: "72118", weight: 8 },
-        { c: "HQ", m: "72120", weight: 5 },
-        { c: "Fitch St", m: "72121", weight: 3 },
-        { c: "Westwood", m: "72122", weight: 5 },
-        { c: "Fleet", m: "72123", weight: 5 },
-        { c: "Fallsview", m: "72124", weight: 2 },
-        { c: "Prince Charles", m: "72125", weight: 10 },
-        { c: "St Catharines", m: "/23000", weight: 8 },
-        { c: "Welland County", m: "/4227", weight: 8 },
-        { c: "GNG", m: "/4213", weight: 8 },
-        { c: "West Lincoln", m: "/1538", weight: 6 },
-        { c: "Hamilton General", m: "/1982", weight: 6 },
-        { c: "Stemi Bypass", m: "/1982ST", weight: 3 }
-    ];
+    // bases.csv is RETIRED (an Asteroid Command concept — the Aquanaut has no bases), and the
+    // http path leaves DATA_LOCATIONS_FULL empty for exactly that reason. This used to carry 28
+    // Niagara-Region base codes "synced with bases.csv" long after that CSV was deleted, so the
+    // same typed location code was rejected over http and accepted on file://. Four of them also
+    // duplicated hospitals.csv (/23000, /4227, /4213, /1538). Both paths now agree: no bases.
+    DATA_LOCATIONS_FULL = [];
 
-    DATA_LOCATIONS_SAMPLE = DATA_LOCATIONS_FULL.slice(0, 5);
+    deriveHolodeckSamples();
 
     // --- BASE_LOOKUP: Challenge Name → Command Code ---
     Object.keys(BASE_LOOKUP).forEach(k => delete BASE_LOOKUP[k]);
     DATA_LOCATIONS_FULL.forEach(loc => { BASE_LOOKUP[loc.c] = loc.m; });
+
+    // --- SCORING: deliberately NOT rebuilt here ---
+    // The http path drives ~20 SCORING fields off scoring.csv. There is no embedded copy of that
+    // CSV, so on this path SCORING keeps the literals in config.js — which ARE the file:// mirror
+    // of scoring.csv, verified value-for-value. That is the contract: EDIT scoring.csv AND
+    // config.js TOGETHER, or file:// play silently scores differently from http play.
+    if (typeof SCORING !== 'undefined') {
+        console.info('[DATA] file:// fallback — SCORING stays at its config.js defaults ' +
+                     '(the declared mirror of scoring.csv); every other dataset is embedded.');
+    }
 
     // --- Auxiliary pools (fallback) ---
     parseAuxiliaryPools([null, null]);

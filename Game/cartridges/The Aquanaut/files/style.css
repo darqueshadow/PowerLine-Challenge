@@ -557,6 +557,26 @@ body { background: var(--color-bg); color: var(--color-text); font-family: var(-
     filter: brightness(1.3);
     transform: scale(1.05);
 }
+/* TOC-only rows: the filter governs the cross-screen roster, so this toggle cannot do
+   anything. It has to READ as dead — hollow instead of filled, dimmed, no hover response
+   and no pointer. Without this it looked exactly like the three live toggles. */
+.gm-toggle.gm-disabled,
+.gm-toggle:disabled {
+    color: var(--lcars-sky);
+    background: transparent;
+    border: 1px dashed var(--lcars-sky);
+    box-shadow: none;
+    text-shadow: none;
+    opacity: 0.55;
+    cursor: not-allowed;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+}
+.gm-toggle.gm-disabled:hover,
+.gm-toggle:disabled:hover {
+    filter: none;
+    transform: none;
+}
 
 /* === God Mode Dropdown Select — LCARS style === */
 .gm-select {
@@ -2296,9 +2316,9 @@ button.menu-kb-selected {
 }
 
 /* ============================================
-   SALVAGE VALUE — Left Panel Display
+   HULL VALUE — Left Panel Display
    ============================================ */
-#salvage-value {
+#hull-value {
     font-size: 14px;
     font-weight: bold;
     color: var(--color-accent);
@@ -3141,13 +3161,15 @@ button.menu-kb-selected {
 #score-value   { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
 #tier-value    { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
 #streak-value  { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
-#salvage-value { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
+#hull-value { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
+/* Hull in trouble — breached, mid-repair, or down to its last third. */
+#hull-value.hull-critical { color: #ff6600; text-shadow: 0 0 8px rgba(255, 102, 0, 0.7); }
 
 /* Right-panel depth gauge */
 #depth-label { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
 #depth-value { color: var(--sonar-green); text-shadow: var(--sonar-glow); }
 
-/* Nameplate labels (SCORE / DEPTH / STREAK / SALVAGE / SUIT INTEGRITY /
+/* Nameplate labels (SCORE / DEPTH / STREAK / HULL / SUIT INTEGRITY /
    GAS / H₂O / COMMS) — flat glowing green, metallic plate removed */
 #left-panel .panel-label.nameplate,
 #right-panel .nameplate,

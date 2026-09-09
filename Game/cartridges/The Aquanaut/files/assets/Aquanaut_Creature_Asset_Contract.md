@@ -77,7 +77,8 @@ For each creature, a manifest (the engine will hold this in `core/config.js` as 
 
 ```js
 greatWhite: {
-  spriteSize: { w: 200, h: 112 },     // shared bounding box (px), matches config
+  // NO spriteSize here — the bounding box is CREATURE_TYPES[key].spriteSize (§5), the one
+  // source of truth. A rig carrying its own copy is what let the two drift apart.
   nativeFacing: 'left',               // from _ht; engine mirrors as needed
   zOrder: ['pectoral', 'body', 'tail', 'jaw'],   // back → front draw order
   parts: {
@@ -109,13 +110,21 @@ greatWhite: {
 
 ---
 
-## 5. Dimensions (match config `spriteSize`)
+## 5. Dimensions (read from config `CREATURE_TYPES[key].spriteSize`)
 
-| Creature | Bounding box (w×h) |
-|---|---|
-| Great White | 200 × 112 |
-| Barracuda | 200 × 112 |
-| Box Jellyfish | 160 × 160 |
+Authored at the creature's own bounding box, taken from `CREATURE_TYPES` in
+`core/config.js` — the values below are copied from it, so if they ever disagree
+**config wins**. (`CREATURE_RIGS` no longer carries a `spriteSize` of its own; the
+three that did had drifted up to 26% in size and 34% in aspect from these.)
+
+| Creature | Bounding box (w×h) | Aspect |
+|---|---|---|
+| Great White | 270 × 181 | 1.49 (landscape) |
+| Moray | 164 × 110 | 1.49 (landscape) |
+| Box Jellyfish | 150 × 201 | 0.75 (**portrait**) |
+
+There is no Barracuda in the roster — the Tier 1 side-attacker trio is Great White,
+Moray and Box Jellyfish. (Pufferfish is TOC-only and has no rig.)
 
 New deep-roster creatures declare their own box; keep aspect ratios true to the
 silhouette so the radius/spawn math reads correctly.

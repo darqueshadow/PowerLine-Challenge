@@ -141,14 +141,14 @@ const AudioManager = {
             case 'shieldDown':
             case 'hullBreach':   this._stdHullBreach(t); break;
             case 'towerDown':
-            case 'bellBreach':   this._stdBellBreach(t); break;
+            case 'dsvBreach':   this._stdDsvBreach(t); break;
             case 'spawn':        this._stdSpawn(t); break;
             case 'gameOver':     this._stdGameOver(t); break;
             case 'latch':        this._stdLatch(t); break;
             case 'unlatch':      this._stdUnlatch(t); break;
             case 'rovArrival':   this._stdRovArrival(t); break;
             case 'rovDestroyed': this._stdRovDestroyed(t); break;
-            case 'salvage':      this._stdSalvage(t); break;
+            case 'bonusLogged':  this._stdBonusLogged(t); break;
             case 'hoseDown':     this._stdHoseDown(t); break;
             case 'killCamStart': this._stdKillCamStart(t); break;
             case 'heartbeat':    this._stdHeartbeat(t); break;
@@ -560,8 +560,8 @@ const AudioManager = {
         o2.stop(t + 0.75);
     },
 
-    // ── Bell Breach: deep implosion — massive low boom ──
-    _stdBellBreach(t) {
+    // ── DSV Breach: deep implosion — massive low boom ──
+    _stdDsvBreach(t) {
         if (!this._track(1200)) return;
 
         // Massive sub-bass boom
@@ -758,8 +758,8 @@ const AudioManager = {
         n.stop(t + 0.55);
     },
 
-    // ── Salvage: bright satisfying ding ──
-    _stdSalvage(t) {
+    // ── Bonus logged: bright satisfying ding ──
+    _stdBonusLogged(t) {
         if (!this._track(300)) return;
 
         const g1 = this._gain(0.1);
@@ -1041,7 +1041,7 @@ const AudioManager = {
             case 'shieldDown':
             case 'hullBreach':   this._holoShieldDown(t); break;
             case 'towerDown':
-            case 'bellBreach':   this._holoTowerDown(t); break;
+            case 'dsvBreach':   this._holoTowerDown(t); break;
             case 'spawn':        this._holoSpawn(t); break;
             case 'lcarsButton':  this._holoLcarsButton(t); break;
             case 'gameOver':     this._holoGameOver(t); break;
@@ -1050,7 +1050,7 @@ const AudioManager = {
             case 'unlatch':      this._holoHit(t); break;
             case 'rovArrival':   this._holoSpawn(t); break;
             case 'rovDestroyed': this._holoTowerDown(t); break;
-            case 'salvage':      this._holoHit(t); break;
+            case 'bonusLogged':  this._holoHit(t); break;
             case 'hoseDown':     this._holoShieldDown(t); break;
             case 'killCamStart': this._holoTowerDown(t); break;
             case 'heartbeat':    this._holoLcarsButton(t); break;
@@ -1401,7 +1401,7 @@ const AudioManager = {
     },
 
     // ============================================
-    // RADIO STATIC EFFECT (bell destroyed)
+    // RADIO STATIC EFFECT (DSV destroyed)
     // Flickers music volume + overlays static noise
     // ============================================
     _staticActive: false,

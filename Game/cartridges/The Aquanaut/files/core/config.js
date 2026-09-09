@@ -8,7 +8,7 @@
 // ============================================
 
 const CONFIG = {
-    // Dive Bell (replaces shield/tower)
+    // DSV — Deep-Submergence Vehicle (replaces shield/tower)
     maxHullIntegrity: 9,
     hpPerHullLayer: 3,
     misfireDamage: 1,        // Pressure spike on mistype
@@ -106,30 +106,43 @@ const TOC_ACTIVATION_ZONES = {
 const TOC_ZONE_PAIRS = [[1, 8], [2, 7], [3, 6], [4, 5]];
 
 // ============================================
-// COM RADIO CALL — the F3/"COM" comment bonus. At random idle intervals a single
-// diving bell floats up from the bottom carrying a crew radio call (a statement with
-// KEYWORDS). The player logs a comment with `COM <unit#> <comment>` (F3 inserts "COM ");
-// the comment just has to contain every keyword (loose, case-insensitive, any order).
-// PURE BONUS — answering scores; ignoring it (the bell drifts off the top) or fumbling
-// it costs nothing. One bell at a time. Content lives in
-// datasets/Gameplay/com_radio_calls.csv (columns: Statement, Trigger Words — pipe-separated).
+// HAILING BUOY — the F3/"COM" bonus target. At random intervals a single hailing buoy
+// enters from the TOP and spirals down toward the bottom, carrying an incoming radio
+// transmission (a statement with TRIGGER WORDS) the player must COPY before it is lost.
+// Logged with `COM <unit#> <comment>` (F3 inserts "COM "); the comment just has to contain
+// every trigger word (loose, case-insensitive, any order).
+//   • The descent animation IS the save window — there is deliberately no timer HUD.
+//   • Copied  → bubble burst, the buoy rises away, bonus = bonusBase x the new streak.
+//   • Missed  → it is crushed at the bottom and STAYS there as wreckage; streak resets.
+//   • One buoy at a time, and none while a wreck is on screen (see wreckBlocksRespawn).
+// Spawning is INDEPENDENT of hull-breach / DSV-repair state.
+// This replaces the rising diving-bell version of the same bonus, and the retired
+// mini-sub/salvage economy. Content lives in datasets/Gameplay/com_radio_calls.csv
+// (columns: Statement, Trigger Words — pipe-separated).
 // ============================================
-const COM_CALL = {
+const HAILING_BUOY = {
     enabled: true,
-    spawnMinMs: 18000,    // shortest idle gap before the next bell rises (no bell active)
+    spawnMinMs: 18000,    // shortest idle gap before the next buoy drops (none active, no wreck)
     spawnMaxMs: 38000,    // longest idle gap
-    riseSpeed: 40,        // virtual px/s the bell floats upward
-    bobAmp: 9,            // px of gentle horizontal/vertical bob as it rises
-    bobHz: 0.55,          // bob cycles per second
-    bonus: 150,           // flat score awarded for a logged comment
-    startXMin: 0.22,      // bell spawn column as a fraction of screen width …
+    fallSeconds: 14,       // top-to-bottom descent time — THE save window. Resolution-independent:
+                           // the fall speed is derived from this and the play-area height.
+    spiralAmp: 46,        // px of horizontal spiral swing either side of the drop column
+    spiralHz: 0.32,       // spiral revolutions per second
+    bonusBase: 150,       // award = bonusBase x the buoy streak AFTER this copy (150, 300, 450, …)
+    startXMin: 0.22,      // drop column as a fraction of screen width …
     startXMax: 0.78,      // … kept off the very edges (clear of the canyon gutters)
-    spriteSize: { w: 124, h: 172 },  // bell draw size in virtual px (aspect-matched to diving_bell.png, 1332×1855 ≈ 0.72 w/h)
-    bubbleMaxWidth: 300,  // px wrap width for the radio-call statement bubble
-    highlightKeywords: true,  // colour the keyword words inside the bubble (teaches what to type)
-    // Drop a diving-bell PNG here and it's used automatically; until then a retro
-    // procedural bell is drawn. (Like the pufferfish swim-sprite flow.)
-    sprite: 'assets/diving_bell.png'
+    spriteSize: { w: 124, h: 172 },  // draw size in virtual px
+    bubbleMaxWidth: 300,  // px wrap width for the transmission statement bubble
+    highlightKeywords: true,  // colour the trigger words inside the bubble (teaches what to type)
+    riseSpeed: 150,       // px/s the buoy climbs away after a successful copy
+    // ⚠️ Spec'd literally: the wreck stays "for the rest of the dive" AND blocks respawns,
+    // so ONE miss ends the bonus for that dive (which also makes the streak reset terminal).
+    // That tension is deliberate and unresolved — flip this to false to let buoys keep
+    // coming with the wreck still on screen.
+    wreckBlocksRespawn: true,
+    // Drop a hailing-buoy PNG here and it is used automatically; until then a procedural
+    // buoy is drawn. (Like the pufferfish swim-sprite flow.)
+    sprite: 'assets/hailing_buoy.png'
 };
 
 // ============================================
@@ -164,7 +177,11 @@ const LANES = {
 };
 
 // ============================================
-// SCORING MULTIPLIERS (loaded from scoring.csv)
+// SCORING MULTIPLIERS — the file:// mirror of scoring.csv
+// Over http these literals are OVERWRITTEN from datasets/Game_mechanics/scoring.csv. On a
+// file:// load fetch() is blocked and loadFallbackData does NOT rebuild SCORING, so these
+// values are what a double-clicked game scores by. They are in sync value-for-value today.
+// ⚠️ EDIT scoring.csv AND THIS BLOCK TOGETHER, or the two ways of running diverge silently.
 // All bonuses/penalties are multipliers of the current depth's Base Hit value.
 // ============================================
 
@@ -228,10 +245,10 @@ const godMode = {
 
 const LAYOUT = {
     // Hose bundle runs vertically — these are Y positions in virtual coords
-    hoseTopY: 60,       // Where hoses connect to dive bell
+    hoseTopY: 60,       // Where hoses connect to the DSV
     hoseBundleY: 120,   // Center of hose bundle
-    diveBellY: 40,      // Dive bell position (top of screen)
-    aquanautY: 160      // Diver position (below bell)
+    dsvY: 40,           // DSV position (top of screen) — currently unread
+    aquanautY: 160      // Diver position (below the DSV)
 };
 
 // Virtual coordinate system — all game logic runs in this space.
@@ -359,7 +376,10 @@ const CREATURE_TYPES = {
 // ============================================
 // CREATURE RIGS — Multi-part canvas composites (Option B)
 // DATA ONLY — the swim/pivot logic lives in the theme layer (script.js).
-// Each part is authored on the creature's full bounding box (spriteSize); the
+// Each part is authored on the creature's full bounding box — which is CREATURE_TYPES
+// [key].spriteSize, the ONE source of truth. A rig must NOT carry its own copy: the three
+// that used to live here had drifted up to 26% in size and 34% in aspect from the sprites
+// they replace. The engine reads the creature's spriteSize for both draw and placeholder size.
 // engine draws every part at the same origin and rotates/scales it about its
 // normalized pivot. See files/assets/Aquanaut_Creature_Asset_Contract.md.
 //   pivot: [px, py]  normalized 0..1 over the bounding box (the joint)
@@ -369,7 +389,6 @@ const CREATURE_TYPES = {
 
 const CREATURE_RIGS = {
     greatWhite: {
-        spriteSize: { w: 200, h: 112 },
         nativeFacing: 'left',
         required: ['body', 'tail'],
         zOrder: ['pectoral', 'body', 'tail', 'jaw'],
@@ -381,7 +400,6 @@ const CREATURE_RIGS = {
         }
     },
     moray: {
-        spriteSize: { w: 210, h: 141 },
         nativeFacing: 'left',
         required: ['body', 'tail'],
         zOrder: ['body', 'tail', 'jaw'],
@@ -392,7 +410,6 @@ const CREATURE_RIGS = {
         }
     },
     boxJellyfish: {
-        spriteSize: { w: 160, h: 160 },
         nativeFacing: 'left',
         required: ['bell'],
         zOrder: ['tentacles', 'bell'],
@@ -696,13 +713,14 @@ const KILL_SCREEN = {
 // One source of truth for filenames — wiring in script.js references these.
 // ============================================
 
+// Only tracks that EXIST and are actually played belong here. `titleScreen`, `menu` and
+// `gameOver` were removed 2026-09-09: three keys naming MP3s that were never made, read by
+// nothing. The title screen is silent by design (the sonar ping is its only audio), the menu
+// now has a real bed (menuBed), and the game-over screen is the chained-buzz SFX scene.
 const MUSIC = {
-    titleScreen: 'music/Aquanaut - Title Screen.mp3',  // boot / title screen — loops
-    menu:        'music/Aquanaut - Menus.mp3',          // main + sub menus — loops
     menuBed:     'music/Background1.ogg',               // menu music bed, under the SFX scene — loops
     gameplay: [                                         // in-dive shuffle (non-holodeck)
         'music/Jelly Fish Bop (Remastered).mp3'
     ],
-    gameOver:    'music/Aquanaut - Game Over.mp3',      // game-over screen — loops
     volume: 0.5                                         // default music level (0–1)
 };

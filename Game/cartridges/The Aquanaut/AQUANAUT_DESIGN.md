@@ -72,7 +72,13 @@ and `CREATURE_TYPES[].minTier` / `spawnWeight` (which targets appear per depth).
 - **Abyss death now triggers from latch kills too** — a jellyfish draining the last hose
   previously severed it silently; it now starts the fall like a direct strike.
 
-Music is still disabled pending the new soundtrack (all `startMenuMusic`-type hooks return early).
+~~Music is still disabled pending the new soundtrack (all `startMenuMusic`-type hooks return
+early).~~ **Superseded 2026-09-09 — both halves of that were false.** Music is ON:
+`startMenuMusic()` plays the `main` SFX scene *and* `AudioManager.startBed(MUSIC.menuBed)`
+(no early return anywhere in it), and the dive runs `startPlaylist(MUSIC.gameplay)`. The three
+`MUSIC` keys that never had files behind them (`titleScreen`, `menu`, `gameOver`) have been
+deleted. What survives: the title screen is silent **by design** (the sonar ping is its only
+audio) and the game-over screen is the chained-buzz SFX scene, not a music track.
 
 **Constant-descent illusion (2026-06-17):** the aquanaut now reads as being *lowered the
 whole dive*, not hovering — built out to the "core visual stack" of
@@ -1046,11 +1052,15 @@ eyeball + tuning still pending** (preview rAF is paused — see [[headless-playt
   with black text via `.toc-status-label` (color `#000`, no glow). Live Blue (#4F9BE0) fill unchanged.
   The exact old transparent values are kept in a CSS revert-note comment for a one-line rollback.
 
-## COM radio-call bonus — diving bell (2026-06-25)
+## COM radio-call bonus — diving bell (2026-06-25) — SUPERSEDED
+
+> **Superseded 2026-09-09 by the Hailing Buoy** (next section). The command, the CSV and the
+> loose trigger-word matching all carried over unchanged; the vessel, the direction of travel
+> and the stakes did not. The original section is kept below for lineage.
 
 New **F3 "COM" comment bonus**, modelled on the real CAD (log a comment with `COM <unit#>`,
 or hit F3 to drop the word `COM` onto the PowerLine, then the unit # + comment). At random
-idle intervals a single **diving bell** floats up from the bottom carrying a crew **radio
+idle intervals a single **diving bell** floated up from the bottom carrying a crew **radio
 call** (a statement with keywords); the player logs `COM <unit#> <comment>` and the comment
 just has to contain every keyword. Built to Andrew's four design calls:
 - **Input:** `COM <unit#> <comment>`. **F3 inserts `COM `** into the command box (keydown
@@ -1058,37 +1068,15 @@ just has to contain every keyword. Built to Andrew's four design calls:
 - **Keywords:** ALL required, **loose** (case-insensitive substring, any order, extra words
   fine). Every CSV statement contains its own keywords, so retyping the call always works.
 - **Stakes:** **PURE BONUS.** Logging = `COM_CALL.bonus` (+150). Ignoring it (the bell drifts
-  off the top) or fumbling it (no bell / wrong unit / missing keywords) costs **nothing** — no
-  score loss, no streak break, no rebreather jam. The COM input is intercepted at the TOP of
-  `handleCommand` (regex `^COM\b`, which excludes `COMMS`/lifecycle codes) so it never reaches
+  off the top) or fumbling it cost **nothing**. The COM input is intercepted at the TOP of
+  `handleCommand` (regex `^COM`, which excludes `COMMS`/lifecycle codes) so it never reaches
   the miss/penalty path.
-- **Concurrency:** **one bell at a time**, on its own idle-interval cadence (`maintainComCall`).
-
-Content lives in **`files/datasets/Gameplay/com_radio_calls.csv`** (`Statement,Keywords`;
-keywords pipe-separated). Loaded non-fatally by `loadGameData()` (+ embedded `file://`
-fallback mirroring the CSV) and **hot-reloads via God-Mode → UPDATE DATASETS**. Tunables in
-**`COM_CALL`** (`core/config.js`): spawn min/max, rise speed, bob, bonus, spawn column,
-sprite size, bubble wrap width, `highlightKeywords` (keyword words drawn amber in the bubble).
-
-- **Engine seams:** `state.comCall` (single bell) + `state.comCallInterval`; `maintainComCall`/
-  `spawnComCall`/`updateComCall` (hooked in `update()`); `drawComCall`/`drawComBubble`/
-  `drawComBellPlaceholder` (hooked in `render()`, drawn in virtual coords by the creatures);
-  `handleComCall` (resolution); unit # rolled from the weighted `DATA_UNITS_FULL` pool.
-- **Art:** placeholder is a **procedural** retro diving bell (dome + porthole + blinking COM
-  light + lift cable). Drop a PNG at **`files/assets/diving_bell.png`** (the `COM_CALL.sprite`
-  path) and it's used automatically — a 404 until then is expected and handled silently.
-- **SFX placeholders:** incoming = `spawn`, logged = `salvage` (dedicated COM cues TBD).
-- **Tuning (2026-06-27):** real bell art keyed in (`files/assets/diving_bell.png`, alpha-cut
-  from Andrew's render; `spriteSize` aspect-matched). Statements **simplified** to terse calls
-  with exactly **two required keywords = 1 noun + 1 verb** (e.g. "Stopped by a train" →
-  `train|stopped`) so a two-word answer always clears; CSV + embedded fallback updated. Bubble
-  reworked so the **unit number is the dominant element** (32 px white w/ green glow vs the small
-  `COM` tag).
-- **Verified:** `node --check` clean on all three files; standalone node test of the parse +
-  match (14 calls parse with quoted/comma statements; loose any-order/case match; `COMMS`/`ENR`
-  correctly excluded; 0 statements fail their own keywords). **Not yet eyeballed in-browser** —
-  the rise/bob/bubble look + the 18–38 s cadence are first-pass and CSV/config-tunable (preview
-  rAF is paused here; see [[headless-playtest-pump]] to drive it, or open it in a real tab).
+- **Concurrency:** **one bell at a time**, on its own idle-interval cadence.
+- **Tuning (2026-06-27):** statements simplified to terse calls with exactly **two required
+  keywords = 1 noun + 1 verb** (e.g. "Stopped by a train" → `train|stopped`) so a two-word
+  answer always clears. Bubble reworked so the **unit number is the dominant element**.
+- Real bell art was keyed in at `files/assets/diving_bell.png`. **It was never eyeballed
+  in-browser**, and it is no longer referenced by any code — the file is still on disk.
 
 ## Menu SFX — loop-artifact fix before the first listen (2026-08-12)
 
@@ -1144,6 +1132,151 @@ game-over impacts hit `_sceneBus` untrimmed at 1.00 and may be hot.
 > in Claude Code no longer forces the deep-sea theme onto unrelated work.
 > **To resume the game, just tell Claude: "read AQUANAUT_DESIGN.md, we're working on the Aquanaut again."**
 
+## Hailing Buoy — the bonus target replaces the bell and the mini-sub (2026-09-09)
+
+The rising diving bell and the (wholly unreachable) mini-sub/salvage economy are both retired
+and replaced by **one** bonus target: a **hailing buoy** that enters at the TOP and **spirals
+down** carrying an incoming transmission the player must **copy** before it is lost.
+
+**What carried over unchanged** — this was the answer to the investigate-first brief, not a
+new invention: `F3`/`COM` already existed as a real command in the cartridge's own
+`Help Files/Reference Lists/COM Command (F3).csv` with the syntax **`COM <Unit> <Comment>`**
+(F3 types the `COM ` prefix; it is not itself the command word). `[Unit]` already came from
+**the same weighted `DATA_UNITS_FULL` pool as regular challenges**. And the trigger words
+already existed under that exact name — `com_radio_calls.csv` column **`Trigger Words`**,
+pipe-separated, 2 per row (1 noun + 1 verb), matched loosely, case-insensitively, in any order.
+None of it was re-derived. COM is *not* in `PowerLine Help.csv` — it is an Aquanaut-local
+bonus command, not a lifecycle stage.
+
+**What changed:**
+- **Travel:** enters above the top edge, falls while spiralling around its drop column
+  (`spiralAmp`/`spiralHz`), rolling slightly. **The descent IS the save window — there is no
+  timer HUD by design.** `fallSeconds` is measured entry→crush-line, so it means exactly what
+  it says, and the speed is derived from it and the play-area height (never a hardcoded px/s).
+- **Stakes are no longer pure bonus.** Copying awards `bonusBase x the buoy streak` — the
+  streak advances *first*, so the first copy pays x1, not x0 (150, 300, 450 …), **uncapped**.
+  Typing still costs nothing: a wrong unit or an incomplete comment leaves the buoy falling.
+- **Failure has a cost and leaves a mark.** Reaching the bottom crushes it: bubble burst, the
+  wreck **stays motionless where it fell for the rest of the dive**, and the streak resets to 0.
+- **Its own streak.** `state.buoyStreak`, deliberately **not** `state.streak` — that one drives
+  the kill multiplier (up to 1.75x) and the 5/8/15/25 milestones, so a missed buoy must not
+  wipe the player's combat multiplier.
+- **Spawning is independent of hull-breach / DSV-repair state** (the old bell returned early on
+  `state.rebuilding`). Buoys keep arriving while the DSV is down.
+- **Tone is procedural, not alarming** — it is a transmission to copy, not a distress call.
+  A miss reads `TRANSMISSION LOST`; no active buoy reads `NO TRANSMISSION`.
+
+⚠️ **One spec tension, implemented literally and left visible.** The wreck persists "for the
+rest of the dive" *and* blocks respawns — so a single miss ends the bonus for that dive, which
+also makes the streak reset terminal. That is what was specified, so that is what it does;
+`HAILING_BUOY.wreckBlocksRespawn` is the one-line switch if the other reading was intended.
+
+**Engine seams:** `state.hailingBuoy` / `state.buoyWreck` / `state.buoyStreak` /
+`state.buoyInterval`; `maintainHailingBuoy`/`spawnHailingBuoy`/`updateHailingBuoy`/
+`crushHailingBuoy` (hooked in `update()`); `drawHailingBuoy`/`drawBuoyBubble`/
+`drawBuoyPlaceholder`/`drawBuoyBubbles` (hooked in `render()`, virtual coords by the
+creatures); `handleHailingBuoy` (resolution, still intercepted at the top of `handleCommand`
+by `^COM`). Tunables in **`HAILING_BUOY`** (`core/config.js`).
+
+**Art:** the statement panel now rides **below** the buoy — above it, the panel would sit
+off-screen for the whole first stretch of the descent, which is where the read matters most.
+Placeholder is a procedural radio buoy (banded float, antenna mast, blinking lamp) that
+flattens and darkens into the wreck; drop a PNG at **`files/assets/hailing_buoy.png`** and it
+is used automatically. **SFX placeholders:** incoming = `spawn`, copied = `bonusLogged` (the
+former `salvage` ding, renamed with the economy).
+
+**Verified:** 91 assertions in real headless Chrome over http — spawn/descent/spiral, the
+derived fall speed, entry→crush timing, the x1/x2 streak award, retry-at-no-cost on both
+failure paths, loose any-order matching, crush→wreck→streak-reset, wreck immobility and
+respawn blocking (and that the knob lifts it), breach-independence, and both render paths.
+⚠️ **Still not eyeballed in-browser** — the spiral look, the 14 s window and the 18–38 s
+cadence are first-pass and config-tunable.
+
+## Consolidated fix pass — DSV rename, RIGS, DATA, MUSIC, HOLODECK, LOCKOUT (2026-09-09)
+
+Round-table rulings applied in one pass alongside the Hailing Buoy build above.
+
+**DSV rename.** The player's hull/repair vessel is the **DSV** (Deep-Submergence Vehicle — the
+accurate term; *not* "Diver Support Vehicle", which isn't real). Name only, no mechanic change:
+`state.bellBreached`->`dsvBreached`, `rebuildBell()`->`rebuildDSV()`, `LAYOUT.diveBellY`->`dsvY`,
+the dead `bellBreach` audio alias->`dsvBreach`, and all four UI strings (`HULL BREACH — DSV
+COMPROMISED`, `DSV REPAIRING — STAND BY`, `DSV SEALED — HULL RESTORED`, `DSV BREACH OVERRIDE`).
+The **box jellyfish's** `bellR`/`bellH`/`bellGrad`/`bellPulse` and the rig part `boxjelly_bell`
+are anatomy, not the vessel, and were deliberately left alone — as was the hull-repair ROV.
+
+**RIGS — defused, not demolished.** `CREATURE_RIGS` no longer carries its own `spriteSize`; the
+three it had were drifting up to **26% in size and 34% in aspect** from the `CREATURE_TYPES`
+sprites they replace (great white 200x112 vs 270x181; box jellyfish square 160x160 vs portrait
+150x201). Both `drawRiggedCreature` and `makePlaceholderPart` now read
+`CREATURE_TYPES[key].spriteSize` — `makePlaceholderPart` mattered: it also read
+`rig.spriteSize`, so deleting the three lines without touching it would have thrown. The
+pre-transparent-PNG corner-alpha probe was ported from `loadCreatureSprite` into `loadRigPart`,
+so a cut PNG — the asset contract's *preferred* format — is no longer chromakeyed.
+`files/assets/Aquanaut_Creature_Asset_Contract.md` section 5 carried the drifted numbers too
+(and a "Barracuda" that isn't in the roster) and was corrected. There is still **zero rig art
+on disk**; this only makes the dormant path safe to leave dormant.
+
+**DATA — four divergences closed, no offline pack built.** The CSVs are quiescent (units,
+scoring, progression incl. all 27 columns x 4 ranks, sweep, and com_radio_calls all verified
+identical to their fallbacks), so no pack and no drift-checker — a text comparison is
+unbuildable anyway with only 10 of 16 datasets having a CSV-text copy. `file://` launches do
+happen, so the fallback stays. Closed:
+1. `loadFallbackData` never reset **`DATA_UNITS_SAMPLE`**, leaving file:// on a stale 2100-2202
+   literal while http served 2040-2045 — read live by the Holodeck spawn pool and God-Mode.
+   Both paths now call one shared `deriveHolodeckSamples()`.
+2. 28 **retired bases.csv** rows lived on in the fallback while the http path leaves
+   `DATA_LOCATIONS_FULL` empty, so the same typed location code was rejected over http and
+   accepted on file:// — dropped (four of them also duplicated hospitals.csv).
+3. The **hospital fallback** carried `variants` from the retired "Challenge V1-V3" columns (11
+   pool entries vs 4 on the CSV path), and it fires on http too if hospitals.csv fails to load
+   — now single-element, matching the CSV branch.
+4. **`SCORING`** is never rebuilt by the fallback; the `config.js` literals are its only file://
+   source and agree with scoring.csv value-for-value **by maintenance, not by construction** —
+   so that contract is now declared in both files and announced on the fallback path.
+
+**MUSIC.** All three dead keys deleted (`titleScreen`, `menu`, `gameOver`) — zero readers, and
+none of the three MP3s were ever made. The title screen is silent **by design** (the sonar ping
+is its only audio) and game-over is the chained-buzz SFX scene. `menuBed` (Background1, wired
+in `aef0078`) and the `gameplay` shuffle survive.
+
+**HOLODECK.** The pufferfish row is **kept** but honest: it is TOC-only (`minTier 99`, spawned
+directly by the TOC sub-machine), so the TARGET SPAWN FILTER cannot reach it and the toggle did
+nothing while looking identical to the three live ones. It now renders disabled and labelled
+**TOC-ONLY** (hollow, dashed, dimmed, `not-allowed`) — keyed off `isSpawnable()`, so any future
+TOC-only creature gets the same treatment. `getCreatureType()` still fails closed on an empty
+filter but now says so once via a `[HOLODECK]` `console.warn` instead of silently stalling every
+spawn. *Reachable*: the menu guard only keeps one **spawnable** type on, and `isSpawnable` tests
+`minTier < tierCount` while `available` tests `currentTierIdx >= minTier` — those agree only
+while every side creature is `minTier 0`, which stops being true the moment the shelved
+box-jellyfish depth gating is un-shelved. The per-tier signature-creature roster question is
+**still open and untouched**.
+
+**LOCKOUT — leaks fixed, shape untouched.** The escalating 4/8/16/32 s repair lockout is
+ratified design (inherited from Asteroid Command, whose manual justifies it as "non-linear to
+simulate resource exhaustion") and is **deliberately still uncapped and un-reset within a
+dive** — cap/decay/reset and the punishment-vs-relief framing remain open questions. Fixed:
+- `rovPendingTimer` **leaked** on both end-of-dive paths (only `startGame` cleared it), so a
+  scheduled repair could fire `startROV()` over the main menu. One `clearPendingROV()` is now
+  called from `gameOver` and from the mid-dive quit.
+- **The double-advance.** `triggerROV` both escalated the exponent *and* dispatched, and the
+  ROV's own death called it again — so one breach whose ROV was killed twice jumped 4 s to 16 s.
+  Split: `triggerROV()` escalates then dispatches (a new breach); `dispatchROV(redispatch)`
+  re-sends at the **current** level (an ROV death).
+  WARNING: **no early-return guard was added to either** — a prior proposed `if (state.rov)
+  return;` at the top of `triggerROV` would have stranded `dsvBreached` with nothing re-arming
+  the repair: an unwinnable dive. Verified explicitly against that failure mode — a re-dispatch
+  still arms a repair.
+- **The hull readout** was missing entirely — `hullHP` was legible only as canvas cracks, and
+  SUIT INTEGRITY is the *diver*, not the vessel — so a breach and its lockout ran with nothing
+  on screen. The left panel's four slots are now SCORE / DEPTH / STREAK / **HULL**, HULL taking
+  the slot the retired salvage economy vacated: `9/9` normally, `ROV INBOUND` during the lockout
+  wait, `BREACHED` with no repair pending, `REPAIRING` while the ROV works, amber under a third.
+- **Frame-rate dependence.** `damping = 0.92` was applied once per *frame* while the seek
+  acceleration is `dt`-scaled, so terminal speed was `a*dt*d/(1-d)` — `0.192a` at 60 Hz but only
+  `0.080a` at 144 Hz, a ratio of **2.40** that turned a 5.2 s lockout into 12.5 s purely from
+  refresh rate. Now `Math.pow(0.92, dt * 60)`, reproducing the 60 Hz curve at any rate; measured
+  within 5% across 30/60/144 Hz.
+
 ## Project Overview
 Deep-sea saturation diver typing defense game. Forked from "Asteroid Command" (EMS dispatcher training game). Same engine: plain HTML/CSS/JS, Canvas, SVG, Web Audio API. No build system.
 
@@ -1178,38 +1311,56 @@ Deep-sea saturation diver typing defense game. Forked from "Asteroid Command" (E
 |---|---|
 | Asteroids | Sea creatures (jellyfish, sea spiders, gulper eels, kraken tentacles, anglerfish) |
 | 4 defense zones (towers/dams) | 4 hose bundle segments (Regulator/Comms/Hot Water/Pneumo) |
-| Shield dome | Dive bell hull integrity |
-| Radio tower | Dive bell |
+| Shield dome | DSV hull integrity |
+| Radio tower | DSV (Deep-Submergence Vehicle) |
 | Tractor beam/tether | Sonar tether (heavier physics) |
 | Ambulance (NanoMedic) | Nanomedic ROV (attackable) |
-| N/A | Rescue mini-sub (salvage point economy) |
+| N/A | Hailing buoy (bonus target, streak-scored) — replaced the never-reachable rescue mini-sub / salvage economy, retired 2026-09-09 |
 | N/A | Bioluminescent visibility cone |
 | N/A | Creature latching behavior |
 | Straight-line asteroid fall | Creature movement archetypes (drift, zig-zag, lunge, sweep, stealth) |
 | Space background | Depth-based darkening background |
 
-## Key Systems in script.js (line ranges)
-- Assets loading: 8-116
-- State management: 127-199
-- Initialization: 204-916
-- Resize/scaling: 917-975
-- Dev/Holodeck mode: 980-1164
-- Defense system (zones, shield, cracks): 1169-1362
-- Ricochet system: 1366-1424
-- Asteroid system (spawn, physics, collision): 1429-1522
-- Projectile system: 1620-1676
-- Input/command handling: 1679-1819
-- Scoring pipeline: 1825-1966
-- HUD/status display: 1977-2207
-- Ambulance system: 2210-2340
-- Holodeck features: 2353-2632
-- Visual systems (VFX, particles): 2634-3815
-- Game loop & update: 3815-4138
-- Rendering: 4139-5410
-- Game flow (pause, start, game over): 5410-5559
-- Boot sequence: 5560-6036
+## Key Systems in script.js
+
+Corrected 2026-09-09. The list here used to give **line ranges**, and they had rotted
+completely: they named Asteroid Command's systems (Asteroid, Ambulance, Ricochet, shield
+zones) and stopped at line 6036 in a file that is now ~12,000 lines. Line numbers move on
+every edit, so they are not tracked any more — find a system by its banner comment instead:
+
+```
+grep -n '^// =\+$' -A1 files/script.js        # every section banner, in order
+```
+
+The sections, in file order:
+
+`STATE` · `GREEN-SCREEN SPRITE LOADER` · `MULTI-PART CREATURE RIGS (Option B)` ·
+`TITLE SCREEN SONAR PING` · `INITIALIZATION` · `RESIZE / SCALING` ·
+`HOSE BUNDLE + AQUANAUT (Defense System)` · `HULL INTEGRITY` · `DAMAGE SYSTEM` ·
+`CREATURE TYPES & SPAWNING` · `ATTACKER LANE SYSTEM` · `CREATURE MOVEMENT ARCHETYPES` ·
+`CREATURE SPAWNING` · `HAILING BUOY` · `CREATURE COLLISION PHYSICS` ·
+`PROJECTILES (Sonar Pulses)` · `CREATURE SHATTER VFX` · `INPUT HANDLING` ·
+`LCARS CAD AUTOCOMPLETE` · `POWERLINE PROMPT` · `SCORING PIPELINE` · `HUD & STATUS` ·
+`ROV SYSTEM` · `CREATURE LATCHING` · `SUIT LATCH SYSTEM` · `GRAPPLE STATE` ·
+`VISIBILITY CONE` · `DEPTH BACKGROUND` · `MARINE SNOW PARTICLES` ·
+`CONSTANT-DESCENT ILLUSION` · `AMBIENT SEA LIFE` · `HOSE SEVERED EFFECTS` ·
+`CREATURE PROCEDURAL DRAWING` · `DEATH SEQUENCES v2` · `KILL SCREEN PLATE` ·
+`ABYSS DEATH v2` · `KILL CAM` · `TETHER PHYSICS` · `GRID FLASH` · `HOLODECK` ·
+`HELMET INTERIOR SHELL controller` · `GAME LOOP` · `RENDER` · `HOSE RENDERING` ·
+`AQUANAUT RENDERING` · `LATCHED CREATURE RENDERING` · `ROV RENDERING` ·
+`CREATURE + LABEL RENDERING` · `HAILING BUOY — rendering` · `SONAR RING` ·
+`SCREEN-WIDE SONAR SWEEP` · `CHALLENGE BUBBLE` · `PROJECTILE RENDERING` · `GAME CONTROL` ·
+`DIVE ENTRY ANIMATION` · `BOOT SEQUENCE (Dive Computer)`
+
+Note the two banners that still carry their Asteroid Command lineage in the name:
+`HULL INTEGRITY (Shield replacement)` and `ROV SYSTEM (replaces Ambulance)`.
 
 ## Workflow
-- Run locally by opening `Asteroid Command.html` in a browser (no server needed, but CSV loading needs http for fetch)
+- Run locally **over http** — `Play The Aquanaut.bat` (fullscreen kiosk) or `Start Dev Server.bat`
+  (http://localhost:8000/files/index.html). The canonical entry is `The Aquanaut.html` at the
+  cartridge root, which plays the sonar power-on intro and redirects into `files/`.
+- **Do not double-click the HTML.** `file://` blocks `fetch`, which silently costs you the CSVs
+  (the game limps on embedded fallback data) *and* all audio. (This line used to name
+  `Asteroid Command.html` and claim no server was needed — both wrong.)
 - God Mode / Holodeck accessible via password prompts in-game
 - CSV live reload supported in God Mode

@@ -250,7 +250,11 @@ function rigReady(type) {
 // whole creature. Lets the pivot/articulation be seen before real art lands.
 function makePlaceholderPart(type, partName) {
     const rig = CREATURE_RIGS[type];
-    const w = rig.spriteSize.w, h = rig.spriteSize.h;
+    // Bounding box comes from the creature's OWN spriteSize (CREATURE_TYPES) — the rig no
+    // longer carries its own copy, so a placeholder can't drift from the sprite it stands in for.
+    const ctp = (typeof CREATURE_TYPES !== 'undefined') ? CREATURE_TYPES[type] : null;
+    const w = (ctp && ctp.spriteSize) ? ctp.spriteSize.w : 160;
+    const h = (ctp && ctp.spriteSize) ? ctp.spriteSize.h : 160;
     const cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
     const g = cv.getContext('2d');
@@ -315,12 +319,22 @@ function loadRigPart(type, partName, src) {
             c.drawImage(img, 0, 0);
             const id = c.getImageData(0, 0, canvas.width, canvas.height);
             const d = id.data;
-            for (let i = 0; i < d.length; i += 4) {
-                const r = d[i], gg = d[i + 1], b = d[i + 2];
-                if (gg > 180 && r < 120 && b < 120) d[i + 3] = 0;
-                else if (gg > 140 && gg > r * 1.3 && gg > b * 1.3) {
-                    const greenness = (gg - Math.max(r, b)) / gg;
-                    d[i + 3] = Math.round(255 * (1 - greenness));
+            // Skip the chromakey on parts that are ALREADY transparent. A cut PNG is the
+            // asset contract's PREFERRED delivery format, and keying one would only risk
+            // nibbling greenish pixels off the art. Same corner-alpha probe the whole-sprite
+            // loader uses: a green-screen export has opaque corners, a cut one has alpha 0.
+            const cw = canvas.width, chh = canvas.height;
+            const cornerA = (x, y) => d[(y * cw + x) * 4 + 3];
+            const alreadyTransparent =
+                (cornerA(0, 0) + cornerA(cw - 1, 0) + cornerA(0, chh - 1) + cornerA(cw - 1, chh - 1)) < 256;
+            if (!alreadyTransparent) {
+                for (let i = 0; i < d.length; i += 4) {
+                    const r = d[i], gg = d[i + 1], b = d[i + 2];
+                    if (gg > 180 && r < 120 && b < 120) d[i + 3] = 0;
+                    else if (gg > 140 && gg > r * 1.3 && gg > b * 1.3) {
+                        const greenness = (gg - Math.max(r, b)) / gg;
+                        d[i + 3] = Math.round(255 * (1 - greenness));
+                    }
                 }
             }
             c.putImageData(id, 0, 0);
@@ -350,7 +364,7 @@ const state = {
     paused: false,
     score: 0,
     hullHP: 9,
-    bellBreached: false,
+    dsvBreached: false,
     repairCount: 0,
     cracks: [],
     streak: 0,
@@ -391,14 +405,12 @@ const state = {
     marineSnow: [],
     // Constant-descent illusion (parallax water column + ticking depth gauge)
     descent: { phase: 0, displayDepth: 0, motes: [], bubbles: [], wallScroll: 0 },
-    // COM radio call (the F3/"COM" comment bonus) — at most one diving bell at a time
-    comCall: null,
-    comCallInterval: 0,
-    // Salvage economy
-    salvagePoints: 0,
-    repairTokens: 0,
-    miniSub: null,
-    miniSubTimer: 0,
+    // Hailing buoy (the F3/"COM" bonus target) — at most one in flight, at most one wreck
+    hailingBuoy: null,
+    buoyInterval: 0,
+    buoyWreck: null,
+    buoyStreak: 0,     // consecutive buoys copied; the bonus multiplier. Its OWN counter —
+                       // deliberately not state.streak, which drives the kill multiplier
     // Latched creatures & grapple state
     latchedCreatures: [],
     isGrappling: false,
@@ -611,7 +623,7 @@ function init() {
     DOM.holodeckPrompt = document.getElementById('holodeck-prompt');
     DOM.holodeckInput = document.getElementById('holodeck-password-input');
     DOM.tetherLayer = document.getElementById('tether-layer');
-    DOM.salvage = document.getElementById('salvage-value');
+    DOM.hull = document.getElementById('hull-value');
     DOM.depthValue = document.getElementById('depth-value');
     DOM.pressureFill = document.getElementById('pressure-fill');
     DOM.powerline = document.getElementById('powerline-prompt');
@@ -680,8 +692,8 @@ function init() {
                     showStatus(`HIT +${bh}`, "hit");
                     updateHUD();
                     checkTier();
-                } else if (godMode.godModeKill && (state.bellBreached || state.rebuilding)) {
-                    // God Mode: destroy creature directly when bell is breached
+                } else if (godMode.godModeKill && (state.dsvBreached || state.rebuilding)) {
+                    // God Mode: destroy creature directly when the DSV is breached
                     createExplosion(hit.x, hit.y, '#00ffcc', hit.radius * 2);
                     const idx = state.creatures.indexOf(hit);
                     if (idx !== -1) removeCreatureAt(idx);
@@ -753,6 +765,7 @@ function init() {
         // and the depth pressure drone keeps running, both over the main menu.
         AudioManager.stopMusic();
         try { AudioManager.stopAmbient(); } catch (e) {}
+        clearPendingROV();   // a scheduled repair must not fire startROV() over the menu
         startMenuMusic();
         selectDefaultMenuButton('start-btn');
     });
@@ -1167,7 +1180,7 @@ function init() {
     });
 
     document.addEventListener('keydown', e => {
-        // During a dive, kill every function key except F3 (COM radio bonus) and
+        // During a dive, kill every function key except F3 (hailing-buoy copy) and
         // F12 (command-input reset). F1/F2/F4–F11 do nothing — no browser help,
         // no accidental F11 fullscreen toggle, etc. Out of gameplay they pass through.
         if (state.running && /^F([1-9]|1[01])$/.test(e.key) && e.key !== 'F3') {
@@ -1198,7 +1211,7 @@ function init() {
             return;
         }
 
-        // F3 — insert the "COM " prefix into the command box to log a radio-call comment
+        // F3 — insert the "COM " prefix into the command box to copy a buoy transmission
         // (mirrors the real CAD F3). Then type `<unit#> <comment>` and Enter. In-game only.
         if (e.key === 'F3') {
             e.preventDefault();
@@ -1299,15 +1312,6 @@ function init() {
                 return;
             }
             if (e.key === 'Backspace') { state.backspaces++; }
-            // Repair token hotkeys: 1, 2, 3
-            if (e.key === '1' || e.key === '2' || e.key === '3') {
-                const hoseIdx = parseInt(e.key) - 1;
-                if (state.repairTokens > 0 && state.hoses[hoseIdx] && state.hoses[hoseIdx].hp <= 0) {
-                    e.preventDefault();
-                    spendRepairToken(hoseIdx);
-                    return;
-                }
-            }
         }
 
         if (state.paused && (e.key === 'Escape' || e.key === 'p' || e.key === 'P')) { resumeGame(); return; }
@@ -1525,7 +1529,7 @@ function getImpactAltitude(target) {
 
 function drawHullIntegrity(ctx) {
     // Hull integrity is now shown via the aquanaut's helmet glow and cracks
-    // No separate dive bell drawing — the hose bundle connects directly to the diver
+    // No separate DSV drawing — the hose bundle connects directly to the diver
     if (state.hullHP <= 0) return;
 
     const aq = getAquanaut();
@@ -1622,8 +1626,8 @@ function applyHullDamage(amount, type) {
 
         if (state.hullHP === 0) {
             AudioManager.play('shieldDown');
-            state.bellBreached = true;
-            showStatus("HULL BREACH — DIVE BELL COMPROMISED", "impact");
+            state.dsvBreached = true;
+            showStatus("HULL BREACH — DSV COMPROMISED", "impact");
             triggerROV();
         }
     }
@@ -1724,7 +1728,23 @@ function getCreatureType() {
     // keeps the {pufferfish-only} state unreachable in the first place.
     if (CONFIG.isHolodeck && godMode.activeCreatureTypes && godMode.activeCreatureTypes.size > 0) {
         const filtered = available.filter(([key]) => godMode.activeCreatureTypes.has(key));
-        if (!filtered.length) return null;
+        if (!filtered.length) {
+            // Fails closed (see above) — but silently, and a stalled spawner looks like a
+            // frozen game. Say it once. Reachable if a creature is ON but excluded by the
+            // CURRENT tier: the menu guard only ensures one *spawnable* type stays on, and
+            // `isSpawnable` tests minTier < tierCount while `available` tests
+            // currentTierIdx >= minTier. Those agree only while every side creature is
+            // minTier 0, which is true today and stops being true the moment the shelved
+            // box-jellyfish depth gating (minTier 1) is un-shelved.
+            if (!getCreatureType._emptyFilterWarned) {
+                getCreatureType._emptyFilterWarned = true;
+                console.warn('[HOLODECK] TARGET SPAWN FILTER matches no creature eligible at "' +
+                    state.tier + '" — cross-screen spawns are suppressed. Active: {' +
+                    Array.from(godMode.activeCreatureTypes).join(', ') + '}; eligible here: {' +
+                    available.map(([k]) => k).join(', ') + '}.');
+            }
+            return null;
+        }
         available = filtered;
     }
 
@@ -2549,32 +2569,38 @@ function maintainTocUnits(dt) {
 }
 
 // ============================================
-// COM RADIO CALL — the F3/"COM" comment bonus.
-// At random idle intervals a single diving bell floats up from the bottom of the screen
-// carrying a crew radio call (a statement + KEYWORDS, from com_radio_calls.csv). The
-// player logs a comment with `COM <unit#> <comment>` (F3 inserts "COM "); the comment
-// just has to contain every keyword (loose, case-insensitive, any order). PURE BONUS:
-// answering scores COM_CALL.bonus; ignoring it (the bell drifts off the top) or fumbling
-// it costs nothing — no penalty, no streak break. One bell at a time. See COM_CALL config.
+// HAILING BUOY — the F3/"COM" bonus target.
+// At random intervals a single hailing buoy enters from the TOP and spirals down toward the
+// bottom, carrying an incoming radio transmission (a statement + TRIGGER WORDS, from
+// com_radio_calls.csv) that the player must COPY before it is lost. Logged with
+// `COM <unit#> <comment>` (F3 inserts "COM "); the comment just has to contain every trigger
+// word (loose, case-insensitive, any order).
+//   • The descent animation IS the save window — no timer HUD by design.
+//   • Copied → bubble burst, the buoy climbs away, award = bonusBase x the new streak.
+//   • Missed → crushed at the bottom, and the wreck STAYS there; the streak resets to 0.
+//   • One buoy at a time; none while a wreck is showing (HAILING_BUOY.wreckBlocksRespawn).
+// Spawning is INDEPENDENT of hull-breach / DSV-repair state — deliberately, so the bonus
+// keeps arriving while the DSV is down. See HAILING_BUOY in config.js.
 // ============================================
 
-// Optional bell sprite — used automatically once the PNG is dropped at COM_CALL.sprite;
-// until then drawComCall renders a procedural retro diving bell. A 404 here is expected
-// (no art yet) and handled silently.
-let comBellImg = null, comBellReady = false;
-(function loadComBell() {
-    if (typeof COM_CALL === 'undefined' || !COM_CALL.sprite) return;
+// Optional buoy sprite — used automatically once a PNG is dropped at HAILING_BUOY.sprite;
+// until then drawHailingBuoy renders a procedural buoy. A 404 here is expected (no art yet)
+// and handled silently.
+let buoyImg = null, buoyReady = false;
+(function loadBuoySprite() {
+    if (typeof HAILING_BUOY === 'undefined' || !HAILING_BUOY.sprite) return;
     const img = new Image();
-    img.onload = () => { comBellImg = img; comBellReady = true; };
-    img.onerror = () => { comBellReady = false; };   // stay on the procedural placeholder
-    img.src = COM_CALL.sprite;
+    img.onload = () => { buoyImg = img; buoyReady = true; };
+    img.onerror = () => { buoyReady = false; };   // stay on the procedural placeholder
+    img.src = HAILING_BUOY.sprite;
 })();
 
-function rollComInterval() {
-    return COM_CALL.spawnMinMs + Math.random() * Math.max(0, COM_CALL.spawnMaxMs - COM_CALL.spawnMinMs);
+function rollBuoyInterval() {
+    return HAILING_BUOY.spawnMinMs +
+        Math.random() * Math.max(0, HAILING_BUOY.spawnMaxMs - HAILING_BUOY.spawnMinMs);
 }
 
-function spawnComCall() {
+function spawnHailingBuoy() {
     if (!DATA_COM_CALLS || !DATA_COM_CALLS.length) return;
     const call = DATA_COM_CALLS[Math.floor(Math.random() * DATA_COM_CALLS.length)];
     // Roll a real responding unit (same weighted pool as cross-screen targets).
@@ -2582,54 +2608,119 @@ function spawnComCall() {
         ? (weightedRandom(DATA_UNITS_FULL).id || '2042')
         : '2042';
     const W = COORD_SYSTEM.width, H = COORD_SYSTEM.height;
-    const fx = COM_CALL.startXMin + Math.random() * Math.max(0, COM_CALL.startXMax - COM_CALL.startXMin);
-    state.comCall = {
+    const sh = HAILING_BUOY.spriteSize.h;
+    const fx = HAILING_BUOY.startXMin +
+        Math.random() * Math.max(0, HAILING_BUOY.startXMax - HAILING_BUOY.startXMin);
+    // Fall speed is DERIVED from fallSeconds so the save window is the same length of time
+    // whatever the play-area height is — never a hardcoded px/s. Measured over the span the
+    // player actually sees: entry (half a buoy above the edge) to the crush line, the same
+    // threshold updateHailingBuoy tests. So fallSeconds IS the on-screen window.
+    const yStart = -sh * 0.5;
+    const yCrush = H - sh * 0.35;
+    state.hailingBuoy = {
         unitID: String(unit),
         statement: call.statement,
         keywords: call.keywords.slice(),
+        baseX: W * fx,
         x: W * fx,
-        y: H + COM_CALL.spriteSize.h,   // start fully below the bottom edge
-        riseSpeed: COM_CALL.riseSpeed,
-        bobPhase: Math.random() * Math.PI * 2,
+        y: yStart,
+        fallSpeed: (yCrush - yStart) / Math.max(0.5, HAILING_BUOY.fallSeconds),
+        spiralPhase: Math.random() * Math.PI * 2,
         spawnTime: Date.now(),
-        flash: 0
+        answered: false,
+        flash: 0,
+        bubbles: []
     };
-    AudioManager.play('spawn');   // placeholder incoming-radio cue (dedicated SFX TBD)
+    AudioManager.play('spawn');   // placeholder incoming-transmission cue (dedicated SFX TBD)
 }
 
-function updateComCall(dt) {
-    const b = state.comCall;
+// A few rising air bubbles — used for the copy burst and the crush burst.
+function spawnBuoyBubbles(buoy, count, spread) {
+    for (let i = 0; i < count; i++) {
+        buoy.bubbles.push({
+            x: buoy.x + (Math.random() - 0.5) * spread,
+            y: buoy.y + (Math.random() - 0.5) * spread * 0.5,
+            r: 2 + Math.random() * 5,
+            vy: -(30 + Math.random() * 70),
+            life: 1
+        });
+    }
+}
+
+function updateBuoyBubbles(buoy, dt) {
+    for (let i = buoy.bubbles.length - 1; i >= 0; i--) {
+        const bb = buoy.bubbles[i];
+        bb.y += bb.vy * dt;
+        bb.x += Math.sin((bb.y + i * 40) / 30) * 12 * dt;
+        bb.life -= dt * 0.55;
+        if (bb.life <= 0) buoy.bubbles.splice(i, 1);
+    }
+}
+
+function updateHailingBuoy(dt) {
+    const b = state.hailingBuoy;
     if (!b) return;
-    // Answered → play the brief confirm flash, then retire the bell and arm the next interval.
+    updateBuoyBubbles(b, dt);
+
+    // Copied → climb away off the top, then retire and arm the next interval.
     if (b.answered) {
         b.flash = Math.max(0, b.flash - dt * 2.2);
-        b.y -= b.riseSpeed * 0.4 * dt;
-        if (b.flash <= 0) { state.comCall = null; state.timers.comCallTimer = 0; state.comCallInterval = rollComInterval(); }
+        b.y -= HAILING_BUOY.riseSpeed * dt;
+        if (b.y < -HAILING_BUOY.spriteSize.h * 1.5) {
+            state.hailingBuoy = null;
+            state.timers.buoyTimer = 0;
+            state.buoyInterval = rollBuoyInterval();
+        }
         return;
     }
-    b.y -= b.riseSpeed * dt;
-    b.bobPhase += dt * COM_CALL.bobHz * Math.PI * 2;
-    // Drifted off the top, unanswered → just gone. Pure bonus: no penalty, no streak break.
-    if (b.y < -COM_CALL.spriteSize.h) {
-        state.comCall = null;
-        state.timers.comCallTimer = 0;
-        state.comCallInterval = rollComInterval();
+
+    // Descending: straight down, spiralling around its drop column.
+    b.y += b.fallSpeed * dt;
+    b.spiralPhase += dt * HAILING_BUOY.spiralHz * Math.PI * 2;
+    b.x = b.baseX + Math.sin(b.spiralPhase) * HAILING_BUOY.spiralAmp;
+
+    // Reached the bottom uncaught → crushed. The wreck stays put for the rest of the dive.
+    if (b.y >= COORD_SYSTEM.height - HAILING_BUOY.spriteSize.h * 0.35) {
+        crushHailingBuoy(b);
     }
 }
 
-// Spawn cadence: only one bell at a time. When none is active, count idle time toward the
-// next rolled interval, then float a fresh bell up.
-function maintainComCall(dt) {
-    if (typeof COM_CALL === 'undefined' || !COM_CALL.enabled) return;
-    if (state.rebuilding) return;
-    if (state.comCall) { updateComCall(dt); return; }
-    if (state.timers.comCallTimer === undefined) state.timers.comCallTimer = 0;
-    if (!state.comCallInterval) state.comCallInterval = rollComInterval();
-    state.timers.comCallTimer += dt * 1000;
-    if (state.timers.comCallTimer >= state.comCallInterval) {
-        spawnComCall();
-        state.timers.comCallTimer = 0;
-        state.comCallInterval = rollComInterval();
+function crushHailingBuoy(b) {
+    b.y = COORD_SYSTEM.height - HAILING_BUOY.spriteSize.h * 0.35;
+    state.buoyWreck = {
+        x: b.x, y: b.y,
+        crushT: 0,                   // 0→1 crush animation, then it just sits there
+        bubbles: [],
+        unitID: b.unitID
+    };
+    spawnBuoyBubbles(state.buoyWreck, 10, HAILING_BUOY.spriteSize.w * 0.7);
+    state.hailingBuoy = null;
+    state.buoyStreak = 0;            // streak resets on a miss
+    state.timers.buoyTimer = 0;
+    state.buoyInterval = rollBuoyInterval();
+    // Neutral / procedural — this is a lost transmission, not an emergency.
+    showStatus('TRANSMISSION LOST', 'miss');
+    AudioManager.play('targetImpact');
+    updateHUD();
+}
+
+// Spawn cadence: one buoy at a time, and (as specced) none while a wreck is on screen.
+// Deliberately NOT gated on state.rebuilding — the buoy keeps arriving during a DSV repair.
+function maintainHailingBuoy(dt) {
+    if (typeof HAILING_BUOY === 'undefined' || !HAILING_BUOY.enabled) return;
+    if (state.buoyWreck) {
+        updateBuoyBubbles(state.buoyWreck, dt);
+        if (state.buoyWreck.crushT < 1) state.buoyWreck.crushT = Math.min(1, state.buoyWreck.crushT + dt * 3);
+        if (HAILING_BUOY.wreckBlocksRespawn) { if (state.hailingBuoy) updateHailingBuoy(dt); return; }
+    }
+    if (state.hailingBuoy) { updateHailingBuoy(dt); return; }
+    if (state.timers.buoyTimer === undefined) state.timers.buoyTimer = 0;
+    if (!state.buoyInterval) state.buoyInterval = rollBuoyInterval();
+    state.timers.buoyTimer += dt * 1000;
+    if (state.timers.buoyTimer >= state.buoyInterval) {
+        spawnHailingBuoy();
+        state.timers.buoyTimer = 0;
+        state.buoyInterval = rollBuoyInterval();
     }
 }
 
@@ -2704,7 +2795,7 @@ function resolveCreatureCollisions() {
 // ============================================
 
 function fireProjectile(target) {
-    if (state.bellBreached || state.rebuilding) return false;
+    if (state.dsvBreached || state.rebuilding) return false;
 
     const aq = getAquanaut();
     const origin = aq ? { x: aq.x, y: aq.y - 75 } : { x: COORD_SYSTEM.width / 2, y: COORD_SYSTEM.height / 2 };
@@ -3154,7 +3245,7 @@ function handleCommand(value) {
             DOM.blockCursor.style.left = (inputRect.left - boxRect.left) + 'px';
         }
         state.backspaces = 0;
-        if (!state.rebuilding && !state.killCamActive) handleComCall(rawTrim);
+        if (!state.rebuilding && !state.killCamActive) handleHailingBuoy(rawTrim);
         return;
     }
 
@@ -3172,7 +3263,7 @@ function handleCommand(value) {
     state.backspaces = 0;
 
     if (state.rebuilding) {
-        showStatus("DIVE BELL REPAIRING — STAND BY", "miss");
+        showStatus("DSV REPAIRING — STAND BY", "miss");
         return;
     }
 
@@ -3209,15 +3300,6 @@ function handleCommand(value) {
         }
         return;
     } else if (input === '') {
-        return;
-    }
-
-    // Check mini-sub command (supports altCommand)
-    if (state.miniSub && (
-        normalizeCmd(state.miniSub.command.toUpperCase()) === input ||
-        (state.miniSub.altCommand && normalizeCmd(state.miniSub.altCommand.toUpperCase()) === input)
-    )) {
-        handleMiniSubHit();
         return;
     }
 
@@ -3293,7 +3375,7 @@ function handleCommand(value) {
             checkCalibration();
             checkRegen();
         } else {
-            // Command matched but bell is breached — can't fire
+            // Command matched but the DSV is breached — can't fire
             showStatus("HULL BREACH — SONAR OFFLINE", "miss");
             fireBroken();
         }
@@ -3325,31 +3407,36 @@ function handleCommand(value) {
     checkTier();
 }
 
-// Resolve a typed COM comment against the active diving bell. Form: `COM <unit#> <comment>`.
-// The comment must contain EVERY keyword (loose, case-insensitive substring, any order).
-// PURE BONUS — every failure path here is harmless (no score loss, no streak break, no jam):
-//   no active bell → "NO RADIO CALL"; wrong/blank unit → bell stays; missing keywords → retry.
-function handleComCall(raw) {
-    const b = state.comCall;
+// Resolve a typed COM comment against the buoy in flight. Form: `COM <unit#> <comment>` —
+// the syntax the cartridge's own Reference Lists document for F3, unchanged. The comment must
+// contain EVERY trigger word (loose, case-insensitive substring, any order).
+// Typing costs nothing: a wrong unit or an incomplete comment leaves the buoy falling so you
+// can retry. The only penalty is letting it reach the bottom (see crushHailingBuoy).
+function handleHailingBuoy(raw) {
+    const b = state.hailingBuoy;
     const tokens = raw.split(/\s+/);
     const unit = tokens[1] || '';
     const comment = tokens.slice(2).join(' ');
 
-    if (!b || b.answered) { showStatus('NO RADIO CALL', 'miss'); return; }
+    if (!b || b.answered) { showStatus('NO TRANSMISSION', 'miss'); return; }
     if (unit.toUpperCase() !== String(b.unitID).toUpperCase()) {
-        showStatus('CHECK UNIT NUMBER', 'miss'); return;   // bell stays — try again, costs nothing
+        showStatus('CHECK UNIT NUMBER', 'miss'); return;   // buoy keeps falling — retry, no cost
     }
     const hay = comment.toLowerCase();
     const complete = comment && b.keywords.every(k => hay.includes(k.toLowerCase()));
-    if (!complete) { showStatus('COMMENT INCOMPLETE', 'miss'); return; }   // retry, costs nothing
+    if (!complete) { showStatus('COMMENT INCOMPLETE', 'miss'); return; }   // retry, no cost
 
-    // Logged — award the bonus and fire the confirm flash (bell retires after it fades).
-    applyScore(COM_CALL.bonus);
-    showStatus(`COM LOGGED +${COM_CALL.bonus}`, 'bonus');
-    AudioManager.play('salvage');   // placeholder positive cue (dedicated COM SFX TBD)
+    // Copied. Streak advances FIRST, then scores it — so the first copy pays bonusBase x1,
+    // not x0. Uncapped by design.
+    state.buoyStreak++;
+    const pts = HAILING_BUOY.bonusBase * state.buoyStreak;
+    applyScore(pts);
+    showStatus(`COM LOGGED +${pts}` + (state.buoyStreak > 1 ? ` (x${state.buoyStreak})` : ''), 'bonus');
+    AudioManager.play('bonusLogged');   // bright confirm ding
     b.answered = true;
     b.flash = 1;
-    state.timers.comCallTimer = 0;
+    spawnBuoyBubbles(b, 14, HAILING_BUOY.spriteSize.w * 0.8);   // air-pocket burst
+    state.timers.buoyTimer = 0;
     updateHUD();
 }
 
@@ -3649,7 +3736,16 @@ function updateHUD() {
     const tierData = TIERS[state.tier];
     if (DOM.tier) DOM.tier.textContent = tierData ? tierData.label : state.tier.toUpperCase();
 
-    if (DOM.salvage) DOM.salvage.textContent = state.salvagePoints + (state.repairTokens > 0 ? ` [${state.repairTokens}R]` : '');
+    // Hull readout. The DSV's integrity had NO HUD presence at all — hullHP was legible only
+    // as canvas cracks, and SUIT INTEGRITY on the right is the diver, not the vessel — so a
+    // breach and its repair lockout ran with nothing on screen saying so.
+    if (DOM.hull) {
+        DOM.hull.textContent = state.rebuilding ? 'REPAIRING'
+            : state.dsvBreached ? (state.rovPendingTimer ? 'ROV INBOUND' : 'BREACHED')
+            : state.hullHP + '/' + CONFIG.maxHullIntegrity;
+        DOM.hull.classList.toggle('hull-critical',
+            state.dsvBreached || state.rebuilding || state.hullHP <= 3);
+    }
 
     if (DOM.depthValue) {
         const dd = state.descent ? state.descent.displayDepth : getCurrentDepth();
@@ -3691,16 +3787,43 @@ function flickerDiamond(hoseId) {
 // ROV SYSTEM (replaces Ambulance)
 // ============================================
 
+// Repair lockout for the CURRENT breach level: 4s, 8s, 16s, 32s … doubling once per BREACH.
+// The escalating shape is RATIFIED DESIGN, inherited from Asteroid Command (whose manual
+// justifies it as "non-linear to simulate resource exhaustion"). It is deliberately left
+// uncapped and un-reset within a dive: whether it should cap, decay or reset is an OPEN
+// design question (punishment vs relief) — do NOT answer it here.
+function rovLockoutSec() {
+    return 4 * Math.pow(2, Math.max(0, state.rovDestroyCount - 1));
+}
+
+// A NEW hull breach — advance the lockout one step, then dispatch.
 function triggerROV() {
     state.rovDestroyCount++;
-    const delaySec = 4 * Math.pow(2, state.rovDestroyCount - 1);
-    showStatus(`HULL BREACH — ROV ETA ${delaySec}s`, "impact");
+    dispatchROV(false);
+}
+
+// Re-dispatch at the CURRENT lockout level WITHOUT advancing it. A mid-flight ROV death has
+// to send another one — leaving `dsvBreached` set with nothing to re-arm the repair makes the
+// dive unwinnable — but it must not double the wait, which is exactly what calling triggerROV()
+// from the death path did: a single breach whose ROV was killed twice jumped 4s → 16s.
+// ⚠️ NO early-return guard belongs at the top of either function. An `if (state.rov) return;`
+// here would strand a breached hull with no pending repair for the rest of the dive.
+function dispatchROV(redispatch) {
+    const delaySec = rovLockoutSec();
+    showStatus(redispatch ? `ROV RELAUNCH — ETA ${delaySec}s` : `HULL BREACH — ROV ETA ${delaySec}s`, "impact");
 
     if (state.rovPendingTimer) clearTimeout(state.rovPendingTimer);
     state.rovPendingTimer = setTimeout(() => {
         state.rovPendingTimer = null;
         startROV();
     }, delaySec * 1000);
+    updateHUD();
+}
+
+// One place both the game-over and the quit-mid-dive paths call, so a pending repair can never
+// outlive the dive that scheduled it and fire startROV() over the main menu.
+function clearPendingROV() {
+    if (state.rovPendingTimer) { clearTimeout(state.rovPendingTimer); state.rovPendingTimer = null; }
 }
 
 function startROV() {
@@ -3709,7 +3832,7 @@ function startROV() {
         state.rebuilding = false;
         state.beamActive = false;
     }
-    state.bellBreached = true;
+    state.dsvBreached = true;
     state.rebuilding = true;
     state.repairCount++;
 
@@ -3735,7 +3858,12 @@ function updateROV(dt) {
 
     const maxSpeed = CONFIG.rovSpeed;
     const seekForce = 3.0;
-    const damping = 0.92;
+    // Damping must be PER SECOND, not per frame. As a bare 0.92 it was applied once a frame
+    // while the seek acceleration below is dt-scaled, so terminal speed came out as
+    // a·dt·d/(1-d) — 0.192a at 60Hz but only 0.080a at 144Hz. The ROV therefore crawled on a
+    // fast monitor and the repair lockout ran 2.4x longer (measured ~5.2s vs ~12.5s) purely
+    // from refresh rate. Exponentiating by dt*60 reproduces the 60Hz curve at any rate.
+    const damping = Math.pow(0.92, dt * 60);
     const arrivalRadius = 15;
 
     if (rov.phase === 'incoming') {
@@ -3779,7 +3907,7 @@ function updateROV(dt) {
             rov.phaseStartTime = Date.now();
             rov.targetX = COORD_SYSTEM.width + 150;
             rov.targetY = 350;
-            rebuildBell();
+            rebuildDSV();
         }
     } else if (rov.phase === 'departing') {
         const dx = rov.targetX - rov.x;
@@ -3803,7 +3931,7 @@ function updateROV(dt) {
         if (rov.x > COORD_SYSTEM.width + 100) {
             state.rov = null;
             state.rebuilding = false;
-            showStatus("DIVE BELL SEALED — HULL RESTORED", "hit");
+            showStatus("DSV SEALED — HULL RESTORED", "hit");
         }
     }
 }
@@ -3839,96 +3967,21 @@ function checkROVCreatureCollision() {
                 showStatus("ROV DESTROYED — REPAIR FAILED", "impact");
                 state.rov = null;
                 state.rebuilding = false;
-                // Trigger another ROV after delay
-                triggerROV();
+                // Send another ROV at the SAME lockout level — the hull is still breached, so
+                // something must re-arm the repair, but no new breach happened, so the
+                // exponent must not advance. (This used to call triggerROV().)
+                dispatchROV(true);
                 return;
             }
         }
     }
 }
 
-function rebuildBell() {
-    state.bellBreached = false;
+function rebuildDSV() {
+    state.dsvBreached = false;
     state.hullHP = CONFIG.maxHullIntegrity;
     state.cracks = [];
-    state.salvagePoints = 0; // Salvage resets on ROV use
     AudioManager.disableMusicStatic();
-    updateHUD();
-}
-
-// ============================================
-// MINI-SUB / SALVAGE ECONOMY
-// ============================================
-
-function updateMiniSub(dt) {
-    state.miniSubTimer += dt * 1000;
-
-    // Spawn every 30 seconds
-    if (!state.miniSub && state.miniSubTimer > 30000) {
-        state.miniSubTimer = 0;
-        const specs = getTargetSpecs();
-        state.miniSub = {
-            x: -60,
-            y: 80 + Math.random() * 60,
-            speed: 80 + Math.random() * 40,
-            challenge: specs.challenge,
-            command: specs.command,
-            altCommand: specs.altCommand || null,
-            unitID: specs.unitID
-        };
-    }
-
-    if (state.miniSub) {
-        state.miniSub.x += state.miniSub.speed * dt;
-        if (state.miniSub.x > COORD_SYSTEM.width + 80) {
-            state.miniSub = null;
-        }
-    }
-}
-
-function handleMiniSubHit() {
-    if (!state.miniSub) return;
-    state.salvagePoints++;
-    const pts = 50;
-    applyScore(pts);
-    showStatus(`SALVAGE +${pts}`, "bonus");
-    createExplosion(state.miniSub.x, state.miniSub.y, '#00ff88', 20);
-    state.miniSub = null;
-
-    // Every 3 salvage = 1 repair token
-    if (state.salvagePoints >= 3) {
-        state.salvagePoints -= 3;
-        state.repairTokens++;
-        showStatus("REPAIR TOKEN EARNED [1/2/3 TO USE]", "bonus");
-    }
-    updateHUD();
-}
-
-function spendRepairToken(hoseIdx) {
-    if (state.repairTokens <= 0) return;
-    const hose = state.hoses[hoseIdx];
-    if (!hose || hose.type !== 'hose' || hose.hp > 0) return;
-
-    state.repairTokens--;
-    hose.hp = hose.maxHp;
-    hose.destroyed = false;
-
-    // Undo severed effect
-    switch (hose.hoseType.id) {
-        case 'gas':
-            state.gasSevered = false;
-            break;
-        case 'liquid':
-            state.liquidSevered = false;
-            break;
-        case 'electrical':
-            state.electricalSevered = false;
-            AudioManager.disableMusicStatic();
-            break;
-    }
-
-    showStatus(`${hose.name} REPAIRED`, "bonus");
-    createExplosion(hose.x, hose.y, '#00ff88', 25);
     updateHUD();
 }
 
@@ -5508,7 +5561,11 @@ function applyCreatureSwim(ctx, creature, ct, swimPhase, rigged) {
 // the canvas, so the light cone, depth-fog, sonar morph, parallax z-order and
 // kill-cam compositing all keep working unchanged.
 function drawRiggedCreature(ctx, creature, ct, rig) {
-    const w = rig.spriteSize.w, h = rig.spriteSize.h;
+    // Draw size is the creature's own spriteSize — identical expression to the single-sprite
+    // path below, so a rigged creature is exactly the size of the sprite it replaces. (The rig
+    // used to carry its own spriteSize, which had drifted up to 26% in size and 34% in aspect.)
+    const w = ct.spriteSize ? ct.spriteSize.w : creature.radius * 5;
+    const h = ct.spriteSize ? ct.spriteSize.h : creature.radius * 3;
 
     ctx.save();
     ctx.translate(creature.x, creature.y);
@@ -8167,7 +8224,7 @@ function buildGodModeMenu() {
 
     const toggles = [
         { key: 'clickToDestroy', label: 'TARGETED SONAR FIRE', hint: 'Left Click on Creature' },
-        { key: 'godModeKill', label: 'BELL BREACH OVERRIDE', hint: 'Left Click on Creature' },
+        { key: 'godModeKill', label: 'DSV BREACH OVERRIDE', hint: 'Left Click on Creature' },
         { key: 'destroyZones', label: 'DESTROY HOSE', hint: 'Double Left Click on Hose' },
         { key: null, label: 'MANUAL COMMAND ENTRY', hint: 'Type command and press Enter' }
     ];
@@ -8293,14 +8350,32 @@ function buildGodModeMenu() {
         label.className = 'gm-label';
         label.textContent = ct.name.toUpperCase();
         textCol.appendChild(label);
+        // A TOC-only creature (pufferfish) is spawned directly by the TOC sub-machine and never
+        // enters the cross-screen roster this filter governs — so its toggle cannot do anything.
+        // It used to render identically to the three live ones and flip ON/OFF to no effect.
+        // Keep the row (it documents the roster) but make the inertness visible.
+        const tocOnly = !isSpawnable(key);
+
         const hint = document.createElement('div');
         hint.className = 'gm-hint';
-        hint.textContent = `${ct.archetype} · ${ct.speedMult}x · wt ${ct.spawnWeight}`;
+        hint.textContent = tocOnly
+            ? `${ct.archetype} · TOC-only · not in the cross-screen roster`
+            : `${ct.archetype} · ${ct.speedMult}x · wt ${ct.spawnWeight}`;
         textCol.appendChild(hint);
         row.appendChild(textCol);
 
         const isOn = godMode.activeCreatureTypes.has(key);
         const btn = document.createElement('button');
+        if (tocOnly) {
+            btn.className = 'gm-toggle gm-disabled';
+            btn.textContent = 'TOC-ONLY';
+            btn.disabled = true;
+            btn.title = 'Spawned by the TOC sub-machine, not the cross-screen roster — ' +
+                        'this filter cannot reach it.';
+            row.appendChild(btn);
+            colChallenges.appendChild(row);
+            return;
+        }
         btn.className = 'gm-toggle' + (isOn ? ' gm-on' : ' gm-off');
         btn.textContent = isOn ? 'ON' : 'OFF';
         btn.addEventListener('click', (e) => {
@@ -8490,8 +8565,7 @@ function update(dt) {
         updateGameSonarSweep(dt);
         if (state.rov) updateROV(dt);
         maintainCreatures(dt);
-        maintainComCall(dt);   // COM radio-call bonus (diving bell)
-        // updateMiniSub(dt);  // Mini-sub disabled — salvage feature not yet themed
+        maintainHailingBuoy(dt);   // hailing-buoy bonus target
         updateLatchedCreatures(dt);
         if (state.isGrappling) updateGrappleSonarPosition();
         updateDescent(dt);
@@ -8807,11 +8881,9 @@ function render() {
         try { drawCreatureWithLabel(ctx, c, time); } catch (e) { console.error('Creature render failed:', e); }
     });
 
-    // COM radio-call diving bell + bubble
-    try { drawComCall(ctx, time); } catch (e) { console.error('COM call render failed:', e); }
+    // Hailing buoy + transmission bubble
+    try { drawHailingBuoy(ctx, time); } catch (e) { console.error('Hailing buoy render failed:', e); }
 
-    // Draw mini-sub
-    // drawMiniSub(ctx, time);  // Mini-sub disabled — salvage feature not yet themed
 
     // Draw ROV
     drawROV(ctx, time);
@@ -9124,7 +9196,7 @@ function drawAquanaut(ctx, time) {
 
     // Ship is only visible during the dive entry cutscene, not during gameplay.
 
-    // --- Draw the DIVER at the aquanaut position (below dive bell) ---
+    // --- Draw the DIVER at the aquanaut position (below the DSV) ---
     const diverH = 90;
     const diverAspect = aquanautSpriteLoaded && aquanautSprite.naturalHeight
         ? aquanautSprite.naturalWidth / aquanautSprite.naturalHeight
@@ -9315,68 +9387,6 @@ function drawLatchedLabel(ctx, lc) {
 }
 
 // ============================================
-// MINI-SUB RENDERING
-// ============================================
-
-function drawMiniSub(ctx, time) {
-    if (!state.miniSub) return;
-    const sub = state.miniSub;
-
-    ctx.save();
-    ctx.translate(sub.x, sub.y);
-
-    // Sub hull
-    ctx.fillStyle = '#334455';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 30, 10, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Conning tower
-    ctx.fillStyle = '#445566';
-    ctx.fillRect(-5, -15, 10, 8);
-
-    // Propeller
-    const propPhase = time * 0.02;
-    ctx.strokeStyle = '#667788';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(-30, -3 + Math.sin(propPhase) * 3);
-    ctx.lineTo(-35, 0);
-    ctx.lineTo(-30, 3 + Math.sin(propPhase + Math.PI) * 3);
-    ctx.stroke();
-
-    // Running lights
-    ctx.fillStyle = '#ff0000';
-    ctx.beginPath();
-    ctx.arc(-28, 0, 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#00ff00';
-    ctx.beginPath();
-    ctx.arc(28, 0, 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-
-    // Challenge text above sub
-    ctx.font = "bold 16px 'Courier New'";
-    const text = sub.challenge;
-    const tw = ctx.measureText(text).width;
-    const pad = 8, w = tw + pad * 2, h = 26;
-    const x = sub.x - w / 2;
-    const y = sub.y - 35;
-
-    ctx.fillStyle = 'rgba(10, 30, 10, 0.85)';
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = '#00ff88';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = '#00ff88';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, x + w / 2, y + h / 2);
-}
-
-// ============================================
 // ROV RENDERING
 // ============================================
 
@@ -9486,60 +9496,90 @@ function hexLuminance(hex) {
 // Position comes from the spring tracker in update(): darts and lunges
 // leave it trailing toward the tail before it eases back on top.
 // ============================================
-// COM RADIO CALL — rendering (diving bell + speech bubble)
+// HAILING BUOY — rendering (buoy + wreck + transmission bubble)
 // Drawn in virtual coords alongside the creatures.
 // ============================================
 
-function comWordIsKeyword(word, keywords) {
+function buoyWordIsTrigger(word, keywords) {
     const w = word.toLowerCase().replace(/[^a-z0-9]/g, '');
     if (!w) return false;
     return keywords.some(k => { const kk = k.toLowerCase(); return w.includes(kk) || kk.includes(w); });
 }
 
-function drawComBellPlaceholder(ctx, cx, cy, sw, sh, time) {
-    const halfW = sw / 2;
-    const top = cy - sh / 2, bot = cy + sh / 2;
-    const rimW = halfW, shoulderW = halfW * 0.78, domeH = sh * 0.34;
+// Procedural stand-in until real art lands at HAILING_BUOY.sprite: a squat radio buoy —
+// banded float, antenna mast, blinking COM lamp. `crush` 0..1 flattens and darkens it for
+// the wreck.
+function drawBuoyPlaceholder(ctx, cx, cy, sw, sh, time, crush) {
+    const squash = 1 - crush * 0.55;
+    const halfW = (sw / 2) * (1 + crush * 0.35);
+    const bodyH = sh * 0.62 * squash;
+    const top = cy - bodyH / 2;
+    const live = crush < 0.5;
     ctx.save();
     ctx.lineJoin = 'round';
-    // Bell body (dome + flaring sides + open rim)
+
+    // Antenna mast + lamp (gone once crushed)
+    if (live) {
+        const mastH = sh * 0.30;
+        ctx.strokeStyle = 'rgba(180,200,190,0.75)'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, top - mastH); ctx.stroke();
+        const blink = 0.5 + 0.5 * Math.sin(time / 200);
+        ctx.beginPath(); ctx.arc(cx, top - mastH, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,' + Math.round(120 + blink * 110) + ',80,' + (0.55 + blink * 0.45) + ')';
+        ctx.shadowColor = '#ff8844'; ctx.shadowBlur = 6 + blink * 14;
+        ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    // Float body — rounded canister
     ctx.beginPath();
-    ctx.moveTo(cx - shoulderW, top + domeH);
-    ctx.quadraticCurveTo(cx - shoulderW, top, cx, top);
-    ctx.quadraticCurveTo(cx + shoulderW, top, cx + shoulderW, top + domeH);
-    ctx.lineTo(cx + rimW, bot - sh * 0.10);
-    ctx.lineTo(cx + rimW, bot);
-    ctx.lineTo(cx - rimW, bot);
-    ctx.lineTo(cx - rimW, bot - sh * 0.10);
-    ctx.closePath();
+    ctx.roundRect(cx - halfW, top, halfW * 2, bodyH, Math.min(halfW, bodyH) * 0.45);
     const g = ctx.createLinearGradient(cx - halfW, 0, cx + halfW, 0);
-    g.addColorStop(0, '#15222b'); g.addColorStop(0.5, '#33454f'); g.addColorStop(1, '#101c25');
+    if (live) { g.addColorStop(0, '#16232c'); g.addColorStop(0.5, '#354a55'); g.addColorStop(1, '#101c25'); }
+    else      { g.addColorStop(0, '#0b1216'); g.addColorStop(0.5, '#1b262c'); g.addColorStop(1, '#080e12'); }
     ctx.fillStyle = g; ctx.fill();
-    ctx.strokeStyle = '#00FF41'; ctx.lineWidth = 2.5;
-    ctx.shadowColor = 'rgba(0,255,65,0.5)'; ctx.shadowBlur = 8;
+    ctx.strokeStyle = live ? '#00FF41' : 'rgba(120,140,130,0.5)';
+    ctx.lineWidth = 2.5;
+    if (live) { ctx.shadowColor = 'rgba(0,255,65,0.5)'; ctx.shadowBlur = 8; }
+    ctx.stroke(); ctx.shadowBlur = 0;
+
+    // Hazard band
+    ctx.fillStyle = live ? 'rgba(255,190,0,0.75)' : 'rgba(110,90,40,0.45)';
+    ctx.fillRect(cx - halfW, cy - bodyH * 0.10, halfW * 2, bodyH * 0.18);
+
+    // Porthole / speaker grille
+    const pr = sw * 0.15 * squash;
+    ctx.beginPath(); ctx.arc(cx, cy + bodyH * 0.24, pr, 0, Math.PI * 2);
+    ctx.fillStyle = live ? '#04221a' : '#0a0f11'; ctx.fill();
+    ctx.strokeStyle = live ? '#00FF41' : 'rgba(120,140,130,0.45)'; ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.shadowBlur = 0;
-    // Bottom rim band
-    ctx.fillStyle = '#0c161c';
-    ctx.fillRect(cx - rimW, bot - sh * 0.10, rimW * 2, sh * 0.10);
-    ctx.strokeStyle = 'rgba(0,255,65,0.6)'; ctx.lineWidth = 1.5;
-    ctx.strokeRect(cx - rimW, bot - sh * 0.10, rimW * 2, sh * 0.10);
-    // Porthole with a blinking COM light
-    const pr = sw * 0.20, py = cy - sh * 0.04;
-    ctx.beginPath(); ctx.arc(cx, py, pr, 0, Math.PI * 2);
-    ctx.fillStyle = '#04221a'; ctx.fill();
-    const blink = 0.5 + 0.5 * Math.sin(time / 220);
-    ctx.strokeStyle = '#00FF41'; ctx.lineWidth = 3;
-    ctx.shadowColor = '#00FF41'; ctx.shadowBlur = 6 + blink * 10;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(cx, py, pr * 0.45, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(120,255,180,${0.35 + blink * 0.5})`; ctx.fill();
+
+    // Crushed: buckle lines across the body
+    if (crush > 0.5) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 2;
+        for (let k = -1; k <= 1; k++) {
+            ctx.beginPath();
+            ctx.moveTo(cx - halfW * 0.8, cy + k * bodyH * 0.22);
+            ctx.lineTo(cx + halfW * 0.8, cy + k * bodyH * 0.22 + 4);
+            ctx.stroke();
+        }
+    }
     ctx.restore();
 }
 
-function drawComBubble(ctx, cx, anchorY, b) {
-    const maxW = COM_CALL.bubbleMaxWidth;
+function drawBuoyBubbles(ctx, holder) {
+    if (!holder.bubbles || !holder.bubbles.length) return;
+    ctx.save();
+    for (const bb of holder.bubbles) {
+        ctx.globalAlpha = Math.max(0, Math.min(1, bb.life)) * 0.7;
+        ctx.beginPath(); ctx.arc(bb.x, bb.y, bb.r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(200,235,255,0.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = 'rgba(180,220,255,0.25)'; ctx.fill();
+    }
+    ctx.restore();
+}
+
+function drawBuoyBubble(ctx, cx, anchorY, b) {
+    const maxW = HAILING_BUOY.bubbleMaxWidth;
     const bodyFont = "bold 19px 'Courier New', monospace";
     ctx.save();
     // Word-wrap the statement
@@ -9564,7 +9604,9 @@ function drawComBubble(ctx, cx, anchorY, b) {
     const boxW = Math.min(maxW, Math.max(contentW + padX * 2, 150));
     const boxH = headH + lines.length * lineH + padBot;
     const boxX = cx - boxW / 2;
-    const boxY = anchorY - 12 - boxH;
+    // The buoy FALLS, so the panel rides BELOW it. Above the buoy it would sit off-screen for
+    // the whole first stretch of the descent — which is exactly where the read matters most.
+    const boxY = anchorY + 12;
     // Panel
     ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 10);
     ctx.fillStyle = 'rgba(2,12,8,0.9)';
@@ -9572,11 +9614,11 @@ function drawComBubble(ctx, cx, anchorY, b) {
     ctx.shadowColor = 'rgba(0,255,65,0.45)'; ctx.shadowBlur = 10;
     ctx.fill(); ctx.stroke();
     ctx.shadowBlur = 0;
-    // Tail pointing down to the bell
+    // Tail pointing up to the buoy
     ctx.beginPath();
-    ctx.moveTo(cx - 10, boxY + boxH - 1);
-    ctx.lineTo(cx, boxY + boxH + 12);
-    ctx.lineTo(cx + 10, boxY + boxH - 1);
+    ctx.moveTo(cx - 10, boxY + 1);
+    ctx.lineTo(cx, boxY - 12);
+    ctx.lineTo(cx + 10, boxY + 1);
     ctx.closePath();
     ctx.fillStyle = 'rgba(2,12,8,0.9)'; ctx.fill();
     ctx.strokeStyle = '#00FF41'; ctx.lineWidth = 2; ctx.stroke();
@@ -9590,7 +9632,7 @@ function drawComBubble(ctx, cx, anchorY, b) {
     // Divider under header
     ctx.strokeStyle = 'rgba(0,255,65,0.3)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(boxX + 10, boxY + headH - 6); ctx.lineTo(boxX + boxW - 10, boxY + headH - 6); ctx.stroke();
-    // Statement (centered lines; keyword words highlighted)
+    // Statement (centered lines; trigger words highlighted)
     ctx.font = bodyFont; ctx.textAlign = 'left';
     let ty = boxY + headH + 16;
     for (const ln of lines) {
@@ -9598,7 +9640,7 @@ function drawComBubble(ctx, cx, anchorY, b) {
         let tx = cx - tw / 2;
         for (let i = 0; i < ln.length; i++) {
             const word = ln[i];
-            const isKw = COM_CALL.highlightKeywords && comWordIsKeyword(word, b.keywords);
+            const isKw = HAILING_BUOY.highlightKeywords && buoyWordIsTrigger(word, b.keywords);
             ctx.fillStyle = isKw ? '#ffd23f' : '#cdfbe0';
             if (isKw) { ctx.shadowColor = 'rgba(255,210,63,0.7)'; ctx.shadowBlur = 6; }
             ctx.fillText(word, tx, ty);
@@ -9610,34 +9652,53 @@ function drawComBubble(ctx, cx, anchorY, b) {
     ctx.restore();
 }
 
-function drawComCall(ctx, time) {
-    const b = state.comCall;
-    if (!b) return;
-    const bob = Math.sin(b.bobPhase) * COM_CALL.bobAmp;
-    const cx = b.x, cy = b.y + bob;
-    const sw = COM_CALL.spriteSize.w, sh = COM_CALL.spriteSize.h;
-    ctx.save();
-    // Lift cable up to the surface winch
-    ctx.strokeStyle = 'rgba(150,170,160,0.35)'; ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - sh / 2);
-    ctx.lineTo(cx + Math.sin(time / 600) * 4, 0);
-    ctx.stroke();
-    if (comBellReady && comBellImg) {
-        ctx.drawImage(comBellImg, cx - sw / 2, cy - sh / 2, sw, sh);
-    } else {
-        drawComBellPlaceholder(ctx, cx, cy, sw, sh, time);
+function drawHailingBuoy(ctx, time) {
+    const sw = HAILING_BUOY.spriteSize.w, sh = HAILING_BUOY.spriteSize.h;
+
+    // --- The wreck of a missed buoy: motionless where it was crushed, for the rest of the dive
+    const wk = state.buoyWreck;
+    if (wk) {
+        ctx.save();
+        if (buoyReady && buoyImg) {
+            const sq = 1 - wk.crushT * 0.55;
+            ctx.globalAlpha = 0.7;
+            ctx.drawImage(buoyImg, wk.x - sw / 2, wk.y - (sh * sq) / 2, sw, sh * sq);
+            ctx.globalAlpha = 1;
+        } else {
+            drawBuoyPlaceholder(ctx, wk.x, wk.y, sw, sh, time, Math.max(0.5, wk.crushT));
+        }
+        ctx.restore();
+        drawBuoyBubbles(ctx, wk);
     }
-    // Brief confirm flash on a logged comment
+
+    const b = state.hailingBuoy;
+    if (!b) return;
+    const cx = b.x, cy = b.y;
+    ctx.save();
+    // Slight roll as it spirals down
+    const roll = Math.cos(b.spiralPhase) * 0.16;
+    ctx.translate(cx, cy);
+    ctx.rotate(roll);
+    ctx.translate(-cx, -cy);
+    if (buoyReady && buoyImg) {
+        ctx.drawImage(buoyImg, cx - sw / 2, cy - sh / 2, sw, sh);
+    } else {
+        drawBuoyPlaceholder(ctx, cx, cy, sw, sh, time, 0);
+    }
+    ctx.restore();
+
+    // Brief confirm flash on a copied transmission
     if (b.flash > 0) {
+        ctx.save();
         ctx.globalAlpha = b.flash;
         ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 4;
         ctx.shadowColor = '#ffd23f'; ctx.shadowBlur = 16;
         ctx.beginPath(); ctx.arc(cx, cy, sw * 0.7, 0, Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        ctx.restore();
     }
-    drawComBubble(ctx, cx, cy - sh / 2 - 14, b);
-    ctx.restore();
+    drawBuoyBubbles(ctx, b);
+    // The statement panel is dropped once the transmission is copied.
+    if (!b.answered) drawBuoyBubble(ctx, cx, cy + sh / 2 + 2, b);
 }
 
 function drawUnitTag(ctx, creature) {
@@ -11313,7 +11374,7 @@ function startGame(holodeck = false) {
     Object.assign(state, {
         running: false, score: 0,
         hullHP: CONFIG.maxHullIntegrity,
-        bellBreached: false, repairCount: 0,
+        dsvBreached: false, repairCount: 0,
         cracks: [], streak: 0, streakSinceHullHit: 0,
         perfectStreak: 0, perfectMilestonesHit: [],
         consecutiveHosesDestroyed: 0,
@@ -11330,10 +11391,8 @@ function startGame(holodeck = false) {
         backspaces: 0, cleanHits: 0,
         environmentalParticles: [], marineSnow: [], ambientFish: [],
         descent: { phase: 0, displayDepth: 0, motes: [], bubbles: [], wallScroll: 0 },
-        comCall: null, comCallInterval: 0,
+        hailingBuoy: null, buoyInterval: 0, buoyWreck: null, buoyStreak: 0,
         timers: { spawnTimer: firstTier ? firstTier.spawnMin : 5500 },
-        salvagePoints: 0, repairTokens: 0,
-        miniSub: null, miniSubTimer: 0,
         latchedCreatures: [], isGrappling: false,
         gasSevered: false, liquidSevered: false, electricalSevered: false,
         suffocationTimer: 0,
@@ -11441,6 +11500,7 @@ const DEATH_SCREENS = {
 function gameOver(reason) {
     if (state._gameEnded) return;   // idempotent — repeated calls must not rebuild/restart the game-over screen + audio
     state._gameEnded = true;
+    clearPendingROV();   // a scheduled repair must not outlive the dive and fire on the menu
     AudioManager.disableMusicStatic();
     AudioManager.stopMusic();
     try { AudioManager.stopAmbient(); } catch (e) {}
@@ -11544,7 +11604,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'HULL INTEGRITY . . . 100%',
         'CREATURE DETECTION GRID . . . ARMED',
         'HELMET CAM . . . ONLINE',
-        'SALVAGE TELEMETRY LINK . . . OK',
+        'HAILING BUOY RELAY . . . OK',
         'ROV REPAIR PROTOCOL . . . STANDING BY',
         'BIOLUMINESCENT FILTER . . . CALIBRATED',
         'TETHER PHYSICS ENGINE . . . NOMINAL',
@@ -11662,7 +11722,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function revealTitleScreen() {
         // No title music by design — the sonar ping (initTitleSonarPing, line ~434) is the
-        // only title-screen audio. MUSIC.titleScreen pointed at an MP3 that does not exist.
+        // only title-screen audio. (A MUSIC.titleScreen key used to name an MP3 that was
+        // never made; it was deleted along with MUSIC.menu and MUSIC.gameOver.)
         bootOverlay.style.transition = 'opacity 0.3s ease-out';
         bootOverlay.style.opacity = '0';
         setTimeout(() => {
