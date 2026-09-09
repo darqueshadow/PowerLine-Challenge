@@ -105,10 +105,31 @@
      which is why the hub offers a flip rather than this being decided once
      here. ⚠️ Option KEY and VALUE strings are core-specific — if the flip
      appears to do nothing, this pair is the first thing to check against the
-     core's own option list, not the hub's button. */
+     core's own option list, not the hub's button.
+
+     ✅ 2026-09-09 — THAT CHECK WAS DONE, AGAINST THE RUNNING CORE, and the pair
+     is RIGHT. `gameManager.getCoreOptions()` on vice_x64sc publishes 113
+     options and this is one of them, verbatim:
+
+         vice_joyport|2; 1|2
+
+     so the key is real, Port 2 is the core's own default, and "1"/"2" are
+     exactly the two legal values. 🚫 Do not "fix" this pair; it is measured.
+
+     ⚠️ AND READ THE WHOLE LIST IF YOU RE-CHECK IT. A capped filter over the
+     option NAMES very nearly retired this as a dead option: `vice_joyport`
+     sorts after 25 other joy-ish names (`vice_joyport_pointer_color`,
+     `vice_mapper_joyport_switch`, and every `vice_mapper_*`), so a filter with
+     a `.slice(0, 25)` on it shows you everything EXCEPT the one you asked
+     about — and the absence reads as proof.
+     📌 `getCoreOptions()` traps with "memory access out of bounds" now and
+     again once the game is running, so retry it a few times rather than
+     concluding the core has no options. `getCoreOptionsJSON()` returns null
+     here; this core predates that export. */
   var PORT_OPTION = "vice_joyport";
+  var PORT_DEFAULT = params.get("port") === "1" ? "1" : "2";
   window.EJS_defaultOptions = {};
-  window.EJS_defaultOptions[PORT_OPTION] = params.get("port") === "1" ? "1" : "2";
+  window.EJS_defaultOptions[PORT_OPTION] = PORT_DEFAULT;
 
   /* 🚫 Chrome off. The hub IS the frontend — a second set of menus inside the
      Tommodore case is the thing that would send us to vc64web instead. */
@@ -170,6 +191,23 @@
       e.preventDefault();
       e.stopPropagation();
       setInputMode(!kbdMode);
+      return;
+    }
+    /* 🆕 F9 — JOYSTICK PORT, his ask 2026-09-09. Same capture-phase reasoning as
+       F2 above and for the same reason: in keyboard mode every keystroke is
+       being handed to the C64, so a bubble handler would be racing the machine.
+       ⭐ F9 is deliberate and it is NOT free of meaning to a C64 — F1..F8 are
+       real keys the machine has, and games use them. F9 is not one of them, so
+       like F2 it cannot collide with anything a game wants.
+       🚨 IT MUST WORK IN JOYSTICK MODE, which is the whole point: the port is
+       the thing you flip when the stick is dead, and in that state the keyboard
+       is disabled. That is exactly why it is caught HERE, in this document, and
+       not left to the core's own `vice_mapper_joyport_switch` hotkey (which is
+       RETROK_RCTRL and needs the keyboard to reach the core to fire at all). */
+    if (e.key === "F9") {
+      e.preventDefault();
+      e.stopPropagation();
+      setPort(port === "1" ? "2" : "1");
     }
   }, true);
 
@@ -222,6 +260,58 @@
     reportInputMode();
   }
 
+  /* -----------------------------------------------------------------------
+     JOYSTICK PORT — his ask, 2026-09-09: *"Make F9 to switch ports. Give a
+     toggle button beside the keyboard/joystick toggle."*
+
+     ⭐ WHY A LIVE FLIP AND NOT A PER-DISK SETTING. A C64 has two joystick ports
+     and the disk does not say which one it reads; Port 2 is the common choice
+     and a real minority use Port 1. There is no way to know from the outside
+     which a given cracked disk wants, and no list to consult. So the honest
+     control is the one you can reach WHILE the game is in front of you and the
+     stick is dead — press F9, try again. That is a diagnosis the player can
+     perform in a second, and it is why this is not a hidden default.
+
+     🚨 THE SAME REPORTING RULE AS THE INPUT MODE, AND FOR THE SAME REASON. This
+     file owns the truth and re-reports it after every change; the hub paints
+     the label and never assumes its request landed. A port label that disagrees
+     with the machine is worse than no label — it turns "the stick is dead" into
+     "the stick is dead AND the thing that says why is lying".
+
+     ⚠️ `port` IS SEEDED FROM WHAT WE ASKED FOR, then corrected from the machine
+     the moment there is a machine to ask. `EJS_defaultOptions` is applied during
+     setup, so before the emulator exists there is nothing to read back and the
+     requested value is the only truth there is.
+     --------------------------------------------------------------------- */
+  var port = PORT_DEFAULT;
+
+  function reportPort() {
+    var e = window.EJS_emulator;
+    /* ⚠️ Read it back from the SETTINGS store, not from our own variable — that
+       is what makes this a report rather than an echo. */
+    if (e && e.allSettings && e.allSettings[PORT_OPTION]) {
+      port = String(e.allSettings[PORT_OPTION]);
+    }
+    toHub({ type: "cat:portmode", port: port });
+  }
+
+  function setPort(next) {
+    var e = window.EJS_emulator;
+    next = (String(next) === "1") ? "1" : "2";
+    /* 🚫 Same rule as setInputMode: go through changeSettingOption, never
+       straight to gameManager.setVariable(). changeSettingOption writes the
+       SETTING and fires the handler that reaches setVariable, so the store the
+       label is read from and the value the core is running can never disagree.
+       Calling setVariable alone would move the core and leave the label — and
+       therefore the player's whole mental model — one flip behind. */
+    if (!e || typeof e.changeSettingOption !== "function") {
+      toHub({ type: "cat:portfailed", reason: "this build exposes no settings interface" });
+      return;
+    }
+    e.changeSettingOption(PORT_OPTION, next);
+    reportPort();
+  }
+
   window.addEventListener("message", function (e) {
     var m = e.data;
     if (!m || typeof m !== "object") return;
@@ -229,6 +319,9 @@
     /* The hub asks for a FLIP, not for a specific state - it has no business
        holding the authoritative value. This answers with what actually took. */
     if (m.type === "cat:input") setInputMode(!kbdMode);
+    /* Same shape as the input flip: the hub asks for the OTHER port, not for a
+       specific one, and is told what actually took. */
+    if (m.type === "cat:port") setPort(port === "1" ? "2" : "1");
   });
 
   /* -----------------------------------------------------------------------
@@ -472,6 +565,10 @@
     /* Report the mode the moment there is a game to have one. The hub paints a
        label from this and never assumes a default of its own. */
     reportInputMode();
+    /* ...and the port, for the same reason and at the same moment. Until this
+       fires the hub shows no port control at all — a plain cartridge has no
+       joystick port to have, exactly as it has no input mode. */
+    reportPort();
   };
 
   window.CAT_EMU = {

@@ -35,6 +35,7 @@
   var btnEject  = document.getElementById("btn-eject");
   var btnExit   = document.getElementById("btn-exit");
   var btnInput  = document.getElementById("btn-input");
+  var btnPort   = document.getElementById("btn-port");
   var swapBar   = document.getElementById("play-disks");
 
   var DISKS = (window.CAT_DISKS || []).slice();
@@ -393,6 +394,10 @@
        asserting something it has not been told and cannot see. */
     btnInput.hidden = true;
     btnInput.textContent = "Input: —";
+    /* the joystick port is the same shape of fact and gets the same treatment:
+       hidden until the cartridge says which one it is actually on. */
+    btnPort.hidden = true;
+    btnPort.textContent = "Port: —";
     play.hidden = false;
     frame.focus();
   }
@@ -499,6 +504,24 @@
 
     if (m.type === "cat:inputfailed") {
       write("cannot switch input mode on this build.", "warn");
+      write("(" + String(m.reason || "no settings interface") + ")", "dim");
+      return;
+    }
+
+    /* JOYSTICK PORT. Same contract as the input mode above, deliberately: the
+       cartridge owns the value, the hub paints it, and the button asks for a
+       flip rather than announcing one. 🚨 The number is CLAMPED to 1 or 2 on
+       the way in - it is going straight into a label, and a hub that will print
+       whatever a frame sends it is a hub that can be made to say anything. */
+    if (m.type === "cat:portmode") {
+      var p = (String(m.port) === "1") ? "1" : "2";
+      btnPort.hidden = false;
+      btnPort.textContent = "Port: " + p;
+      return;
+    }
+
+    if (m.type === "cat:portfailed") {
+      write("cannot switch joystick port on this build.", "warn");
       write("(" + String(m.reason || "no settings interface") + ")", "dim");
       return;
     }
@@ -652,6 +675,17 @@
   btnInput.addEventListener("click", function () {
     if (!running) return;
     try { frame.contentWindow.postMessage({ type: "cat:input" }, "*"); } catch (e) {}
+    frame.focus();
+  });
+
+  /* Same again for the port, focus included — and here the focus return matters
+     MORE than it does for the input switch, not less. You press this because the
+     stick is dead; leaving the caret on the hub's own button means your very
+     next test press goes to the wrong document and the port you just switched to
+     looks just as dead as the one you left. */
+  btnPort.addEventListener("click", function () {
+    if (!running) return;
+    try { frame.contentWindow.postMessage({ type: "cat:port" }, "*"); } catch (e) {}
     frame.focus();
   });
 

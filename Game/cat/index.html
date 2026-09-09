@@ -95,6 +95,15 @@
          Painted from the cartridge's own report, never assumed - see emu.js. -->
     <button class="btn" id="btn-input" type="button" hidden aria-live="polite"
             title="Switch between joystick and keyboard (F2)">Input: &mdash;</button>
+    <!-- JOYSTICK PORT. A C64 has two, and the disk does not say which one it
+         reads: Port 2 is the usual choice and a real minority use Port 1, with
+         no list to look it up in. It sits beside the input switch because it
+         answers the same question the player is actually asking - "why is
+         nothing happening?" - and it has to be reachable while the dead stick
+         is in front of them. Painted from the cartridge's own report, never
+         assumed, exactly like the one above. -->
+    <button class="btn" id="btn-port" type="button" hidden aria-live="polite"
+            title="Switch which joystick port the stick is in (F9)">Port: &mdash;</button>
     <button class="btn" id="btn-exit" type="button">Exit to CAT</button>
   </div>
   <iframe id="play-frame" title="Cartridge" src="about:blank"></iframe>
