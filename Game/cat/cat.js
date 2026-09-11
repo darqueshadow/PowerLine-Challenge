@@ -35,6 +35,27 @@
   var btnExit   = document.getElementById("btn-exit");
   var btnInput  = document.getElementById("btn-input");
   var btnPort   = document.getElementById("btn-port");
+  /* the label and the hotkey hint inside each. 🚨 The label is the live region,
+     NOT the button — otherwise a screen reader re-reads "F2 to swap" on every
+     single flip, which is noise exactly when the mode has changed. */
+  var inputLabel = btnInput.querySelector(".btn__label");
+  var inputHint  = btnInput.querySelector(".btn__hint");
+  var portLabel  = btnPort.querySelector(".btn__label");
+  var portHint   = btnPort.querySelector(".btn__hint");
+
+  /* 🚨🚨 ONE CONSTANT PER HOTKEY, AND THE HINT IS RENDERED FROM IT.
+     The hint here and the key handler in emu.js are TWO RENDERINGS OF ONE FACT.
+     This repo family has paid for that shape before: NB's controls panel has
+     THREE files drawing one key binding and needed verify-controls.mjs to stop
+     them drifting. Hard-coding "F2" in the markup and again in emu.js, with
+     nothing checking they match, is how a hint ends up naming a key that does
+     nothing — and a wrong hint is worse than none, because it is believed.
+     ⭐ `verify-cat.mjs` presses the key the hint NAMES and asserts the mode
+     actually changed, so the two cannot come apart silently.
+     📌 The port key is deliberately not settled — his words, "we'll figure out
+     the hotkeys later". Changing it is one edit HERE, and the hint follows. */
+  var HOTKEY_INPUT = "F2";
+  var HOTKEY_PORT  = "F9";
   var swapBar   = document.getElementById("play-disks");
 
   /* the two crates and the detail panel, 2026-09-11 */
@@ -566,11 +587,13 @@
        bar until the frame reports one. Showing "Joystick" here would be the hub
        asserting something it has not been told and cannot see. */
     btnInput.hidden = true;
-    btnInput.textContent = "Input: —";
+    inputLabel.textContent = "Input: —";
+    inputHint.textContent = "";
     /* the joystick port is the same shape of fact and gets the same treatment:
        hidden until the cartridge says which one it is actually on. */
     btnPort.hidden = true;
-    btnPort.textContent = "Port: —";
+    portLabel.textContent = "Port: —";
+    portHint.textContent = "";
     play.hidden = false;
     frame.focus();
   }
@@ -671,7 +694,8 @@
        label that disagrees with the machine is worse than no label at all. */
     if (m.type === "cat:inputmode") {
       btnInput.hidden = false;
-      btnInput.textContent = m.keyboard ? "Input: Keyboard" : "Input: Joystick";
+      inputLabel.textContent = m.keyboard ? "Input: Keyboard" : "Input: Joystick";
+      inputHint.textContent = HOTKEY_INPUT + " to swap";
       return;
     }
 
@@ -689,7 +713,8 @@
     if (m.type === "cat:portmode") {
       var p = (String(m.port) === "1") ? "1" : "2";
       btnPort.hidden = false;
-      btnPort.textContent = "Port: " + p;
+      portLabel.textContent = "Port: " + p;
+      portHint.textContent = HOTKEY_PORT + " to swap";
       return;
     }
 

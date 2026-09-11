@@ -148,8 +148,16 @@
          label always names the mode that is LIVE. Without it a dead joystick
          reads as a broken game and a dead keyboard reads as a dead key.
          Painted from the cartridge's own report, never assumed - see emu.js. -->
-    <button class="btn" id="btn-input" type="button" hidden aria-live="polite"
-            title="Switch between joystick and keyboard (F2)">Input: &mdash;</button>
+    <!-- 🚨 THE HINT IS A SEPARATE ELEMENT, NOT MORE LABEL TEXT, for three
+         reasons and the third is the one that bites: it has to be styled
+         secondary; `aria-live` would otherwise re-read "F2 to swap" on every
+         flip, which is noise the moment the mode changes; and an assertion
+         matching the label exactly breaks on a longer string. The live region
+         is the inner span, so only the MODE is announced. -->
+    <button class="btn" id="btn-input" type="button" hidden
+            title="Switch between joystick and keyboard (F2)"><span
+      class="btn__label" aria-live="polite">Input: &mdash;</span><span
+      class="btn__hint" aria-hidden="true"></span></button>
     <!-- JOYSTICK PORT. A C64 has two, and the disk does not say which one it
          reads: Port 2 is the usual choice and a real minority use Port 1, with
          no list to look it up in. It sits beside the input switch because it
@@ -157,8 +165,10 @@
          nothing happening?" - and it has to be reachable while the dead stick
          is in front of them. Painted from the cartridge's own report, never
          assumed, exactly like the one above. -->
-    <button class="btn" id="btn-port" type="button" hidden aria-live="polite"
-            title="Switch which joystick port the stick is in (F9)">Port: &mdash;</button>
+    <button class="btn" id="btn-port" type="button" hidden
+            title="Switch which joystick port the stick is in (F9)"><span
+      class="btn__label" aria-live="polite">Port: &mdash;</span><span
+      class="btn__hint" aria-hidden="true"></span></button>
     <button class="btn" id="btn-exit" type="button">Exit to CAT</button>
   </div>
   <iframe id="play-frame" title="Cartridge" src="about:blank"></iframe>

@@ -638,6 +638,24 @@ html, body {
 #detail-synopsis { margin: 6px 0 0; }
 #detail-synopsis.is-empty { color: var(--cat-ink-dim); font-style: italic; }
 
+/* ---- the hotkey hint on a play-bar control ------------------------------
+   His ask, 2026-09-11: "Input: Joystick  [F2 to swap]", secondary-styled, and
+   the same pattern for the port so it is ready when that key settles.
+   ⚠️ Inside the button, so it inherits `hidden` — these controls do not exist
+   until a cartridge reports having an input mode at all. */
+.btn__hint {
+  font-weight: 400;
+  font-size: .82em;
+  letter-spacing: .02em;
+  opacity: .62;
+  margin-left: .6em;
+  text-transform: none;
+}
+.btn__hint::before { content: "["; }
+.btn__hint::after  { content: "]"; }
+.btn__hint:empty { display: none; }
+.btn__hint:empty::before, .btn__hint:empty::after { content: none; }
+
 #crates-hint {
   margin: 0;
   font-size: clamp(9px, 1.05vh, 11px);

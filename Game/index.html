@@ -58,6 +58,25 @@
          aria-expanded="false">
     </div>
 
+    <!-- ================================================================
+         THE ARCADE, ON THE FRONT DOOR — 2026-09-11.
+
+         🚨 THE LINK IN THE DECK-CONTROLS ROW IS NOT ENOUGH, and a screenshot
+         is what said so: that row lives inside the cassette SUBMENU, which is
+         hidden until you click the tray. This screen — the Tommodore CAT
+         illustration — is what a browser actually opens, and it is where he
+         landed on a work machine and concluded the arcade was broken. A route
+         nobody can see from the front door is not a route.
+
+         ⚠️ Deliberately OUTSIDE `#tray-click-zone`: that zone is a big
+         invisible hit area over the cassette rack, and a link inside it would
+         be swallowed by the tray's own handler.
+         ================================================================ -->
+    <a id="to-arcade" class="arcade-link" href="cat/index.html"
+       aria-label="Open the Tommodore CAT arcade">
+        ► ARCADE
+    </a>
+
 </div><!-- end #plc-container -->
 
 
@@ -116,6 +135,33 @@
             <button id="start-cartridge" disabled aria-label="Start Game">
                 Select a cassette to begin
             </button>
+
+            <!-- ================================================================
+                 THE ARCADE — added 2026-09-11 because there was NO WAY IN.
+
+                 🚨 Measured before it was built: this Console contained zero
+                 links to `cat/`, so the Tommodore CAT arcade was reachable only
+                 by typing its URL or through `fangrock://arcade` in the Fang
+                 Rock shell. Opening this repo in an ordinary browser therefore
+                 landed on this cassette screen with no hint the arcade existed —
+                 which is exactly what happened to him on a work machine, and
+                 read as "the arcade is broken" rather than "the arcade is
+                 elsewhere".
+
+                 ⚠️ A PLAIN <a>, NOT A BUTTON THAT SCRIPTS A NAVIGATION. The
+                 arcade is a different application, not a cassette: it is its own
+                 page with its own boot. A real link works with middle-click,
+                 shows its target in the status bar, and — the part that matters
+                 here — still works if this Console's JS has not loaded.
+
+                 📌 It is styled as a third deck control rather than given a new
+                 look, because it sits in the row a player is already using to
+                 choose something to play.
+                 ================================================================ -->
+            <a id="to-arcade-deck" class="arcade-link" href="cat/index.html"
+               aria-label="Open the Tommodore CAT arcade">
+                ► ARCADE
+            </a>
         </div>
 
     </div>

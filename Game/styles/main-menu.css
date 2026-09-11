@@ -438,6 +438,7 @@ body {
    14. DECK CONTROL BUTTONS
    ============================================================ */
 #back-to-main,
+.arcade-link,
 #start-cartridge {
     background: transparent;
     border: 2px solid #33ff33;
@@ -453,6 +454,7 @@ body {
 }
 
 #back-to-main:hover,
+.arcade-link:hover,
 #start-cartridge:not(:disabled):hover {
     background: #33ff33;
     color: #000;
@@ -475,4 +477,37 @@ body {
     background: #ff5733;
     color: #000;
     box-shadow: 0 0 20px rgba(255, 87, 51, 0.5);
+}
+
+
+/* ============================================================
+   14b. THE ARCADE LINK — 2026-09-11
+   Shares the deck-control styling above; only the things an <a> does not
+   inherit from a <button> are set here. Cyan so it reads as "somewhere else"
+   rather than as another cassette — green is START, orange is BACK, and this
+   is neither.
+   ============================================================ */
+.arcade-link {
+    border-color: #33ddff;
+    color: #33ddff;
+    text-decoration: none;
+    display: inline-block;
+    line-height: normal;   /* a button normalises this; an anchor does not */
+}
+.arcade-link:hover {
+    background: #33ddff;
+    color: #000;
+    box-shadow: 0 0 20px rgba(51, 221, 255, 0.5);
+}
+
+/* The front-door copy sits on the illustration itself. ⚠️ Anchored to the
+   viewport rather than to the artwork: #bg-image scales to fit, so a position
+   expressed against the picture drifts with the window. Bottom-left keeps it
+   clear of the cassette rack (top-right) and of the sparkle mark. */
+#to-arcade {
+    position: absolute;
+    left: 28px;
+    bottom: 24px;
+    z-index: 5;
+    background: rgba(0, 0, 0, .55);
 }
