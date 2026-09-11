@@ -31,6 +31,13 @@
 
 <div id="cat">
 
+<!-- ---- the machine ------------------------------------------------------
+     The screen and the deck, wrapped so they stay one column while the crates
+     take the other. ⚠️ This wrapper is what keeps `#cat` a TWO-COLUMN grid
+     without the deck and the screen becoming independent grid children — they
+     are one object and must rise and fall together. -->
+<div id="machine">
+
   <!-- ---- the screen ---------------------------------------------------- -->
   <div id="screen-shell">
     <div id="screen" class="booting">
@@ -68,11 +75,59 @@
       </div>
     </div>
 
-    <div id="box-label">Disk Box &mdash; click a disk, then Insert</div>
-    <div id="box" role="group" aria-label="Disk box"></div>
-
   </div>
-</div>
+</div><!-- /#machine -->
+
+<!-- ---- the crates ------------------------------------------------------
+     The disk box, moved out of the deck and onto the LEFT of the machine,
+     and split in two. Two crates because there are already two SOURCES: the
+     PLC cartridges are hand-written in disks.js, the cracked disks are
+     discovered at runtime by library.js off a directory listing.
+
+     🚨 THIS REVERSES A STATED DECISION, AND THAT IS DELIBERATE. cat.js used to
+     merge both into one sorted list under the comment "a cartridge and a disk
+     are peers here". They are not peers any more - his call, 2026-09-10. The
+     old comment is gone rather than left to contradict this.
+
+     Records lie on top of each other and the selected one comes forward. The
+     A-Z tabs are the crate dividers, and they are the answer to a real problem:
+     55 disks is far too many to reach by flipping one at a time.
+     🚫 The tabs are CLICKED, never typed. The hub's terminal owns the keyboard
+     - blind typing a LOAD command is a first-class surface - so a type-ahead
+     here would fight it for every keystroke. -->
+<div id="crates">
+  <div class="crate" id="crate-plc">
+    <div class="crate__label" id="crate-plc-label">CAD &mdash; PowerLine</div>
+    <div class="crate__stack" role="group" aria-labelledby="crate-plc-label"></div>
+  </div>
+
+  <div class="crate" id="crate-lib">
+    <div class="crate__label" id="crate-lib-label">Cracked</div>
+    <!-- populated by cat.js: only letters that actually have a disk -->
+    <div class="crate__tabs" role="group" aria-label="Jump to letter"></div>
+    <div class="crate__stack" role="group" aria-labelledby="crate-lib-label"></div>
+  </div>
+
+  <!-- ---- the detail panel ---------------------------------------------
+       🚨 Its honest state is the COMMON one: 55 of 59 disks have no
+       screenshot and no synopsis, and it says so in words rather than
+       showing an empty frame that reads as a broken image. See games.js. -->
+  <div id="detail" aria-live="polite">
+    <div id="detail-shot" class="is-empty" aria-hidden="true"></div>
+    <div id="detail-title">&mdash;</div>
+    <div id="detail-meta"></div>
+    <p id="detail-synopsis">Pick a disk to see what is on it.</p>
+  </div>
+
+  <!-- ⚠️ THE TWO-STEP INSERT IS EXPLAINED NOWHERE ELSE. This sentence lived on
+       `#box-label` ("Disk Box — click a disk, then Insert") until the box became
+       two crates. Picking a disk up and committing to it are deliberately
+       separate actions (core spec, Interaction Model 2), which is not guessable
+       from looking at a crate — so the words move, they do not get dropped. -->
+  <p id="crates-hint">Click a disk, then <strong>Insert</strong>.</p>
+</div><!-- /#crates -->
+
+</div><!-- /#cat -->
 
 <!-- ---- a cartridge running in-hub --------------------------------------
      An overlay, deliberately NOT a navigation. The hub stays alive
@@ -116,14 +171,19 @@
 </p>
 
 <!-- 🚨 LOAD ORDER IS LOAD-BEARING, and only in one direction: cat.js reads
-     window.CAT_DISKS, window.CAT_LIBRARY and window.CAT_CRACK at IIFE time,
-     so all three must be defined before it. The first three are independent
-     of each other and may be reordered freely; cat.js must stay last.
-     ⭐ A missing crackintro.js or library.js is a SUPPORTED state — cat.js
-     stands in for both rather than failing — but a cat.js that runs first
-     would silently lose the disk library with nothing on screen to say so. -->
+     window.CAT_DISKS, window.CAT_LIBRARY, window.CAT_GAMEINFO and
+     window.CAT_CRACK at IIFE time, so all four must be defined before it. The
+     first four are independent of each other and may be reordered freely;
+     cat.js must stay last.
+     ⭐ A missing crackintro.js, library.js or games.js is a SUPPORTED state —
+     cat.js stands in for all three rather than failing — but a cat.js that runs
+     first would silently lose the disk library with nothing on screen to say
+     so. 🆕 games.js joined this list 2026-09-11; it is the screenshot and
+     synopsis the detail panel shows, and without it every disk simply reads as
+     having no entry yet, which is already the common case. -->
 <script src="disks.js"></script>
 <script src="library.js"></script>
+<script src="games.js"></script>
 <script src="crackintro.js"></script>
 <script src="cat.js"></script>
 </body>

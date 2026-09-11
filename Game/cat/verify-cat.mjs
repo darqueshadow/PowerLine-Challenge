@@ -146,20 +146,76 @@ try {
      never registered, so it could not be launched from the hub at all. */
   ok(String(visible).includes("aquanaut"), "The Aquanaut is reachable (was unregistered)");
 
-  /* ⭐ ADDED AFTER LOOKING AT A SCREENSHOT, not after a failing assertion.
-     Every check above was green while Pitstop sat 8px higher than the other
-     two, because it carries a TEST badge: a <button> centres its content, the
-     flex row stretches all disks to the tallest, and the shorter two got
-     pushed down. Nothing in a count could see it. Baselines, so a badge on one
-     disk can never move another again. */
-  const tops = String(await c.ev(
-    "Array.prototype.map.call(document.querySelectorAll('.sleeve'), function(s){" +
-    "return Math.round(s.getBoundingClientRect().top);}).join('+')"));
-  ok(new Set(tops.split("+")).size === 1, `all disks share a top baseline   [${tops}]`);
-  const names = String(await c.ev(
-    "Array.prototype.map.call(document.querySelectorAll('.disk .name'), function(s){" +
-    "return Math.round(s.getBoundingClientRect().top);}).join('+')"));
-  ok(new Set(names.split("+")).size === 1, `all disk names share a baseline   [${names}]`);
+  /* 🔄 2026-09-11 — THE BASELINE PAIR BECOMES A PITCH CHECK, AND IT IS THE SAME
+     ASSERTION WEARING NEW CLOTHES.
+
+     It was born by LOOKING at a screenshot, not from a failing test: every check
+     was green while Pitstop sat 8px higher than its neighbours, because it
+     carries a TEST badge, a <button> centres its content, and the flex row
+     stretched all disks to the tallest. So it asserted that all `.sleeve` tops
+     share one baseline.
+     🚨 In a crate they deliberately do NOT — records are staggered by `--pitch`,
+     which is the whole point of a pile. A baseline check here would fail on
+     correct output, and the obvious repair (delete it) would drop the only guard
+     against a badge moving its neighbours.
+     ⭐ So the invariant moves rather than goes: the GAP between consecutive
+     records must be constant. A badge, a longer name or a stray margin still
+     shows up immediately — as an uneven pitch instead of a broken baseline. */
+  const tops = (await c.ev(
+    "JSON.stringify(Array.prototype.map.call(" +
+    "document.querySelectorAll('#crate-lib .crate__pile .disk')," +
+    "function(d){return Math.round(d.getBoundingClientRect().top);}))"));
+  const gaps = [...new Set(JSON.parse(tops).slice(0, 12).map((t, k, a) => k ? t - a[k - 1] : null).slice(1))];
+  ok(gaps.length === 1, `records are stacked at ONE constant pitch   [gaps: ${gaps.join(",")}]`);
+
+  /* the two crates are fed from the SAME roster, split by runner. 🚨 This is
+     what stops a crate growing its own array and quietly re-opening the dev
+     gate that `visibleDisks()` enforces. */
+  const nPlc = Number(await c.ev("document.querySelectorAll('#crate-plc .disk').length"));
+  const nLib = Number(await c.ev("document.querySelectorAll('#crate-lib .disk').length"));
+  eq(nPlc + nLib, seen.length, "the two crates together hold exactly the visible roster");
+  ok(nPlc === CARTRIDGES.length,
+     `the CAD crate holds the cartridges and nothing else   [got ${nPlc}]`);
+
+  /* 🚨 A CRATE WITH NO HEIGHT RENDERS AS A BARE LABEL, and every count above
+     stays green while it does — measured 2026-09-11, the CAD crate came out
+     68px for a pile needing 121 and the flipped record spilled over its own
+     title. Counting elements cannot see it; measuring the box can. */
+  const plcH = Number(await c.ev(
+    "Math.round(document.querySelector('#crate-plc .crate__stack').getBoundingClientRect().height)"));
+  ok(plcH > 90, `the CAD crate is tall enough to open a record in   [${plcH}px]`);
+
+  /* the A-Z dividers: only letters that HAVE a disk, and clicking one lands. */
+  const tabs = String(await c.ev(
+    "Array.prototype.map.call(document.querySelectorAll('#crate-lib .crate__tab'),function(t){return t.textContent;}).join('')"));
+  ok(tabs.length > 0 && /^[#A-Z]+$/.test(tabs), `the Cracked crate has A-Z dividers   [${tabs}]`);
+  await c.ev("[...document.querySelectorAll('#crate-lib .crate__tab')].find(function(t){return t.textContent==='S';}).click()");
+  await wait(400);
+  const jumped = String(await c.ev("document.getElementById('detail-title').textContent"));
+  ok(/^S/i.test(jumped), `clicking a divider jumps AND selects   [landed on ${jumped}]`);
+
+  /* --- B2. the detail panel -------------------------------------------- */
+  section("B2. the detail panel — and its honest empty state");
+  await c.ev("__cat.select('asteroid')");
+  await wait(250);
+  eq(await c.ev("document.getElementById('detail-title').textContent"), "Asteroid Command",
+     "the panel names the selected disk");
+  ok(!(await c.ev("document.getElementById('detail-shot').className")).includes("is-empty"),
+     "Asteroid Command has a real screenshot");
+  ok(String(await c.ev("document.getElementById('detail-synopsis').textContent")).indexOf("Niagara") >= 0,
+     "and its real synopsis, not a generated one");
+
+  /* ⭐⭐ THE STATE THAT MATTERS MOST, because it is the one 55 of 59 disks are
+     in. 🚫 An empty frame reads as a picture that failed to load; the words are
+     the whole point. And nothing must be invented for a disk with no entry. */
+  await c.ev("__cat.select('lib-beach-head')");
+  await wait(250);
+  ok((await c.ev("document.getElementById('detail-shot').className")).includes("is-empty"),
+     "a disk with no art says so rather than showing an empty frame");
+  const syn = String(await c.ev("document.getElementById('detail-synopsis').textContent"));
+  ok(/no synopsis/i.test(syn), `and says no synopsis is written   [${syn.slice(0, 40)}]`);
+  ok(!/beach/i.test(syn),
+     "🚫 and does NOT generate one from the filename");
 
   /* --- C. the Developer Mode gate -------------------------------------- */
   section("C. Ctrl+Shift+B — the Laws 0.15/0.16 gate");

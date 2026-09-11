@@ -24,7 +24,6 @@
   var line   = document.getElementById("line");
   var typedEl= document.getElementById("typed");
   var screen = document.getElementById("screen");
-  var box    = document.getElementById("box");
   var slot   = document.getElementById("drive-slot");
   var led    = document.getElementById("drive-led");
   var play   = document.getElementById("play");
@@ -37,6 +36,20 @@
   var btnInput  = document.getElementById("btn-input");
   var btnPort   = document.getElementById("btn-port");
   var swapBar   = document.getElementById("play-disks");
+
+  /* the two crates and the detail panel, 2026-09-11 */
+  var stackPlc  = document.querySelector("#crate-plc .crate__stack");
+  var stackLib  = document.querySelector("#crate-lib .crate__stack");
+  var tabsLib   = document.querySelector("#crate-lib .crate__tabs");
+  var dShot     = document.getElementById("detail-shot");
+  var dTitle    = document.getElementById("detail-title");
+  var dMeta     = document.getElementById("detail-meta");
+  var dSyn      = document.getElementById("detail-synopsis");
+
+  /* 🚫 `games.js` is OPTIONAL, like crackintro.js and library.js. A missing one
+     means every disk reads as "no entry yet", which is already what 55 of the
+     59 do — so the stand-in is the honest state rather than a degradation. */
+  var GAMEINFO = window.CAT_GAMEINFO || { info: function () { return null; } };
 
   var DISKS = (window.CAT_DISKS || []).slice();
 
@@ -109,9 +122,98 @@
     });
   }
 
+  /* 🔄 2026-09-11 — TWO CRATES, NOT ONE BOX.
+     His ask: separate the CAD/PLC cartridges from the Cracked disks, lay them
+     like records, flip the selected one forward.
+
+     ⭐ The split costs almost nothing because the two groups were never really
+     one thing: `runner:"plc"` entries are hand-written in disks.js, and
+     `runner:"emulator"` entries are discovered at runtime by library.js off a
+     directory listing. Two sources, now two crates.
+
+     🚨 STILL ONE ROSTER. Both crates are filled from `visibleDisks()` and
+     nothing else. That function is what enforces the Laws 0.15/0.16 dev gate
+     and the `coming-soon` filter, and it is why the command resolver needs no
+     status check anywhere. 🚫 A crate that renders from its own array re-opens
+     both holes at once, silently — the dev disk would simply reappear.
+
+     ⚠️ `--i` IS THE RECORD'S DEPTH IN THE PILE and it is set here rather than
+     in CSS because only JS knows the order after filtering. It is an index into
+     the RENDERED crate, not into DISKS — those two stopped being the same thing
+     the moment `coming-soon` and `dev` were filtered out. */
   function renderBox() {
-    box.textContent = "";
-    visibleDisks().forEach(function (disk) {
+    var groups = [
+      { el: stackPlc, tabs: null,     disks: [] },
+      { el: stackLib, tabs: tabsLib,  disks: [] }
+    ];
+    visibleDisks().forEach(function (d) {
+      (d.runner === "plc" ? groups[0] : groups[1]).disks.push(d);
+    });
+
+    groups.forEach(function (g) {
+      g.el.textContent = "";
+      /* 🚨 THE PILE IS A SEPARATE ELEMENT FROM THE SCROLLER, and it has to be.
+         The records are absolutely positioned and contribute NO height, so a
+         scroller holding them directly has nothing to scroll. Giving the
+         SCROLLER the pile's height instead is the one repair that cannot work —
+         a scroller as tall as its content never scrolls, and 55 records became
+         950px of page that pushed the column off the bottom of the screen.
+         So: `.crate__stack` is the window, `.crate__pile` is the depth. */
+      var pile = document.createElement("div");
+      pile.className = "crate__pile";
+      g.disks.forEach(function (disk, i) {
+        var b = renderDisk(disk);
+        b.style.setProperty("--i", String(i));
+        pile.appendChild(b);
+      });
+      /* ⚠️ Read the pitch back from CSS rather than repeating 17 here. The two
+         numbers have to agree exactly or the last record is clipped or floats,
+         and a literal in JS is how they drift apart silently. */
+      var pitch = parseFloat(getComputedStyle(pile).getPropertyValue("--pitch")) || 17;
+      pile.style.height = (g.disks.length * pitch) + "px";
+      g.el.appendChild(pile);
+      if (g.tabs) renderTabs(g.tabs, g.disks);
+    });
+  }
+
+  /* The A-Z crate dividers. 🚫 Only letters that HAVE a disk — a dead tab
+     teaches nothing and invites a click that does nothing. Clicking scrolls the
+     first matching record into view and selects it, so the jump and the
+     selection are one gesture rather than two. */
+  function renderTabs(host, disks) {
+    host.textContent = "";
+    var seen = {};
+    disks.forEach(function (d, i) {
+      var ch = String(d.displayName).trim().charAt(0).toUpperCase();
+      if (!/[A-Z]/.test(ch)) ch = "#";
+      if (seen[ch] === undefined) seen[ch] = i;
+    });
+    Object.keys(seen).sort().forEach(function (ch) {
+      var t = document.createElement("button");
+      t.type = "button";
+      t.className = "crate__tab";
+      t.textContent = ch;
+      t.title = "Jump to " + ch;
+      t.addEventListener("click", function () {
+        var d = disks[seen[ch]];
+        if (!d) return;
+        select(d);
+        var el = host.parentNode.querySelector('.crate__pile .disk[data-id="' + cssEsc(d.id) + '"]');
+        if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+      });
+      host.appendChild(t);
+    });
+  }
+
+  /* 🚨 `CSS.escape` IS NOT ON EVERY BUILD THIS SHIP RUNS ON, and an id here can
+     carry characters a selector treats as syntax — library.js slugs a filename,
+     so "M.U.L.E." becomes `lib-m-u-l-e` but a future one need not be so kind.
+     Quote-safe fallback rather than assuming the global exists. */
+  function cssEsc(s) {
+    return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&");
+  }
+
+  function renderDisk(disk) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "disk";
@@ -150,13 +252,84 @@
       }
 
       b.addEventListener("click", function () { select(disk); });
-      box.appendChild(b);
-    });
+      /* ⌨ Arrow keys flip through the pile, which is what a stack of records
+         wants. 🚫 Not a global handler: the hub's terminal owns the keyboard
+         (blind typing a LOAD command is a first-class surface), so this fires
+         only while a record itself has focus. */
+      b.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+        e.preventDefault();
+        var sibs = Array.prototype.slice.call(b.parentNode.querySelectorAll(".disk"));
+        var next = sibs[sibs.indexOf(b) + (e.key === "ArrowDown" ? 1 : -1)];
+        if (!next) return;
+        next.focus();
+        if (next.scrollIntoView) next.scrollIntoView({ block: "nearest" });
+        var d = null;
+        DISKS.forEach(function (x) { if (x.id === next.dataset.id) d = x; });
+        if (d) select(d);
+      });
+    return b;
+  }
+
+  /* ---- the detail panel ---------------------------------------------------
+     🚨 ITS COMMON STATE IS "NOTHING YET", AND THAT MUST READ AS DELIBERATE.
+     55 of 59 disks have no screenshot and no synopsis; `games.js` carries the
+     four that do, in his own words, and nothing is generated for the rest.
+     🚫 Never render an empty image frame — it reads as a picture that failed to
+     load, which is a bug report waiting to happen. The frame says, in words,
+     that there is no shot yet. Same call `library.js` makes for an empty
+     folder: information, not a fault. */
+  function renderDetail(disk) {
+    if (!disk) {
+      dShot.className = "is-empty";
+      dShot.style.backgroundImage = "";
+      dTitle.textContent = "—";
+      dMeta.textContent = "";
+      dSyn.textContent = "Pick a disk to see what is on it.";
+      dSyn.className = "is-empty";
+      return;
+    }
+    var info = GAMEINFO.info(disk.id) || {};
+
+    if (info.screenshot) {
+      dShot.className = "";
+      /* url() with quotes — these paths contain spaces ("Asteroid Command"). */
+      dShot.style.backgroundImage = 'url("' + info.screenshot + '")';
+    } else {
+      dShot.className = "is-empty";
+      dShot.style.backgroundImage = "";
+    }
+
+    dTitle.textContent = disk.displayName;
+
+    /* what is genuinely known about every disk, invented for none of them:
+       how many sides, and what the hub has flagged it as. */
+    dMeta.textContent = "";
+    var sides = (disk.files && disk.files.length) || 0;
+    var bits = [];
+    if (disk.runner === "plc") bits.push("cartridge");
+    else bits.push(sides > 1 ? sides + " disk sides" : "single disk");
+    dMeta.appendChild(document.createTextNode(bits.join(" · ")));
+    if (disk.dev || disk.status === "test") {
+      var badge = document.createElement("span");
+      badge.className = "badge" + (disk.dev ? " dev" : "");
+      badge.textContent = disk.dev ? "dev" : "test";
+      dMeta.appendChild(badge);
+    }
+
+    if (info.synopsis) {
+      dSyn.textContent = info.synopsis;
+      dSyn.className = "";
+    } else {
+      dSyn.textContent = "No synopsis written for this disk yet.";
+      dSyn.className = "is-empty";
+    }
   }
 
   function select(disk) {
     selected = disk;
     btnInsert.disabled = !disk || disk === inserted;
+    renderDetail(disk);
     renderBox();
     focusTerminal();
   }

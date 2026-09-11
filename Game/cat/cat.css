@@ -42,13 +42,59 @@ html, body {
 }
 
 /* ---- the machine -------------------------------------------------------- */
+/* 🔄 2026-09-11 — TWO COLUMNS: crates on the LEFT, the machine on the right.
+   His ask: *"I want the game disks to be on the left hand side of the screen."*
+   This was `grid-template-rows: 1fr auto`, with the disk box living inside the
+   deck. ⚠️ `#machine` exists only to keep the screen and the deck as ONE
+   column — they are one object and must not become independent grid children. */
 #cat {
   height: 100%;
   display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 0;
-  padding: clamp(8px, 1.6vh, 22px);
+  /* 🚨 ASSIGNED BY NAME, NEVER BY DOM ORDER. `#machine` is written first in the
+     markup (it is the important thing, and it was there first), so auto-placement
+     put the machine in the narrow column and the crates in the wide one — the
+     layout came out mirrored and the terminal was squeezed to a third of the
+     screen. Naming the column is also what lets the markup keep the machine
+     first for a screen reader. */
+  grid-template-columns: clamp(236px, 25vw, 340px) 1fr;
   gap: clamp(8px, 1.4vh, 18px);
+  padding: clamp(8px, 1.6vh, 22px);
+  min-height: 0;
+}
+#crates { grid-column: 1; grid-row: 1; }
+/* ⚠️ THE TWO CRATES ARE NOT THE SAME SIZE AND MUST NOT BE. One holds 3
+   cartridges, the other holds 55 found disks — sharing the column equally gave
+   the small one a half-empty crate and the big one a seven-record window. The
+   CAD crate takes what it needs; the Cracked crate takes the rest. */
+#crate-plc { flex: 0 0 auto; }
+/* 🚨 AND ITS STACK MUST SIZE TO ITS CONTENT, or the crate renders as a bare
+   header with nothing under it. `.crate__stack`'s own `flex: 1 1 0; min-height:
+   0` is what lets the big crate scroll; inside a `flex: 0 0 auto` crate that
+   same pair resolves to a height of ZERO. Measured by looking — three
+   cartridges, and the crate came out empty. */
+#crate-plc .crate__stack { flex: 0 0 auto; overflow: visible; }
+#crate-lib { flex: 1 1 0; }
+/* and the shot must not eat the crates on a short screen */
+#detail-shot { max-height: 26vh; }
+#machine {
+  grid-column: 2; grid-row: 1;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: clamp(8px, 1.4vh, 18px);
+  min-height: 0;
+  min-width: 0;   /* or a long terminal line stops the column ever shrinking */
+}
+
+/* 🚨 NARROW FALLS BACK TO THE OLD SHAPE — it does not squeeze. The terminal IS
+   the interface here (a player types LOAD"…",8,1 blind into it), so when there
+   is not room for both, the crates go back UNDER the machine rather than both
+   halves becoming too small to use. 1366 is the CAD workstation's common width
+   and sits well clear of this. */
+@media (max-width: 900px) {
+  #cat { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  #crates { grid-row: 2; flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+  #crates .crate { flex: 1 1 260px; }
+  #detail { flex: 1 1 100%; }
 }
 
 /* ---- the screen --------------------------------------------------------- */
@@ -337,6 +383,269 @@ html, body {
   color: #fdf8e4;
 }
 .disk .badge.dev { background: #7a3f6d; }
+
+/* =========================================================================
+   THE CRATES — 2026-09-11. His ask: *"Treat them like a bunch of records.
+   Laying on top of each other, and they get flipped forward to see them."*
+
+   ⭐ THE RECORD IS THE EXISTING `.disk`, UNCHANGED. Everything above still
+   applies — the sleeve, the label, the hub ring, the shutter, the badges. What
+   changes is only how they are ARRANGED: a stack instead of a scrolling row.
+   🚫 Do not fork a second disk component for the crate; the sleeve art is the
+   part people recognise and two of them would drift.
+   ========================================================================= */
+#crates {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.2vh, 14px);
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ⚠️ `flex: 1 1 0` on BOTH, so the two crates share whatever the detail panel
+   leaves rather than the 55-disk one swallowing the column. `min-height: 0` is
+   what actually lets a flex child scroll instead of growing. */
+.crate {
+  flex: 1 1 0;
+  min-height: 0;
+  background: linear-gradient(#6b5f3a, #52492c 40%, #3b3420);
+  border-radius: 8px;
+  padding: clamp(9px, 1.2vh, 13px) clamp(8px, 1vw, 12px) clamp(9px, 1.2vh, 14px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 248, 221, .22);
+  display: flex;
+  flex-direction: column;
+  /* ⚠️ the gap is what stops a flipped record crowding the crate's own label —
+     the record grows in place and its 2px selection ring reaches for it. */
+  gap: 9px;
+  min-height: 0;
+}
+.crate__label {
+  font-size: clamp(9px, 1.15vh, 12px);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #e2d7a8;
+}
+
+/* ---- the A-Z dividers ---------------------------------------------------
+   Crate dividers, which is what a record crate actually has. 🚨 They are the
+   answer to the 55-disk problem: flipping one at a time is ~30 flips to reach
+   the middle of the alphabet, so his ruling was flip PLUS a quick jump, never
+   flip alone. Only letters that HAVE a disk are rendered — a dead tab teaches
+   nothing and invites a click that does nothing. */
+.crate__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.crate__tab {
+  font: 600 10px/1 var(--mono);
+  color: #cbbf8e;
+  background: rgba(0, 0, 0, .26);
+  border: 0;
+  border-radius: 3px;
+  padding: 3px 5px;
+  cursor: pointer;
+}
+.crate__tab:hover { background: rgba(0, 0, 0, .45); color: var(--cat-hi); }
+.crate__tab:focus-visible { outline: 2px solid var(--cat-warn); outline-offset: 1px; }
+
+/* ---- the stack ----------------------------------------------------------
+   The records lie on top of each other and the selected one comes forward.
+
+   🚨 THE STACK SCROLLS, AND THAT IS NOT A COMPROMISE. 55 records at a 16px
+   pitch is ~900px of crate — taller than the screen. A real crate is deeper
+   than your reach too; you push through it. The scroll is the pushing.
+   ⚠️ `--pitch` is the one number that decides how many spines you can read at
+   once. Lower it and the crate gets shallower but the labels overlap. */
+/* 🚨🚨 THE SCROLLER AND THE PILE ARE TWO ELEMENTS, AND THAT IS THE WHOLE
+   TRICK. The records are absolutely positioned, so they contribute NO height —
+   put them straight in the scroller and it has nothing to scroll. The first cut
+   fixed that by setting the scroller's own min-height to the pile depth, which
+   is the one thing that cannot work: a scroller as tall as its content never
+   scrolls, so 55 records became 950px of page and pushed the whole column off
+   the bottom of the screen.
+   ⭐ So `.crate__stack` is the window (bounded, scrolls) and `.crate__pile` is
+   the pile (as tall as the records, set by JS). */
+.crate__stack {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.crate__pile {
+  --pitch: 17px;
+  position: relative;
+  /* 🚨 content-box ON PURPOSE, against the global `* { box-sizing: border-box }`.
+     JS sets `height` to the pile's DEPTH (records x pitch). Under border-box the
+     padding-bottom below is subtracted from that instead of added to it, so the
+     room reserved for the last record to open silently disappears — the CAD
+     crate came out 68px tall for a pile that needed 121, and the flipped record
+     spilled over the crate's own label. Measured by looking at it. */
+  box-sizing: content-box;
+  /* room for the last record to open without being clipped by the scroller */
+  padding-bottom: clamp(56px, 7.5vh, 84px);
+}
+
+/* Each record sits `--i * pitch` down from the top of the crate. Absolute, so
+   they genuinely overlap rather than merely sitting close together. */
+.crate__pile .disk {
+  position: absolute;
+  left: 0;
+  right: 8px;
+  top: calc(var(--i) * var(--pitch));
+  width: auto;
+  height: 15px;
+  display: block;
+  padding: 0;
+  transition: transform .18s ease, height .18s ease;
+  transform-origin: 50% 0;
+}
+
+/* 🚨🚨 IN THE PILE, A RECORD IS A SPINE — AND THE SLEEVE ART IS SUPPRESSED, NOT
+   SHRUNK. The sleeve carries a paper label, a hub ring and a shutter, all drawn
+   as pseudo-elements sized against a 1:1.02 square. Squashed into 15px they
+   collapse into cream mush with the name unreadable on top of it — measured by
+   looking, not by reasoning. So the spine is a plain tinted bar, and the art
+   comes BACK the moment the record is flipped forward, which is exactly what
+   flipping it forward is for. */
+.crate__pile .disk .sleeve {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+  height: auto;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--tint) 0 3px, #2f2b3a 3px, #24212e);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+  transition: none;
+}
+.crate__pile .disk .sleeve::before,
+.crate__pile .disk .sleeve::after { display: none; }
+.crate__pile .disk .sleeve .label { display: none; }
+
+/* the name IS the spine text: left-aligned, one line, ellipsised */
+.crate__pile .disk .name {
+  position: absolute;
+  left: 9px;
+  right: 42px;
+  top: 0;
+  line-height: 15px;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  color: #cfc6ee;
+}
+/* the badge rides at the end of the spine rather than below it — in an
+   absolutely-positioned row there is no "below" to put it in. */
+.crate__pile .disk .badge {
+  position: absolute;
+  right: 5px;
+  top: 2px;
+  margin: 0;
+  font-size: 8px;
+  padding: 1px 4px;
+  line-height: 1.2;
+}
+.crate__pile .disk:hover { z-index: 2; }
+.crate__pile .disk:hover .name { color: var(--cat-hi); }
+
+/* ---- flipped forward ----------------------------------------------------
+   The selected record tips out of the stack and shows its face. It keeps its
+   place in the pile — it does not jump to the top — because "where am I in the
+   crate" is the thing the flip is meant to answer. */
+.crate__pile .disk[aria-pressed="true"] {
+  z-index: 3;
+  height: clamp(58px, 8vh, 84px);
+}
+/* ⭐ THE SLEEVE ART COMES BACK HERE — this is what "flipped forward to see
+   them" means. Everything suppressed on the spine is restored, so the record
+   you are looking at is the full object and the ones behind it are edges. */
+.crate__pile .disk[aria-pressed="true"] .sleeve {
+  background: linear-gradient(160deg, #33323a, #17161c 62%);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, .6), 0 0 0 2px var(--cat-warn);
+}
+.crate__pile .disk[aria-pressed="true"] .sleeve::before,
+.crate__pile .disk[aria-pressed="true"] .sleeve::after { display: block; }
+.crate__pile .disk[aria-pressed="true"] .sleeve .label { display: flex; }
+.crate__pile .disk[aria-pressed="true"] .name {
+  top: auto;
+  bottom: 3px;
+  color: var(--cat-hi);
+}
+
+/* ⚠️ REDUCED MOTION KEEPS THE STATE AND DROPS THE MOVEMENT. The flip is how
+   the selection is READ, so it must not disappear — the ring and the open
+   sleeve stay, the rotation and the transitions go. */
+@media (prefers-reduced-motion: reduce) {
+  .crate__stack .disk,
+  .crate__pile .disk .sleeve { transition: none; }
+  .crate__pile .disk[aria-pressed="true"] { transform: none; }
+  .crate__pile .disk:hover { transform: none; }
+}
+
+/* ---- the detail panel ---------------------------------------------------
+   🚨 ITS HONEST STATE IS THE COMMON ONE. 55 of 59 disks have no screenshot and
+   no synopsis (see games.js), so "nothing yet" is what this mostly renders and
+   it has to look deliberate rather than broken. */
+#detail {
+  background: linear-gradient(#2a2340, #1d1830);
+  border-radius: 8px;
+  padding: clamp(8px, 1.1vh, 12px);
+  color: var(--cat-ink);
+  font-size: clamp(10px, 1.2vh, 12px);
+  line-height: 1.45;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+  flex: 0 0 auto;
+}
+#detail-shot {
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  background: #140f22 center / cover no-repeat;
+  border: 1px solid rgba(185, 176, 245, .18);
+  margin-bottom: 7px;
+  display: grid;
+  place-items: center;
+}
+/* the empty frame says so IN WORDS. 🚫 Never an empty box — that reads as an
+   image that failed to load, which is a bug report waiting to happen. */
+#detail-shot.is-empty::after {
+  content: "no screenshot yet";
+  font-size: clamp(9px, 1.05vh, 11px);
+  color: var(--cat-ink-dim);
+  letter-spacing: .06em;
+}
+#detail-title {
+  color: var(--cat-hi);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: clamp(10px, 1.25vh, 13px);
+}
+#detail-meta { color: var(--cat-ink-dim); font-size: clamp(9px, 1.05vh, 11px); margin-top: 2px; }
+#detail-meta .badge {
+  display: inline-block;
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 5px;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: var(--cat-warn);
+  color: #241c00;
+}
+#detail-meta .badge.dev { background: #7a3f6d; color: #ffe9f8; }
+#detail-synopsis { margin: 6px 0 0; }
+#detail-synopsis.is-empty { color: var(--cat-ink-dim); font-style: italic; }
+
+#crates-hint {
+  margin: 0;
+  font-size: clamp(9px, 1.05vh, 11px);
+  letter-spacing: .04em;
+  color: #6a5f3c;
+  text-align: center;
+}
+#crates-hint strong { color: #8a7c4c; }
 
 /* ---- the game, running in-hub ------------------------------------------- */
 /* An overlay, NOT a navigation. The hub stays alive underneath, so coming back
