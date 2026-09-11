@@ -58,6 +58,39 @@ function eq(got, want, label) {
 }
 const section = (s) => console.log(`\n${s}`);
 
+/* 🚨🚨 POLL, DO NOT SLEEP — and this is not tidiness, it is four of the eight
+   failures this rig carried into 2026-09-11.
+
+   The launch assertions used `await wait(2400)`, under a comment reading "the
+   load theatre is ~1.9s". Measured 2026-09-11 by polling instead: the same
+   launch completes at **4800ms**. Nothing about the hub broke — the disk
+   library grew to 55 and the scan it runs on boot now competes with the load
+   theatre — but every launch assertion went red, and each cascaded into the two
+   after it ("it launched Asteroid Command [null]", "and launched its real entry
+   point").
+   ⭐⭐ A FIXED SLEEP ENCODES TODAY'S TIMING AS AN ASSERTION ABOUT CORRECTNESS,
+   so the rig fails when the machine gets slower rather than when the behaviour
+   gets wrong. That is the opposite of what it is for.
+
+   🚫 The fix is NOT 2400 -> 6000; that buys time until the library grows again.
+   `until()` returns the moment the condition holds, so on a fast machine it is
+   also quicker than the sleep it replaces.
+   ⚠️ It still fails LOUDLY on timeout — a condition that never comes true has
+   to be a red line, never a silent pass. It returns -1, and every caller tests
+   for it. */
+/* prints as a duration when it succeeded and as the word TIMED OUT when it did
+   not — `[started in -1ms]` reads like a measurement, which is the last thing a
+   failure line should do. */
+const took = (t) => (t < 0 ? "TIMED OUT" : `started in ${t}ms`);
+async function until(fn, ms = 20000, every = 200) {
+  const t0 = Date.now();
+  for (;;) {
+    if (await fn()) return Date.now() - t0;
+    if (Date.now() - t0 > ms) return -1;
+    await wait(every);
+  }
+}
+
 const c = await open({ gpu: true, w: 1280, h: 860 });
 try {
   await c.goto(URL_HUB);
@@ -80,11 +113,34 @@ try {
 
   /* --- B. the disk box ------------------------------------------------- */
   section("B. the disk box, and what it deliberately does not show");
-  const visible = await c.ev("__cat.visible().join('+')");
-  eq(visible, "asteroid+aquanaut+pitstop", "three player disks, in roster order");
-  ok(!String(visible).includes("blank"), "Blank Cassette is NOT in the player-facing box");
-  eq(await c.ev("document.querySelectorAll('.disk').length"), 3, "three disks rendered as objects");
-  eq(await c.ev("document.querySelectorAll('.sleeve').length"), 3, "each disk has a sleeve (not a list row)");
+  /* 🚨🚨 BY KEY AND BY RECONCILIATION, NEVER BY INDEX OR BY A LITERAL COUNT.
+     This block read `eq(visible, "asteroid+aquanaut+pitstop")` and
+     `eq(.disk.length, 3)` until 2026-09-11, which was true on the day it was
+     written and false the moment `library.js` started discovering disks: the
+     box holds **58** now (3 cartridges + 55 found), and all three assertions
+     went red together while nothing at all was wrong.
+     ⭐⭐ A count cannot tell "55 disks were added on purpose" from "the
+     cartridges vanished" — it fails identically for both, so the repair always
+     LOOKS like bumping the number, which is how a rig stops asserting anything.
+     ⭐ So: name the cartridges that must be there, name the one that must not,
+     and make the DOM reconcile against the MODEL rather than against a
+     constant. The cartridge roster is a fact about `disks.js`; the total is a
+     fact about a folder the user fills. Only the first belongs in a literal. */
+  const visible = String(await c.ev("__cat.visible().join('+')"));
+  const seen = visible.split("+");
+  const CARTRIDGES = ["asteroid", "aquanaut", "pitstop"];
+  const missing = CARTRIDGES.filter((id) => !seen.includes(id));
+  ok(missing.length === 0,
+     `all ${CARTRIDGES.length} player cartridges are in the box   [missing: ${missing.join(", ") || "none"}]`);
+  ok(!seen.includes("blank"), "Blank Cassette is NOT in the player-facing box");
+
+  /* the DOM and the model must agree — that is the check a literal was
+     standing in for, and unlike a literal it holds at any library size. */
+  const nDisk = Number(await c.ev("document.querySelectorAll('.disk').length"));
+  const nSleeve = Number(await c.ev("document.querySelectorAll('.sleeve').length"));
+  eq(nDisk, seen.length, "every visible disk is rendered as an object");
+  eq(nSleeve, nDisk, "each disk has a sleeve (not a list row)");
+  console.log(`        (box holds ${seen.length}: ${CARTRIDGES.length} cartridges + ${seen.length - CARTRIDGES.length} found)`);
 
   /* 🚨 THE BUG THIS EXISTS TO PROVE FIXED. The Aquanaut is built but was
      never registered, so it could not be launched from the hub at all. */
@@ -186,8 +242,8 @@ try {
   section("F. rule 3 — LOAD\"*\",8 loads the game, and exit returns to the hub");
   eq(await c.ev("__cat.playing()"), "false", "nothing is running yet");
   await c.ev("__cat.execute('LOAD\"*\",8')");
-  await wait(2400);                        // the load theatre is ~1.9s
-  eq(await c.ev("__cat.playing()"), "true", "rule 3: the cartridge is running");
+  const tLoad = await until(async () => String(await c.ev("__cat.playing()")) === "true");
+  ok(tLoad >= 0, `rule 3: the cartridge is running   [${took(tLoad)}]`);
   const src = String(await c.ev("__cat.playingSrc()"));
   ok(/Asteroid%20Command/i.test(src) || /Asteroid Command/i.test(src),
      `it launched Asteroid Command   [${src}]`);
@@ -209,8 +265,8 @@ try {
   await c.ev("__cat.insert()");
   await wait(140);
   await c.ev("__cat.execute('LOAD\"THE AQUANAUT\",8,1')");
-  await wait(2400);
-  eq(await c.ev("__cat.playing()"), "true", "The Aquanaut runs from its own filename");
+  const tAq = await until(async () => String(await c.ev("__cat.playing()")) === "true");
+  ok(tAq >= 0, `The Aquanaut runs from its own filename   [${took(tAq)}]`);
   const aq = String(await c.ev("__cat.playingSrc()"));
   ok(/Aquanaut/i.test(aq), `and it is Aquanaut's own entry point   [${aq}]`);
   await c.ev("__cat.exit()");
@@ -219,8 +275,8 @@ try {
   /* --- H. the trailing ,1 is optional ---------------------------------- */
   section("H. a trailing ,1 changes nothing");
   await c.ev("__cat.execute('LOAD\"*\",8,1')");
-  await wait(2400);
-  eq(await c.ev("__cat.playing()"), "true", "LOAD\"*\",8,1 behaves exactly as LOAD\"*\",8");
+  const tTrail = await until(async () => String(await c.ev("__cat.playing()")) === "true");
+  ok(tTrail >= 0, `LOAD"*",8,1 behaves exactly as LOAD"*",8   [${took(tTrail)}]`);
   await c.ev("__cat.exit()");
   await wait(200);
 
