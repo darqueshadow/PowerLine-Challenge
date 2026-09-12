@@ -58,6 +58,23 @@ function parseCSVLine(line) {
     return vals;
 }
 
+// ── scoring.csv → rows, skipping the decorative banner ────────────────────────
+// scoring.csv opens with a "SCORING SYSTEM" title row and a blank line before its
+// real header ("Scoring Event,Value / Multiplier,..."). parseCSV() takes line 0 as
+// the header, so parsing the raw text named every column after the banner, which
+// left r['Scoring Event'] undefined on every row — and the "skip headers" guard
+// then dropped the entire sheet. All 57 rows were silently discarded and none of
+// the tuning in that file had ever reached the game.
+// The banner stays in the file: it is Andrew's sheet and it reads better with it.
+// Falls back to the raw text if the header is not found, so a re-exported file
+// that happens to be header-first still parses exactly as before.
+function parseScoringCSV(text) {
+    if (!text) return [];
+    const lines = text.replace(/\r/g, '').split('\n');
+    const headerAt = lines.findIndex(l => (l.split(',')[0] || '').trim().toLowerCase() === 'scoring event');
+    return parseCSV(headerAt > 0 ? lines.slice(headerAt).join('\n') : text);
+}
+
 // ── Shorthand rows → banner records ───────────────────────────────────────────
 // The satellite tows the expanded text; the player types the shorthand.
 // Two header styles are accepted so the CAD export drops straight in:
@@ -229,7 +246,7 @@ async function loadGameData() {
     }
 
     // --- Scoring → update SCORING multipliers from scoring.csv v2 ---
-    const scoreRows = parseCSV(scoringText);
+    const scoreRows = parseScoringCSV(scoringText);
     scoreRows.forEach(r => {
         const event = (r['Scoring Event'] || '').trim();
         const rawVal = (r['Value / Multiplier'] || '').trim();
@@ -260,19 +277,17 @@ async function loadGameData() {
             const v = parseInt(rawVal, 10);
             if (!isNaN(v)) SCORING.staticJamFlat = v;
         }
-        // Streak milestones
-        else if (event.includes('5x Perfect')) {
+        // Streak milestones — match on the leading number, not a substring.
+        // These were four includes() branches ordered 5x, 8x, 15x, 25x, and
+        // "15x Perfect".includes("5x Perfect") is TRUE — so the 15x and 25x rows
+        // both fell into the 5x branch and overwrote the 5-streak bonus with
+        // 400 and then 1000, while 15 and 25 never loaded at all. Harmless only
+        // for as long as scoring.csv was being discarded wholesale; the moment
+        // the sheet actually parses, that collision becomes a live scoring bug.
+        else if (/^\d+x Perfect/.test(event)) {
+            const threshold = parseInt(event, 10);
             const v = parseInt(rawVal, 10);
-            if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === 5); if (ms) ms.bonus = v; }
-        } else if (event.includes('8x Perfect')) {
-            const v = parseInt(rawVal, 10);
-            if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === 8); if (ms) ms.bonus = v; }
-        } else if (event.includes('15x Perfect')) {
-            const v = parseInt(rawVal, 10);
-            if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === 15); if (ms) ms.bonus = v; }
-        } else if (event.includes('25x Perfect')) {
-            const v = parseInt(rawVal, 10);
-            if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === 25); if (ms) ms.bonus = v; }
+            if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === threshold); if (ms) ms.bonus = v; }
         }
         // Micro-rewards
         else if (event.includes('Calibration')) {
@@ -599,7 +614,7 @@ function applyCSVData(results) {
     }
 
     // --- Re-parse Scoring ---
-    const scoreRows = parseCSV(scoringText);
+    const scoreRows = parseScoringCSV(scoringText);
     scoreRows.forEach(r => {
         const event = (r['Scoring Event'] || '').trim();
         const rawVal = (r['Value / Multiplier'] || '').trim();
@@ -611,10 +626,9 @@ function applyCSVData(results) {
         else if (event.includes('3-4 Backspaces') && rawVal.endsWith('x')) { const v = Math.abs(parseFloat(rawVal.replace('x', '').replace('-', ''))); if (!isNaN(v)) SCORING.signalNoiseMult = v; }
         else if (event.includes('Comms Drift')) { const v = parseInt(rawVal, 10); if (!isNaN(v)) SCORING.commsDriftFlat = v; }
         else if (event.includes('7+ Backspaces') || (event.includes('Static Jam') && !rawVal.endsWith('x'))) { const v = parseInt(rawVal, 10); if (!isNaN(v)) SCORING.staticJamFlat = v; }
-        else if (event.includes('5x Perfect')) { const v = parseInt(rawVal, 10); if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === 5); if (ms) ms.bonus = v; } }
-        else if (event.includes('8x Perfect')) { const v = parseInt(rawVal, 10); if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === 8); if (ms) ms.bonus = v; } }
-        else if (event.includes('15x Perfect')) { const v = parseInt(rawVal, 10); if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === 15); if (ms) ms.bonus = v; } }
-        else if (event.includes('25x Perfect')) { const v = parseInt(rawVal, 10); if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === 25); if (ms) ms.bonus = v; } }
+        // Leading-number match, not substring — see the note on the same block in
+        // the initial loader above: "15x Perfect".includes("5x Perfect") is true.
+        else if (/^\d+x Perfect/.test(event)) { const threshold = parseInt(event, 10); const v = parseInt(rawVal, 10); if (!isNaN(v)) { const ms = SCORING.streakMilestones.find(m => m.threshold === threshold); if (ms) ms.bonus = v; } }
         else if (event.includes('Calibration')) { const v = parseInt(rawVal, 10); if (!isNaN(v)) SCORING.calibrationFlat = v; }
         else if (event.includes('Comeback')) { const v = parseInt(rawVal, 10); if (!isNaN(v)) SCORING.comebackFlat = v; }
         else if (event.includes('First Blood')) { const v = parseInt(rawVal, 10); if (!isNaN(v)) SCORING.firstBloodFlat = v; }

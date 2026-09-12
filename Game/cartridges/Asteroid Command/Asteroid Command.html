@@ -70,25 +70,27 @@ on numbers baked into the code last spring.
     <div id="scan"></div>
 
     <script>
-        // ── Clear browser cache on every launch ──────────────────────────────
-        // Carried over from the old launcher. Preserves high scores and progression.
-        var PRESERVE_KEYS = ['highScore', 'bestScore', 'progression', 'careerRank', 'asteroidCommand_'];
-        function shouldPreserve(key) {
-            return PRESERVE_KEYS.some(function (k) { return key.startsWith(k) || key.includes(k); });
-        }
-
-        try {
-            var keysToRemove = [];
-            for (var i = 0; i < localStorage.length; i++) {
-                var key = localStorage.key(i);
-                if (!shouldPreserve(key)) keysToRemove.push(key);
-            }
-            keysToRemove.forEach(function (k) { localStorage.removeItem(k); });
-
-            // Boot flags live here. Clearing them means the game always runs its
-            // own current boot rather than inheriting a stale "already booted".
-            sessionStorage.clear();
-        } catch (ignore) {}
+        // ── Per-launch reset (localStorage deliberately NOT touched) ─────────
+        // This used to sweep localStorage on every launch, keeping only a
+        // PRESERVE_KEYS list of 'highScore', 'bestScore', 'progression',
+        // 'careerRank' and 'asteroidCommand_'. Not one of those names is a key
+        // this cartridge has ever written, so the list preserved nothing and the
+        // sweep deleted everything:
+        //   1. It destroyed the leaderboard. saveScore()/loadScores() persist to
+        //      'asteroid-command-scores', the difficulty picker to 'ac_difficulty'
+        //      and HOW TO PLAY to 'ac_htp_seen' — none of which could survive a
+        //      launch through this file, while the hub / dev-server entry
+        //      (files/index.html) never wiped. The two launchers disagreed about
+        //      whether a high score was a real feature.
+        //   2. localStorage is scoped to the ORIGIN, not the cartridge. The whole
+        //      arcade shares one origin, so this also wiped 'aquanaut-scores',
+        //      'cmdRefPos' and the emulator's 'ejs-settings' — opening Asteroid
+        //      Command silently deleted another cartridge's save.
+        // Matches the same fix already made in The Aquanaut's launcher.
+        // sessionStorage is still cleared: it is per-tab and holds nothing
+        // durable — just the 'bootDone' flag, and clearing it is what makes the
+        // game always run its own current boot instead of inheriting a stale one.
+        try { sessionStorage.clear(); } catch (ignore) {}
 
         if ('caches' in window) {
             caches.keys().then(function (names) { names.forEach(function (n) { caches.delete(n); }); });

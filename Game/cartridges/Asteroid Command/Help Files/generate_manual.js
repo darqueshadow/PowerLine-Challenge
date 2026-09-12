@@ -1247,9 +1247,9 @@ async function buildDocument() {
                             new TableRow({ children: [bodyCell('beamDuration', 2600, { mono: true }), bodyCell('2000', 1200), bodyCell('Base repair beam duration in ms', 5560)] }),
                             new TableRow({ children: [bodyCell('shieldRegenStreak', 2600, { mono: true }), bodyCell('5', 1200), bodyCell('Reserved (shield regen disabled)', 5560)] }),
                             new TableRow({ children: [bodyCell('altitudeThreshold', 2600, { mono: true }), bodyCell('0.25', 1200), bodyCell('Early Intercept zone (top 25% of screen)', 5560)] }),
-                            new TableRow({ children: [bodyCell('devModePassword', 2600, { mono: true }), bodyCell('"DISPATCH"', 1200), bodyCell('Password for Dev Mode (Ctrl+Shift+B)', 5560)] }),
+                            new TableRow({ children: [bodyCell('devModePasswordHash', 2600, { mono: true }), bodyCell('(digest)', 1200), bodyCell('Dev Mode phrase, stored as a digest (Ctrl+Shift+B) — see 14.1', 5560)] }),
                             new TableRow({ children: [bodyCell('devModeTimeout', 2600, { mono: true }), bodyCell('10000', 1200), bodyCell('Dev Mode prompt timeout in ms', 5560)] }),
-                            new TableRow({ children: [bodyCell('holodeckPassword', 2600, { mono: true }), bodyCell('"RED RABBIT"', 1200), bodyCell('Password for Holodeck (Ctrl+Shift+H)', 5560)] }),
+                            new TableRow({ children: [bodyCell('holodeckPasswordHash', 2600, { mono: true }), bodyCell('(digest)', 1200), bodyCell('Holodeck phrase, stored as a digest (Ctrl+Shift+H) — see 14.2', 5560)] }),
                             new TableRow({ children: [bodyCell('holodeckTimeout', 2600, { mono: true }), bodyCell('15000', 1200), bodyCell('Holodeck prompt timeout in ms', 5560)] }),
                         ]
                     }),
@@ -1292,7 +1292,7 @@ async function buildDocument() {
                     heading('8.1 Accessing Holodeck', HeadingLevel.HEADING_2),
                     numberedItem('From any menu screen, press Ctrl + Shift + H', 'stepNumbers'),
                     numberedItem('A timed password prompt appears (15 seconds). Yellow grid flash confirms the prompt is active', 'stepNumbers'),
-                    numberedItem('Type "RED RABBIT" (case-insensitive) and press Enter', 'stepNumbers'),
+                    numberedItem('Type the Holodeck phrase (case-insensitive) and press Enter', 'stepNumbers'),
                     numberedItem('On success: green grid flash, holodeck menu appears with ENTER HOLODECK and RETURN TO PROGRAM buttons', 'stepNumbers'),
                     numberedItem('On failure or timeout: red grid flash, prompt closes', 'stepNumbers'),
 
@@ -1347,7 +1347,7 @@ async function buildDocument() {
                     heading('9.1 Activation', HeadingLevel.HEADING_2),
                     numberedItem('Press Ctrl + Shift + B', 'stepNumbers'),
                     numberedItem('A timed password prompt appears (10 seconds)', 'stepNumbers'),
-                    numberedItem('Type "DISPATCH" (case-insensitive) and press Enter', 'stepNumbers'),
+                    numberedItem('Type the Dev Mode phrase (case-insensitive) and press Enter', 'stepNumbers'),
                     numberedItem('On success: "DEV MODE ACTIVATED" message. A "BETA MODE" indicator appears on the canvas', 'stepNumbers'),
                     numberedItem('Pressing Ctrl + Shift + B again toggles it off', 'stepNumbers'),
 
@@ -1488,15 +1488,15 @@ async function buildDocument() {
 
                     heading('14.1 Change the Dev Mode Password', HeadingLevel.HEADING_2),
                     numberedItem('Open files/core/config.js', 'stepNumbers'),
-                    numberedItem('Find: devModePassword: "DISPATCH"', 'stepNumbers'),
-                    numberedItem('Change "DISPATCH" to your desired password (will be compared case-insensitively)', 'stepNumbers'),
-                    numberedItem('Save and refresh', 'stepNumbers'),
+                    numberedItem('Run plcDigest("YOUR NEW PHRASE") in the browser console', 'stepNumbers'),
+                    numberedItem('Paste the result over the value of devModePasswordHash', 'stepNumbers'),
+                    numberedItem('Save and refresh. The phrase is never stored in the file — only its digest — because this folder is served to a public web site. Input is trimmed and upper-cased before hashing, so matching stays case-insensitive.', 'stepNumbers'),
 
                     heading('14.2 Change the Holodeck Password', HeadingLevel.HEADING_2),
                     numberedItem('Open files/core/config.js', 'stepNumbers'),
-                    numberedItem('Find: holodeckPassword: "RED RABBIT"', 'stepNumbers'),
-                    numberedItem('Change "RED RABBIT" to your desired password', 'stepNumbers'),
-                    numberedItem('Save and refresh', 'stepNumbers'),
+                    numberedItem('Run plcDigest("YOUR NEW PHRASE") in the browser console', 'stepNumbers'),
+                    numberedItem('Paste the result over the value of holodeckPasswordHash', 'stepNumbers'),
+                    numberedItem('Save and refresh. As with Dev Mode, only the digest is stored.', 'stepNumbers'),
 
                     heading('14.3 Adjust Shield Strength', HeadingLevel.HEADING_2),
                     numberedItem('Open files/core/config.js', 'stepNumbers'),

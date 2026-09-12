@@ -1227,7 +1227,7 @@ function showDevModePrompt() {
             clearInterval(timerInterval);
             const inputPassword = DOM.devInput.value.trim().toUpperCase();
             
-            if (inputPassword === CONFIG.devModePassword) {
+            if (plcDigest(inputPassword) === CONFIG.devModePasswordHash) {
                 state.devModeUnlocked = true;
                 CONFIG.isBeta = !CONFIG.isBeta;
                 CONFIG.isBeta ? showBeta() : hideBeta();
@@ -1333,7 +1333,7 @@ function showHolodeckPrompt() {
             // Blur BEFORE hiding so the browser doesn't auto-focus the next element
             DOM.holodeckInput.blur();
 
-            if (input === CONFIG.holodeckPassword) {
+            if (plcDigest(input) === CONFIG.holodeckPasswordHash) {
                 state.holodeckUnlocked = true;
                 enterHolodeckMenu();
                 showStatus("AUTHORIZED", "bonus");
@@ -2002,10 +2002,17 @@ function handleCommand(value) {
         return;
     }
 
-    const match = state.asteroids.find(a => a.command.toUpperCase() === input);
+    // `claimed` rocks have already been scored and are only still in state.asteroids so the
+    // homing projectile can reach them and play its intercept VFX. They are no longer answers.
+    const match = state.asteroids.find(a => !a.claimed && a.command.toUpperCase() === input);
 
     if (match) {
         if (fireProjectile(match)) {
+            // Settle the kill at the keystroke, not at projectile arrival. Points are paid
+            // below, so the Target must stop being both a valid answer and a live threat in
+            // the same instant — otherwise the flight time is a window in which it can be
+            // scored twice, or destroy a defence the player has already been paid for killing.
+            match.claimed = true;
             state.streak++;
             state.streakSinceShieldHit++;
             state.consecutiveBasesDestroyed = 0;  // any asteroid kill resets base counter
@@ -4908,6 +4915,14 @@ function update(dt) {
 
             // Did the Target (Initiator) breach the Impact Zone (Receiver)?
             if (a.y + a.radius >= impactAltitude) {
+                // Already scored — the intercept is settled and only the projectile is still
+                // in flight. It must never damage a defence. Let it keep falling so the
+                // intercept VFX can still land, and retire it once it is fully off-screen
+                // (its projectile is then cleaned up by the off-screen check in that loop).
+                if (a.claimed) {
+                    if (a.y - a.radius > COORD_SYSTEM.height) state.asteroids.splice(i, 1);
+                    continue;
+                }
                 const initiator = { type: 'asteroid', id: a.id, unitID: a.unitID, x: a.x, y: a.y };
                 const receiver = { type: a.target.type, id: a.target.id, name: a.target.name, x: a.target.x, y: a.target.y };
                 createShatter(a.x, a.y, a.spriteIndex);
