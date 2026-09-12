@@ -3234,7 +3234,7 @@
     }
     function onKey(ev) {
       if (ev.key === 'Enter') {
-        if ((input.value || '').trim().toUpperCase() === String(CONFIG.devModePassword).toUpperCase()) {
+        if (plcDigest(input.value || '') === CONFIG.devModePasswordHash) {
           toggleDevMode(true);
         }
         closeDev();

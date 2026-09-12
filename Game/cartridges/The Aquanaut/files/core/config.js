@@ -27,9 +27,14 @@ const CONFIG = {
     // creature art lands. Leave false in normal play — creatures without loaded rig
     // art fall back to the existing single-sprite render (no visual change).
     devRigPlaceholders: false,
-    devModePassword: "ABYSS",
+    // Dev gates are stored as digests, never as the phrases themselves — this
+    // file is downloaded by every visitor to the public Pages site, so a
+    // cleartext phrase here is a phrase published to the web. See plcDigest()
+    // at the foot of this file; the same helper and the same digests are used
+    // in Asteroid Command and Pitstop, so a phrase hashes identically in all three.
+    devModePasswordHash: "55b3a78e71c22d91d6de06cca0060007",
     devModeTimeout: 10000,
-    holodeckPassword: "RED RABBIT",
+    holodeckPasswordHash: "8355ec7fb3deaa068839b665fcbe747c",
     holodeckTimeout: 15000,
     // Visibility cone
     baseConeAngle: 55,       // Degrees — full cone width at Tier 1
@@ -724,3 +729,35 @@ const MUSIC = {
     ],
     volume: 0.5                                         // default music level (0–1)
 };
+
+// ── Dev-gate digest ───────────────────────────────────────────────────────────
+// Salted, iterated FNV-1a. Deliberately synchronous: the cartridge must run from
+// a double-clicked file:// page, where crypto.subtle cannot be relied on.
+//
+// ⚠️ This is obfuscation, NOT security, and it is not trying to be. The whole
+// check runs in the browser, so anyone reading the source can skip it and set
+// CONFIG.isBeta directly. The only thing it buys — and the only thing it needs
+// to buy — is that the unlock phrases are no longer sitting in cleartext in a
+// file served to the public internet. Do not treat this as protecting anything
+// of value, and never reuse this helper for a real secret.
+//
+// Identical to the copy in Asteroid Command and Pitstop, deliberately: the
+// arcade has no shared core module, so the helper is duplicated rather than
+// imported, and a phrase must hash the same in every cartridge.
+//
+// To change a phrase: run plcDigest('YOUR NEW PHRASE') in the browser console
+// and paste the result above. Input is trimmed and upper-cased before hashing,
+// so the comparison matches the old behaviour exactly.
+function plcDigest(s) {
+    let out = '';
+    for (let round = 0; round < 4; round++) {
+        let h = 0x811c9dc5;
+        const src = 'plc:' + round + ':' + String(s).trim().toUpperCase();
+        for (let i = 0; i < src.length; i++) {
+            h ^= src.charCodeAt(i);
+            h = Math.imul(h, 0x01000193) >>> 0;
+        }
+        out += ('0000000' + h.toString(16)).slice(-8);
+    }
+    return out;
+}

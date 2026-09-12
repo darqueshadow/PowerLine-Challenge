@@ -1358,7 +1358,7 @@ function init() {
 
     DOM.devInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
-            if (DOM.devInput.value.toUpperCase() === CONFIG.devModePassword) {
+            if (plcDigest(DOM.devInput.value) === CONFIG.devModePasswordHash) {
                 state.devModeUnlocked = true;
                 cancelDevPrompt();
                 showStatus('DEV MODE ACTIVE', 'bonus');
@@ -1398,7 +1398,7 @@ function init() {
 
     DOM.holodeckInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
-            if (DOM.holodeckInput.value.toUpperCase() === CONFIG.holodeckPassword) {
+            if (plcDigest(DOM.holodeckInput.value) === CONFIG.holodeckPasswordHash) {
                 state.holodeckUnlocked = true;
                 cancelHolodeckPrompt();
                 enterHolodeckMenu();

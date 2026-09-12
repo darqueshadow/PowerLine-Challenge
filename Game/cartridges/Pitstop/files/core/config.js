@@ -26,11 +26,16 @@
     isBeta: false,            // Developer/Beta overlay — off by default
 
     // Developer Mode — Law §0.15: activated via Ctrl+Shift+B, timed password.
-    devModePassword: 'PIT LANE',
+    // Stored as a digest, never as the phrase: this file is downloaded by every
+    // visitor to the public Pages site. See plcDigest() at the foot of this file;
+    // the same helper and digests are used in Asteroid Command and The Aquanaut,
+    // so a phrase hashes identically in all three.
+    devModePasswordHash: 'f7146d3b1afaa5c270a682fd5fe2f8e4',
     devModeTimeout: 10000,    // ms the password prompt stays live
 
     // Holodeck — reserved (Publish Mode only); hook present, UI deferred.
-    holodeckPassword: 'GREEN FLAG',
+    // No call site reads this yet, same as before the digest change.
+    holodeckPasswordHash: '1d1192792a00eab4aa85ca63b9e455ce',
     holodeckTimeout: 15000,
 
     version: '0.9.6',
@@ -673,3 +678,35 @@
     SHIFT_CHANGE: SHIFT_CHANGE
   };
 })(window);
+
+// ── Dev-gate digest ───────────────────────────────────────────────────────────
+// Salted, iterated FNV-1a. Deliberately synchronous: the cartridge must run from
+// a double-clicked file:// page, where crypto.subtle cannot be relied on.
+//
+// ⚠️ This is obfuscation, NOT security, and it is not trying to be. The whole
+// check runs in the browser, so anyone reading the source can skip it and set
+// CONFIG.isBeta directly. The only thing it buys — and the only thing it needs
+// to buy — is that the unlock phrases are no longer sitting in cleartext in a
+// file served to the public internet. Do not treat this as protecting anything
+// of value, and never reuse this helper for a real secret.
+//
+// Identical to the copy in Asteroid Command and Pitstop, deliberately: the
+// arcade has no shared core module, so the helper is duplicated rather than
+// imported, and a phrase must hash the same in every cartridge.
+//
+// To change a phrase: run plcDigest('YOUR NEW PHRASE') in the browser console
+// and paste the result above. Input is trimmed and upper-cased before hashing,
+// so the comparison matches the old behaviour exactly.
+function plcDigest(s) {
+    let out = '';
+    for (let round = 0; round < 4; round++) {
+        let h = 0x811c9dc5;
+        const src = 'plc:' + round + ':' + String(s).trim().toUpperCase();
+        for (let i = 0; i < src.length; i++) {
+            h ^= src.charCodeAt(i);
+            h = Math.imul(h, 0x01000193) >>> 0;
+        }
+        out += ('0000000' + h.toString(16)).slice(-8);
+    }
+    return out;
+}
