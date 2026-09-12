@@ -25,10 +25,57 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Upload hub (Game/) as the site artifact
+      # THIS SITE IS PUBLIC. Game/ doubles as a working folder, so it holds
+      # internal material that must never be published: design docs, handoff
+      # notes, findings reports, .docx manuals, dev screenshots, source
+      # workbooks, launcher scripts and .claude/ config. Stage a runtime-only
+      # copy and publish that, instead of uploading Game/ wholesale.
+      #
+      # Safe by construction: the game only ever fetches .csv, .js, .json and
+      # media, and nothing links to a doc, so no exclude below can break it.
+      # These are patterns, not a file list, so anything dropped into a
+      # cartridge folder later is excluded by default rather than going live.
+      - name: Stage a runtime-only copy of Game/
+        run: |
+          set -euo pipefail
+          cat > /tmp/pages-exclude.txt <<'EXCLUDES'
+          .claude/
+          Help Files/
+          handoffs/
+          design-system/
+          screenshots/
+          *.md
+          *.docx
+          *.xlsx
+          *.txt
+          *.bak
+          *.bat
+          *.cmd
+          *.ps1
+          *.py
+          *.ts
+          *.tsx
+          verify-*.mjs
+          bake-*.mjs
+          package.json
+          package-lock.json
+          sprite-compare.html
+          verify-*.png
+          *-test.html
+          backgroud_lland_*.png
+          .gitignore
+          .gitattributes
+          EXCLUDES
+          sed -i 's/^ *//' /tmp/pages-exclude.txt
+          rsync -a --delete --exclude-from=/tmp/pages-exclude.txt Game/ _site/
+          echo "--- staged files: $(find _site -type f | wc -l) ---"
+          echo "--- leaks (must print nothing) ---"
+          find _site -type f -regextype posix-extended             -regex '.*\.(md|docx|xlsx|txt|bat|cmd|ps1|py|ts|tsx)$' -print
+          echo "--- end leak check ---"
+      - name: Upload the staged runtime copy as the site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./Game
+          path: ./_site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
