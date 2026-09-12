@@ -217,6 +217,91 @@ try {
   ok(!/beach/i.test(syn),
      "🚫 and does NOT generate one from the filename");
 
+  /* --- B3. the Cracked crate where the disk list cannot be read -------- */
+  section("B3. where the disk list fails, the Cracked crate says so instead of looking broken");
+  /* 🆕 2026-09-12 — his ruling: Cracked disks are Fang Rock-only, permanently.
+     Everywhere the scan FAILS, the crate stays on screen, visibly switched off,
+     and says "Available in Fang Rock only". Before this it sat there empty with
+     one dim terminal line, and nothing pinned that state at all — `grep
+     unlistable verify-*.mjs` found nothing — so changing it could break nothing
+     and nothing would have noticed either.
+     ⭐ Watched RED first, against f4289f5: file:// and the failed listing both
+     came back with no notice and no switched-off crate.
+
+     THREE ORIGINS, because "every non-Fang Rock context, uniformly" is the ruling
+     and one origin cannot show uniformity:
+       1. this page — a listing origin. The crate must NOT be switched off.
+       2. file:// — the hub opened directly. `fetch` refuses outright.
+       3. http with the listing answered 404 — which is exactly what Pages does,
+          since `Game/disks/` is gitignored and never published.
+     🚫 NOT COVERED HERE: the `arcade:` fault branch. A browser cannot be put on
+     the shell's private scheme, so this rig cannot reach it; it was measured
+     under the shell's own Electron build instead (see the commit). */
+  const CRATE = `JSON.stringify((() => {
+    const crate = document.getElementById("crate-lib");
+    const note = document.getElementById("crate-lib-notice");
+    const r = note && !note.hidden ? note.getBoundingClientRect() : null;
+    return {
+      records: crate.querySelectorAll(".disk").length,
+      off: crate.classList.contains("is-unavailable"),
+      fault: crate.classList.contains("is-fault"),
+      shown: !!r && r.width > 40 && r.height > 20 && r.bottom <= innerHeight,
+      text: note ? note.textContent.replace(/\\s+/g, " ").trim() : "",
+      lines: __cat.lines().join("\\n")
+    };
+  })())`;
+
+  const here = JSON.parse(await c.ev(CRATE));
+  ok(here.records > 0 && !here.off && !here.shown,
+     `a listing origin keeps its records and no notice   [${here.records} records, off=${here.off}]`);
+
+  /* a fresh browser per origin, so neither can inherit the other's scan */
+  async function crateOn(url, failListing) {
+    const b = await open({ gpu: true, w: 1280, h: 860 });
+    let pump = null;
+    try {
+      if (failListing) {
+        /* answer the ONE directory request with the 404 Pages gives, and
+           nothing else — every other request is not matched by the pattern */
+        await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/disks/" }] });
+        const done = new Set();
+        pump = setInterval(() => {
+          for (const m of b.events()) {
+            if (m.method !== "Fetch.requestPaused" || done.has(m.params.requestId)) continue;
+            done.add(m.params.requestId);
+            b.send("Fetch.fulfillRequest", { requestId: m.params.requestId, responseCode: 404,
+              body: Buffer.from("not found").toString("base64") }).catch(() => {});
+          }
+        }, 25);
+      }
+      await b.goto(url);
+      const t = await until(async () => /disk library/i.test(String(await b.ev("__cat.text()"))), 10000);
+      const s = JSON.parse(await b.ev(CRATE));
+      s.t = t;
+      return s;
+    } finally {
+      if (pump) clearInterval(pump);
+      b.close();
+    }
+  }
+
+  const FILE_HUB = new URL("./index.html", import.meta.url).href;
+  for (const [name, url, failListing] of [
+    ["file://", FILE_HUB, false],
+    ["http, listing 404 (as Pages)", URL_HUB, true],
+  ]) {
+    const s = await crateOn(url, failListing);
+    ok(s.t >= 0, `${name}: the scan finished   [${s.t < 0 ? "TIMED OUT" : s.t + "ms"}]`);
+    ok(s.records === 0 && s.off, `${name}: the Cracked crate is switched off, not just empty`);
+    ok(s.shown, `${name}: its notice is on the glass`);
+    ok(/available in fang rock only/i.test(s.text), `${name}: and says where the disks are   [${s.text}]`);
+    /* 🚨 the fault wording belongs to the shell alone. Here it would tell a
+       browser user something is broken when nothing is. */
+    ok(!s.fault && !/fault/i.test(s.text), `${name}: and does NOT call it a fault`);
+    ok(/disk library: not readable from this origin/i.test(s.lines),
+       `${name}: the terminal line stays, as flavour`);
+  }
+
   /* --- C. the Developer Mode gate -------------------------------------- */
   section("C. Ctrl+Shift+B — the Laws 0.15/0.16 gate");
   eq(await c.ev("__cat.devUnlocked()"), "false", "developer mode starts off");

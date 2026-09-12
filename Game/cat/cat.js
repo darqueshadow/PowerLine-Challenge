@@ -62,6 +62,8 @@
   var stackPlc  = document.querySelector("#crate-plc .crate__stack");
   var stackLib  = document.querySelector("#crate-lib .crate__stack");
   var tabsLib   = document.querySelector("#crate-lib .crate__tabs");
+  var crateLib  = document.getElementById("crate-lib");
+  var noteLib   = document.getElementById("crate-lib-notice");
   var dShot     = document.getElementById("detail-shot");
   var dTitle    = document.getElementById("detail-title");
   var dMeta     = document.getElementById("detail-meta");
@@ -756,9 +758,48 @@
      fresh clone has none, and the hub says so as information rather than as
      a fault.
      ===================================================================== */
+  /* 🆕 2026-09-12 — THE CRACKED CRATE WHEN THE LIST CANNOT BE READ.
+     His ruling: Cracked disks are Fang Rock-only, permanently and by design.
+     Everywhere else — file://, Pages, a dev server whose listing fails — the
+     scan comes back `unlistable`, and the crate used to sit there EMPTY with one
+     dim terminal line to explain it. That read as broken rather than as
+     elsewhere. So the crate stays on screen, visibly switched off, and says so.
+
+     🚨 INSIDE FANG ROCK THE SAME RESULT IS A FAULT, NOT "FANG ROCK ONLY". His
+     answer when asked: "Say it's a fault." The shell can fail the scan too (the
+     room's `listable` flag off, a wrong rootPath), and telling him to go where
+     he already is would be the wrong message at the worst possible moment.
+     ⭐ The two are told apart by ORIGIN: the shell serves this room on its own
+     privileged scheme — Morbius/shell/main.js, `SERVED_SCHEME = "arcade"`,
+     registered `standard: true` — and nothing else ever puts the hub there.
+     📌 Measured 2026-09-12 under the shell's own Electron (32.3.3), not assumed:
+     `location.protocol` reads "arcade:" on that origin. If the shell ever renames
+     its scheme, this constant is the one line that has to follow it.
+
+     🚫 Only the FAILED scan is touched. A dev server that can list stays exactly
+     as it is, and `empty` (the folder answered and held nothing) is a different
+     state with its own line. */
+  var SHELL_PROTOCOL = "arcade:";
+
+  function renderLibraryState(res) {
+    var off   = !!res && res.state === "unlistable";
+    var fault = off && location.protocol === SHELL_PROTOCOL;
+    crateLib.classList.toggle("is-unavailable", off);
+    crateLib.classList.toggle("is-fault", fault);
+    noteLib.hidden = !off;
+    if (!off) return;
+    noteLib.querySelector(".crate__notice-title").textContent = fault
+      ? "Fault: disk folder unreadable"
+      : "Available in Fang Rock only";
+    noteLib.querySelector(".crate__notice-body").textContent = fault
+      ? "Fang Rock could not read the game/disks/ folder (" + String(res.detail || "no reason given") + ")."
+      : "This crate fills when the arcade is opened from Fang Rock.";
+  }
+
   function loadLibrary() {
     if (!window.CAT_LIBRARY) return Promise.resolve(null);
     return window.CAT_LIBRARY.scan().then(function (res) {
+      renderLibraryState(res);
       if (res.state === "present") {
         /* Sorted as one list. A cartridge and a disk are peers here. */
         DISKS = res.disks.concat(DISKS).sort(function (a, b) {
@@ -780,11 +821,19 @@
       } else if (res.state === "empty") {
         blank();
         write("disk library: empty. drop .d64 files into game/disks/.", "dim");
+      } else if (location.protocol === SHELL_PROTOCOL) {
+        /* inside the shell this is the fault the crate now names, so the
+           terminal names it too — "not readable from this origin" would be
+           blaming the one origin that is supposed to work. */
+        blank();
+        write("disk library: fault. the disk folder could not be read.", "err");
+        write("(" + String(res.detail || "no reason given") + ")", "dim");
       } else {
         /* 🚨 NOT phrased as an error, and NOT the same line as "empty". This
            origin cannot list a directory — the ordinary state on file:// and
            on a fresh clone served from Pages. Saying "no disks found" here
-           would send someone looking for files that are sitting right there. */
+           would send someone looking for files that are sitting right there.
+           ⚠️ No longer the only signal: the Cracked crate says it too (above). */
         blank();
         write("disk library: not readable from this origin.", "dim");
         write("(cartridges are unaffected. see game/disks/readme.md)", "dim");

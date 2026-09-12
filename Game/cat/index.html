@@ -106,6 +106,16 @@
     <!-- populated by cat.js: only letters that actually have a disk -->
     <div class="crate__tabs" role="group" aria-label="Jump to letter"></div>
     <div class="crate__stack" role="group" aria-labelledby="crate-lib-label"></div>
+    <!-- 🆕 2026-09-12 — SHOWN ONLY WHEN THE DISK LIST COULD NOT BE READ.
+         Cracked disks are Fang Rock-only by design (his ruling), so on file://,
+         on Pages, or anywhere else the scan fails, the crate stays on screen,
+         switched off, and says so. Before this it sat there empty with one dim
+         terminal line to explain it, and read as broken. Inside the shell the
+         same failure is a fault and says that instead. Worded by cat.js. -->
+    <div class="crate__notice" id="crate-lib-notice" hidden>
+      <span class="crate__notice-title"></span>
+      <span class="crate__notice-body"></span>
+    </div>
   </div>
 
   <!-- ---- the detail panel ---------------------------------------------

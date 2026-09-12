@@ -585,6 +585,81 @@ html, body {
   .crate__pile .disk:hover { transform: none; }
 }
 
+/* ---- the Cracked crate, switched off ------------------------------------
+   🆕 2026-09-12. Where the disk list cannot be read — everywhere outside Fang
+   Rock, by his ruling — the crate stays PRESENT and reads as deliberately
+   closed: greyed wood, taped-off hatching, and a placard saying where the disks
+   are. An empty crate with nothing in it read as a bug.
+   ⚠️ The dim terminal line still prints; it is flavour now, not the signal.
+   🚨 `[hidden]` HAS TO BE RESTATED. `.crate__notice` is `display: flex`, and an
+   author `display` beats the browser's own `[hidden] { display: none }` — the
+   placard would show on every origin, including the ones that CAN list. */
+.crate.is-unavailable {
+  background:
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .17) 0 7px, transparent 7px 14px),
+    linear-gradient(#58543f, #46422f 40%, #34311f);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 248, 221, .10);
+}
+.crate.is-unavailable .crate__label { color: #a8a07f; }
+/* nothing to jump to and nothing to scroll: the placard takes the room */
+.crate.is-unavailable .crate__tabs,
+.crate.is-unavailable .crate__stack { display: none; }
+
+.crate__notice {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 14px 12px;
+  text-align: center;
+  border: 1px dashed rgba(226, 215, 168, .42);
+  border-radius: 5px;
+  background: rgba(18, 16, 28, .55);
+}
+.crate__notice[hidden] { display: none; }
+/* the "not here" sign, drawn rather than fetched: a ring with a bar through it */
+.crate__notice::before {
+  content: "";
+  width: 22px;
+  height: 22px;
+  border: 2px solid #c9bf94;
+  border-radius: 50%;
+  background: linear-gradient(-45deg, transparent calc(50% - 1px), #c9bf94 calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+}
+.crate__notice-title {
+  font-size: clamp(10px, 1.3vh, 13px);
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #efe5b8;
+}
+.crate__notice-body {
+  max-width: 36ch;
+  font-size: clamp(9px, 1.1vh, 11px);
+  line-height: 1.45;
+  color: #cdc39b;
+}
+
+/* Inside Fang Rock the same failure is a FAULT, and looks like one: the hub's
+   own error red, and a "!" where the not-here sign was. */
+.crate.is-fault .crate__notice {
+  border-color: rgba(255, 138, 122, .6);
+  background: rgba(40, 8, 12, .55);
+}
+.crate.is-fault .crate__notice::before {
+  content: "!";
+  display: grid;
+  place-items: center;
+  font: 700 14px/1 var(--mono);
+  color: var(--cat-err);
+  border-color: var(--cat-err);
+  background: none;
+}
+.crate.is-fault .crate__notice-title { color: var(--cat-err); }
+
 /* ---- the detail panel ---------------------------------------------------
    🚨 ITS HONEST STATE IS THE COMMON ONE. 55 of 59 disks have no screenshot and
    no synopsis (see games.js), so "nothing yet" is what this mostly renders and
