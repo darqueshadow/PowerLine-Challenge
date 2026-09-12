@@ -37,3 +37,32 @@ Game/disks/*
 # Third-party GPL build artefacts, ~10-15MB, fetched per-machine rather than
 # vendored — see Game/cat/emulator/README.md for the one command that gets it.
 Game/cat/emulator/data/
+
+# === Raw CAD exports and working copies in cartridge dataset folders ==========
+# 🚨 THIS REPO IS PUBLIC. A CAD export dropped into a datasets folder carries a
+# CALL IDENTIFIER IN ITS FILENAME, and a filename is published as surely as the
+# bytes are. One had been sitting untracked in Asteroid Command's datasets
+# folder ("Shorthand Comments-MXl3514410-TR.csv", found 2026-09-12); it was NOT
+# ignored, so any broad `git add` would have staged it and the next push would
+# have put that number on github.com permanently.
+#
+# 🚫 AND IT IS NOT `files/datasets/`, WHICH IS THE OBVIOUS RULE AND THE WRONG
+# ONE. Measured before writing this: that folder is ALREADY TRACKED AND PUBLIC —
+# 10 files under Asteroid Command alone (bases.csv, commands.csv, scoring.csv,
+# the master .xlsx, and the curated `Shorthand Comments.csv`), plus Pitstop's and
+# The Aquanaut's. .gitignore does not untrack what is already tracked, so a
+# blanket rule there would not remove anything; it would simply be A RULE THAT
+# LIES — claiming datasets are ignored while ten of them are committed beside it,
+# and making the next legitimate dataset need a `-f` nobody expects.
+# ⚠️ `core.ignoreCase` is TRUE on this machine, so a bare `datasets/` would also
+# have matched `Archive/Cartridges/.../Datasets/`, which is public on purpose.
+#
+# ⭐ So these are narrow and were each checked against `git ls-files` first:
+# neither matches anything currently tracked.
+#   *-TR.csv  the CAD export suffix, which is where the identifier rides
+#   *.bak     Excel/editor working copies, never source
+# 📌 The curated dataset a cartridge actually LOADS keeps its plain name and
+# stays tracked. If you add a dataset and git refuses it, check the name against
+# these two patterns before reaching for `git add -f`.
+*-TR.csv
+*.bak
