@@ -20,7 +20,7 @@
    says yes.
    ========================================================================= */
 
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const DRIVER = new URL(
@@ -91,6 +91,25 @@ async function until(fn, ms = 20000, every = 200) {
   }
 }
 
+/* ---- disk-art fixtures (§B2) ---------------------------------------------
+   🆕 2026-09-12. The art folder is hand-filled and gitignored like disks/, so a
+   fresh clone has none — the rig lays two files BEFORE the page boots (the hub
+   reads the folder once, at boot) and takes them away again.
+     "The Aquanaut.png"   a real 1x1 PNG  -> the art path must show it
+     "Blank Cassette.png" ZERO BYTES      -> a file that will not decode must
+                                             fall back to the placeholder, not
+                                             leave a dark frame
+   🚨 Only ever removes files it created, by name. If Andrew has already dropped
+   real art under either name, it is left alone and reused, and the assertion
+   that needs the fixture's exact content is reported as skipped. */
+const ART_DIR = fileURLToPath(new URL("./assets/disk-art/", import.meta.url));
+const PNG_1x1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+const ART_FIXTURES = [["The Aquanaut.png", PNG_1x1], ["Blank Cassette.png", Buffer.alloc(0)]];
+if (!existsSync(ART_DIR)) mkdirSync(ART_DIR, { recursive: true });
+const artMine = ART_FIXTURES.filter(([name]) => !existsSync(ART_DIR + name)).map(([name]) => name);
+ART_FIXTURES.forEach(([name, bytes]) => { if (artMine.includes(name)) writeFileSync(ART_DIR + name, bytes); });
+
 const c = await open({ gpu: true, w: 1280, h: 860 });
 try {
   await c.goto(URL_HUB);
@@ -137,7 +156,9 @@ try {
   /* the DOM and the model must agree — that is the check a literal was
      standing in for, and unlike a literal it holds at any library size. */
   const nDisk = Number(await c.ev("document.querySelectorAll('.disk').length"));
-  const nSleeve = Number(await c.ev("document.querySelectorAll('.sleeve').length"));
+  /* ⚠️ `.disk .sleeve`, not `.sleeve`: since 2026-09-12 the preview frame's
+     blank-sleeve placeholder is a `.sleeve` too, and is not a disk. */
+  const nSleeve = Number(await c.ev("document.querySelectorAll('.disk .sleeve').length"));
   eq(nDisk, seen.length, "every visible disk is rendered as an object");
   eq(nSleeve, nDisk, "each disk has a sleeve (not a list row)");
   console.log(`        (box holds ${seen.length}: ${CARTRIDGES.length} cartridges + ${seen.length - CARTRIDGES.length} found)`);
@@ -179,11 +200,18 @@ try {
 
   /* 🚨 A CRATE WITH NO HEIGHT RENDERS AS A BARE LABEL, and every count above
      stays green while it does — measured 2026-09-11, the CAD crate came out
-     68px for a pile needing 121 and the flipped record spilled over its own
-     title. Counting elements cannot see it; measuring the box can. */
-  const plcH = Number(await c.ev(
-    "Math.round(document.querySelector('#crate-plc .crate__stack').getBoundingClientRect().height)"));
-  ok(plcH > 90, `the CAD crate is tall enough to open a record in   [${plcH}px]`);
+     68px for a pile needing 121. Counting elements cannot see it; measuring
+     the box can.
+     🔄 2026-09-12 — this asserted "tall enough to OPEN a record in" (> 90px).
+     A selected record no longer opens (§B4), so the room reserved for that is
+     gone, and the invariant that is left is the one that mattered: every
+     record in the crate is inside the crate. */
+  const plcFit = JSON.parse(await c.ev(
+    "JSON.stringify((function(){var s=document.querySelector('#crate-plc .crate__stack').getBoundingClientRect();" +
+    "var b=Array.prototype.map.call(document.querySelectorAll('#crate-plc .disk'),function(d){return d.getBoundingClientRect().bottom;});" +
+    "return {stack:Math.round(s.bottom),last:Math.round(Math.max.apply(null,b))};})())"));
+  ok(plcFit.last <= plcFit.stack + 1,
+     `the CAD crate shows every record it holds   [last record ends ${plcFit.last}, crate ${plcFit.stack}]`);
 
   /* the A-Z dividers: only letters that HAVE a disk, and clicking one lands. */
   const tabs = String(await c.ev(
@@ -193,6 +221,78 @@ try {
   await wait(400);
   const jumped = String(await c.ev("document.getElementById('detail-title').textContent"));
   ok(/^S/i.test(jumped), `clicking a divider jumps AND selects   [landed on ${jumped}]`);
+
+  /* --- B1. selection is a highlight, not a pull -------------------------- */
+  section("B1. selecting a record highlights it IN PLACE — nothing covered, nothing moved");
+  /* 🆕 2026-09-12 — his locked call: the "pulled out" record covered the ones
+     around it. Selection is now a highlight on the spine itself.
+     ⭐ MEASURED IN PILE COORDINATES, not viewport ones: select() re-renders the
+     crate, and a scroller that briefly empties can jump — a viewport comparison
+     would read that jump as the record moving.
+     🚨 THE SLEEVE, NOT JUST THE BUTTON. The old lift was a transform on the
+     `.sleeve` inside an unmoved button, so a button-only check stays green while
+     the picture overlaps. And the ring is checked separately: an outer box-shadow
+     paints over a neighbour without changing anybody's rect. */
+  const GEOM = (idx) => `JSON.stringify((function () {
+    var pile = document.querySelector("#crate-lib .crate__pile");
+    var recs = pile.querySelectorAll(".disk");
+    var top0 = pile.getBoundingClientRect().top;
+    function box(el) { var r = el.getBoundingClientRect();
+      return { top: Math.round(r.top - top0), bottom: Math.round(r.bottom - top0), h: Math.round(r.height) }; }
+    var pick = [recs[${idx} - 1], recs[${idx}], recs[${idx} + 1]];
+    return {
+      ids: pick.map(function (d) { return d.dataset.id; }),
+      rec: pick.map(box),
+      sleeve: pick.map(function (d) { return box(d.querySelector(".sleeve")); }),
+      pressed: pick.map(function (d) { return d.getAttribute("aria-pressed"); }),
+      shadow: getComputedStyle(pick[1].querySelector(".sleeve")).boxShadow,
+      bg: pick.map(function (d) { return getComputedStyle(d.querySelector(".sleeve")).backgroundImage; })
+    };
+  })())`;
+  await c.ev("__cat.select('')");
+  await wait(200);
+  const g0 = JSON.parse(await c.ev(GEOM(5)));
+  await c.ev(`__cat.select(${JSON.stringify(g0.ids[1])})`);
+  await wait(350);
+  const g1 = JSON.parse(await c.ev(GEOM(5)));
+  eq(g1.pressed[1], "true", `the record is selected   [${g1.ids[1]}]`);
+  ok(g1.rec[1].h === g0.rec[1].h,
+     `it keeps its height rather than opening   [${g0.rec[1].h}px -> ${g1.rec[1].h}px]`);
+  ok(g1.sleeve[0].top === g0.sleeve[0].top && g1.sleeve[2].top === g0.sleeve[2].top &&
+     g1.sleeve[1].top === g0.sleeve[1].top,
+     `nothing moved — above, selected, below   [${g0.sleeve.map(s => s.top)} -> ${g1.sleeve.map(s => s.top)}]`);
+  ok(g1.sleeve[1].top >= g1.sleeve[0].bottom && g1.sleeve[1].bottom <= g1.sleeve[2].top,
+     `it covers neither neighbour   [above ends ${g1.sleeve[0].bottom}, it spans ${g1.sleeve[1].top}-${g1.sleeve[1].bottom}, below starts ${g1.sleeve[2].top}]`);
+  const layers = g1.shadow === "none" ? [] : g1.shadow.split(/,(?![^(]*\))/);
+  ok(layers.every((l) => /\binset\b/.test(l)),
+     `its ring is drawn INSIDE its own edges, so it paints on no neighbour   [${g1.shadow}]`);
+  ok(g1.bg[1] !== g1.bg[0] && g1.bg[1] !== g1.bg[2], "and it visibly differs from the records around it");
+
+  /* the hover lift was the same defect in a smaller dose.
+     ⚠️ WATCHED PASSING FOR THE WRONG REASON on the first cut: the record had been
+     scrolled out of the crate's window by the re-render, the mouse landed on
+     something else, and "offset 0px" was true of a record nobody was hovering.
+     So it is scrolled into view first, and `:hover` itself is asserted.
+     ⚠️ And the selection is cleared first: on the old build the OPENED record
+     covered this one, so the mouse hit the wrong record — the very defect §B1
+     is about, but it would have hidden the hover lift behind it. */
+  await c.ev("__cat.select('')");
+  await wait(200);
+  const hov = JSON.parse(await c.ev(`JSON.stringify((function () {
+    var d = document.querySelectorAll("#crate-lib .crate__pile .disk")[7];
+    d.scrollIntoView({ block: "center" });
+    var r = d.getBoundingClientRect(); return { x: Math.round(r.left + 30), y: Math.round(r.top + r.height / 2) };
+  })())`));
+  await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: hov.x, y: hov.y });
+  await wait(250);
+  const lift = JSON.parse(await c.ev(`JSON.stringify((function () {
+    var d = document.querySelectorAll("#crate-lib .crate__pile .disk")[7];
+    return { hovered: d.matches(":hover"),
+             offset: Math.round(d.querySelector(".sleeve").getBoundingClientRect().top - d.getBoundingClientRect().top) };
+  })())`));
+  ok(lift.hovered && lift.offset === 0,
+     `hovering a record does not lift it over the one above   [hovered=${lift.hovered}, sleeve offset ${lift.offset}px]`);
+  await c.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 900, y: 400 });
 
   /* --- B2. the detail panel -------------------------------------------- */
   section("B2. the detail panel — and its honest empty state");
@@ -216,6 +316,45 @@ try {
   ok(/no synopsis/i.test(syn), `and says no synopsis is written   [${syn.slice(0, 40)}]`);
   ok(!/beach/i.test(syn),
      "🚫 and does NOT generate one from the filename");
+
+  /* 🆕 2026-09-12 — THE ARTWORK. One image per disk in Game/cat/assets/disk-art/,
+     named after the disk; the frame shows it, falls back to games.js's
+     screenshot, and otherwise shows a BLANK SLEEVE — never a broken-image icon,
+     never an empty frame. */
+  const SHOT = `JSON.stringify((function () {
+    var f = document.getElementById("detail-shot");
+    var s = f.querySelector(".sleeve");
+    var r = s ? s.getBoundingClientRect() : null;
+    return { cls: f.className, bg: f.style.backgroundImage,
+             sleeve: !!r && r.width > 20 && r.height > 20,
+             label: s ? s.textContent.replace(/\\s+/g, " ").trim() : "" };
+  })())`;
+  const noArt = JSON.parse(await c.ev(SHOT));
+  ok(noArt.sleeve && /no art yet/i.test(noArt.label) && !noArt.bg,
+     `a disk with no art shows the blank-sleeve placeholder   [${noArt.cls}, "${noArt.label}"]`);
+
+  await c.ev("__cat.select('aquanaut')");
+  const tArt = await until(async () => JSON.parse(await c.ev(SHOT)).cls.includes("is-art"), 3000, 100);
+  const withArt = JSON.parse(await c.ev(SHOT));
+  ok(tArt >= 0 && /disk-art\/The%20Aquanaut\.png/.test(withArt.bg),
+     `a disk WITH art shows it, found by its name alone   [${withArt.bg || withArt.cls}]`);
+  ok(tArt >= 0 && !withArt.sleeve, "and the placeholder steps aside for it");
+
+  if (artMine.includes("Blank Cassette.png")) {
+    await c.ev("__cat.select('blank')");
+    const tBad = await until(async () => {
+      const s = JSON.parse(await c.ev(SHOT));
+      return s.cls.includes("is-empty") && s.sleeve;
+    }, 3000, 100);
+    ok(tBad >= 0, "an art file that will not decode falls back to the placeholder, not a dark frame");
+  } else {
+    console.log("  skip  broken-art fallback — a real 'Blank Cassette.png' is in the folder");
+  }
+
+  await c.ev("__cat.select('asteroid')");
+  await wait(250);
+  ok(/title_screen\.png/.test(JSON.parse(await c.ev(SHOT)).bg),
+     "a disk with no art but a games.js screenshot still shows the screenshot");
 
   /* --- B3. the Cracked crate where the disk list cannot be read -------- */
   section("B3. where the disk list fails, the Cracked crate says so instead of looking broken");
@@ -451,6 +590,7 @@ try {
   console.log("\n  shot: Game/cat/verify-cat-hub.png");
 } finally {
   c.close();
+  artMine.forEach((name) => { try { rmSync(ART_DIR + name); } catch { /* already gone */ } });
 }
 
 console.log(`\n${"-".repeat(66)}`);

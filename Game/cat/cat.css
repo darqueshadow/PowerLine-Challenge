@@ -414,8 +414,8 @@ html, body {
   box-shadow: 0 6px 18px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 248, 221, .22);
   display: flex;
   flex-direction: column;
-  /* ⚠️ the gap is what stops a flipped record crowding the crate's own label —
-     the record grows in place and its 2px selection ring reaches for it. */
+  /* ⚠️ the gap keeps the first spine off the crate's own label. (It was sized
+     for a record that opened in place; that stopped 2026-09-12.) */
   gap: 9px;
   min-height: 0;
 }
@@ -478,13 +478,14 @@ html, body {
   position: relative;
   /* 🚨 content-box ON PURPOSE, against the global `* { box-sizing: border-box }`.
      JS sets `height` to the pile's DEPTH (records x pitch). Under border-box the
-     padding-bottom below is subtracted from that instead of added to it, so the
-     room reserved for the last record to open silently disappears — the CAD
-     crate came out 68px tall for a pile that needed 121, and the flipped record
-     spilled over the crate's own label. Measured by looking at it. */
+     padding-bottom below is subtracted from that instead of added to it — the
+     CAD crate once came out 68px tall for a pile that needed 121. Measured by
+     looking at it. */
   box-sizing: content-box;
-  /* room for the last record to open without being clipped by the scroller */
-  padding-bottom: clamp(56px, 7.5vh, 84px);
+  /* 🔄 2026-09-12 — this reserved 56-84px for the last record to OPEN into. A
+     selected record no longer opens (see "selected" below), so all that is left
+     is a hair of room for the last spine's highlight ring. */
+  padding-bottom: 3px;
 }
 
 /* Each record sits `--i * pitch` down from the top of the crate. Absolute, so
@@ -498,17 +499,19 @@ html, body {
   height: 15px;
   display: block;
   padding: 0;
-  transition: transform .18s ease, height .18s ease;
-  transform-origin: 50% 0;
 }
 
 /* 🚨🚨 IN THE PILE, A RECORD IS A SPINE — AND THE SLEEVE ART IS SUPPRESSED, NOT
    SHRUNK. The sleeve carries a paper label, a hub ring and a shutter, all drawn
    as pseudo-elements sized against a 1:1.02 square. Squashed into 15px they
    collapse into cream mush with the name unreadable on top of it — measured by
-   looking, not by reasoning. So the spine is a plain tinted bar, and the art
-   comes BACK the moment the record is flipped forward, which is exactly what
-   flipping it forward is for. */
+   looking, not by reasoning. So the spine is a plain tinted bar. 🔄 2026-09-12:
+   the picture of the selected disk lives in the preview frame under the crates
+   now (`#detail-shot`), not on a record opened over its neighbours. */
+/* 🚨 `transform: none` IS LOAD-BEARING. The base `.disk:hover .sleeve` and
+   `.disk[aria-pressed] .sleeve` rules above lift a sleeve 4px and 9px — right
+   for the old single-row box, and in a pile of 15px spines at a 17px pitch that
+   lift lands squarely on the record above. Measured: -4px on hover. */
 .crate__pile .disk .sleeve {
   position: absolute;
   inset: 0;
@@ -518,6 +521,7 @@ html, body {
   background: linear-gradient(90deg, var(--tint) 0 3px, #2f2b3a 3px, #24212e);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
   transition: none;
+  transform: none;
 }
 .crate__pile .disk .sleeve::before,
 .crate__pile .disk .sleeve::after { display: none; }
@@ -551,38 +555,24 @@ html, body {
 .crate__pile .disk:hover { z-index: 2; }
 .crate__pile .disk:hover .name { color: var(--cat-hi); }
 
-/* ---- flipped forward ----------------------------------------------------
-   The selected record tips out of the stack and shows its face. It keeps its
-   place in the pile — it does not jump to the top — because "where am I in the
-   crate" is the thing the flip is meant to answer. */
-.crate__pile .disk[aria-pressed="true"] {
-  z-index: 3;
-  height: clamp(58px, 8vh, 84px);
-}
-/* ⭐ THE SLEEVE ART COMES BACK HERE — this is what "flipped forward to see
-   them" means. Everything suppressed on the spine is restored, so the record
-   you are looking at is the full object and the ones behind it are edges. */
+/* ---- selected: a highlight, IN PLACE ------------------------------------
+   🔄 2026-09-12 — his locked call. The selected record used to tip out of the
+   stack and open to 58-84px, which covered the records beneath it (measured: a
+   record spanning 76-145px over a neighbour starting at 102). Now the spine
+   itself lights up and nothing else changes: same height, same place.
+   🚨 EVERY PART OF THE RING IS `inset`. An outer ring or glow paints over the
+   neighbour 2px away without moving anybody's box, so no geometry check could
+   see it — `verify-cat.mjs` §B1 reads the computed shadow for exactly that.
+   ⭐ The amber is the hub's existing selection colour (`--cat-warn`), on the
+   same warm cream-on-dark the switched-off crate's placard uses.
+   📌 No reduced-motion block any more: nothing here moves. */
 .crate__pile .disk[aria-pressed="true"] .sleeve {
-  background: linear-gradient(160deg, #33323a, #17161c 62%);
-  box-shadow: 0 12px 22px rgba(0, 0, 0, .6), 0 0 0 2px var(--cat-warn);
+  background: linear-gradient(90deg, var(--cat-warn) 0 4px, #5c4b1f 4px, #3d3215);
+  box-shadow: inset 0 0 0 1px var(--cat-warn), inset 0 0 7px rgba(255, 212, 121, .38);
 }
-.crate__pile .disk[aria-pressed="true"] .sleeve::before,
-.crate__pile .disk[aria-pressed="true"] .sleeve::after { display: block; }
-.crate__pile .disk[aria-pressed="true"] .sleeve .label { display: flex; }
 .crate__pile .disk[aria-pressed="true"] .name {
-  top: auto;
-  bottom: 3px;
-  color: var(--cat-hi);
-}
-
-/* ⚠️ REDUCED MOTION KEEPS THE STATE AND DROPS THE MOVEMENT. The flip is how
-   the selection is READ, so it must not disappear — the ring and the open
-   sleeve stay, the rotation and the transitions go. */
-@media (prefers-reduced-motion: reduce) {
-  .crate__stack .disk,
-  .crate__pile .disk .sleeve { transition: none; }
-  .crate__pile .disk[aria-pressed="true"] { transform: none; }
-  .crate__pile .disk:hover { transform: none; }
+  color: #fff4d2;
+  font-weight: 700;
 }
 
 /* ---- the Cracked crate, switched off ------------------------------------
@@ -683,13 +673,29 @@ html, body {
   display: grid;
   place-items: center;
 }
-/* the empty frame says so IN WORDS. 🚫 Never an empty box — that reads as an
-   image that failed to load, which is a bug report waiting to happen. */
-#detail-shot.is-empty::after {
-  content: "no screenshot yet";
-  font-size: clamp(9px, 1.05vh, 11px);
-  color: var(--cat-ink-dim);
-  letter-spacing: .06em;
+/* 🆕 2026-09-12 — DISK ART. A sleeve scan or box art is not a 4:3 screenshot,
+   so it is FITTED, never cropped: `cover` would cut the title off a square
+   sleeve. The screenshot fallback keeps `cover`, as before. */
+#detail-shot.is-art { background-size: contain; background-color: #0c0a14; }
+
+/* 🔄 2026-09-12 — THE EMPTY FRAME IS A BLANK SLEEVE, and it still says so IN
+   WORDS. 🚫 Never an empty box — that reads as an image that failed to load,
+   which is a bug report waiting to happen. It was the text "no screenshot yet";
+   now it is the same `.sleeve` the records are drawn with (shutter, hub ring,
+   paper label), left blank, with "no art yet" on the label.
+   ⚠️ Dimmed on purpose, so a placeholder never reads as somebody's real art. */
+#detail-shot .sleeve { display: none; }
+#detail-shot.is-empty .sleeve {
+  display: block;
+  width: 40%;
+  opacity: .72;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .13);
+}
+#detail-shot .sleeve .label {
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: #6d6650;
 }
 #detail-title {
   color: var(--cat-hi);

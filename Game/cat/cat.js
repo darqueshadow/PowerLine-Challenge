@@ -148,6 +148,8 @@
   /* 🔄 2026-09-11 — TWO CRATES, NOT ONE BOX.
      His ask: separate the CAD/PLC cartridges from the Cracked disks, lay them
      like records, flip the selected one forward.
+     🔄 2026-09-12 — the "flip forward" is gone: the selected record lights up
+     in place (cat.css, "selected"), because opening it covered its neighbours.
 
      ⭐ The split costs almost nothing because the two groups were never really
      one thing: `runner:"plc"` entries are hand-written in disks.js, and
@@ -302,6 +304,68 @@
      load, which is a bug report waiting to happen. The frame says, in words,
      that there is no shot yet. Same call `library.js` makes for an empty
      folder: information, not a fault. */
+  /* =======================================================================
+     🆕 2026-09-12 — DISK ART, looked up by NAME. His locked call: one image per
+     disk in `assets/disk-art/`, named after the disk, hand-curated exactly like
+     `Game/disks/` — no manifest, no metadata file.
+
+     ⭐ SO IT IS FOUND THE WAY THE DISKS ARE FOUND: one listing of the folder,
+     read once when the library is scanned. 🚫 NOT a blind <img> per selection.
+     55 of 59 disks have no art, so guessing `<name>.png`, `.jpg`, `.webp` would
+     put up to three red 404s in the console on nearly every click, and an error
+     census that always carries expected failures is one nobody reads (the same
+     reasoning library.js gives for `_favourites.txt`).
+     ⚠️ ONLY WHERE THE DISK FOLDER COULD BE LISTED. On file:// and Pages that
+     request already failed, so asking again for this folder would only add a
+     second failure to the console. There the frame shows the screenshot or the
+     blank sleeve — and those are the origins with no Cracked disks anyway.
+     ⚠️ The listing parsers are library.js's own `_parse` helpers, borrowed
+     rather than copied: the HTML-autoindex one carries two measured traps
+     (DOMParser, the href ATTRIBUTE), and a second copy is how they drift.
+
+     MATCHING: the art's name, minus its extension, case-insensitive, against
+     the disk's displayName OR any of its side files' names. So "Paradroid.png"
+     matches Paradroid.d64, and "Airborne Ranger.png" and "Airborne Ranger -
+     d1.png" both match that two-sided title. A cartridge has no disk file, so
+     it matches on its displayName ("Asteroid Command.png").
+     ===================================================================== */
+  var ART_DIR  = "assets/disk-art/";
+  var ART_PREF = { png: 0, webp: 1, jpg: 2, jpeg: 3, gif: 4 };   /* two formats of one name: first wins */
+  var artIndex = {};
+
+  function loadArt(res) {
+    var P = window.CAT_LIBRARY && window.CAT_LIBRARY._parse;
+    if (!P || !res || res.state === "unlistable") return Promise.resolve(0);
+    return fetch(ART_DIR)
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+      .then(function (body) {
+        var files = null;
+        try { files = P.parseJsonIndex(body); } catch (e) { /* not JSON; try HTML */ }
+        if (!files) files = P.parseHtmlIndex(body);
+        var idx = {};
+        (files || []).forEach(function (name) {
+          var m = String(name).match(/^(.*)\.(png|webp|jpe?g|gif)$/i);
+          if (!m) return;                                   /* README.md, desktop.ini … */
+          var key = m[1].trim().toLowerCase(), ext = m[2].toLowerCase();
+          if (!idx[key] || ART_PREF[ext] < ART_PREF[idx[key].ext]) idx[key] = { file: name, ext: ext };
+        });
+        artIndex = idx;
+        return Object.keys(idx).length;
+      })
+      /* 🚫 no art is the ordinary state, not an error — same as an empty library */
+      .catch(function () { artIndex = {}; return 0; });
+  }
+
+  function artFor(disk) {
+    var names = [disk.displayName];
+    (disk.files || []).forEach(function (f) { names.push(String(f.name).replace(/\.[^.]+$/, "")); });
+    for (var i = 0; i < names.length; i++) {
+      var hit = artIndex[String(names[i]).trim().toLowerCase()];
+      if (hit) return ART_DIR + encodeURIComponent(hit.file);
+    }
+    return null;
+  }
+
   function renderDetail(disk) {
     if (!disk) {
       dShot.className = "is-empty";
@@ -314,10 +378,26 @@
     }
     var info = GAMEINFO.info(disk.id) || {};
 
-    if (info.screenshot) {
-      dShot.className = "";
+    /* art first; then the games.js screenshot, as before; then the blank sleeve */
+    var art = artFor(disk);
+    var pic = art || info.screenshot || null;
+    if (pic) {
+      dShot.className = art ? "is-art" : "";
       /* url() with quotes — these paths contain spaces ("Asteroid Command"). */
-      dShot.style.backgroundImage = 'url("' + info.screenshot + '")';
+      dShot.style.backgroundImage = 'url("' + pic + '")';
+      /* 🚨 A FILE THAT IS THERE BUT WILL NOT DECODE paints NOTHING as a CSS
+         background — no broken-image icon, just a dark frame, which is the one
+         thing this frame must never be. A background has no onerror, so a
+         throwaway Image asks the same question and puts the blank sleeve back.
+         ⚠️ Only for the disk still selected: a slow failure must not blank the
+         picture of a disk the player has since moved on to. */
+      var probe = new Image();
+      probe.onerror = function () {
+        if (selected !== disk) return;
+        dShot.className = "is-empty";
+        dShot.style.backgroundImage = "";
+      };
+      probe.src = pic;
     } else {
       dShot.className = "is-empty";
       dShot.style.backgroundImage = "";
@@ -839,7 +919,12 @@
         write("(cartridges are unaffected. see game/disks/readme.md)", "dim");
       }
       renderLine();
-      return res;
+      /* the art folder is read only once the disk scan says this origin can list
+         a directory; a disk already picked by then gets its picture as it lands */
+      return loadArt(res).then(function (n) {
+        if (n && selected) renderDetail(selected);
+        return res;
+      });
     });
   }
 

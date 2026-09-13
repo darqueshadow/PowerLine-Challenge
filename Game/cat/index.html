@@ -89,7 +89,9 @@
      are peers here". They are not peers any more - his call, 2026-09-10. The
      old comment is gone rather than left to contradict this.
 
-     Records lie on top of each other and the selected one comes forward. The
+     Records lie on top of each other and the selected one lights up IN PLACE
+     (2026-09-12 - it used to open over its neighbours; its picture is in the
+     preview frame below the crates now). The
      A-Z tabs are the crate dividers, and they are the answer to a real problem:
      55 disks is far too many to reach by flipping one at a time.
      🚫 The tabs are CLICKED, never typed. The hub's terminal owns the keyboard
@@ -123,7 +125,14 @@
        screenshot and no synopsis, and it says so in words rather than
        showing an empty frame that reads as a broken image. See games.js. -->
   <div id="detail" aria-live="polite">
-    <div id="detail-shot" class="is-empty" aria-hidden="true"></div>
+    <!-- 🆕 2026-09-12 — THE PREVIEW. Shows the selected disk's ART from
+         assets/disk-art/ (one image named after the disk, no manifest), falls
+         back to games.js's screenshot, and otherwise shows this blank sleeve.
+         🚫 The sleeve is the records' own `.sleeve`, not a second drawing of a
+         disk — two of them would drift. -->
+    <div id="detail-shot" class="is-empty" aria-hidden="true">
+      <div class="sleeve"><div class="label">no art yet</div></div>
+    </div>
     <div id="detail-title">&mdash;</div>
     <div id="detail-meta"></div>
     <p id="detail-synopsis">Pick a disk to see what is on it.</p>

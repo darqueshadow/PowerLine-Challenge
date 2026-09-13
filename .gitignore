@@ -33,6 +33,14 @@ desktop.ini
 Game/disks/*
 !Game/disks/README.md
 
+# === Disk artwork (Game/cat/assets/disk-art/) ================================
+# Same rule, same reason, added 2026-09-12: sleeve scans and box art of
+# commercial games are other people's artwork, and this repo is public. The
+# hub finds images by listing the folder, so it travels with only its README.
+# 🚫 Do not un-ignore this. See Game/cat/assets/disk-art/README.md.
+Game/cat/assets/disk-art/*
+!Game/cat/assets/disk-art/README.md
+
 # EmulatorJS self-hosted core data (Game/cat/emulator/data/).
 # Third-party GPL build artefacts, ~10-15MB, fetched per-machine rather than
 # vendored — see Game/cat/emulator/README.md for the one command that gets it.
