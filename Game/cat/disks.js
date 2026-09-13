@@ -12,6 +12,11 @@
 
    FIELDS
      id          stable slug, used for art and for nothing the player sees.
+                 🚨 ALSO THE `?cart=<id>` LINK the Nerva Beacon corridor's
+                 arcade cabinets open (cat.js, followLink) — renaming an id
+                 breaks that cabinet. Lowercase letters only, or no link can
+                 reach it. 🚫 `cracked` is taken: it is the corner C64's
+                 cracked-disks-only mode, and would shadow a disk of that id.
      displayName the real, already-displayed name. Never invent a shorthand.
      runner      which system loads this disk's game:
                    "plc"      an official cartridge — loads its own page.

@@ -130,6 +130,20 @@ try {
   ok(!/commodore\s*64/i.test(boot) && !/\bbasic v2\b/i.test(boot),
      "no literal Commodore / BASIC V2 banner text");
 
+  /* 🆕 2026-09-13 — with no `?cart=` the hub boots exactly as it did (§K and
+     §L have the links). The link is followed synchronously at boot, so by the
+     time this page has loaded, any link would already have acted. */
+  eq(await c.ev("__cat.link ? __cat.link() : 'missing'"), "none", "no ?cart= : no link");
+  const plain = JSON.parse(await c.ev(`JSON.stringify({
+    inserted: __cat.inserted(), lines: __cat.lines(),
+    curtain: document.documentElement.classList.contains("cat-link"),
+    menu: getComputedStyle(document.getElementById("cat")).visibility,
+    cad: !!document.getElementById("crate-plc") })`));
+  ok(plain.inserted === null && !plain.lines.some((l) => /^> LOAD|^cartridge link|^cracked disks only/.test(l)),
+     "no ?cart= : the drive stays empty and nothing loads");
+  ok(!plain.curtain && plain.menu === "visible" && plain.cad,
+     `no ?cart= : the full menu, both crates   [curtain=${plain.curtain}, menu ${plain.menu}, CAD crate ${plain.cad}]`);
+
   /* --- B. the disk box ------------------------------------------------- */
   section("B. the disk box, and what it deliberately does not show");
   /* 🚨🚨 BY KEY AND BY RECONCILIATION, NEVER BY INDEX OR BY A LITERAL COUNT.
@@ -394,25 +408,28 @@ try {
   ok(here.records > 0 && !here.off && !here.shown,
      `a listing origin keeps its records and no notice   [${here.records} records, off=${here.off}]`);
 
+  /* answer the ONE directory request with the 404 Pages gives, and nothing
+     else — every other request is not matched by the pattern. Returns the pump,
+     which the caller clears. (Shared with §K, which needs the same Pages.) */
+  async function failDiskListing(b) {
+    await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/disks/" }] });
+    const done = new Set();
+    return setInterval(() => {
+      for (const m of b.events()) {
+        if (m.method !== "Fetch.requestPaused" || done.has(m.params.requestId)) continue;
+        done.add(m.params.requestId);
+        b.send("Fetch.fulfillRequest", { requestId: m.params.requestId, responseCode: 404,
+          body: Buffer.from("not found").toString("base64") }).catch(() => {});
+      }
+    }, 25);
+  }
+
   /* a fresh browser per origin, so neither can inherit the other's scan */
   async function crateOn(url, failListing) {
     const b = await open({ gpu: true, w: 1280, h: 860 });
     let pump = null;
     try {
-      if (failListing) {
-        /* answer the ONE directory request with the 404 Pages gives, and
-           nothing else — every other request is not matched by the pattern */
-        await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/disks/" }] });
-        const done = new Set();
-        pump = setInterval(() => {
-          for (const m of b.events()) {
-            if (m.method !== "Fetch.requestPaused" || done.has(m.params.requestId)) continue;
-            done.add(m.params.requestId);
-            b.send("Fetch.fulfillRequest", { requestId: m.params.requestId, responseCode: 404,
-              body: Buffer.from("not found").toString("base64") }).catch(() => {});
-          }
-        }, 25);
-      }
+      if (failListing) pump = await failDiskListing(b);
       await b.goto(url);
       const t = await until(async () => /disk library/i.test(String(await b.ev("__cat.text()"))), 10000);
       const s = JSON.parse(await b.ev(CRATE));
@@ -574,6 +591,207 @@ try {
   console.log(`  note  ${fromCarts} console entr${fromCarts === 1 ? "y" : "ies"} arrived once cartridges ran.`);
   console.log("        These belong to the cartridges' own assets, not to the hub.");
   console.log("        The hub's own census is E2 above, and it is strict.");
+
+  /* --- K. a cabinet goes straight into its own game --------------------- */
+  section("K. ?cart=<id> — a corridor cabinet goes straight into its game, no hub menu");
+  /* 🆕 2026-09-13 — his locked design: a cabinet click skips the hub menu
+     entirely and launches that game. His calls on the two open points: the
+     crack intro STILL plays first, and Exit lands on the ORDINARY hub.
+     ⭐ WHAT IS BEING PROVEN IS WHAT THE PLAYER SEES, NOT JUST THE DESTINATION.
+     "Pitstop is running" passes for a build that flashed the whole menu for
+     five seconds first — which is exactly what the first cut of this did. So
+     the menu is sampled every 50ms from the moment the page loads until the
+     game is up, and any sample with the menu uncovered on the glass is a fail.
+     🚨 THE REFUSALS MATTER AS MUCH AS THE LAUNCH. An unknown id that opened
+     some other game would look like it worked, and a link must never reach the
+     Developer-Mode disk the Ctrl+Shift+B gate hides (Laws 0.15/0.16).
+     ⚠️ A fresh browser per case, never a second goto: cdp.mjs's goto() waits for
+     a load event in a sink that ACCUMULATES, so a second navigation in the same
+     browser returns before its page has loaded. */
+  const LINK = `JSON.stringify({
+    state: __cat.link ? __cat.link() : "missing",
+    lines: __cat.lines(), inserted: __cat.inserted(), playing: __cat.playing(),
+    src: __cat.playingSrc(), dev: __cat.devUnlocked(),
+    curtain: document.documentElement.classList.contains("cat-link"),
+    menuShown: getComputedStyle(document.getElementById("cat")).visibility !== "hidden",
+    intro: !!document.getElementById("crack"),
+    /* a crack intro that is fading OUT (class "out") no longer covers anything */
+    covered: !document.getElementById("play").hidden || !!document.querySelector("#crack:not(.out)"),
+    tags: document.querySelectorAll("#out *:not(div)").length
+  })`;
+  async function linkOn(url, failListing, after) {
+    const b = await open({ gpu: true, w: 1280, h: 860 });
+    let pump = null;
+    try {
+      if (failListing) pump = await failDiskListing(b);
+      await b.goto(url);
+      const first = JSON.parse(await b.ev(LINK));
+      let introSeen = first.intro, onGlass = 0, samples = 0, tPlay = -1;
+      if (first.state === "launched") {
+        tPlay = await until(async () => {
+          const s = JSON.parse(await b.ev(LINK));
+          samples++;
+          if (s.intro) introSeen = true;
+          if (s.menuShown && !s.covered) onGlass++;
+          return s.playing;
+        }, 20000, 50);
+      }
+      const s = { ...JSON.parse(await b.ev(LINK)), first, introSeen, onGlass, samples, tPlay };
+      if (after) s.after = await after(b);
+      return s;
+    } finally {
+      if (pump) clearInterval(pump);
+      b.close();
+    }
+  }
+
+  /* one cabinet per origin: all three ids get exercised, and the origin that
+     matters most for the corridor's browser fallback (Pages) is one of them */
+  const LINK_HUB = (q) => URL_HUB + q;
+  const LINK_FILE = (q) => new URL("./index.html" + q, import.meta.url).href;
+  const exitAndLook = async (b) => { await b.ev("__cat.exit()"); return JSON.parse(await b.ev(LINK)); };
+  for (const [origin, url, failListing, id, file, entry] of [
+    ["http listing",                LINK_HUB("?cart=pitstop"),   false, "pitstop",  "PITSTOP",          /Pitstop\/files\/index\.html$/],
+    ["http, listing 404 (as Pages)", LINK_HUB("?cart=asteroid"), true,  "asteroid", "ASTEROID COMMAND", /Asteroid%20Command\/files\/index\.html$/],
+    ["file://",                     LINK_FILE("?cart=aquanaut"), false, "aquanaut", "THE AQUANAUT",     /The%20Aquanaut\.html$/],
+  ]) {
+    const s = await linkOn(url, failListing, exitAndLook);
+    eq(s.first.state, "launched", `${origin}: ?cart=${id} launches`);
+    ok(s.first.curtain && !s.first.menuShown, `${origin}: the menu is hidden from the first look`);
+    ok(s.introSeen, `${origin}: the crack intro plays first (his call)`);
+    ok(s.tPlay >= 0 && s.playing, `${origin}: then the game is running   [${took(s.tPlay)}]`);
+    ok(entry.test(String(s.src)), `${origin}: and it is ${file}'s own entry point   [${s.src}]`);
+    ok(s.samples > 5 && s.onGlass === 0,
+       `${origin}: the hub menu was never on the glass   [${s.onGlass} of ${s.samples} samples]`);
+    ok(!s.lines.some((l) => /^> LOAD|^searching for/.test(l)), `${origin}: no load theatre in front of it`);
+    eq(s.inserted, id, `${origin}: and the disk is in the drive`);
+    const a = s.after;
+    ok(!a.playing && !a.curtain && a.menuShown && a.inserted === id,
+       `${origin}: Exit lands on the ORDINARY hub, disk still in the drive (his call)   [menu ${a.menuShown}, drive ${a.inserted}]`);
+  }
+
+  /* 🚨 "HIDDEN FROM THE FIRST LOOK" ABOVE IS READ AFTER THE LOAD EVENT — by
+     which time cat.js has run, so it cannot tell a curtain raised in <head>
+     from one raised by cat.js after the menu had already painted. So cat.js is
+     HELD at the network and the menu is read while the page is parsed right up
+     to it. ⭐ The no-token page is the control: the same read must say visible,
+     or this check cannot see a menu at all. */
+  async function menuWhileHubScriptHeld(q) {
+    const b = await open({ gpu: true, w: 1280, h: 860 });
+    try {
+      await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/cat/cat.js" }] });
+      await b.send("Page.navigate", { url: LINK_HUB(q) });
+      let held = null;
+      await until(async () => (held = b.events().find((m) => m.method === "Fetch.requestPaused")), 10000, 50);
+      /* the preload scanner can ask for cat.js early; wait for the parser to
+         reach it — crackintro.js is the script right before */
+      await until(async () => { try { return await b.ev("!!window.CAT_CRACK"); } catch { return false; } }, 10000, 50);
+      const v = held ? String(await b.ev("typeof __cat + '|' + getComputedStyle(document.getElementById('cat')).visibility")) : "never held";
+      if (held) await b.send("Fetch.continueRequest", { requestId: held.params.requestId });
+      return v;
+    } finally {
+      b.close();
+    }
+  }
+  eq(await menuWhileHubScriptHeld(""), "undefined|visible", "[control] with cat.js held and no token, the menu reads visible");
+  eq(await menuWhileHubScriptHeld("?cart=pitstop"), "undefined|hidden",
+     "with cat.js held, a cabinet link has ALREADY hidden the menu (it is never painted)");
+
+  /* the refusals. The link is followed synchronously at boot, so "nothing
+     loaded" is read at a moment when a launch WOULD already have started. */
+  for (const [what, q, echo] of [
+    ["an unknown id",                      "?cart=frogger",               "cartridge link: frogger"],
+    ["the Developer-Mode disk",            "?cart=blank",                 "cartridge link: blank"],
+    ["a near miss in the wrong case",      "?cart=Pitstop",               "cartridge link: no readable name"],
+    ["a hyphenated name",                  "?cart=asteroid-command",      "cartridge link: no readable name"],
+    ["markup",                             "?cart=%3Cimg%20src%3Dx%3E",   "cartridge link: no readable name"],
+  ]) {
+    const s = await linkOn(LINK_HUB(q), false);
+    eq(s.first.state, "not found", `${what} (${q}): refused`);
+    ok(!s.first.curtain && s.first.menuShown, `${what}: on the ordinary hub, menu showing`);
+    const at = s.lines.indexOf(echo);
+    ok(at >= 0 && s.lines[at + 1] === "?file not found  error",
+       `${what}: the terminal says so   [${s.lines.slice(-3).join(" | ")}]`);
+    ok(s.inserted === null && !s.playing && !s.first.intro && !s.lines.some((l) => /^> LOAD/.test(l)),
+       `${what}: the drive stays empty and NO other game is substituted`);
+    if (q === "?cart=blank") ok(!s.dev, "and the link does not open the Ctrl+Shift+B gate");
+    if (/%3C/.test(q)) ok(s.tags === 0 && !s.lines.some((l) => l.includes("<")),
+       `and the link's text is neither rendered nor echoed   [${s.tags} tags]`);
+  }
+
+  /* --- L. the corner C64: cracked disks only ---------------------------- */
+  section("L. ?cart=cracked — the corner C64: cracked disks only, cartridges not in the page at all");
+  /* 🆕 2026-09-13 — his locked design: regular cartridges HIDDEN ENTIRELY, not
+     greyed out and not present in the DOM — and not reachable by any other path
+     either. So every path is tried, not just the render: the roster the tooling
+     reads, selection by id, the Ctrl+Shift+B gate, and a typed LOAD. */
+  const CRACKED = `JSON.stringify({
+    state: __cat.link ? __cat.link() : "missing",
+    curtain: document.documentElement.classList.contains("cat-link"),
+    menuShown: getComputedStyle(document.getElementById("cat")).visibility !== "hidden",
+    cadCrate: !!document.getElementById("crate-plc"),
+    cartsInDom: document.querySelectorAll('.disk[data-id="asteroid"],.disk[data-id="aquanaut"],.disk[data-id="pitstop"],.disk[data-id="blank"]').length,
+    roster: __cat.disks().filter(function (d) { return d.runner !== "emulator"; }).map(function (d) { return d.id; }),
+    records: document.querySelectorAll("#crate-lib .disk").length,
+    firstCrate: document.getElementById("crates").firstElementChild.id,
+    notice: (function (n) { return n && !n.hidden ? n.textContent.replace(/\\s+/g, " ").trim() : ""; })(document.getElementById("crate-lib-notice")),
+    lines: __cat.lines()
+  })`;
+  {
+    const b = await open({ gpu: true, w: 1280, h: 860 });
+    try {
+      await b.goto(LINK_HUB("?cart=cracked"));
+      const tScan = await until(async () => /disk library/i.test(String(await b.ev("__cat.text()"))), 10000);
+      const s = JSON.parse(await b.ev(CRACKED));
+      eq(s.state, "cracked", `?cart=cracked enters cracked-only mode   [scan ${tScan < 0 ? "TIMED OUT" : tScan + "ms"}]`);
+      ok(!s.curtain && s.menuShown, "the hub itself shows (this is a menu, not a launch)");
+      ok(s.lines.includes("cracked disks only."), "and the terminal says which mode it is in");
+      ok(!s.cadCrate, "the CAD crate is not in the page at all");
+      eq(s.cartsInDom, 0, "no cartridge record anywhere in the DOM");
+      ok(s.roster.length === 0, `and not in the roster either — nothing in memory to reach   [${s.roster.join(",")}]`);
+      ok(s.records > 0 && s.firstCrate === "crate-lib",
+         `the Cracked crate has its disks and now heads the column   [${s.records} records, first: ${s.firstCrate}]`);
+
+      eq(await b.ev("__cat.select('pitstop') || __cat.select('asteroid') || __cat.select('aquanaut') || __cat.select('blank')"),
+         "false", "no cartridge can be selected by id, the Blank Cassette included");
+      await b.key("keyDown", "B", "KeyB", 66, CTRL_SHIFT);
+      await wait(160);
+      const gate = JSON.parse(await b.ev(CRACKED));
+      ok(!(await b.ev("__cat.devUnlocked()")) && gate.cartsInDom === 0 && gate.roster.length === 0,
+         "Ctrl+Shift+B does not bring the Blank Cassette back");
+      ok(/developer mode is not available/.test(gate.lines.slice(-2).join(" ")),
+         `and says why, rather than doing nothing   [${gate.lines.slice(-2).join(" | ")}]`);
+
+      /* typed: a cracked disk in the drive, and a cartridge's filename asked for */
+      const lib = String(await b.ev("__cat.visible()[0]"));
+      await b.ev(`__cat.select(${JSON.stringify(lib)}), __cat.insert(), __cat.execute('LOAD"PITSTOP",8')`);
+      await wait(200);
+      ok(/file not found/.test(String(await b.ev("__cat.lines().slice(-2).join(' ')"))) &&
+         String(await b.ev("__cat.playing()")) === "false",
+         `a typed LOAD"PITSTOP",8 finds nothing   [drive: ${lib}]`);
+      await b.shot(fileURLToPath(new URL("./verify-cat-cracked.png", import.meta.url)));
+    } finally {
+      b.close();
+    }
+  }
+  /* and where the disk list cannot be read (Pages): the mode still holds, and
+     the crate's own "Fang Rock only" notice is what the player sees */
+  {
+    const b = await open({ gpu: true, w: 1280, h: 860 });
+    let pump = null;
+    try {
+      pump = await failDiskListing(b);
+      await b.goto(LINK_HUB("?cart=cracked"));
+      await until(async () => /disk library/i.test(String(await b.ev("__cat.text()"))), 10000);
+      const s = JSON.parse(await b.ev(CRACKED));
+      ok(s.state === "cracked" && !s.cadCrate && s.roster.length === 0 && s.records === 0,
+         "listing 404 (as Pages): still cracked-only, still no cartridges");
+      ok(/available in fang rock only/i.test(s.notice), `listing 404 (as Pages): the crate says where the disks are   [${s.notice}]`);
+    } finally {
+      if (pump) clearInterval(pump);
+      b.close();
+    }
+  }
 
   /* --- J. the control that must fail ------------------------------------ */
   section("J. [control] the rig can say NO");

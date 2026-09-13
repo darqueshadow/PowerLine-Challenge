@@ -62,6 +62,13 @@ html, body {
   min-height: 0;
 }
 #crates { grid-column: 1; grid-row: 1; }
+/* 🆕 2026-09-13 — THE CURTAIN for a cabinet launch: his locked call is that a
+   cabinet goes straight to its game, with no hub menu step. Set by index.html's
+   head script before first paint, lifted by cat.js for anything that is not a
+   launch, and on Exit (which lands on the ordinary hub — his call too).
+   ⚠️ `visibility`, not `display:none`: the crates still lay out and render
+   underneath, so the hub Exit reveals is the finished one, not one mid-build. */
+html.cat-link #cat { visibility: hidden; }
 /* ⚠️ THE TWO CRATES ARE NOT THE SAME SIZE AND MUST NOT BE. One holds 3
    cartridges, the other holds 55 found disks — sharing the column equally gave
    the small one a half-empty crate and the big one a seven-record window. The

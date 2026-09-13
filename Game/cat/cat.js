@@ -76,6 +76,28 @@
 
   var DISKS = (window.CAT_DISKS || []).slice();
 
+  /* 🆕 2026-09-13 — THE LINK TOKEN (index.html reads it; see "THE LINK" below).
+     Read up here rather than at boot because one value of it changes the ROSTER,
+     and that has to happen before the first render.
+     ⭐ `cracked` IS THE CORNER C64: cracked disks only, and the regular
+     cartridges HIDDEN ENTIRELY — his locked call, "hidden" chosen over
+     "disabled". So they are not filtered at render, they are taken out of
+     `DISKS` itself, and the CAD crate is removed from the page. Every path that
+     could reach a cartridge — the crates, the A-Z tabs, arrow keys, the
+     resolver, Ctrl+Shift+B, a link, even `__cat.select` — reads this one array,
+     so none of them has anything to find. 🚫 A CSS hide, or a check in
+     `visibleDisks()`, would leave them in memory for the next path someone adds.
+     ⚠️ `runner === "emulator"`, not `!== "plc"`: "cracked only" names what is
+     KEPT, so a runner nobody has invented yet stays out too. */
+  var LINK = window.CAT_LINK === undefined ? null : window.CAT_LINK;
+  var CRACKED_ONLY = LINK === "cracked";
+  if (CRACKED_ONLY) {
+    DISKS = DISKS.filter(function (d) { return d.runner === "emulator"; });
+    var cratePlc = document.getElementById("crate-plc");
+    if (cratePlc) cratePlc.parentNode.removeChild(cratePlc);
+    stackPlc = null;
+  }
+
   /* ---- state ------------------------------------------------------------
      `selected` is the disk highlighted in the box. `inserted` is the disk in
      the drive. They are deliberately two different things: inserting is an
@@ -176,6 +198,7 @@
     });
 
     groups.forEach(function (g) {
+      if (!g.el) return;   /* cracked-only: the CAD crate is not in the page at all */
       g.el.textContent = "";
       /* 🚨 THE PILE IS A SEPARATE ELEMENT FROM THE SCROLLER, and it has to be.
          The records are absolutely positioned and contribute NO height, so a
@@ -648,12 +671,20 @@
            ⚠️ `busy` stays TRUE across it. The intro swallows keys in the
            capture phase, but the resolver must not be reachable by any other
            route either while a load is mid-flight. */
-        return CRACK.play(disk).then(function () { launch(disk); });
+        return introThenLaunch(disk);
       })
       .then(function () {
         busy = false;
         line.classList.remove("idle");
       });
+  }
+
+  /* The last step of every load: the crack intro, then the game. One function
+     because a cabinet link (below) ends the same way without the theatre in
+     front — and an intro that two callers each chained for themselves is how
+     one of them ends up skipping it. */
+  function introThenLaunch(disk) {
+    return CRACK.play(disk).then(function () { launch(disk); });
   }
 
   /* The cartridge runs in an overlay, NOT a navigation. The hub stays alive
@@ -710,6 +741,9 @@
        than running on behind a hidden panel — audio included. */
     frame.src = "about:blank";
     play.hidden = true;
+    /* a cabinet-launched game exits to the ORDINARY hub (his call), so the
+       curtain that kept the menu off the glass comes down here */
+    liftCurtain();
     running = null;
     renderSwap(null);
     blank();
@@ -957,6 +991,14 @@
        ONLY thing that puts the Empty Cartridge in the box. */
     if (e.ctrlKey && e.shiftKey && (e.key === "B" || e.key === "b")) {
       e.preventDefault();
+      /* the Empty Cartridge is a cartridge, and this mode has none — saying
+         "empty cartridge available" here would be a line with nothing behind it */
+      if (CRACKED_ONLY) {
+        blank();
+        write("cracked disks only - developer mode is not available here.", "warn");
+        ready();
+        return;
+      }
       devUnlocked = !devUnlocked;
       renderBox();
       if (!devUnlocked && selected && selected.dev) select(null);
@@ -1021,6 +1063,71 @@
     frame.focus();
   });
 
+  /* =======================================================================
+     🆕 2026-09-13 — THE LINK, `?cart=<token>`. How the Nerva Beacon corridor's
+     Arcade room opens this page. His locked design:
+       - a CABINET (Pitstop, Asteroid Command, Aquanaut) goes straight into its
+         own game — no hub menu step. The crack intro still plays first, and
+         Exit lands on the ordinary hub with the disk in the drive (both his
+         calls, 2026-09-13).
+       - the corner C64 opens the hub CRACKED DISKS ONLY (the roster filter near
+         the top of this file does that part; nothing further happens here).
+     🚨 FANG ROCK KNOWS NONE OF THIS. It passes an opaque token and the meaning
+     lives here only — so adding a cabinet is a disks.js entry and a corridor
+     row, never a shell change. The corridor's browser fallback is the Pages hub
+     with the same query, so nothing here depends on being inside Fang Rock.
+
+     ⭐ The cabinet launch is the END of the ordinary load, not a second one: the
+     disk is selected and inserted the ordinary way, then `introThenLaunch()` —
+     the same function the load theatre finishes with. Only the menu and the
+     theatre in front of it are skipped, because the curtain (index.html) keeps
+     them off the glass.
+
+     🚨 A TOKEN THAT MATCHES NOTHING OPENS NOTHING, and says so, on the ordinary
+     hub. Substituting another game looks exactly like success from the corridor.
+     🚨 RESOLVED AGAINST `visibleDisks()`, NEVER `DISKS`. A link must not be a
+     way round the Ctrl+Shift+B gate (Laws 0.15/0.16); `?cart=blank` gets the
+     same answer as a name that was never a disk, so it reveals nothing either.
+     ⚠️ `^[a-z]+$` ONLY, so a link can only ever name a hand-written cartridge —
+     library.js ids all carry a hyphen (`lib-…`). Anything else is not echoed:
+     a hub that prints whatever a URL says is a hub that can be made to say
+     anything (same reasoning as the port clamp above).
+     📌 Acted on at boot, synchronously, so the intro is on screen before the
+     first paint and there is no window in which a player could start something
+     else first. The ids live in disks.js; renaming one breaks that cabinet.
+     ===================================================================== */
+  var CART_ID = /^[a-z]+$/;
+  var linkState = "none";   /* for the rig: none | launched | cracked | not found */
+
+  function followLink(token) {
+    if (token === null) return "none";
+    if (CRACKED_ONLY) { liftCurtain(); return "cracked"; }
+    var disk = null;
+    if (CART_ID.test(token)) {
+      visibleDisks().forEach(function (d) { if (!disk && d.id === token) disk = d; });
+    }
+    if (!disk) {
+      liftCurtain();
+      blank();
+      write("cartridge link: " + (CART_ID.test(token) ? token : "no readable name"), "dim");
+      write("?file not found  error", "err");
+      ready();
+      return "not found";
+    }
+    blank();
+    select(disk);
+    insertSelected();
+    busy = true;
+    line.classList.add("idle");
+    introThenLaunch(disk).then(function () {
+      busy = false;
+      line.classList.remove("idle");
+    });
+    return "launched";
+  }
+
+  function liftCurtain() { document.documentElement.classList.remove("cat-link"); }
+
   /* ---- boot -------------------------------------------------------------
      🚫 No literal Commodore banner text. Tommodore/CAT branding instead — the
      look is the tribute, the trademarked words are not reproduced. */
@@ -1032,8 +1139,11 @@
     write("64k ram system   38911 basic bytes free", "dim");
     blank();
     write("powerline challenge  arcade terminal", "dim");
+    if (CRACKED_ONLY) write("cracked disks only.", "dim");
     blank();
     ready();
+
+    linkState = followLink(LINK);
 
     setTimeout(function () { screen.classList.remove("booting"); }, 700);
 
@@ -1078,6 +1188,7 @@
     playing: function () { return !play.hidden; },
     playingSrc: function () { return play.hidden ? null : frame.getAttribute("src"); },
     exit: exitToHub,
+    link: function () { return linkState; },
 
     /* The library and the drive, for the rig. `library()` re-runs the real
        scan rather than returning a cache, so a test can drop a fixture in and

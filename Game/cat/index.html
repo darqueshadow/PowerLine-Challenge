@@ -26,6 +26,21 @@
   ===========================================================================
 -->
 <link rel="stylesheet" href="cat.css">
+<!-- 🆕 2026-09-13 — THE LINK TOKEN, read HERE and nowhere else. Fang Rock opens
+     this page as `?cart=<token>` and knows nothing about what the token means;
+     cat.js decides (see "THE LINK" there). A cabinet's game id launches that
+     game with no hub menu; `cracked` is the corner C64's cracked-disks-only hub.
+     🚨 IN <head>, INLINE, ON PURPOSE. A cabinet launch must never show the menu,
+     and the only way to be sure of that is to hide it before the body has
+     painted once — cat.js runs after four other scripts, and the browser is
+     free to paint at any of them. So a present token puts up the curtain now
+     and cat.js takes it down again for anything that is not a launch.
+     ⭐ Fails safe: without this script there is no token and no curtain, and
+     the hub boots exactly as it always has. -->
+<script>
+  window.CAT_LINK = new URLSearchParams(location.search).get("cart");
+  if (window.CAT_LINK !== null) document.documentElement.classList.add("cat-link");
+</script>
 </head>
 <body>
 
