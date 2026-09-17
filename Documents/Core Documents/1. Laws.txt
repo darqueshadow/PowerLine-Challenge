@@ -151,6 +151,20 @@ A Resource declares its maximum and its **onZero** behaviour — either game-ove
 or a non-terminal state change (e.g. the Aquanaut hull's breach → ROV assist). Grouped
 Cumulative Zones may share a Resource with a terminal threshold (e.g. "all destroyed").
 
+### 0.23 Standalone Cartridge  *(new — amendment A1, 2026-09-15)*
+A Cartridge that **Andrew has explicitly declared exempt** from the Target → Impact Zone
+gameplay model. It is built as its own self-contained mechanic, **not** duplicated from the
+Empty Cartridge, and it does not inherit the Empty Cartridge lifecycle, the Target /
+Challenge / Impact Zone vocabulary, or the falling-Target model. Its gameplay logic is
+defined by its Mini-Game Context Packet (§0.21) and nothing else.
+
+The exemption is granted **per Cartridge, by Andrew only**. It must be stated in that
+Cartridge's Mini-Game Context Packet and listed in the register below. A Cartridge not on the
+register is not a Standalone Cartridge, however different its mechanic looks. What the
+exemption does and does not lift is set out in Core Law 15.
+
+**Register:** **Egg Timer** (formerly Whack A CAV; renamed 2026-09-15).
+
 ---
 
 ## Section 1 — Core Laws
@@ -212,10 +226,53 @@ Cumulative Zones may share a Resource with a terminal threshold (e.g. "all destr
     load in order: Laws → Overview → Build Procedure → the relevant source files → the
     handoff spec — before writing code.
 
+15. **Standalone Cartridges (§0.23)** *(amendment A1, 2026-09-15)*. A Cartridge on the
+    Standalone register is governed as follows. Everything not named here binds it as it
+    binds any Cartridge.
+    - **Lifted:** duplicating the Empty Cartridge (Core Law 1, and §0.1–§0.2 as they apply to
+      creating it); the Target / Challenge / Command / Clear / Miss / Impact Zone / Resource /
+      Terminal Failure State model and its vocabulary (§0.4–§0.9, §0.11–§0.13, §0.19, §0.22),
+      including the requirement to define a TFS; the Glow Effect (§0.17); and the Impact Zone /
+      TFS authorization gate (Core Law 5), which the build gate below replaces. Core Law 2 does
+      not apply, because there is no shared core logic for it to preserve.
+    - **Still binding:** Data Sheet integrity (§0.10, Core Law 4), so real values such as
+      durations, codes and units come from the Data Sheet or from Andrew and are never
+      invented; every command the player types must be real PowerLine syntax that complies
+      with CAD rules (the substance of §0.6, without its Target wording); Themes and Theme Injection Points (§0.3, §0.18, Core Law 3), measured against
+      the Cartridge's own rules and scoring as its Packet defines them; Developer Mode and the
+      Blank Dataset Module (§0.15–§0.16, Core Law 12); PET Terminal protection (Core Law 6);
+      standalone operation (Core Law 7); Claude Code as point of merge (Core Law 8); no
+      cross-Cartridge convention imposition, in both directions (Core Law 9); modular
+      development (Core Law 10); Modes (Core Law 11); governance (Core Laws 13–14).
+    - **Build gate.** No gameplay logic of a Standalone Cartridge may be implemented,
+      including its failure, escape and penalty states, until the open decisions in its
+      Mini-Game Context Packet are resolved and Andrew authorizes the build.
+    - **No system-wide contradiction.** A Standalone Cartridge's Packet governs its internal
+      gameplay only. It must not contradict anything system-wide: menu structure, mode
+      flags, or Developer Mode gating. Where it does, the system-wide rule stands and the
+      conflict goes to Andrew.
+    - Inserting a Standalone Cartridge into the Arcade hub still happens only when Andrew
+      instructs it.
+
 ---
 
 ## Version History
 
+- **v2.0 · amendment A2 (2026-09-15)** — Renamed the Standalone Cartridge from Whack A CAV to
+  Egg Timer per Andrew's decision. Appended, not rewritten, per Core Law 13. No other changes.
+- **v2.0 · amendment A1 (2026-09-15)** — **Appended, not rewritten.** Directed by Andrew and
+  drafted by Claude Code under Core Law 13's "append or clarify when instructed". Governance
+  authorship is Claude Chat's lane, and this amendment was **reviewed and approved by Claude
+  Chat** (2026-09-15). Added §0.23
+  Standalone Cartridge, with its register, and Core Law 15, which says what the exemption lifts
+  and what still binds, and replaces the Impact Zone / TFS gate with a build gate. Registered
+  **Whack A CAV**, whose Mini-Game Context Packet claimed the exemption by Andrew's decision.
+  No existing text was changed.
+  **Only outstanding item. Known naming collision, logged, not fixed:** this document now uses
+  "standalone" for two unrelated things. Core Law 7, *PLC runs standalone*, means independent
+  of Nerva Beacon; §0.23 and Core Law 15, *Standalone Cartridge*, mean exempt from the Target
+  model. Nothing is renamed yet. The collision is earmarked for a future Laws cleanup pass, and
+  any rename needs Claude Chat's and Andrew's sign-off.
 - **v2.0** — Authored by Claude Chat from the corrected Laws v2.0 Audit (Topics 1–8) + the
   six Session-2 ratified decisions. Generalized §0.9 "Impact" into the **Impact Zone**
   primitive (direction-agnostic; `consequenceType` Cumulative/Critical + optional

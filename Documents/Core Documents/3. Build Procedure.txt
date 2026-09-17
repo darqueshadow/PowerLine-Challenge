@@ -34,6 +34,11 @@ Game/
     Pitstop/files/               # same shape — shell / stubs only
     blank/                       # Empty Cartridge template
 ```
+*(Amendment A1, 2026-09-15 — also on disk:* `cartridges/Egg Timer/` *, the folder of Egg
+Timer, holding only `CLAUDE.md`, `EGG_TIMER_CONTEXT_PACKET.md` and its
+session launcher. It is a Standalone
+Cartridge (§0.23) at design stage, so there is deliberately no `files/` yet. And the Empty
+Cartridge actually sits at `Game/blank/`, not under `cartridges/`.)*
 Two things diverge from the v1.6 blueprint and from the Topic-5 goal:
 1. **There is no shared `/core` engine.** Each Cartridge carries its **own** copy of
    `files/core/{config,data,audio}.js`. Core logic is duplicated per Cartridge, not shared.
@@ -135,6 +140,9 @@ Challenges, blue Command input), no dataset, no theme. Never edited directly. To
 Cartridge: duplicate `cartridges/blank/` → apply theme only through Theme Injection Points
 (§0.18) → keep core logic intact unless an explicit override is given.
 
+*(Amendment A1, 2026-09-15: a **Standalone Cartridge** (§0.23) is **not** duplicated from the
+Empty Cartridge. See §5.)*
+
 ---
 
 ## 5. Cartridges
@@ -144,6 +152,22 @@ visuals), `script.js` (integration + theme logic), an optional `cartridge.json` 
 themeColors, configOverrides), and a **Mini-Game Context Packet** (§0.21) declaring its
 Impact Zones, Resources, TFS, and conventions. Themes may change visuals/audio/fonts/glow/
 animation; they must not change scoring, dataset logic, challenge generation, or engine code.
+
+**Standalone Cartridges** *(amendment A1, 2026-09-15 — §0.23, Core Law 15)*:
+- **Create** the folder fresh under `cartridges/<Name>/`, not from `blank/`. Use the same modular
+  shape as everything else: `files/index.html`, `files/style.css`, `files/script.js`, and
+  `files/core/` and `files/datasets/` as needed.
+- **Build** its mechanic self-contained from its Mini-Game Context Packet. Do **not** use the
+  §3.A Impact Zone / Resource shapes, the §3.B state machine or the §8 Target / Challenge
+  behaviour, and do not carry falling-Target lifecycle assumptions over from another
+  Cartridge's `script.js`. Name things in the Cartridge's own vocabulary (Egg Timer (formerly
+  Whack A CAV): slots, triggers, countdowns, escapes).
+- **Gate:** write no gameplay code until the Packet's open decisions are resolved and Andrew
+  authorizes the build.
+- **Unchanged:** Dataset Handling (§7), where real values come from the Data Sheet or Andrew and
+  are never invented; Modes and Developer Mode on Ctrl + Shift + B (§6); `http://` serving; and
+  hub insertion only when instructed.
+- **Current:** `Egg Timer/`, which is design stage with no `files/`.
 
 ---
 
@@ -232,10 +256,32 @@ Then: follow Laws without deviation; implement only what is confirmed; respect t
 Zone / TFS authorization gate (Core Law 5); route all repo-bound output through Claude Code
 (Core Law 8); report back before touching anything ambiguous or adjacent.
 
+*(Amendment A1, 2026-09-15: for a Standalone Cartridge (§0.23), the gate to respect is the
+**build gate** in Core Law 15, which takes the place of Core Law 5.)*
+
 ---
 
 ## Version History
 
+- **v2.0 · amendment A4 (2026-09-15)** — updated on-disk folder and packet-file paths to reflect the
+  completed Egg Timer rename (folder, packet filename, launcher, shortcut, resume word continue_et).
+  Closes out the rename begun in A2/A3. Appended, not rewritten, per Core Law 13.
+- **v2.0 · amendment A2 (2026-09-15)** — Renamed the Standalone Cartridge from Whack A CAV to
+  Egg Timer per Andrew's decision. Appended, not rewritten, per Core Law 13. No other changes.
+  **Pending, outside this text amendment:** the folder is still `cartridges/Whack A CAV/` on
+  disk, and its Packet is still `WHACK_A_CAV_CONTEXT_PACKET.md`. The move to
+  `cartridges/Egg Timer/` is Claude Code's call on timing. Until then, the §2 and §5 paths
+  above stay as they are, because they name what is really on disk.
+- **v2.0 · amendment A1 (2026-09-15)** — **Appended, not rewritten.** Directed by Andrew and
+  drafted by Claude Code; **reviewed and approved by Claude Chat** (2026-09-15). Matches Laws
+  amendment A1. Added the Standalone Cartridge build rules to §5, with pointers from §4 and §10,
+  and noted the new `Whack A CAV/` folder in the §2 on-disk listing, along with the real location
+  of `Game/blank/`.
+  **Only outstanding item. Known naming collision, logged, not fixed:** "Standalone Cartridge"
+  (§0.23, used throughout this amendment) shares its word with Laws Core Law 7, *PLC runs
+  standalone*, which means independent of Nerva Beacon. The two are unrelated. Nothing is
+  renamed yet. The collision is earmarked for a future Laws cleanup pass, and any rename needs
+  Claude Chat's and Andrew's sign-off.
 - **v2.0** — Base draft by Claude Code, adopted by Claude Chat with Session-2 corrections.
   Reconciled the doc with on-disk reality (per-Cartridge `core` duplication; no shared
   engine; `engine.js`/`hud.js`/`ui.js` never built) and set the shared-`/core` extraction as
