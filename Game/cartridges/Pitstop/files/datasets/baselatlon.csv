@@ -1,19 +1,24 @@
-bse_code,base_name,lat,lon
-72100,Niagara Falls,43.112649,-79.088989
-72101,Ontario St,43.158174,-79.252737
-72102,Linwell,43.197654,-79.232361
-72103,Thorold,43.088509,-79.199505
-72104,NOTL,43.253247,-79.066338
-72105,Grimsby,43.186578,-79.513405
-72107,Port Colborne,42.901783,-79.242849
-72108,King St,42.977938,-79.25054
-72109,Smithville,43.099502,-79.547651
-72110,Vineland,43.152023,-79.389173
-72111,Pelham,43.044691,-79.298811
-72113,Ridgeway,42.884529,-79.059275
-72115,Glendale,43.159931,-79.15459
-72116,St Paul,43.13289,-79.099461
-72117,Fort Erie,42.921095,-78.939352
-72118,Merrittville,43.115569,-79.242849
-72125,Prince Charles,42.992128,-79.261011
-WF-CRU,Wainfleet,42.9221256,-79.375838
+bse_code,base_name,lat,lon,address,break_sheet
+72100,Niagara Falls,43.112649,-79.088989,"5685 North St, Niagara Falls",NF 00
+72101,Ontario St,43.158174,-79.252737,"139 Ontario St, St Catharines",ON 01
+72102,Linwell,43.197654,-79.232361,"337 Linwell Rd, St Catharines",LI 02
+72103,Thorold,43.088509,-79.199505,"701 Allanburg Rd, Thorold",TH 03
+72104,NOTL,43.253247,-79.066338,"176 Wellington St, Niagara On The Lake",NO 04
+72105,Grimsby,43.186578,-79.513405,"10 Iroquois Tl, Grimsby",GR 05
+72107,Port Colborne,42.901783,-79.242849,"42 Dolphon St, Port Colborne",PC 07
+72108,King St,42.977938,-79.25054,"580 King St, Welland",KI 08
+72109,Smithville,43.099502,-79.547651,"110 West St, Smithville",SM 09
+72110,Vineland,43.152023,-79.389173,"3335 Tallman Dr, Lincoln",VL 10
+72111,Pelham,43.044691,-79.298811,"183 Highway 20 West, Pelham",PH 11
+72113,Ridgeway,42.884529,-79.059275,"369 Gorham Rd, Fort Erie",RW 13
+72115,Glendale,43.159931,-79.15459,"2 Westwood Ct, Niagara On The Lake",GL 15
+72116,St Paul,43.13289,-79.099461,"2722 St Paul St, Niagara Falls",SP 16
+72117,Fort Erie,42.921095,-78.939352,"650 Gilmore Rd, Fort Erie",FE 17
+72118,Merrittville,43.115237,-79.242796,"3450 Merritville Hy, Thorold",MV 18
+72120,HQ,,,"101 Lampman Ct, Niagara On The Lake",HQ 20
+72121,Fitch St,42.995742,-79.265935,"200 Fitch St, Welland",
+72122,Westwood,43.115569,-79.242849,"2 Westwood Ct, Niagara On The Lake",
+72123,Fleet,43.115569,-79.242849,"2 Westwood Ct, Niagara On The Lake",
+72124,Fallsview,43.081167,-79.265935,"6380 Fallsview Bv, Niagara Falls",2B01
+72125,Prince Charles,42.992128,-79.261011,"345 Prince Charles Dr, Welland",PR 25
+WF-CRU,Wainfleet,42.9221256,-79.375838,"31907 Park St, Wainfleet",
