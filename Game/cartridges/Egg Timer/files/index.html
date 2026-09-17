@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Egg Timer — PowerLine Challenge</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- TITLE (⏳ placeholder: the title screen's design is deferred) -->
+  <section id="screen-title" class="screen" hidden>
+    <h1 class="logo"><span class="et">E</span>gg <span class="et">T</span>imer</h1>
+    <p class="sub">POWERLINE CHALLENGE</p>
+    <p id="title-prompt" class="blink">PRESS ENTER</p>
+    <p id="title-error" class="error" hidden></p>
+  </section>
+
+  <!-- SETUP: mode buttons + Command Box count, one combined step (packet §5, §12) -->
+  <section id="screen-setup" class="screen" hidden>
+    <h2>SELECT MODE</h2>
+    <div class="button-bank modes">
+      <button type="button" data-mode="clear">CLEAR CAVs<br>ONLY</button>
+      <button type="button" data-mode="progression">FOLLOW<br>PROGRESSION</button>
+      <button type="button" data-mode="both">BOTH</button>
+    </div>
+    <h2>COMMAND BOXES</h2>
+    <div class="button-bank counts">
+      <button type="button" data-boxes="1">1</button>
+      <button type="button" data-boxes="2">2</button>
+      <button type="button" data-boxes="3">3</button>
+      <button type="button" data-boxes="4">4</button>
+    </div>
+    <button type="button" id="start" class="start">START</button>
+    <p class="hint">← → MODE &nbsp;·&nbsp; ↑ ↓ BOXES &nbsp;·&nbsp; ENTER START</p>
+    <p id="setup-dev" class="dev-note" hidden>DEVELOPER MODE: BLANK DATASET</p>
+  </section>
+
+  <!-- PLAY -->
+  <section id="screen-play" class="screen" hidden>
+    <header class="hud">
+      <div><span class="label">WAVE</span> <span id="hud-wave">1</span></div>
+      <div><span class="label">CAVs</span> <span id="hud-cavs">0/8</span></div>
+      <div><span class="label" id="hud-pool-label">POOL</span> <span id="hud-pool" class="pool"></span></div>
+      <div><span class="label">SCORE</span> <span id="hud-score">0</span></div>
+      <div id="hud-mode" class="mode"></div>
+    </header>
+
+    <div id="field">
+      <div id="popups"></div>
+      <div id="banner" hidden></div>
+    </div>
+
+    <footer id="console"></footer>
+
+    <div id="switcher" class="overlay" hidden>
+      <div class="panel">
+        <div class="title">COMMAND BOXES</div>
+        <ol></ol>
+        <div class="hint">TAB / SHIFT+TAB / ARROWS &nbsp;·&nbsp; ENTER PICK &nbsp;·&nbsp; ESC CLOSE</div>
+      </div>
+    </div>
+
+    <div id="pause" class="overlay" hidden>
+      <div class="panel">
+        <div class="title">PAUSED</div>
+        <div class="hint">ESC TO RESUME</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME OVER (⏳ placeholder: the end screen's design is deferred) -->
+  <section id="screen-over" class="screen" hidden>
+    <h2 class="over">GAME OVER</h2>
+    <p><span class="label">SCORE</span> <span id="over-score">0</span></p>
+    <p><span class="label">WAVE</span> <span id="over-wave">1</span> &nbsp; <span id="over-mode" class="label"></span></p>
+    <p class="blink">PRESS ENTER</p>
+  </section>
+
+  <!-- DEVELOPER MODE (Ctrl+Shift+B) -->
+  <div id="dev-prompt" class="overlay" hidden>
+    <div class="panel">
+      <div class="title">DEVELOPER ACCESS</div>
+      <input type="password" autocomplete="off" aria-label="Developer password">
+      <div class="bar"><i></i></div>
+      <div class="msg"></div>
+    </div>
+  </div>
+  <div id="dev-badge" hidden>DEV · BLANK DATASET</div>
+
+  <script src="core/config.js"></script>
+  <script src="core/rules.js"></script>
+  <script src="core/commands.js"></script>
+  <script src="core/data.js"></script>
+  <script src="core/game.js"></script>
+  <script src="core/art.js"></script>
+  <script src="core/mess.js"></script>
+  <script src="core/view.js"></script>
+  <script src="core/boxes.js"></script>
+  <script src="core/devmode.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

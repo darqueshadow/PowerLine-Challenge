@@ -95,6 +95,27 @@ window.CAT_DISKS = [
     ]
   },
   {
+    id: "eggtimer",
+    displayName: "Egg Timer",
+    runner: "plc",
+    /* 🚨 `coming-soon` UNTIL THE GAME LAUNCHES — Andrew's call, 2026-09-16: the
+       entry goes in as the build starts, but nothing goes live before the game
+       does. `coming-soon` is filtered out before render, so the disk is in
+       neither crate and `?cart=eggtimer` can't reach it either (visibleDisks).
+       ⭐ At launch: delete the `status` line, and add "eggtimer" to CARTRIDGES in
+       verify-cat.mjs §B, which names the player cartridges one by one.
+       The id is letters only on purpose: Fang Rock drops any cabinet token that
+       isn't /^[a-z]+$/, so `egg-timer` could never be launched from a cabinet. */
+    status: "coming-soon",
+    launch: "../cartridges/Egg Timer/files/index.html",
+    blurb:
+      "Whack-a-mole on the real CAV workflow: place a CAV, then RCAV it " +
+      "before the alien egg in its nest hatches. Every escape drains the pool.",
+    entries: [
+      { filename: "EGG TIMER", label: "egg timer", kind: "game" }
+    ]
+  },
+  {
     id: "blank",
     displayName: "Blank Cassette",
     runner: "plc",

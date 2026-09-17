@@ -1,0 +1,8 @@
+code,meaning,min_minutes,max_minutes,two_phase_only,hidden_until_trigger
+VS,Vehicle Service,10,10,no,no
+STR,Stretcher Clear,10,10,no,no
+SS,Start Shift,15,15,no,no
+EOS,End of Shift,30,30,no,no
+MB,Meal Break,30,30,no,no
+AD,Admin CAV,10,30,no,no
+VF,Vehicle Fueling,10,30,yes,yes
