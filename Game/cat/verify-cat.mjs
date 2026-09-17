@@ -172,7 +172,7 @@ try {
      fact about a folder the user fills. Only the first belongs in a literal. */
   const visible = String(await c.ev("__cat.visible().join('+')"));
   const seen = visible.split("+");
-  const CARTRIDGES = ["asteroid", "aquanaut", "pitstop"];
+  const CARTRIDGES = ["asteroid", "aquanaut", "pitstop", "eggtimer"];   // eggtimer: live 2026-09-17
   const missing = CARTRIDGES.filter((id) => !seen.includes(id));
   ok(missing.length === 0,
      `all ${CARTRIDGES.length} player cartridges are in the box   [missing: ${missing.join(", ") || "none"}]`);
@@ -686,6 +686,8 @@ try {
     ["http listing",                LINK_HUB("?cart=pitstop"),   false, "pitstop",  "PITSTOP",          /Pitstop\/files\/index\.html$/],
     ["http, listing 404 (as Pages)", LINK_HUB("?cart=asteroid"), true,  "asteroid", "ASTEROID COMMAND", /Asteroid%20Command\/files\/index\.html$/],
     ["file://",                     LINK_FILE("?cart=aquanaut"), false, "aquanaut", "THE AQUANAUT",     /The%20Aquanaut\.html$/],
+    /* 2026-09-17: Egg Timer went live, and its cabinet is fangrock://arcade/eggtimer */
+    ["http listing (Egg Timer)",    LINK_HUB("?cart=eggtimer"),  false, "eggtimer", "EGG TIMER",        /Egg%20Timer\/files\/index\.html$/],
   ]) {
     const s = await linkOn(url, failListing, exitAndLook);
     eq(s.first.state, "launched", `${origin}: ?cart=${id} launches`);
@@ -775,7 +777,7 @@ try {
     curtain: document.documentElement.classList.contains("cat-link"),
     menuShown: getComputedStyle(document.getElementById("cat")).visibility !== "hidden",
     cadCrate: !!document.getElementById("crate-plc"),
-    cartsInDom: document.querySelectorAll('.disk[data-id="asteroid"],.disk[data-id="aquanaut"],.disk[data-id="pitstop"],.disk[data-id="blank"]').length,
+    cartsInDom: document.querySelectorAll('.disk[data-id="asteroid"],.disk[data-id="aquanaut"],.disk[data-id="pitstop"],.disk[data-id="eggtimer"],.disk[data-id="blank"]').length,
     roster: __cat.disks().filter(function (d) { return d.runner !== "emulator"; }).map(function (d) { return d.id; }),
     records: document.querySelectorAll("#crate-lib .disk").length,
     firstCrate: document.getElementById("crates").firstElementChild.id,
@@ -902,7 +904,7 @@ try {
     closes: window.__closes, playing: __cat.playing(), inserted: __cat.inserted(),
     menuShown: getComputedStyle(document.getElementById("cat")).visibility !== "hidden",
     cadCrate: !!document.getElementById("crate-plc"),
-    cartsInDom: document.querySelectorAll('.disk[data-id="asteroid"],.disk[data-id="aquanaut"],.disk[data-id="pitstop"],.disk[data-id="blank"]').length,
+    cartsInDom: document.querySelectorAll('.disk[data-id="asteroid"],.disk[data-id="aquanaut"],.disk[data-id="pitstop"],.disk[data-id="eggtimer"],.disk[data-id="blank"]').length,
     roster: __cat.disks().filter(function (d) { return d.runner !== "emulator"; }).map(function (d) { return d.id; }),
     /* 🔄 2026-09-16: on the C64 screen Power Off is the side panel's rocker (his addendum);
        the old button is still the one a no-machine hub would show, and it never does here */

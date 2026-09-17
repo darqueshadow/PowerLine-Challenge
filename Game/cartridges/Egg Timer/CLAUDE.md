@@ -1,4 +1,4 @@
-# Egg Timer *(formerly Whack A CAV)* — 🟢 BUILD IN PROGRESS (started 2026-09-16, not launched)
+# Egg Timer *(formerly Whack A CAV)* — 🟢 LAUNCHED IN THE ARCADE 2026-09-17 (placeholder art, no instructions or audio yet)
 
 A whack-a-mole typing game built on the real Niagara EMS **CAV (Conditional Availability)**
 workflow. Each unit has a **nest** with a digital readout below it. The player places a CAV with
@@ -15,7 +15,9 @@ a session must not re-derive or break. Decision history lives in the memory stor
 
 ## Status
 - **Andrew authorized and confirmed the build on 2026-09-16.** The first playable build is in `files/`.
-  It is **not launched**: the hub entry is `coming-soon`, and nothing is committed.
+- **Andrew lifted the `coming-soon` hold on 2026-09-17** ("a normal, selectable cartridge in the Arcade
+  for all players"), knowing the art, the instruction/title/end screens and audio are still placeholders
+  or missing. The hub entry is live in `Game/cat/disks.js`, and players get it on the next push to main.
 - **Ruled 2026-09-17 (Draft 9):** C15 and the build questions D1, D2, D4, D5 and D6. Each one's switch
   in `files/core/config.js` is set to its ruling, and the rigs assert it. The other value of a switch
   still runs, but it isn't the design.
@@ -55,10 +57,16 @@ a session must not re-derive or break. Decision history lives in the memory stor
   pausing on fullscreen exit would make Esc pause instead of closing an open switcher. Keys sent over
   the debugging connection may skip browser shortcuts, so a passing check isn't a real keypress.
 
-## At launch (only when Andrew says the game is launched)
-- In `Game/cat/disks.js`, delete the `eggtimer` entry's `status: "coming-soon"` line, and add `"eggtimer"`
-  to `CARTRIDGES` in `Game/cat/verify-cat.mjs` §B. Run that rig (serve on 8899).
-- Only then commit or push. `Game/` publishes to the public site on push to main.
+## Launch (done 2026-09-17)
+- `status: "coming-soon"` is gone from the `eggtimer` entry in `Game/cat/disks.js`. `verify-cat.mjs` has
+  `"eggtimer"` in `CARTRIDGES` (§B), a `?cart=eggtimer` cabinet case (§K) and eggtimer in both
+  "no cartridge in the DOM" selectors (§L cracked mode, §M inside Fang Rock). Run that rig (serve on 8899) after any hub change.
+- `Game/` publishes to the public site on push to main. The deploy strips `*.md`, `*.cmd` and `verify-*.mjs`,
+  so this file, the packet and `Previous Versions/` stay out of the site (the repo itself is public).
+- ⚠️ Rigs that start browsers fail with "Chrome never opened a debug port" while another session's rig
+  keeps the CPU at 100% (seen 2026-09-17 with `verify-c64.mjs`). It's load, not a failing check: wait and re-run.
+- Not wired: the old cassette menu in `Game/index.html` (`Game/core/submenu.js`) doesn't list Egg Timer,
+  which is Andrew's call; the Fang Rock room cabinet is the separate Rec-Bay 4 handoff.
 
 ## Locked design (summary; the packet has the detail)
 - **Modes:** Clear CAVs Only (nests open one at a time), Follow Progression (one-phase for waves 1–2,
@@ -133,7 +141,8 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-17
-Draft 9 rulings merged into the config, the Blank Dataset Module, the packet and the rigs. Logic rig 74/0,
-browser rig 76/0 (twice); hub rig 172/0 from 2026-09-16 (nothing hub-side changed). Still uncommitted.
-Waiting on Andrew for the D3 digest only. Next, each a design call through Chat: art direction, the
-deferred instruction/title/end screens, and audio. Nothing launches until Andrew says so.
+Draft 9 rulings merged into the config, the Blank Dataset Module, the packet and the rigs (logic rig 74/0,
+browser rig 76/0 twice); another session committed the build at 06:54 (`0519a17`). Launched in the hub the
+same day on Andrew's word. Waiting on Andrew for the D3 digest (until then Developer Mode denies every
+entry, on the live site too). Next, each a design call through Chat: an instruction screen (players get
+none today), art direction, the title/end screens, and audio.
