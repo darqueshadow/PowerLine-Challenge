@@ -1230,7 +1230,7 @@ function init() {
 
         // ── Title screen: ANY key advances to the main menu (mirrors the
         // click-anywhere dismiss). Excludes modifier combos / bare modifier keys
-        // so Ctrl+Shift+D / Ctrl+Shift+H and the F-key hotkeys above still reach
+        // so Ctrl+Shift+B / Ctrl+Shift+H and the F-key hotkeys above still reach
         // their own handlers. One key = one advance, so a single Enter can't chain
         // straight through into BEGIN DESCENT.
         if (titlePrompt && !titleDismissed
@@ -1316,8 +1316,8 @@ function init() {
 
         if (state.paused && (e.key === 'Escape' || e.key === 'p' || e.key === 'P')) { resumeGame(); return; }
 
-        // Dev mode (Ctrl+Shift+D)
-        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        // Dev mode (Ctrl+Shift+B)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'B' || e.key === 'b')) {
             e.preventDefault();
             if (!state.devModeUnlocked) showDevPrompt();
             return;

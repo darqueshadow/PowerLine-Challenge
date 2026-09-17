@@ -960,7 +960,7 @@ function init() {
             }
             return;
         }
-        if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+        if (e.ctrlKey && e.shiftKey && (e.key === 'B' || e.key === 'b')) {
             e.preventDefault();
             if (!state.devPromptActive) {
                 showDevModePrompt();
