@@ -26,6 +26,7 @@ history archive, not the working repo.)
 | `Game/cartridges/Asteroid Command/` | Asteroid Command cartridge |
 | `Game/cartridges/The Aquanaut/` | The Aquanaut cartridge **(the active one)** |
 | `Game/cartridges/Pitstop/` | Pitstop cartridge (shell) |
+| `Game/cartridges/Egg Timer/` | Egg Timer (formerly Whack A CAV): a **Standalone Cartridge**, design stage. Context packet + `CLAUDE.md` only, no game files yet *(added 2026-09-15; folder renamed from `Whack A CAV/` the same day)* |
 | `Game/cartridges/blank/` | Empty template |
 | `Game/core/`, `Game/styles/`, `Game/assets/`, `Game/datasets/` | Shared hub code / art / data |
 | `Documents/` | Governance docs |

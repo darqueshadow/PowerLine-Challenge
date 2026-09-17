@@ -59,6 +59,7 @@ If any conflict arises between documents, **Laws wins. Always.**
   - Command: `[Command PL] [Unit] [Verb] [Base Number]`
 - **Mode rules:** Demo Mode is the default during development (Holodeck disabled). Publish Mode is only enabled when explicitly instructed (Holodeck enabled with "Return to Program" button).
 - **Developer Mode** (Ctrl+Shift+B) triggers a timed password prompt to unlock the Blank cartridge. In publish builds, Blank is hidden from regular users.
+- **Standalone Cartridges are the one exception to the Empty Cartridge and Target rules above** (Laws amendment A1, 2026-09-15, directed by Andrew; reviewed and approved by you the same day. The only outstanding item is a logged naming collision between "Standalone Cartridge" and Core Law 7's "PLC runs standalone", earmarked for a future Laws cleanup pass). A cartridge Andrew has explicitly declared Standalone is built fresh from its own Mini-Game Context Packet. It is not duplicated from the Empty Cartridge and does not use the Target / Challenge / Impact Zone model or vocabulary. Data Sheet integrity, real PowerLine syntax, modes, Developer Mode and the hub's PET identity still bind it. Nothing in its gameplay is built until its Packet's open decisions are resolved and Andrew authorizes the build. **Whack A CAV** is the only one so far. When you work on its design, do not map its mechanics onto Impact Zones.
 
 ---
 

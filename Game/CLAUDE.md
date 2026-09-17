@@ -30,6 +30,7 @@ translucent plate lets the artwork bleed through the text.
 ## Cartridges (`cartridges/`)
 - **Asteroid Command** — the original: an EMS-dispatcher training / typing-defense game.
 - **The Aquanaut** — a deep-sea re-theme forked from Asteroid Command. 🟢 **ACTIVE** (its own `AQUANAUT_DESIGN.md` holds the design).
+- **Egg Timer** *(formerly Whack A CAV)* — a whack-a-mole drill on the real CAV workflow (`CAV #### TYPE` / `RCAV ####`). 🟡 **DESIGN STAGE, not build-authorized.** It is a **Standalone Cartridge**: exempt from the Target / Impact Zone model and not copied from `blank`. Its own `CLAUDE.md` and `EGG_TIMER_CONTEXT_PACKET.md` hold the rules and design. **All Egg Timer work happens in its own session** (desktop shortcut *Egg Timer (Claude Code)*, resume word `continue_et`), not from the PLC root or another cartridge's session.
 - **blank** — empty cartridge template for starting a new game.
 
 ## Working here
