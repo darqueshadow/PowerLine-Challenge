@@ -167,9 +167,16 @@
      core on 2026-09-16 (scratch Electron 32.3.3), not read off a list.
      - vice_autostart disabled: a disk goes in and the machine waits for LOAD,
        instead of typing LOAD"*",8,1:RUN by itself.
-     - vice_keyboard_keymap symbolic: the PC key's LABEL is what arrives, so
-       Shift+' is a quote. The default (positional) wants Shift+2 for a quote,
-       which nobody reading a C64 manual on a PC keyboard will guess.
+     - vice_keyboard_keymap POSITIONAL: a key types what sits in THAT PLACE on a
+       real C64, not what its PC label says. `"` is Shift+2, `*` is `]`, `:` is
+       `;`, `+` is `-`, `=` is `\`.
+       🔄 HIS RULING, 2026-09-17: "favor correctness over label-matching". The
+       first cut was SYMBOLIC (PC labels: Shift+' is a quote), and symbolic has a
+       race built into VICE on `*` `+` `:` `@` — about one `*` in 10–40 arrived as
+       a SHIFT+* graphic (measured; see KEYS below). Positional was 40/40, and the
+       buttons already typed on it. So people now type exactly as the buttons do.
+       🚫 Do not switch this back to symbolic for friendlier labels: that trades
+       a label mismatch a player can learn for a fault they can't.
      - vice_virtual_device_traps: WITHOUT IT A .T64 NEVER LOADS. A T64 holds
        files, not tape pulses, so only the KERNAL traps can read it; with them
        off a typed LOAD blanks the screen forever.
@@ -192,7 +199,7 @@
     window.EJS_disableLocalStorage = true;
     window.EJS_gameName = "CAT";
     window.EJS_defaultOptions.vice_autostart = "disabled";
-    window.EJS_defaultOptions.vice_keyboard_keymap = "symbolic";
+    window.EJS_defaultOptions.vice_keyboard_keymap = "positional";
     window.EJS_defaultOptions.vice_virtual_device_traps = "disabled";   /* on only while a tape is in */
     window.EJS_defaultOptions.keyboardInput = "enabled";
   }
@@ -500,7 +507,11 @@
   var KEY_FRAMES = { lead: 3, hold: 3, after: 3, trail: 4, settle: 60 };
 
   /* 🚨🚨 A BUTTON TYPES ON THE C64's OWN KEY POSITIONS, NOT THE PC's LABELS.
-     People type with the SYMBOLIC keymap (Shift+' is a quote), but symbolic has
+     🔄 Since his ruling of 2026-09-17 people do too: the machine boots on the
+     positional keymap (see THE MACHINE'S SETTINGS), so the switch in typeText()
+     below finds it already there and costs nothing. It stays as a guard, in case
+     anything ever changes the option while the machine runs.
+     WHY POSITIONAL. The SYMBOLIC keymap (Shift+' is a quote) has
      a race built into VICE for any character that is shifted on a PC and NOT
      shifted on a C64 — `*` `+` `:` `@`. VICE holds the C64's SHIFT for the PC
      Shift, then has to take it away again for that key, and now and then the

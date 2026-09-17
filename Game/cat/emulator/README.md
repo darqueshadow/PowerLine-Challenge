@@ -102,8 +102,10 @@ reasoning; the measured facts it rests on:
   and **only tapes**: it is switched on when a tape goes in and off for a disk. With it always on,
   disk loads ran twice as slow and one in a few rig runs hung at `LOADING`.
 - **Typing** goes to `EJS_emulator.elements.parent` (not window or document), timed in **emulated
-  frames**. Buttons type on the **positional** keymap: the symbolic one (which people type with,
-  Shift+' is a quote) races on `*` `+` `:` — about one `*` in ten came out as SHIFT+*.
+  frames**. The machine runs on the **positional** keymap, for buttons and people alike (Andrew's
+  ruling, 2026-09-17): a key types what sits in that place on a real C64, so `"` is Shift+2 and
+  `*` is `]`. The symbolic one (PC labels, Shift+' is a quote) races on `*` `+` `:` `@` — about
+  one `*` in ten came out as SHIFT+*. Positional was 40/40.
 - **Proof:** `../verify-c64.mjs` runs under the shell's own Electron and reads the C64's screen
   memory. Headless Chrome cannot run the core at all.
 

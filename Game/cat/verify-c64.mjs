@@ -16,6 +16,8 @@
      §B  real typing: arbitrary BASIC runs;
    and his answers the same day: keyboard mode at boot (§A), F10 is the way
    out, so Escape and Shift+Escape reach the C64 as RUN/STOP (§B, §E).
+   🔄 2026-09-17, his ruling: people type on the C64's own key positions, as
+   the buttons do (§A reads the keymap; §B and §D type on it by hand).
 
    ===========================================================================
    🚨 WHY ELECTRON AND NOT NB's cdp.mjs, WHICH THE OTHER RIGS USE
@@ -234,14 +236,18 @@ async function runRig() {
     wc.sendInputEvent({ type: "mouseUp", x: r.x, y: r.y, button: "left", clickCount: 1 });
     await wait(120);
   }
-  /* what the rig types by hand, on PC key labels (the symbolic keymap people use).
-     ⚠️ `*` is here for ONE line only — §D's typed LOAD"*",8,1, which is his
-     requirement word for word and has to be typed the way a person types it.
-     It carries VICE's symbolic race (about 1 `*` in 40 arrives as SHIFT+*), so
-     that one check can fail on a correct hub until the keymap for hand typing
-     is settled. Nothing else the rig types by hand uses `*`, `+` or `:`. */
-  const SHIFTED = { '"': "'", "$": "4", "(": "9", ")": "0", "*": "8" };
-  const PLAIN = { "-": "-", ",": ",", ".": ".", "/": "/", "=": "=" };
+  /* what the rig types by hand, on the C64's OWN KEY POSITIONS — the positional
+     keymap, which people type with since his ruling of 2026-09-17 (emu.js, THE
+     MACHINE'S SETTINGS). The same places as emu.js's KEYS table: `"` is Shift+2,
+     `*` is `]`, `-` is `=`.
+     🔄 The first cut typed PC labels (Shift+' for a quote) on the symbolic
+     keymap, and §D's hand-typed `*` could fail on a correct hub about 1 time in
+     40. That race is gone with the keymap, so a wrong `*` now is a real fault.
+     📌 THIS TABLE IS ALSO THE PROOF OF THE KEYMAP: on the symbolic keymap Shift+2
+     types `@` and `]` types `]`, so §B's quote and §D's `*` pass only on
+     positional. */
+  const SHIFTED = { '"': "2", "$": "4", "(": "8", ")": "9" };
+  const PLAIN = { "*": "]", "+": "-", "-": "=", ":": ";", ";": "'", "=": "\\", ",": ",", ".": ".", "/": "/" };
   async function press(keyCode, shift = false) {
     const modifiers = shift ? ["shift"] : [];
     if (shift) { wc.sendInputEvent({ type: "keyDown", keyCode: "Shift", modifiers }); await frames(3); }
@@ -341,6 +347,9 @@ async function runRig() {
       document.getElementById("btn-reset-hint").textContent]`);
     ok(hints.join(" ") === "F2 F9 F10", `the side panel and Reset carry their keys: [F2] keyboard, [F9] ports, [F10] reset   [${hints.join(" ")}]`);
     ok(deck.load === 'LOAD"*",8,1' && /empty/i.test(deck.slot), `Load types LOAD"*",8,1; the drive is empty   [${deck.load} / ${deck.slot}]`);
+    /* his ruling, 2026-09-17: people type on the C64's key positions, as the buttons do */
+    const keymap = await inMachine("EJS_emulator.allSettings.vice_keyboard_keymap || EJS_emulator.getSettingValue('vice_keyboard_keymap') || null");
+    ok(keymap === "positional", `it boots on the POSITIONAL keymap: a key types what sits in that place on a C64   [${keymap}]`);
 
     /* --- B. real typing ---------------------------------------------------- */
     section("B. real typing — arbitrary BASIC, through the real keyboard path");
@@ -360,9 +369,7 @@ async function runRig() {
        A person is never that fast; the rig was, once, and failed here. */
     await untilScreen((r) => after(r, /^BREAK IN (10|20)$/)[0] === "READY.", 3000);
     await frames(15);
-    /* ⚠️ No `*`, `+` or `:` in anything the RIG types by hand: those are the
-       characters VICE's symbolic keymap races on (see emu.js, KEYS), and a rig
-       that trips over that is testing the quirk, not the hub. */
+    /* `-` sits on the PC's `=` key on a C64: the answer is 42 only on positional */
     await type("PRINT 45-3\n");
     const t42 = await untilScreen((r) => toReady(after(r, /^PRINT 45-3$/))[0] === " 42", 5000);
     ok(t42 >= 0, `PRINT 45-3 answers 42   [${(await screen()).filter(Boolean).slice(-3).join(" | ")}]`);
@@ -453,12 +460,12 @@ async function runRig() {
        `F10 resets to the boot screen, and the disk stays in   [${took(tReset)}, drive ${await ev("__cat.inserted()")}]`);
     await type('LOAD"*",8,1\n');
     const loadTyped = await loadRows();
-    /* ⚠️ The one hand-typed `*` in this rig. When it fails because the symbolic
-       keymap turned `*` into SHIFT+* (screen code >= 64, read as "#"), the line
-       says so: that is the open keymap question, not a hub fault. */
+    /* The one hand-typed `*` in this rig, on `]`. A `*` that came out as SHIFT+*
+       (screen code >= 64, read as "#") is the symbolic keymap's race, so the
+       line names it: it would mean the machine is no longer on positional. */
     const typedTail = loadTyped.length ? "" : (await screen()).filter(Boolean).slice(-4).join(" / ");
     ok(loadTyped.join("|") === loadButton.join("|"), `typed: LOAD"*",8,1 gives the same lines   [${loadTyped.join(" | ")}${typedTail
-       ? (/LOAD"#",8,1/.test(typedTail) ? "; the SYMBOLIC KEYMAP RACE turned * into SHIFT+* — see emu.js KEYS" : "") + "; screen: " + typedTail : ""}]`);
+       ? (/LOAD"#",8,1/.test(typedTail) ? "; * arrived as SHIFT+*, the SYMBOLIC keymap's race — is the machine still on positional?" : "") + "; screen: " + typedTail : ""}]`);
     await click("#btn-run");
     await idle();
     /* ⚠️ A GAME CAN CLEAR THE SCREEN BEFORE THIS LOOKS — measured: BadLands'
