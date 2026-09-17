@@ -36,10 +36,16 @@
      free to paint at any of them. So a present token puts up the curtain now
      and cat.js takes it down again for anything that is not a launch.
      ⭐ Fails safe: without this script there is no token and no curtain, and
-     the hub boots exactly as it always has. -->
+     the hub boots exactly as it always has.
+     🆕 2026-09-14 — ALSO INSIDE FANG ROCK (`window.fangRockShell`, set by the
+     shell's preload before any page script): there the hub is cracked disks
+     only, so the CAD crate in the markup below is removed by cat.js, and the
+     curtain is what stops it being painted once first. -->
 <script>
   window.CAT_LINK = new URLSearchParams(location.search).get("cart");
-  if (window.CAT_LINK !== null) document.documentElement.classList.add("cat-link");
+  if (window.CAT_LINK !== null || window.fangRockShell === true) {
+    document.documentElement.classList.add("cat-link");
+  }
 </script>
 </head>
 <body>
@@ -67,6 +73,13 @@
       </div>
 
       <div id="crt" aria-hidden="true"></div>
+
+      <!-- 🆕 2026-09-16 — THE REAL C64. In cracked mode (inside Fang Rock, or
+           ?cart=cracked) cat.js points this at emulator/index.html?machine=1 and
+           the screen IS the machine: its own boot screen, its own READY., and
+           typing goes to BASIC. The transcript above stays in the page, hidden,
+           for the tooling surface. Elsewhere this stays blank and hidden. -->
+      <iframe id="machine-frame" title="C64" src="about:blank" hidden></iframe>
     </div>
   </div>
 
@@ -77,18 +90,85 @@
       <!-- 🚨 SINGLE EXECUTION PATH. These buttons do not have their own
            behaviour: each one submits the exact command string a player could
            have typed, through the same resolver. A button and its typed
-           equivalent must always produce the identical on-screen sequence. -->
+           equivalent must always produce the identical on-screen sequence.
+           🆕 2026-09-16 — ON THE REAL C64 (cracked mode) there is no resolver:
+           the string is TYPED INTO THE MACHINE, key by key, through the element
+           the keyboard types into. LIST and RUN exist only there, because a real
+           C64 needs them as separate presses (a LIST typed ahead during a
+           directory load is lost — measured), and each button types exactly
+           what it says. -->
       <button class="btn" id="btn-load" type="button" data-cmd='LOAD"*",8,1'>Load&nbsp;"*",8,1</button>
       <button class="btn" id="btn-list" type="button" data-cmd='LOAD"$",8'>List&nbsp;&mdash;&nbsp;Load&nbsp;"$",8</button>
+      <button class="btn" id="btn-listing" type="button" data-cmd="LIST" hidden>List</button>
+      <button class="btn" id="btn-run" type="button" data-cmd="RUN" hidden>Run</button>
       <button class="btn" id="btn-insert" type="button" disabled>Insert&nbsp;Disk</button>
       <button class="btn" id="btn-eject" type="button" disabled>Eject</button>
+      <!-- the real C64's way back to READY. — his word, Reset. Cracked mode only. -->
+      <button class="btn" id="btn-reset" type="button" hidden>Reset<span class="btn__hint" id="btn-reset-hint" aria-hidden="true"></span></button>
 
       <div id="drive">
         <span id="drive-led" aria-hidden="true"></span>
-        <span>Drive&nbsp;8</span>
+        <span id="drive-label">Drive&nbsp;8</span>
         <span id="drive-slot" role="status">&ndash;&ndash;&nbsp;empty&nbsp;&ndash;&ndash;</span>
+        <!-- 🆕 his multi-disk addendum: which side is in, always, for a game with more than one -->
+        <span id="drive-side" role="status" hidden></span>
       </div>
+
+      <!-- 🆕 2026-09-14 — POWER OFF: leave Fang Rock's Arcade window, back to
+           the Arcade room (his call, and his word for it). Fang Rock only —
+           cat.js unhides it there, because a browser tab cannot close itself.
+           🚫 Not a command string: like Insert and Eject it acts on the machine,
+           not on the BASIC prompt, so there is no typed form for it to drift from. -->
+      <button class="btn" id="btn-power" type="button" hidden
+              title="Close the Arcade and go back to the Arcade room">Power&nbsp;Off</button>
     </div>
+
+    <!-- 🆕 2026-09-16 — THE C64's SIDE PANEL (his addendum). Cracked mode only,
+         where it takes the place of the Input / Port / Power Off buttons: a power
+         rocker with its red light, the two joystick ports, and a small keyboard.
+         ⭐ One thing is lit at a time — the keyboard, or one port — and cat.js
+         paints that from the machine's own report, never from the click.
+         Each part is a real button: click it, or use the key in its hint. -->
+    <div id="c64-side" role="group" aria-label="C64 side panel" hidden>
+      <button type="button" class="c64-part c64-power" id="c64-power" aria-pressed="true">
+        <span class="c64-power__body" aria-hidden="true">
+          <span class="c64-rocker"><span class="c64-rocker__paddle"></span></span>
+          <span class="c64-led"></span>
+        </span>
+        <span class="c64-part__label">Power</span>
+      </button>
+      <span class="c64-side__gap" aria-hidden="true"></span>
+      <button type="button" class="c64-part c64-port" id="c64-port1" data-port="1" aria-pressed="false"
+              title="Joystick in port 1">
+        <span class="c64-port__plug" aria-hidden="true"><span class="c64-port__pins"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+        <span class="c64-part__label">Port&nbsp;1</span>
+      </button>
+      <button type="button" class="c64-part c64-port" id="c64-port2" data-port="2" aria-pressed="false"
+              title="Joystick in port 2">
+        <span class="c64-port__plug" aria-hidden="true"><span class="c64-port__pins"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+        <span class="c64-part__label">Port&nbsp;2</span>
+      </button>
+      <!-- 🆕 his F-key addendum: ONE hint for the pair, since F9 swaps between them -->
+      <span class="c64-part__hint c64-ports__hint" id="c64-port-hint" aria-hidden="true"></span>
+      <button type="button" class="c64-part c64-keys" id="c64-keys" aria-pressed="false" title="Type on the keyboard">
+        <span class="c64-keys__board" aria-hidden="true">
+          <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="c64-keys__row"><i class="space"></i></span>
+        </span>
+        <span class="c64-part__label">Keyboard<span class="c64-part__hint" id="c64-keys-hint"></span></span>
+      </button>
+      <!-- what is live, for a screen reader; the parts above carry aria-pressed -->
+      <span class="sr-only" id="c64-side-status" aria-live="polite"></span>
+    </div>
+
+    <!-- 🆕 2026-09-16 — THE HUB'S OWN VOICE ON THE REAL C64. Once the screen
+         belongs to the machine there is no terminal for the hub to write on, so
+         what it has to say (a disk that would not go in, a key that is not
+         available here) goes on this line instead. Cracked mode only. -->
+    <div id="deck-note" role="status" aria-live="polite" hidden></div>
 
   </div>
 </div><!-- /#machine -->
@@ -158,6 +238,12 @@
        two crates. Picking a disk up and committing to it are deliberately
        separate actions (core spec, Interaction Model 2), which is not guessable
        from looking at a crate — so the words move, they do not get dropped. -->
+  <!-- 🆕 2026-09-16 — THE SIDE SWAP (his multi-disk addendum), real C64 only.
+       Shown only while a game with more than one side is in the drive, beside
+       Insert Disk. One click puts the other side into drive 8 of the running
+       machine; there is never a file to pick. Built by cat.js (renderSides). -->
+  <div id="side-swap" role="group" aria-label="Disk side" hidden></div>
+
   <p id="crates-hint">Click a disk, then <strong>Insert</strong>.</p>
 </div><!-- /#crates -->
 
@@ -203,7 +289,10 @@
             title="Switch which joystick port the stick is in (F9)"><span
       class="btn__label" aria-live="polite">Port: &mdash;</span><span
       class="btn__hint" aria-hidden="true"></span></button>
-    <button class="btn" id="btn-exit" type="button">Exit to CAT</button>
+    <!-- Worded by cat.js at each launch: "Exit Game" for a PLC cartridge,
+         "Reset" for a cracked disk (his calls, 2026-09-14 — it used to say
+         "Exit to CAT" for both, and he did not like it). -->
+    <button class="btn" id="btn-exit" type="button">Exit Game</button>
   </div>
   <iframe id="play-frame" title="Cartridge" src="about:blank"></iframe>
 </div>
@@ -229,6 +318,9 @@
 <script src="library.js"></script>
 <script src="games.js"></script>
 <script src="crackintro.js"></script>
+<!-- 🆕 2026-09-16 — the disk-into-drive animation for the C64 corner. Optional
+     like the others: cat.js stands in with a no-op if it is missing. -->
+<script src="driveinsert.js"></script>
 <script src="cat.js"></script>
 </body>
 </html>

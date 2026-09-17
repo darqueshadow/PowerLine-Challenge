@@ -78,20 +78,39 @@ that does not happen.
 - The play bar's **Input:** button names the mode that is live. Click it, or press **F2**.
 - The label is painted from the cartridge's own report, never assumed — `emu.js` owns the truth.
 
-### 🔴 Known limitation — Shift+Escape means two different things
+### ✅ The exit key is F10 (was Shift/Ctrl+Escape) — resolved 2026-09-16
 
-**Parked 2026-09-08, deliberately not fixed.** Inside a running game, `emu.js` catches
-**Shift+Escape** and **Ctrl+Escape** in capture phase and forwards them to the hub as *exit*. At
-the hub's own terminal, Shift+Escape means **Shift+RUN/STOP** (it runs `LOAD"*",8`). Same
-keystroke, two meanings, depending on whether a cartridge is up.
+This used to be a parked limitation: Shift+Escape was the exit chord, so **Shift+RUN/STOP could
+not reach a running game**. The concrete case Andrew was waiting for arrived with the real C64
+screen — 63 of the 108 disks are tapes, and Shift+RUN/STOP is how a tape loads — and he moved
+the exit to **F10**. Escape and Shift+Escape now reach the core as RUN/STOP and Shift+RUN/STOP.
+F10, like F2 and F9, is not a key a C64 has. `emu.js` and `cat.js` each hold `HOTKEY_EXIT`.
 
-The practical cost: **you cannot send Shift+RUN/STOP to a running game.** Plain Escape is
-unaffected — neither handler touches it — so RUN/STOP alone does reach the core in keyboard mode.
+## 🆕 The machine — `index.html?machine=1` (2026-09-16)
 
-🚫 Do not "fix" this by moving the exit chord on your own initiative. It is the one key that
-guarantees a way out of a game, and Andrew's call is that this waits for **a concrete case where
-Shift+RUN/STOP actually matters** before choosing between moving the chord and adding a
-pass-through. Until then it is a known limitation, stated rather than hidden.
+In cracked mode (inside Fang Rock, or `?cart=cracked`) the hub puts a **real C64 at `READY.`** on
+the CAT computer's screen, and its buttons type into it. `emu.js` ("THE MACHINE") has the full
+reasoning; the measured facts it rests on:
+
+- **Boot with no game:** EmulatorJS will not start without one, so it boots on an in-memory zip
+  (an `.m3u` + five slot images, the blank disk and tape built byte by byte). `vice_autostart`
+  disabled, and **`EJS_disableLocalStorage` is what makes the options apply at boot** — without
+  it, a fresh profile boots with the defaults and autostart has already typed `LOAD"*",8,1`.
+- **Insert into the running machine:** write the image over a slot, `gameManager.setCurrentDisk(i)`.
+  No reset. A zero-byte slot is a truly empty drive.
+- **Tapes (`.T64`) need `vice_virtual_device_traps` enabled**, or a typed `LOAD` never finishes —
+  and **only tapes**: it is switched on when a tape goes in and off for a disk. With it always on,
+  disk loads ran twice as slow and one in a few rig runs hung at `LOADING`.
+- **Typing** goes to `EJS_emulator.elements.parent` (not window or document), timed in **emulated
+  frames**. Buttons type on the **positional** keymap: the symbolic one (which people type with,
+  Shift+' is a quote) races on `*` `+` `:` — about one `*` in ten came out as SHIFT+*.
+- **Proof:** `../verify-c64.mjs` runs under the shell's own Electron and reads the C64's screen
+  memory. Headless Chrome cannot run the core at all.
+
+⚠️ Still open from the first-run checklist below: **disk swapping in the play overlay** (the
+ordinary hub's cracked disks). `swapDisk()` tries three method names EmulatorJS 4.2.3 does not
+have — the real one is `gameManager.setCurrentDisk(n)` — and the overlay only hands the core
+side 1. The machine does its own swaps (slot writes) and is not affected.
 
 ## ⚠️ First-run checklist — three things that are written but not yet watched working
 

@@ -20,7 +20,7 @@
    says yes.
    ========================================================================= */
 
-import { existsSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, rmSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const DRIVER = new URL(
@@ -138,11 +138,22 @@ try {
     inserted: __cat.inserted(), lines: __cat.lines(),
     curtain: document.documentElement.classList.contains("cat-link"),
     menu: getComputedStyle(document.getElementById("cat")).visibility,
-    cad: !!document.getElementById("crate-plc") })`));
+    cad: !!document.getElementById("crate-plc"),
+    power: document.getElementById("btn-power").hidden })`));
+  ok(plain.power, "outside Fang Rock there is no Power Off (a browser tab cannot close itself)");
   ok(plain.inserted === null && !plain.lines.some((l) => /^> LOAD|^cartridge link|^cracked disks only/.test(l)),
      "no ?cart= : the drive stays empty and nothing loads");
   ok(!plain.curtain && plain.menu === "visible" && plain.cad,
      `no ?cart= : the full menu, both crates   [curtain=${plain.curtain}, menu ${plain.menu}, CAD crate ${plain.cad}]`);
+  /* 🆕 2026-09-16 — the real C64 is cracked mode's screen, and ONLY cracked
+     mode's: this hub still has its resolver, because a PLC cartridge is a web
+     page no C64 can load. (verify-c64.mjs tests the machine itself.) */
+  const noMachine = JSON.parse(await c.ev(`JSON.stringify({ m: __cat.machine(),
+    frameHidden: document.getElementById("machine-frame").hidden,
+    out: getComputedStyle(document.getElementById("out")).display,
+    extra: ["btn-listing", "btn-run", "btn-reset"].filter(function (id) { return !document.getElementById(id).hidden; }) })`));
+  ok(!noMachine.m.on && !noMachine.m.started && noMachine.frameHidden && noMachine.out !== "none" && noMachine.extra.length === 0,
+     `no ?cart= : the screen is the terminal, with no C64 behind it and no machine-only buttons   [${noMachine.extra.join(",") || "none shown"}]`);
 
   /* --- B. the disk box ------------------------------------------------- */
   section("B. the disk box, and what it deliberately does not show");
@@ -319,17 +330,34 @@ try {
   ok(String(await c.ev("document.getElementById('detail-synopsis').textContent")).indexOf("Niagara") >= 0,
      "and its real synopsis, not a generated one");
 
-  /* ⭐⭐ THE STATE THAT MATTERS MOST, because it is the one 55 of 59 disks are
-     in. 🚫 An empty frame reads as a picture that failed to load; the words are
-     the whole point. And nothing must be invented for a disk with no entry. */
-  await c.ev("__cat.select('lib-beach-head')");
-  await wait(250);
-  ok((await c.ev("document.getElementById('detail-shot').className")).includes("is-empty"),
-     "a disk with no art says so rather than showing an empty frame");
-  const syn = String(await c.ev("document.getElementById('detail-synopsis').textContent"));
-  ok(/no synopsis/i.test(syn), `and says no synopsis is written   [${syn.slice(0, 40)}]`);
-  ok(!/beach/i.test(syn),
-     "🚫 and does NOT generate one from the filename");
+  /* ⭐⭐ An empty frame reads as a picture that failed to load; the words are
+     the whole point. And nothing must be invented for a disk with no entry.
+     🆕 2026-09-15 — THE DISK IS PICKED FROM THE FOLDER, NOT NAMED HERE. This
+     used to be 'lib-beach-head', until Andrew filled the art folder on
+     2026-09-14 and Beach-Head got a cover: two checks went red on a hub that
+     was right. The oracle is the filesystem (the hub reads the same folder over
+     HTTP): a Cracked disk whose name and side files match no image, by the
+     hub's rule — name minus extension, case-insensitive. */
+  const artKeys = new Set(readdirSync(ART_DIR)
+    .map((f) => f.match(/^(.*)\.(png|webp|jpe?g|gif)$/i)).filter(Boolean)
+    .map((m) => m[1].trim().toLowerCase()));
+  const bare = JSON.parse(await c.ev(`JSON.stringify(__cat.disks().map(function (d) {
+    return { id: d.id, name: d.displayName, files: (d.files || []).map(function (f) { return f.name; }) };
+  }))`)).find((d) => /^lib-/.test(d.id) &&
+    ![d.name, ...d.files.map((f) => f.replace(/\.[^.]+$/, ""))].some((n) => artKeys.has(n.trim().toLowerCase())));
+  if (bare) {
+    await c.ev(`__cat.select(${JSON.stringify(bare.id)})`);
+    await wait(250);
+    ok((await c.ev("document.getElementById('detail-shot').className")).includes("is-empty"),
+       `a disk with no art says so rather than showing an empty frame   [${bare.name}]`);
+    const syn = String(await c.ev("document.getElementById('detail-synopsis').textContent"));
+    ok(/no synopsis/i.test(syn), `and says no synopsis is written   [${syn.slice(0, 40)}]`);
+    const word = (bare.name.match(/[a-z]{4,}/i) || [bare.name])[0];
+    ok(syn.toLowerCase().indexOf(word.toLowerCase()) < 0,
+       `🚫 and does NOT generate one from the filename   [looked for "${word}"]`);
+  } else {
+    console.log("  skip  no-art state — every Cracked disk has art in the folder");
+  }
 
   /* 🆕 2026-09-12 — THE ARTWORK. One image per disk in Game/cat/assets/disk-art/,
      named after the disk; the frame shows it, falls back to games.js's
@@ -343,9 +371,11 @@ try {
              sleeve: !!r && r.width > 20 && r.height > 20,
              label: s ? s.textContent.replace(/\\s+/g, " ").trim() : "" };
   })())`;
-  const noArt = JSON.parse(await c.ev(SHOT));
-  ok(noArt.sleeve && /no art yet/i.test(noArt.label) && !noArt.bg,
-     `a disk with no art shows the blank-sleeve placeholder   [${noArt.cls}, "${noArt.label}"]`);
+  if (bare) {
+    const noArt = JSON.parse(await c.ev(SHOT));
+    ok(noArt.sleeve && /no art yet/i.test(noArt.label) && !noArt.bg,
+       `a disk with no art shows the blank-sleeve placeholder   [${noArt.cls}, "${noArt.label}"]`);
+  }
 
   await c.ev("__cat.select('aquanaut')");
   const tArt = await until(async () => JSON.parse(await c.ev(SHOT)).cls.includes("is-art"), 3000, 100);
@@ -595,8 +625,9 @@ try {
   /* --- K. a cabinet goes straight into its own game --------------------- */
   section("K. ?cart=<id> — a corridor cabinet goes straight into its game, no hub menu");
   /* 🆕 2026-09-13 — his locked design: a cabinet click skips the hub menu
-     entirely and launches that game. His calls on the two open points: the
-     crack intro STILL plays first, and Exit lands on the ORDINARY hub.
+     entirely and launches that game, and the crack intro STILL plays first.
+     🔄 2026-09-14: Exit Game goes back to the Arcade room inside Fang Rock (§M);
+     here, in a browser, there is no Arcade room and it comes back to the hub.
      ⭐ WHAT IS BEING PROVEN IS WHAT THE PLAYER SEES, NOT JUST THE DESTINATION.
      "Pitstop is running" passes for a build that flashed the whole menu for
      five seconds first — which is exactly what the first cut of this did. So
@@ -617,6 +648,7 @@ try {
     intro: !!document.getElementById("crack"),
     /* a crack intro that is fading OUT (class "out") no longer covers anything */
     covered: !document.getElementById("play").hidden || !!document.querySelector("#crack:not(.out)"),
+    exitLabel: document.getElementById("btn-exit").textContent,
     tags: document.querySelectorAll("#out *:not(div)").length
   })`;
   async function linkOn(url, failListing, after) {
@@ -665,9 +697,10 @@ try {
        `${origin}: the hub menu was never on the glass   [${s.onGlass} of ${s.samples} samples]`);
     ok(!s.lines.some((l) => /^> LOAD|^searching for/.test(l)), `${origin}: no load theatre in front of it`);
     eq(s.inserted, id, `${origin}: and the disk is in the drive`);
+    eq(s.exitLabel, "Exit Game", `${origin}: the play bar's way out says Exit Game`);
     const a = s.after;
     ok(!a.playing && !a.curtain && a.menuShown && a.inserted === id,
-       `${origin}: Exit lands on the ORDINARY hub, disk still in the drive (his call)   [menu ${a.menuShown}, drive ${a.inserted}]`);
+       `${origin}: outside Fang Rock, Exit Game comes back to the hub, disk still in the drive   [menu ${a.menuShown}, drive ${a.inserted}]`);
   }
 
   /* 🚨 "HIDDEN FROM THE FIRST LOOK" ABOVE IS READ AFTER THE LOAD EVENT — by
@@ -676,9 +709,19 @@ try {
      HELD at the network and the menu is read while the page is parsed right up
      to it. ⭐ The no-token page is the control: the same read must say visible,
      or this check cannot see a menu at all. */
-  async function menuWhileHubScriptHeld(q) {
+  /* 🆕 2026-09-14 — FANG ROCK, AS FAR AS A BROWSER CAN BE IT (§M). The shell's
+     preload.js exposes `window.fangRockShell = true` before any page script;
+     this sets the same thing at the same moment. `window.close` is RECORDED, not
+     done: a real close would end the rig's page, and whether it closes an
+     Electron room window at all was measured separately, under the shell's own
+     Electron 32.3.3 (see cat.js, leaveArcade). */
+  const SHELL_PRELOAD =
+    "window.fangRockShell = true; window.__closes = 0; window.close = function () { window.__closes++; };";
+
+  async function menuWhileHubScriptHeld(q, preload) {
     const b = await open({ gpu: true, w: 1280, h: 860 });
     try {
+      if (preload) await b.send("Page.addScriptToEvaluateOnNewDocument", { source: preload });
       await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/cat/cat.js" }] });
       await b.send("Page.navigate", { url: LINK_HUB(q) });
       let held = null;
@@ -696,6 +739,8 @@ try {
   eq(await menuWhileHubScriptHeld(""), "undefined|visible", "[control] with cat.js held and no token, the menu reads visible");
   eq(await menuWhileHubScriptHeld("?cart=pitstop"), "undefined|hidden",
      "with cat.js held, a cabinet link has ALREADY hidden the menu (it is never painted)");
+  eq(await menuWhileHubScriptHeld("", SHELL_PRELOAD), "undefined|hidden",
+     "with cat.js held, inside Fang Rock with no token the menu is ALREADY hidden (its CAD crate is never painted)");
 
   /* the refusals. The link is followed synchronously at boot, so "nothing
      loaded" is read at a moment when a launch WOULD already have started. */
@@ -754,6 +799,12 @@ try {
 
       eq(await b.ev("__cat.select('pitstop') || __cat.select('asteroid') || __cat.select('aquanaut') || __cat.select('blank')"),
          "false", "no cartridge can be selected by id, the Blank Cassette included");
+      /* 🔄 2026-09-16 — the real C64 owns the keyboard in this mode, and selecting
+         hands focus to it, so a Ctrl+Shift+B pressed there is the machine's key.
+         The hub answers it when focus is on the hub's side, which is where this
+         puts it (measured: without this, the key went to the C64 and the check
+         read the hub's silence as a missing message). */
+      await b.ev("document.activeElement && document.activeElement.blur(); document.body.focus(); 1");
       await b.key("keyDown", "B", "KeyB", 66, CTRL_SHIFT);
       await wait(160);
       const gate = JSON.parse(await b.ev(CRACKED));
@@ -762,13 +813,44 @@ try {
       ok(/developer mode is not available/.test(gate.lines.slice(-2).join(" ")),
          `and says why, rather than doing nothing   [${gate.lines.slice(-2).join(" | ")}]`);
 
-      /* typed: a cracked disk in the drive, and a cartridge's filename asked for */
-      const lib = String(await b.ev("__cat.visible()[0]"));
-      await b.ev(`__cat.select(${JSON.stringify(lib)}), __cat.insert(), __cat.execute('LOAD"PITSTOP",8')`);
-      await wait(200);
-      ok(/file not found/.test(String(await b.ev("__cat.lines().slice(-2).join(' ')"))) &&
-         String(await b.ev("__cat.playing()")) === "false",
-         `a typed LOAD"PITSTOP",8 finds nothing   [drive: ${lib}]`);
+      /* 🔄 2026-09-16 — CRACKED MODE IS THE REAL C64 NOW. This used to type
+         LOAD"PITSTOP",8 into the hub's resolver and read ?FILE NOT FOUND off its
+         transcript. There is no resolver in this mode any more: the command is
+         typed INTO THE MACHINE, and it is the machine that answers — which is
+         verify-c64.mjs's to judge, under Electron, because the emulator does not
+         run in this headless browser. What is left to check HERE is the hub's
+         side: the machine is the screen, and a command does not reach the
+         resolver or the play overlay by some other road. */
+      const mach = JSON.parse(await b.ev(`JSON.stringify({ m: __cat.machine(),
+        frame: document.getElementById("machine-frame").getBoundingClientRect().width,
+        out: getComputedStyle(document.getElementById("out")).display,
+        buttons: ["btn-listing", "btn-run", "btn-reset"].filter(function (id) { return !document.getElementById(id).hidden; }),
+        note: __cat.note() })`));
+      ok(mach.m.on && mach.m.started && /emulator\/index\.html\?machine=1/.test(mach.m.src),
+         `the screen is the real C64 (the machine page), not the terminal   [${mach.m.src}]`);
+      ok(mach.out === "none" && mach.frame > 300, `the terminal is off the glass and the machine fills it   [out ${mach.out}, ${Math.round(mach.frame)}px]`);
+      eq(mach.buttons.join(","), "btn-listing,btn-run,btn-reset", "the deck grows List, Run and Reset");
+      ok(typeof mach.note === "string" && mach.note.length > 0, `the hub speaks on the deck's note line   [${mach.note}]`);
+      const before = Number(await b.ev("__cat.lines().length"));
+      await b.ev(`__cat.execute('LOAD"PITSTOP",8')`);
+      await wait(300);
+      const afterLines = await b.ev(`__cat.lines().slice(${before})`);
+      ok(!afterLines.some((l) => /^> LOAD|file not found/i.test(l)) && String(await b.ev("__cat.playing()")) === "false",
+         `a command goes to the machine, not the resolver: no hub echo, nothing launched   [${afterLines.join(" | ") || "no new lines"}]`);
+
+      /* 🆕 his addendum: the power rocker. Outside Fang Rock a tab cannot close
+         itself, so it switches the C64 off (dark screen, empty drive) and on
+         (a fresh boot). Clicked mid-command on purpose: a power switch is never
+         blocked by something in flight. */
+      await b.ev("document.getElementById('c64-power').click()");
+      const off = JSON.parse(await b.ev(`JSON.stringify({ pressed: document.getElementById("c64-power").getAttribute("aria-pressed"),
+        src: document.getElementById("machine-frame").getAttribute("src"), inserted: __cat.inserted(), note: __cat.note() })`));
+      ok(off.pressed === "false" && off.src === "about:blank" && off.inserted === null && /power off/.test(off.note),
+         `the rocker switches the C64 off: dark screen, empty drive, light out   [${JSON.stringify(off)}]`);
+      await b.ev("document.getElementById('c64-power').click()");
+      const on = JSON.parse(await b.ev(`JSON.stringify({ pressed: document.getElementById("c64-power").getAttribute("aria-pressed"),
+        src: document.getElementById("machine-frame").getAttribute("src") })`));
+      ok(on.pressed === "true" && /machine=1/.test(on.src), `and on again: a fresh boot   [${JSON.stringify(on)}]`);
       await b.shot(fileURLToPath(new URL("./verify-cat-cracked.png", import.meta.url)));
     } finally {
       b.close();
@@ -792,6 +874,114 @@ try {
       b.close();
     }
   }
+
+  /* --- M. inside Fang Rock ---------------------------------------------- */
+  section("M. inside Fang Rock — no PLC games on the C64 screen, Exit Game and Power Off leave, Reset stays");
+  /* 🆕 2026-09-14 — his asks, having played it in the installed app:
+       1. a PLC game's way out is "Exit Game", and goes back to the Arcade room
+          (closes Fang Rock's Arcade window); a cracked disk's is "Reset" (his
+          pick for what used to say "Exit to CAT"), back to the disk screen.
+       2. "that C64 main screen in FR, remove the PLC games" — with ANY token or
+          none, the hub inside Fang Rock is cracked disks only.
+       3. a way off the C64 screen back to the Arcade room: "Power Off" (his pick).
+     ⚠️ SHELL_PRELOAD records window.close rather than doing it, so after each
+     "close" the hub's own did-not-close fallback is ALSO exercised: here the
+     window really does stay, and the hub must say so rather than sit there. */
+  async function shellOn(q, fn) {
+    const b = await open({ gpu: true, w: 1280, h: 860 });
+    try {
+      await b.send("Page.addScriptToEvaluateOnNewDocument", { source: SHELL_PRELOAD });
+      await b.goto(LINK_HUB(q));
+      return await fn(b);
+    } finally {
+      b.close();
+    }
+  }
+  const SHELL = `JSON.stringify({
+    state: __cat.link ? __cat.link() : "missing", shell: window.fangRockShell === true,
+    closes: window.__closes, playing: __cat.playing(), inserted: __cat.inserted(),
+    menuShown: getComputedStyle(document.getElementById("cat")).visibility !== "hidden",
+    cadCrate: !!document.getElementById("crate-plc"),
+    cartsInDom: document.querySelectorAll('.disk[data-id="asteroid"],.disk[data-id="aquanaut"],.disk[data-id="pitstop"],.disk[data-id="blank"]').length,
+    roster: __cat.disks().filter(function (d) { return d.runner !== "emulator"; }).map(function (d) { return d.id; }),
+    /* 🔄 2026-09-16: on the C64 screen Power Off is the side panel's rocker (his addendum);
+       the old button is still the one a no-machine hub would show, and it never does here */
+    power: (function (p) { var r = p.getBoundingClientRect(); return !p.closest("[hidden]") && r.width > 20 && r.bottom <= innerHeight; })(document.getElementById("c64-power")),
+    exitLabel: document.getElementById("btn-exit").textContent,
+    lines: __cat.lines()
+  })`;
+
+  /* the C64 screen: no token */
+  await shellOn("", async (b) => {
+    await until(async () => /disk library/i.test(String(await b.ev("__cat.text()"))), 10000);
+    let s = JSON.parse(await b.ev(SHELL));
+    ok(s.shell && s.state === "none", `[control] the page believes it is inside Fang Rock   [shell=${s.shell}, link ${s.state}]`);
+    ok(s.menuShown && !s.cadCrate && s.cartsInDom === 0 && s.roster.length === 0,
+       `no token: the C64 screen has NO PLC games — no CAD crate, none in the DOM or the roster   [${s.roster.join(",")}]`);
+    ok(s.lines.includes("cracked disks only."), "no token: and says it is cracked disks only");
+    ok(s.power, "no token: the power rocker is on the side panel, on screen");
+
+    /* 🔄 2026-09-16 — a cracked disk no longer opens the play overlay: it goes
+       into the real C64 on the screen, and runs there. So its "Reset" is the
+       deck's Reset (and F10), which resets the machine and closes nothing. What
+       that does to the machine is verify-c64.mjs's to judge. */
+    const m = JSON.parse(await b.ev(`JSON.stringify({ m: __cat.machine(),
+      reset: (function (r) { return !r.hidden ? r.title : null; })(document.getElementById("btn-reset")) })`));
+    ok(m.m.on && m.m.started, "no token: the screen is the real C64");
+    ok(/F10/.test(String(m.reset)), `no token: the deck's Reset is there and names its key   [${m.reset}]`);
+    const lib = String(await b.ev("__cat.visible()[0]"));
+    await b.ev(`__cat.select(${JSON.stringify(lib)}), __cat.insert()`);
+    /* 🔄 his addendum: here the drive animation replaces the crack intro */
+    const tIntro = await until(async () => !!(await b.ev("!!document.getElementById('drive-insert')")), 2000, 50);
+    ok(tIntro >= 0 && !(await b.ev("!!document.getElementById('crack')")),
+       `Insert Disk plays the disk-into-drive animation, not the crack intro   [${took(tIntro)}]`);
+    await wait(3500);
+    s = JSON.parse(await b.ev(SHELL));
+    ok(!s.playing, "a cracked disk does NOT open the play overlay: it goes into the machine on the screen");
+    await b.ev("document.getElementById('btn-reset').click()");
+    await wait(300);
+    s = JSON.parse(await b.ev(SHELL));
+    ok(s.closes === 0 && s.menuShown && !s.playing, `Reset closes nothing and leaves the C64 screen up   [closes ${s.closes}]`);
+
+    /* Power Off — the rocker goes down and the light goes out, then the window closes */
+    await b.ev("document.getElementById('c64-power').click()");
+    ok((await b.ev("document.getElementById('c64-power').getAttribute('aria-pressed')")) === "false",
+       "the rocker goes to off and its light goes out");
+    const tClose = await until(async () => Number(await b.ev("window.__closes")) === 1, 2000, 50);
+    ok(tClose >= 0, `and the Arcade window closes   [${took(tClose)}]`);
+    const tStay = await until(async () => (await b.ev("__cat.lines()")).includes("the arcade window did not close."), 4000, 100);
+    ok(tStay >= 0 && (await b.ev("document.getElementById('c64-power').getAttribute('aria-pressed')")) === "true",
+       "and if the window stays, the deck says so and the rocker goes back on (the machine never went off)");
+  });
+
+  /* a cabinet, inside Fang Rock */
+  await shellOn("?cart=pitstop", async (b) => {
+    const tCab = await until(async () => String(await b.ev("__cat.playing()")) === "true");
+    let s = JSON.parse(await b.ev(SHELL));
+    ok(tCab >= 0 && s.state === "launched" && s.inserted === "pitstop",
+       `?cart=pitstop still launches its cartridge inside Fang Rock   [${took(tCab)}]`);
+    ok(!s.cadCrate && s.cartsInDom === 0 && s.roster.length === 0,
+       "while the menu underneath it still holds no PLC games (the cabinet's disk was resolved before the cut)");
+    /* 🆕 2026-09-16 — and no C64 boots unseen behind the cabinet's game */
+    const behind = await b.ev("__cat.machine()");
+    ok(behind.on && !behind.started && (await b.ev("document.getElementById('machine-frame').getAttribute('src')")) === "about:blank",
+       "no C64 is started behind a cabinet's game");
+    eq(s.exitLabel, "Exit Game", "a PLC game's way out says Exit Game");
+    await b.ev("document.getElementById('btn-exit').click()");
+    eq(await b.ev("window.__closes"), 1, "Exit Game closes the Arcade window, back to the Arcade room");
+    const tFall = await until(async () => (await b.ev("__cat.lines()")).includes("the arcade window did not close."), 4000, 100);
+    s = JSON.parse(await b.ev(SHELL));
+    ok(tFall >= 0 && !s.playing && s.cartsInDom === 0,
+       "and if the window stays, the game stops, the terminal says so, and still no PLC game is listed");
+    ok((await b.ev("__cat.machine()")).started, "and the C64 comes on, now that the hub is on the glass");
+  });
+
+  /* an unknown token inside Fang Rock lands on the same C64 screen */
+  await shellOn("?cart=frogger", async (b) => {
+    const s = JSON.parse(await b.ev(SHELL));
+    ok(s.state === "not found" && s.menuShown && !s.cadCrate && s.roster.length === 0 && !s.playing,
+       "an unknown token inside Fang Rock: the C64 screen, refused, still no PLC games");
+  });
 
   /* --- J. the control that must fail ------------------------------------ */
   section("J. [control] the rig can say NO");

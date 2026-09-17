@@ -64,8 +64,8 @@ html, body {
 #crates { grid-column: 1; grid-row: 1; }
 /* 🆕 2026-09-13 — THE CURTAIN for a cabinet launch: his locked call is that a
    cabinet goes straight to its game, with no hub menu step. Set by index.html's
-   head script before first paint, lifted by cat.js for anything that is not a
-   launch, and on Exit (which lands on the ordinary hub — his call too).
+   head script before first paint (for a token, and inside Fang Rock), lifted by
+   cat.js for anything that is not a launch, and whenever a game exits to the hub.
    ⚠️ `visibility`, not `display:none`: the crates still lay out and render
    underneath, so the hub Exit reveals is the finished one, not one mid-build. */
 html.cat-link #cat { visibility: hidden; }
@@ -270,6 +270,45 @@ html.cat-link #cat { visibility: hidden; }
   background: #6b3a34; box-shadow: inset 0 0 3px #000;
 }
 #drive-led.on { background: #ff5f48; box-shadow: 0 0 8px #ff5f48; }
+
+/* ---- 🆕 2026-09-16 — the real C64 on the screen (cracked mode) -----------
+   The screen stops being a terminal and becomes the machine: the transcript,
+   the input line and the CSS scanlines step aside, and the emulator's own
+   picture fills the glass edge to edge. The warm-up flash (#screen.booting)
+   still plays over it, because ::after paints above the frame. */
+#screen.is-machine { padding: 0; background: #000; }
+#screen.is-machine #out,
+#screen.is-machine #line,
+#screen.is-machine #crt { display: none; }
+#machine-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+
+/* the hub's own voice once the screen belongs to the machine */
+#deck-note {
+  min-height: 1.3em;
+  font-size: clamp(10px, 1.2vh, 12px);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #4a4229;
+}
+#deck-note.warn { color: #7a5600; }
+#deck-note.err  { color: #9a2c1a; font-weight: 700; }
+
+/* the input, port and disk-side controls, moved from the play bar onto the
+   deck in cracked mode (the machine is not in an overlay, so neither are they) */
+#deck #play-disks .swap-label { color: #4a4229; }
+#deck #play-disks .btn { min-width: 2.6em; padding: .45em .6em; }
+#deck #play-disks .btn[aria-pressed="true"] {
+  background: linear-gradient(#fff6d0, #e0cf88);
+  box-shadow: 0 0 0 #9a9068, inset 0 1px 0 #fffdf2;
+  transform: translateY(2px);
+}
 
 /* ---- the disk box ------------------------------------------------------- */
 #box-label {
@@ -946,4 +985,289 @@ html.cat-link #cat { visibility: hidden; }
   .crack-title span,
   .crack-scroll-text { animation: none; }
   .crack { transition: none; }
+}
+
+/* ==========================================================================
+   🆕 2026-09-16 — THE C64 CORNER'S OWN PIECES (his addendum,
+   plc_c64_ui_addendum.md). Cracked mode only; cat.js unhides them.
+   ========================================================================== */
+
+/* ---- Insert Disk, where the disks are ---------------------------------------
+   His ask: the button moves to where the disk pictures load, and reads as the
+   primary action there. ⭐ It pulses only while it has something to do — a disk
+   picked and not yet in the drive — so the motion itself says "this next". */
+#crates > #btn-insert.btn--insert {
+  flex: 0 0 auto;
+  width: 100%;
+  font-size: clamp(13px, 1.75vh, 17px);
+  letter-spacing: .08em;
+  padding: .75em 1em;
+  color: #2a1c00;
+  background: linear-gradient(#ffe9a6, #f2bd45);
+  border-color: #a8791c;
+  box-shadow: 0 3px 0 #a8791c, inset 0 1px 0 #fff6d8;
+}
+#crates > #btn-insert.btn--insert:hover:not(:disabled) { background: linear-gradient(#fff1c4, #f6c95e); }
+#crates > #btn-insert.btn--insert:not(:disabled) { animation: insert-pulse 1.7s ease-in-out infinite; }
+#crates > #btn-insert.btn--insert:disabled { color: #6a5f3c; background: linear-gradient(#e2d8b4, #c8bd92); border-color: #9a9068; }
+@keyframes insert-pulse {
+  0%, 100% { box-shadow: 0 3px 0 #a8791c, inset 0 1px 0 #fff6d8, 0 0 0 0 rgba(255, 196, 64, 0); }
+  50%      { box-shadow: 0 3px 0 #a8791c, inset 0 1px 0 #fff6d8, 0 0 20px 3px rgba(255, 196, 64, .55); }
+}
+
+/* ---- the side swap, under Insert Disk (his multi-disk addendum) ------------
+   Same language as the side panel's ports: the side that is in is LIT, the
+   ones you can go to are plain buttons. Two sides get one wide button. */
+#side-swap {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+}
+#side-swap[hidden] { display: none; }
+#side-swap .side-btn {
+  flex: 1 1 0;
+  font-size: clamp(12px, 1.55vh, 15px);
+  padding: .6em .8em;
+  letter-spacing: .06em;
+}
+#side-swap .side-btn:disabled { opacity: 1; cursor: default; }
+#side-swap .side-btn.is-lit {
+  color: #2a1c00;
+  background: linear-gradient(#fff4cf, #f2d27a);
+  border-color: #a8791c;
+  box-shadow: inset 0 0 0 2px rgba(255, 212, 121, .95), 0 0 12px rgba(255, 196, 64, .45);
+}
+
+/* "Now playing: Side A", beside the drive slot */
+#drive-side {
+  padding: .45em .7em;
+  border-radius: 4px;
+  background: #2a2340;
+  color: var(--cat-warn);
+  font-weight: 700;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+#drive-side[hidden] { display: none; }
+
+/* [F9] for the pair of ports, level with their labels. ⚠️ Scoped by id: the
+   generic .c64-part__hint rule comes later in this file and would win a tie. */
+#c64-side .c64-ports__hint {
+  align-self: flex-end;
+  margin: 0 0 5px -6px;
+  font-size: clamp(9px, 1.1vh, 11px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #2c2418;
+}
+
+/* ---- the drive animation (driveinsert.js), over the C64's screen ---------- */
+.drive-insert {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(90% 90% at 50% 45%, rgba(38, 30, 58, .96), rgba(8, 6, 14, .97));
+  border-radius: 10px;
+  animation: drive-in 160ms ease-out;
+  transition: opacity 220ms ease-in;
+  cursor: pointer;
+}
+.drive-insert.out { opacity: 0; }
+@keyframes drive-in { from { opacity: 0; } to { opacity: 1; } }
+.drive-scene { width: min(72%, 560px); height: auto; overflow: visible; }
+.drive-label { font: 700 13px var(--mono); fill: #2b2517; letter-spacing: .04em; }
+.drive-model { font: 700 11px var(--mono); fill: #5c5038; letter-spacing: .18em; }
+.drive-keylabel { font: 700 8px var(--mono); fill: #d8cfa8; letter-spacing: .04em; }
+
+/* the disk: arrives above the slot, holds, slides in and is gone */
+.drive-insert--disk .drive-disk__body { animation: disk-slide 1.9s cubic-bezier(.5, 0, .3, 1) forwards; }
+@keyframes disk-slide {
+  0%   { transform: translateY(-46px); opacity: 0; }
+  14%  { transform: translateY(0);     opacity: 1; }
+  38%  { transform: translateY(0); }
+  68%  { transform: translateY(176px); }
+  100% { transform: translateY(176px); }
+}
+/* then the latch turns down across the slot */
+.drive-latch {
+  transform-box: view-box;
+  transform-origin: 321px 166px;
+  animation: latch-close 1.9s ease-in-out forwards;
+}
+@keyframes latch-close {
+  0%, 70%   { transform: rotate(0deg); }
+  82%, 100% { transform: rotate(90deg); }
+}
+/* and the drive light comes on */
+.drive-led { fill: #4a1a16; animation: drive-led 1.9s steps(1, end) forwards; }
+@keyframes drive-led {
+  0%, 80%   { fill: #4a1a16; }
+  84%       { fill: #ff4a3a; }
+  90%       { fill: #7a241c; }
+  94%, 100% { fill: #ff4a3a; }
+}
+
+/* the tape: drops into the datasette, the door shuts, PLAY goes down */
+.drive-insert--tape .drive-disk__body { animation: tape-drop 1.9s cubic-bezier(.5, 0, .3, 1) forwards; }
+@keyframes tape-drop {
+  0%   { transform: translateY(-80px); opacity: 0; }
+  14%  { transform: translateY(-60px); opacity: 1; }
+  34%  { transform: translateY(-60px); }
+  64%  { transform: translateY(30px); }
+  100% { transform: translateY(30px); }
+}
+.drive-door { fill: #2b2433; opacity: 0; animation: door-shut 1.9s ease-in forwards; }
+@keyframes door-shut { 0%, 66% { opacity: 0; } 78%, 100% { opacity: .62; } }
+.drive-key--play { animation: play-down 1.9s steps(1, end) forwards; }
+@keyframes play-down { 0%, 84% { transform: translateY(0); } 86%, 100% { transform: translateY(4px); } }
+
+/* ---- the side panel ---------------------------------------------------------
+   His ask: below the screen, instead of labels, a drawn C64 side panel — the
+   power rocker with its red light, the two joystick ports, and a small
+   keyboard. ⭐ ONE THING IS LIT AT A TIME, his rule: the keyboard, or ONE port.
+   Everything else greys. The state is painted from the machine's own report
+   (cat.js paintSide), never from the click. */
+#c64-side {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(6px, 1vw, 14px);
+  padding: 8px clamp(8px, 1.2vw, 14px);
+  border-radius: 8px;
+  background: linear-gradient(#b3a58a, #968971 55%, #85785f);
+  box-shadow: inset 0 2px 0 #cfc2a6, inset 0 -3px 7px rgba(0, 0, 0, .32), 0 1px 0 #fff5d6;
+}
+#c64-side[hidden] { display: none; }
+.c64-part {
+  appearance: none;
+  border: 0;
+  background: none;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 5px 9px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--mono);
+  color: #2c2418;
+  transition: opacity 240ms ease, filter 240ms ease, background-color 240ms ease, box-shadow 240ms ease;
+}
+.c64-part:focus-visible { outline: 2px solid #3f329b; outline-offset: 2px; }
+.c64-part.is-lit {
+  background-color: rgba(255, 244, 205, .22);
+  box-shadow: inset 0 0 0 2px rgba(255, 212, 121, .85), 0 0 14px rgba(255, 212, 121, .35);
+}
+.c64-part.is-grey { opacity: .38; filter: grayscale(1); }
+.c64-part__label {
+  font-size: clamp(9px, 1.1vh, 11px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.c64-part__hint { font-weight: 400; opacity: .7; margin-left: .45em; }
+.c64-part__hint::before { content: "["; }
+.c64-part__hint::after  { content: "]"; }
+.c64-side__gap { flex: 1 1 auto; }
+
+/* power: a rocker in its housing, and the red light */
+.c64-power__body { display: flex; align-items: center; gap: 8px; }
+.c64-rocker {
+  width: 24px; height: 34px;
+  border-radius: 4px;
+  background: #1b1712;
+  box-shadow: inset 0 0 0 2px #0c0a07, 0 1px 0 #cfc2a6;
+  display: grid; place-items: center;
+  perspective: 80px;
+}
+.c64-rocker__paddle {
+  position: relative;
+  width: 16px; height: 28px;
+  border-radius: 3px;
+  background: linear-gradient(#5a5046 0%, #3a332c 48%, #2a241f 52%, #463d35 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18);
+  transform: rotateX(-22deg);
+  transition: transform 180ms cubic-bezier(.3, 1.6, .5, 1);
+}
+.c64-rocker__paddle::before {       /* the "I" mark on the upper half */
+  content: ""; position: absolute; left: 7px; top: 4px; width: 2px; height: 8px; background: #d8cfa8; opacity: .8;
+}
+.c64-power[aria-pressed="true"] .c64-rocker__paddle { transform: rotateX(22deg); }
+.c64-led {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #4a1a16;
+  box-shadow: inset 0 0 3px #000;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+.c64-power[aria-pressed="true"] .c64-led {
+  background: #ff3b2f;
+  box-shadow: 0 0 9px 2px rgba(255, 59, 47, .75), inset 0 -1px 2px rgba(0, 0, 0, .35);
+  animation: power-led 3.2s ease-in-out infinite;
+}
+@keyframes power-led { 50% { box-shadow: 0 0 5px 1px rgba(255, 59, 47, .55), inset 0 -1px 2px rgba(0, 0, 0, .35); } }
+
+/* a joystick port: the metal D-shell of a 9-pin socket */
+.c64-port__plug {
+  position: relative;
+  width: 56px; height: 24px;
+  background: linear-gradient(#d9d6cf, #9d998f);
+  clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%);
+  display: grid; place-items: center;
+}
+.c64-port__plug::before {           /* the dark insulator inside the shell */
+  content: "";
+  position: absolute; inset: 3px 5px;
+  background: #1c1914;
+  clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%);
+}
+.c64-port__pins {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 5px);
+  column-gap: 4px; row-gap: 3px;
+  justify-content: center;
+}
+.c64-port__pins i { width: 5px; height: 5px; border-radius: 50%; background: #6d665a; }
+.c64-port__pins i:nth-child(n + 6) { transform: translateX(4.5px); }   /* the lower four sit between the upper five */
+.c64-port.is-lit .c64-port__pins i {
+  background: #ffd479;
+  box-shadow: 0 0 5px rgba(255, 212, 121, .9);
+  animation: pin-glow 1.4s ease-in-out infinite;
+}
+.c64-port.is-lit .c64-port__pins i:nth-child(2n) { animation-delay: .35s; }
+@keyframes pin-glow { 50% { background: #b98c2c; box-shadow: none; } }
+
+/* the keyboard: a small board of keys that ripple while it is the input */
+.c64-keys__board {
+  display: grid;
+  gap: 2px;
+  padding: 4px 5px;
+  border-radius: 3px;
+  background: #3a2f22;
+  box-shadow: inset 0 1px 0 #5a4a36;
+}
+.c64-keys__row { display: flex; gap: 2px; justify-content: center; }
+.c64-keys__row i { width: 6px; height: 5px; border-radius: 1px; background: #6d5a44; box-shadow: inset 0 1px 0 #8f7a60; }
+.c64-keys__row i.space { width: 38px; }
+.c64-keys.is-lit .c64-keys__row i {
+  background: #e9dcc0;
+  box-shadow: inset 0 -1px 0 #9c8a6c;
+  animation: key-ripple 2.4s ease-in-out infinite;
+}
+.c64-keys.is-lit .c64-keys__row:nth-child(2) i { animation-delay: .15s; }
+.c64-keys.is-lit .c64-keys__row:nth-child(3) i { animation-delay: .3s; }
+.c64-keys.is-lit .c64-keys__row:nth-child(4) i { animation-delay: .45s; }
+.c64-keys.is-lit .c64-keys__row:nth-child(5) i { animation-delay: .6s; }
+@keyframes key-ripple { 0%, 70%, 100% { background: #e9dcc0; } 80% { background: #ffd479; } }
+
+@media (prefers-reduced-motion: reduce) {
+  #crates > #btn-insert.btn--insert:not(:disabled) { animation: none; box-shadow: 0 3px 0 #a8791c, 0 0 14px 2px rgba(255, 196, 64, .5); }
+  .drive-insert, .drive-insert--disk .drive-disk__body, .drive-insert--tape .drive-disk__body,
+  .drive-latch, .drive-led, .drive-door, .drive-key--play { animation-duration: .45s; }
+  .c64-power[aria-pressed="true"] .c64-led,
+  .c64-port.is-lit .c64-port__pins i,
+  .c64-keys.is-lit .c64-keys__row i { animation: none; }
+  .c64-rocker__paddle { transition: none; }
 }

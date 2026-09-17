@@ -33,6 +33,7 @@
   var btnInsert = document.getElementById("btn-insert");
   var btnEject  = document.getElementById("btn-eject");
   var btnExit   = document.getElementById("btn-exit");
+  var btnPower  = document.getElementById("btn-power");
   var btnInput  = document.getElementById("btn-input");
   var btnPort   = document.getElementById("btn-port");
   /* the label and the hotkey hint inside each. 🚨 The label is the live region,
@@ -56,7 +57,35 @@
      the hotkeys later". Changing it is one edit HERE, and the hint follows. */
   var HOTKEY_INPUT = "F2";
   var HOTKEY_PORT  = "F9";
+  /* 🆕 2026-09-16 — the way out of a game, and on the real C64 the way back to
+     READY. It was Shift/Ctrl+Escape. His call moved it, because Shift+Escape is
+     Shift+RUN/STOP, and on a real C64 that is how a tape loads. emu.js holds
+     the same key (HOTKEY_EXIT there) for when the frame has focus. */
+  var HOTKEY_EXIT  = "F10";
   var swapBar   = document.getElementById("play-disks");
+
+  /* 🆕 2026-09-16 — the real C64 and the deck controls that go with it */
+  var machineFrame = document.getElementById("machine-frame");
+  var deckNote   = document.getElementById("deck-note");
+  var deckTop    = document.getElementById("deck-top");
+  var driveEl    = document.getElementById("drive");
+  var driveLabel = document.getElementById("drive-label");
+  var btnLoad    = document.getElementById("btn-load");
+  var btnList    = document.getElementById("btn-list");
+  var btnListing = document.getElementById("btn-listing");
+  var btnRun     = document.getElementById("btn-run");
+  var btnReset   = document.getElementById("btn-reset");
+  /* 🆕 2026-09-16 — the C64 side panel (his addendum) */
+  var screenShell = document.getElementById("screen-shell");
+  var sidePanel  = document.getElementById("c64-side");
+  var sidePower  = document.getElementById("c64-power");
+  var sidePort1  = document.getElementById("c64-port1");
+  var sidePort2  = document.getElementById("c64-port2");
+  var sideKeys   = document.getElementById("c64-keys");
+  var sideStatus = document.getElementById("c64-side-status");
+  /* 🆕 2026-09-16 — the multi-disk side swap (his second addendum) */
+  var sideSwap   = document.getElementById("side-swap");
+  var driveSide  = document.getElementById("drive-side");
 
   /* the two crates and the detail panel, 2026-09-11 */
   var stackPlc  = document.querySelector("#crate-plc .crate__stack");
@@ -76,28 +105,6 @@
 
   var DISKS = (window.CAT_DISKS || []).slice();
 
-  /* 🆕 2026-09-13 — THE LINK TOKEN (index.html reads it; see "THE LINK" below).
-     Read up here rather than at boot because one value of it changes the ROSTER,
-     and that has to happen before the first render.
-     ⭐ `cracked` IS THE CORNER C64: cracked disks only, and the regular
-     cartridges HIDDEN ENTIRELY — his locked call, "hidden" chosen over
-     "disabled". So they are not filtered at render, they are taken out of
-     `DISKS` itself, and the CAD crate is removed from the page. Every path that
-     could reach a cartridge — the crates, the A-Z tabs, arrow keys, the
-     resolver, Ctrl+Shift+B, a link, even `__cat.select` — reads this one array,
-     so none of them has anything to find. 🚫 A CSS hide, or a check in
-     `visibleDisks()`, would leave them in memory for the next path someone adds.
-     ⚠️ `runner === "emulator"`, not `!== "plc"`: "cracked only" names what is
-     KEPT, so a runner nobody has invented yet stays out too. */
-  var LINK = window.CAT_LINK === undefined ? null : window.CAT_LINK;
-  var CRACKED_ONLY = LINK === "cracked";
-  if (CRACKED_ONLY) {
-    DISKS = DISKS.filter(function (d) { return d.runner === "emulator"; });
-    var cratePlc = document.getElementById("crate-plc");
-    if (cratePlc) cratePlc.parentNode.removeChild(cratePlc);
-    stackPlc = null;
-  }
-
   /* ---- state ------------------------------------------------------------
      `selected` is the disk highlighted in the box. `inserted` is the disk in
      the drive. They are deliberately two different things: inserting is an
@@ -110,12 +117,73 @@
   var devUnlocked = false;
   var running  = null;    /* the disk currently up in the play overlay */
 
+  /* =======================================================================
+     🆕 2026-09-13 — THE LINK TOKEN, AND WHERE THE HUB IS RUNNING. Read up here,
+     before the first render, because both can change the ROSTER. (index.html
+     reads the token; "THE LINK" further down acts on it.)
+
+     `IN_SHELL` — inside Fang Rock. `window.fangRockShell` is the shell's own
+     marker (its preload.js), the sanctioned way to tell the shell from a tab.
+
+     ⭐ CRACKED ONLY: the corner C64's `cracked` token, AND ANYWHERE INSIDE FANG
+     ROCK (his call, 2026-09-14: "that C64 main screen in FR, remove the PLC
+     games" — in Fang Rock the cabinets are how a PLC game is played). The
+     regular cartridges are HIDDEN ENTIRELY — "hidden" chosen over "disabled" —
+     so they are not filtered at render, they are taken out of `DISKS` itself,
+     and the CAD crate is removed from the page. Every path that could reach a
+     cartridge — the crates, the A-Z tabs, arrow keys, the resolver,
+     Ctrl+Shift+B, even `__cat.select` — reads this one array, so none of them
+     has anything to find. 🚫 A CSS hide, or a check in `visibleDisks()`, would
+     leave them in memory for the next path someone adds.
+     ⚠️ `runner === "emulator"`, not `!== "plc"`: "cracked only" names what is
+     KEPT, so a runner nobody has invented yet stays out too.
+
+     🚨 A CABINET'S GAME IS RESOLVED FIRST, BEFORE THE CUT. Inside Fang Rock a
+     cabinet link names a cartridge the menu must not show, so `LINKED` holds
+     that one disk object from the full roster and nothing else does. It goes
+     straight into the drive and the play overlay, and Exit Game closes the
+     window (see `exitGame`) — so the menu it is missing from is never on screen
+     while it is loaded. Resolved against `visibleDisks()`, NEVER `DISKS`: a
+     link must not be a way round the Ctrl+Shift+B gate (Laws 0.15/0.16).
+     ⚠️ `^[a-z]+$` ONLY, so a link can only ever name a hand-written cartridge —
+     library.js ids all carry a hyphen (`lib-…`), and they have not been
+     scanned yet at this point anyway.
+     ===================================================================== */
+  var LINK = window.CAT_LINK === undefined ? null : window.CAT_LINK;
+  var IN_SHELL = window.fangRockShell === true;
+  var CART_ID = /^[a-z]+$/;
+  var LINKED = null;
+  if (LINK !== "cracked" && CART_ID.test(LINK || "")) {
+    visibleDisks().forEach(function (d) { if (!LINKED && d.id === LINK) LINKED = d; });
+  }
+  var CRACKED_ONLY = LINK === "cracked" || IN_SHELL;
+  if (CRACKED_ONLY) {
+    DISKS = DISKS.filter(function (d) { return d.runner === "emulator"; });
+    var cratePlc = document.getElementById("crate-plc");
+    if (cratePlc) cratePlc.parentNode.removeChild(cratePlc);
+    stackPlc = null;
+  }
+
+  /* 🆕 2026-09-16 — CRACKED MODE IS THE REAL C64. His locked ask: "Booting
+     through FR must show the real emulator home/boot screen — not a
+     placeholder", with typed LOAD"*",8,1 and the Load Game button giving the
+     same machine state, and real BASIC. Cracked mode is exactly "inside Fang
+     Rock" plus the corner C64's token, so the two are one switch.
+     ⭐ Only cracked disks run on a C64 at all: a PLC cartridge is a web page, so
+     the ordinary hub (cartridges and all) keeps its resolver unchanged, and a
+     cabinet inside Fang Rock still opens its game in the play overlay.
+     See "THE MACHINE" below. */
+  var MACHINE = CRACKED_ONLY;
+
   /* The crack intro, with a no-op stand-in when crackintro.js is not on the
      page. 🚨 The stand-in is not politeness — `theatre()` chains the LAUNCH
      off this promise, so a missing file without it would leave every load
      hanging forever at "run" with no error anywhere. A hub that cannot start
      a game because a decoration is absent is the worse failure by far. */
   var CRACK = window.CAT_CRACK || { play: function () { return Promise.resolve("no-intro"); } };
+  /* 🆕 2026-09-16 — the C64 corner's disk-into-drive animation, which replaces
+     the crack intro THERE (his addendum). Same stand-in, same reason. */
+  var DRIVE = window.CAT_DRIVE || { play: function () { return Promise.resolve("no-animation"); } };
 
   /* A per-disk tint for the sleeve stripe. Cosmetic only — derived from the
      id so a new cartridge gets a colour without anyone choosing one. */
@@ -132,6 +200,13 @@
     d.textContent = text;
     out.appendChild(d);
     out.scrollTop = out.scrollHeight;
+    /* On the real C64 the transcript is off the glass, so the hub's latest
+       words go on the deck's note line instead — the prompt itself belongs to
+       the machine, so "ready." is never echoed there. */
+    if (MACHINE && String(text).trim() && text !== "ready.") {
+      deckNote.textContent = text;
+      deckNote.className = cls === "warn" || cls === "err" ? cls : "";
+    }
     return d;
   }
   function blank() { write(" "); }
@@ -314,7 +389,10 @@
         if (next.scrollIntoView) next.scrollIntoView({ block: "nearest" });
         var d = null;
         DISKS.forEach(function (x) { if (x.id === next.dataset.id) d = x; });
-        if (d) select(d);
+        /* keep focus on the pile: on the real C64 selecting would otherwise
+           hand the keyboard to the machine, and the next arrow would move the
+           C64's cursor instead of the next record */
+        if (d) select(d, true);
       });
     return b;
   }
@@ -452,12 +530,14 @@
     }
   }
 
-  function select(disk) {
+  function select(disk, keepFocus) {
     selected = disk;
     btnInsert.disabled = !disk || disk === inserted;
+    /* on the real C64 a tape goes into a datasette, and the button says so */
+    if (MACHINE) btnInsert.textContent = disk && disk.runner === "emulator" && mediumOfDisk(disk) === "tape" ? "Insert Tape" : "Insert Disk";
     renderDetail(disk);
     renderBox();
-    focusTerminal();
+    if (!keepFocus) focusTerminal();
   }
 
   function setDrive(disk) {
@@ -470,6 +550,9 @@
 
   function insertSelected() {
     if (!selected || selected === inserted) return;
+    /* a cracked disk on the real C64 goes into the RUNNING machine; a PLC
+       cartridge (a cabinet link) never does, it is a web page */
+    if (MACHINE && selected.runner === "emulator") { machineInsert(selected); return; }
     setDrive(selected);
     write("disk inserted: " + selected.displayName.toUpperCase(), "dim");
     ready();
@@ -478,6 +561,7 @@
 
   function ejectDisk() {
     if (!inserted) return;
+    if (MACHINE && inserted.runner === "emulator") { machineEject(); return; }
     var was = inserted.displayName.toUpperCase();
     setDrive(null);
     write("disk removed: " + was, "dim");
@@ -693,6 +777,16 @@
   function launch(disk) {
     playTitle.textContent = disk.displayName;
     running = disk;
+    /* 🆕 2026-09-14 — the way out says where it goes (his calls). A PLC game is
+       "Exit Game": inside Fang Rock that closes the Arcade window, back to the
+       Arcade room. A cracked disk is "Reset", the machine's own way out of a
+       game: back to the disk screen, disk still in the drive. It used to say
+       "Exit to CAT" for both. See `exitGame`. */
+    var leaves = disk.runner === "plc";
+    btnExit.textContent = leaves ? "Exit Game" : "Reset";
+    btnExit.title = leaves
+      ? (IN_SHELL ? "Stop the game and go back to the Arcade room" : "Stop the game")
+      : "Stop the game and go back to the disk screen";
     frame.src = sourceFor(disk);
     renderSwap(disk);
     /* 🚨 Hidden, NOT set to a guess. Only a cartridge running EmulatorJS has an
@@ -741,15 +835,465 @@
        than running on behind a hidden panel — audio included. */
     frame.src = "about:blank";
     play.hidden = true;
-    /* a cabinet-launched game exits to the ORDINARY hub (his call), so the
-       curtain that kept the menu off the glass comes down here */
+    /* whatever is exiting to the hub (a cracked disk's Reset, or any game
+       outside Fang Rock), the curtain that kept the menu off the glass during a
+       cabinet launch comes down here */
     liftCurtain();
     running = null;
     renderSwap(null);
     blank();
     write("cartridge stopped.", "dim");
     ready();
+    /* a cabinet's game inside cracked mode kept the machine switched off behind
+       it; the hub is on the glass now, so the machine comes on */
+    if (MACHINE) { startMachine(); renderSwap(inserted); }
     focusTerminal();
+  }
+
+  /* 🆕 2026-09-14 — THE PLAY BAR'S WAY OUT, and the one function the button,
+     the F10 key (Ctrl/Shift+Esc until 2026-09-16) and the emulator's own exit message all use, so the
+     three cannot disagree about where a player lands.
+     His call: a PLC game's Exit Game goes BACK TO THE ARCADE ROOM. Inside Fang
+     Rock that means closing this window. A cracked disk's Reset goes back to the
+     disk screen. Outside Fang Rock there is no Arcade room to return to and a
+     tab cannot close itself, so every game comes back to the hub. */
+  function exitGame() {
+    if (running && running.runner === "plc" && IN_SHELL) { leaveArcade(); return; }
+    /* 🆕 2026-09-16 — on the real C64 a cracked game is not in an overlay, it
+       is running in the machine, so its way out is the machine's: Reset, back
+       to READY. with the disk still in the drive. */
+    if (!running && MACHINE) { machineReset(); return; }
+    exitToHub();
+  }
+
+  /* Closes Fang Rock's Arcade window, back to the Arcade room: Exit Game on a
+     PLC game, and Power Off on the disk screen.
+     📌 MEASURED, NOT ASSUMED, 2026-09-14: under the shell's own Electron
+     (32.3.3), with its arcade: scheme, webPreferences and preload mirrored in a
+     scratch main, `window.close()` from this page closes the room window — on a
+     first load AND after the shell has reloaded it with a different token
+     (history.length 2), which is the case Chromium's "scripts may close only
+     the windows they opened" rule would refuse in a browser. No shell change,
+     no IPC. The real shell was not launched (it re-points fangrock:// in dev).
+     ⚠️ If the window is somehow still here a moment later, say so on the
+     terminal rather than leave a button that looks like it did nothing. */
+  function leaveArcade() {
+    frame.src = "about:blank";
+    window.close();
+    setTimeout(function () {
+      if (running) exitToHub();
+      /* the rocker went down on the way out; the machine is still on */
+      if (MACHINE) paintPower(true);
+      write("the arcade window did not close.", "err");
+      ready();
+    }, 1500);
+  }
+
+  /* =======================================================================
+     🆕 2026-09-16 — THE MACHINE: a real C64 on the CAT computer's screen.
+
+     His locked requirements (plc_c64_boot_and_typing_prompt.md, and the
+     corridor's Brief_Real-C64-Typing_2026-09-16.md in this folder):
+       1. booting shows the REAL emulator boot screen, not a placeholder;
+       2. a disk inserted, then LOAD"*",8,1 typed or the Load Game button —
+          identical machine state, "no parallel fake logic path";
+       3. real typing: arbitrary BASIC works;
+     and his answers the same day: the crack intro plays ON INSERT DISK, the
+     machine opens in KEYBOARD mode, and the exit key is F10.
+
+     ⭐ THE ONE-PATH RULE STILL HOLDS; ITS PATH MOVED. In the resolver hub a
+     button submits a string to execute(). Here a button TYPES its string into
+     the machine, one key at a time, through the same element a real key press
+     lands on (emu.js). The machine then does whatever a C64 does with it —
+     including ?SYNTAX ERROR, ?FILE NOT FOUND and PRESS PLAY ON TAPE, which
+     the hub no longer fakes and no longer needs to.
+     🚫 So nothing in this section interprets a command. It moves disks, types
+     keys, resets, and reports what the machine answered.
+
+     The crack intro cannot sit between RUN and the game any more: RUN goes
+     straight into the machine and the hub never sees it. His call: it plays
+     when the disk goes in.
+     🔄 SAME DAY, HIS ADDENDUM (plc_c64_ui_addendum.md): here, Insert plays a
+     disk sliding into a drive (driveinsert.js) instead of the crack intro, and
+     the deck's Input / Port / Power Off become a drawn C64 side panel. The
+     crack intro still plays for a cabinet's launch.
+     ===================================================================== */
+  var machineStarted = false;
+  var machineFailed  = null;
+  var machineOff     = false;   /* the rocker, outside Fang Rock (see "power") */
+  var medium   = null;      /* "disk" | "tape" | null — what the machine said went in */
+  var waiters  = [];        /* commands waiting on the machine's answer */
+  var forwarded = {};       /* keys the hub passed on, so their release follows them */
+
+  function startMachine() {
+    if (!MACHINE || machineStarted) return;
+    machineStarted = true;
+    screen.classList.add("is-machine");
+    machineFrame.hidden = false;
+    machineFrame.src = "emulator/index.html?machine=1&title=CAT";
+  }
+
+  /* 🚨 FOCUS GOES INTO THE MACHINE, ALL THE WAY. Focusing the iframe alone puts
+     keys on the frame's body, which the core does not listen to; emu.js passes
+     those on and takes focus itself, and cat:focus asks for it directly. */
+  function focusMachine() {
+    if (!MACHINE || !machineStarted || !play.hidden) return;
+    try { machineFrame.focus(); } catch (e) { /* not focusable yet */ }
+    postMachine({ type: "cat:focus" });
+  }
+
+  /* the crack intro takes its skip key in the hub's document, so the machine
+     must not be holding the keyboard while it plays */
+  function releaseMachineFocus() {
+    if (document.activeElement === machineFrame) machineFrame.blur();
+  }
+
+  function postMachine(msg) {
+    try { machineFrame.contentWindow.postMessage(msg, "*"); return true; }
+    catch (e) { return false; }
+  }
+
+  /* Send a command and wait for the machine's answer. ⚠️ ALWAYS SETTLES: an
+     answer, a machine that has said it cannot run, or a timeout that says so —
+     never a button that silently stays busy. */
+  function machineCall(msg, replies, ms) {
+    return new Promise(function (resolve, reject) {
+      if (machineOff) { reject(new Error("the c64 is switched off")); return; }
+      if (machineFailed) { reject(new Error(machineFailed)); return; }
+      var w = { replies: replies, resolve: resolve, reject: reject };
+      w.timer = setTimeout(function () {
+        var i = waiters.indexOf(w);
+        if (i !== -1) waiters.splice(i, 1);
+        reject(new Error("the machine did not answer"));
+      }, ms);
+      waiters.push(w);
+      if (!postMachine(msg)) {
+        clearTimeout(w.timer);
+        waiters.splice(waiters.indexOf(w), 1);
+        reject(new Error("the machine is not reachable"));
+      }
+    });
+  }
+
+  /* A message from the machine frame. Returns true when nothing else should
+     look at it. */
+  function machineMessage(m) {
+    if (m.type === "cat:machinefailed") {
+      machineFailed = String(m.reason || "the machine could not start");
+      waiters.splice(0).forEach(function (w) { clearTimeout(w.timer); w.reject(new Error(machineFailed)); });
+      write("the c64 could not start: " + machineFailed, "err");
+      return true;
+    }
+    if (m.type === "cat:machine") return true;
+    for (var i = 0; i < waiters.length; i++) {
+      if (waiters[i].replies.indexOf(m.type) !== -1) {
+        var w = waiters.splice(i, 1)[0];
+        clearTimeout(w.timer);
+        w.resolve(m);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /* The Load button types what loads the medium that is in: LOAD"*",8,1 for a
+     disk, LOAD for a tape. It says exactly what it will type, so a player
+     watching it learns what to type themselves. */
+  function paintLoad() {
+    var tape = MACHINE && medium === "tape";
+    btnLoad.dataset.cmd = tape ? "LOAD" : 'LOAD"*",8,1';
+    btnLoad.textContent = tape ? "Load" : "Load \"*\",8,1";
+    driveLabel.textContent = tape ? "Tape" : "Drive 8";
+  }
+
+  function machineInsert(disk) {
+    if (busy) return;
+    if (machineOff) { write("the c64 is switched off. power it on first.", "warn"); return; }
+    busy = true;
+    led.classList.add("on");
+    releaseMachineFocus();
+    var files = (disk.files || []).map(function (f) { return new URL(f.url, location.href).href; });
+    DRIVE.play(disk, { medium: mediumOfDisk(disk), host: screenShell })
+      .then(function () {
+        return machineCall({ type: "cat:insert", files: files }, ["cat:inserted", "cat:insertfailed"], 60000);
+      })
+      .then(function (m) {
+        if (m.type === "cat:inserted") {
+          disk.side = 0;
+          medium = m.medium === "tape" ? "tape" : "disk";
+          setDrive(disk);
+          paintLoad();
+          renderSwap(disk);
+          write((medium === "tape" ? "tape inserted: " : "disk inserted: ") + disk.displayName.toUpperCase(), "dim");
+        } else {
+          write("could not insert " + disk.displayName.toUpperCase() + ": " + String(m.reason || "no reason given"), "err");
+        }
+      })
+      .catch(function (err) {
+        if (!err.byPowerOff) write("could not insert " + disk.displayName.toUpperCase() + ": " + err.message, "err");
+      })
+      .then(function () {
+        led.classList.remove("on");
+        busy = false;
+        ready();
+        renderBox();
+        focusMachine();
+      });
+  }
+
+  function machineEject() {
+    if (busy) return;
+    busy = true;
+    var was = inserted.displayName.toUpperCase();
+    machineCall({ type: "cat:eject" }, ["cat:ejected", "cat:ejectfailed"], 20000)
+      .then(function (m) {
+        if (m.type !== "cat:ejected") throw new Error(String(m.reason || "no reason given"));
+        medium = null;
+        setDrive(null);
+        paintLoad();
+        renderSwap(null);
+        write("removed: " + was, "dim");
+      })
+      .catch(function (err) { if (!err.byPowerOff) write("could not eject: " + err.message, "err"); })
+      .then(function () { busy = false; ready(); renderBox(); focusMachine(); });
+  }
+
+  /* A command button on the real C64: TYPE the string, then RETURN. */
+  function machineType(cmd) {
+    if (busy) return;
+    busy = true;
+    machineCall({ type: "cat:type", text: String(cmd) + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
+      .then(function (m) {
+        if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
+      })
+      .catch(function (err) { if (!err.byPowerOff) write("could not type " + String(cmd) + ": " + err.message, "err"); })
+      .then(function () { busy = false; focusMachine(); });
+  }
+
+  function machineReset() {
+    if (busy || !machineStarted) return;
+    busy = true;
+    machineCall({ type: "cat:reset" }, ["cat:resetdone", "cat:resetfailed"], 20000)
+      .then(function (m) {
+        if (m.type !== "cat:resetdone") throw new Error(String(m.reason || "no reason given"));
+        write("reset." + (inserted ? " " + inserted.displayName.toUpperCase() + " is still in." : ""), "dim");
+      })
+      .catch(function (err) { if (!err.byPowerOff) write("could not reset: " + err.message, "err"); })
+      .then(function () { busy = false; ready(); focusMachine(); });
+  }
+
+  /* ---- the sides of a multi-disk game ------------------------------------
+     His second addendum, written because swapping has gone wrong for him before:
+     the player never picks a FILE, never needs a second drive, and never has to
+     wonder which side is in.
+       - The sides are ONE library entry already: library.js pairs "- d1 / d2",
+         "(Disk 1)", "Side A / B" off the file names, and Insert puts side A in.
+       - DRIVE 8 ONLY. A swap writes the other side over the drive's other slot
+         in the running machine (emu.js putIn) — the same drive a game asks for.
+       - ONE CONTROL, only while such a game is in: two sides get one button,
+         "Swap to Side B"; more than two get one button per side, so any side is
+         still a single click (cycling through the others to reach one would
+         show the game sides it never asked for). The side that is in is lit,
+         like the port the stick is in.
+       - "Now playing: Side A" beside the drive, always, from the machine's answer.
+     🚫 Out of scope, his words: noticing that a game wants the other side. */
+  function sideName(i) { return "Side " + String.fromCharCode(65 + i); }
+
+  function renderSides(disk) {
+    sideSwap.textContent = "";
+    var multi = !!(disk && disk.runner === "emulator" && disk.files && disk.files.length > 1 && disk === inserted);
+    sideSwap.hidden = !multi;
+    driveSide.hidden = !multi;
+    if (!multi) { driveSide.textContent = ""; return; }
+    var cur = disk.side || 0;
+    driveSide.textContent = "Now playing: " + sideName(cur);
+    var add = function (i, label, lit) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn side-btn" + (lit ? " is-lit" : "");
+      b.textContent = label;
+      b.dataset.side = String(i);
+      b.setAttribute("aria-pressed", String(lit));
+      b.disabled = lit;
+      b.addEventListener("click", function () { machineSwap(i); });
+      sideSwap.appendChild(b);
+    };
+    if (disk.files.length === 2) add(cur === 0 ? 1 : 0, "Swap to " + sideName(cur === 0 ? 1 : 0), false);
+    else disk.files.forEach(function (f, i) { add(i, sideName(i), i === cur); });
+  }
+
+  function machineSwap(index) {
+    var disk = inserted;
+    if (busy || !disk || !disk.files || !disk.files[index] || index === (disk.side || 0)) return;
+    busy = true;
+    led.classList.add("on");
+    machineCall({ type: "cat:swap", index: index }, ["cat:swapped", "cat:swapnote"], 60000)
+      .then(function (m) {
+        if (m.type !== "cat:swapped") throw new Error(String(m.note || "no reason given").replace(/^could not swap: /, ""));
+        disk.side = Number(m.index) || 0;
+        write(sideName(disk.side).toLowerCase() + " is in the drive.", "dim");
+      })
+      .catch(function (err) { if (!err.byPowerOff) write("could not swap sides: " + err.message, "err"); })
+      .then(function () {
+        led.classList.remove("on");
+        busy = false;
+        renderSides(inserted);
+        focusMachine();
+      });
+  }
+
+  /* One entry point for every command button and for the tooling surface. */
+  function submitCommand(cmd) {
+    if (MACHINE && machineStarted) machineType(cmd);
+    else execute(cmd);
+  }
+
+  /* A key the HUB received while cracked mode was on — the player clicked a
+     crate, then typed. Passed on rather than dropped, and focus follows it, so
+     the rest of what they type goes straight in. */
+  function forwardKey(phase, e) {
+    postMachine({ type: "cat:key", phase: phase, code: e.code, key: e.key, keyCode: e.keyCode,
+                  shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey });
+  }
+
+  /* What a library entry IS, from its first file's name — only so the Insert
+     button and the drive animation can say "tape" for a tape. 🚫 Not what the
+     machine is told: the machine works that out from the image itself, and
+     `medium` above is set from its answer. */
+  function mediumOfDisk(disk) {
+    var f = disk && disk.files && disk.files[0];
+    return f && /\.(t64|tap)$/i.test(String(f.name)) ? "tape" : "disk";
+  }
+
+  /* ---- the side panel -----------------------------------------------------
+     His addendum: the power rocker with a red light, the two joystick ports,
+     and a small keyboard. ONE THING LIT AT A TIME: the keyboard, or the port
+     the stick is in; everything else greys.
+     🚨 PAINTED FROM THE MACHINE'S REPORTS (cat:inputmode, cat:portmode), never
+     from the click — the same rule the play bar's labels have followed since
+     2026-09-08: a panel that lights a port the machine did not switch to is a
+     panel that lies about why the stick is dead.
+     📌 THE PORT SWAP IS REAL, measured 2026-09-16 on the running core: a BASIC
+     loop printing PEEK(56320),PEEK(56321) read the stick on port 2 ($DC00 126),
+     then after one live switch on port 1 ($DC01 254), then back. */
+  var side = { keyboard: null, port: null };
+  function paintSide() {
+    var kbd = side.keyboard === true, joy = side.keyboard === false;
+    var lit = function (el, on, grey) {
+      el.classList.toggle("is-lit", on);
+      el.classList.toggle("is-grey", grey);
+      el.setAttribute("aria-pressed", String(on));
+    };
+    lit(sideKeys, kbd, joy);
+    lit(sidePort1, joy && side.port === "1", kbd || (joy && side.port !== "1"));
+    lit(sidePort2, joy && side.port === "2", kbd || (joy && side.port !== "2"));
+    sidePanel.dataset.mode = kbd ? "keyboard" : joy ? "joystick" : "";
+    sidePanel.dataset.port = side.port || "";
+    sideStatus.textContent = kbd ? "Input: keyboard" : joy ? "Input: joystick in port " + side.port : "";
+  }
+  function paintPower(on) {
+    sidePower.setAttribute("aria-pressed", String(on));
+    sidePower.title = IN_SHELL
+      ? "Power off: close the Arcade and go back to the Arcade room"
+      : (on ? "Switch the C64 off" : "Switch the C64 on");
+  }
+
+  /* THE ROCKER. Inside Fang Rock it is Power Off, his ruling of 2026-09-14:
+     it closes the Arcade window, back to the Arcade room — the switch goes
+     down and the light goes out first, so the click is seen to land. Outside
+     Fang Rock a tab cannot close itself, so it switches the C64 itself off
+     (the screen goes dark, the machine and its drive empty) and on again (a
+     fresh boot). */
+  function pressPower() {
+    /* 🚫 NOT blocked while the hub is busy. It is a power switch, and inside
+       Fang Rock it is the way out: a load or a reset in flight must never be
+       what stops it. Switching off rejects whatever was waiting on the machine,
+       and each of those clears `busy` as it settles. */
+    if (IN_SHELL) {
+      paintPower(false);
+      setTimeout(leaveArcade, 320);
+      return;
+    }
+    if (!machineOff) {
+      machineOff = true;
+      /* what was waiting is cancelled QUIETLY: the player switched it off, and
+         "could not type …" landing on the note after "power off." reads as a
+         fault (measured — it overwrote the note in verify-cat §L) */
+      waiters.splice(0).forEach(function (w) {
+        var err = new Error("the c64 is switched off");
+        err.byPowerOff = true;
+        clearTimeout(w.timer);
+        w.reject(err);
+      });
+      machineFrame.src = "about:blank";
+      if (inserted && inserted.runner === "emulator") setDrive(null);
+      medium = null;
+      paintLoad();
+      renderSwap(null);
+      side.keyboard = side.port = null;
+      paintSide();
+      paintPower(false);
+      write("power off.", "dim");
+    } else {
+      machineOff = false;
+      machineFailed = null;
+      machineFrame.src = "emulator/index.html?machine=1&title=CAT";
+      paintPower(true);
+      write("power on.", "dim");
+      focusMachine();
+    }
+    renderBox();
+  }
+
+  function setupMachineDeck() {
+    /* the play bar's numbered disk buttons are not used here: the sides have
+       their own control beside Insert Disk (renderSides) */
+    /* his addendum: Input, Port and Power Off become the side panel. The play
+       bar's Input/Port stay where they are, for a cabinet's game (they only
+       ever show for an emulator, and none runs in that overlay here). */
+    btnPower.hidden = true;
+    sidePanel.hidden = false;
+    /* his F-key addendum: [F2] at the keyboard, [F9] at the ports, [F10] at
+       Reset — each rendered from its constant, like the play bar's hints */
+    document.getElementById("c64-keys-hint").textContent = HOTKEY_INPUT;
+    document.getElementById("c64-port-hint").textContent = HOTKEY_PORT;
+    document.getElementById("btn-reset-hint").textContent = HOTKEY_EXIT;
+    sidePort1.title = "Joystick in port 1 (" + HOTKEY_PORT + " swaps ports)";
+    sidePort2.title = "Joystick in port 2 (" + HOTKEY_PORT + " swaps ports)";
+    sideKeys.title = "Type on the keyboard (" + HOTKEY_INPUT + " switches to the joystick)";
+    paintPower(true);
+    paintSide();
+    sidePower.addEventListener("click", pressPower);
+    sideKeys.addEventListener("click", function () { postMachine({ type: "cat:keyboard" }); focusMachine(); });
+    [sidePort1, sidePort2].forEach(function (p) {
+      p.addEventListener("click", function () { postMachine({ type: "cat:joystick", port: p.dataset.port }); focusMachine(); });
+    });
+    /* his addendum: Insert Disk goes where the disks are, and stands out there */
+    btnInsert.classList.add("btn--insert");
+    var cratesEl = document.getElementById("crates");
+    cratesEl.insertBefore(btnInsert, sideSwap);   /* the side swap sits right under it */
+    cratesEl.addEventListener("mousedown", function (e) {
+      if (machineStarted && e.target.closest && e.target.closest("#btn-insert, #side-swap button")) e.preventDefault();
+    });
+    btnListing.hidden = false;
+    btnRun.hidden = false;
+    btnReset.hidden = false;
+    btnList.textContent = "Load \"$\",8";
+    btnReset.title = "Reset the C64, back to READY. The disk stays in the drive (" + HOTKEY_EXIT + ")";
+    deckNote.hidden = false;
+    paintLoad();
+
+    /* 🚨 A DECK BUTTON CLICKED WITH THE MOUSE MUST NOT TAKE THE KEYBOARD.
+       Measured in verify-c64 §G: after clicking Load, the button kept focus, and
+       the player's next Space or Enter pressed Load AGAIN — a second
+       LOAD"*",8,1 typed into the machine in the middle of what they were
+       typing. Refusing focus on mousedown keeps the keyboard in the C64 the whole
+       time; the click still happens. ⭐ Tab + Enter/Space still work for anyone
+       driving the deck from the keyboard. On the deck, so the disk-side buttons
+       made later are covered too. */
+    document.getElementById("deck").addEventListener("mousedown", function (e) {
+      if (machineStarted && e.target.closest && e.target.closest("button")) e.preventDefault();
+    });
   }
 
   /* =======================================================================
@@ -762,6 +1306,8 @@
      saying which side is in and letting the player pick another.
      ===================================================================== */
   function renderSwap(disk) {
+    /* on the real C64 the sides have their own control beside Insert Disk */
+    if (MACHINE && !running) { swapBar.hidden = true; renderSides(disk); return; }
     swapBar.textContent = "";
     if (!disk || disk.runner !== "emulator" || !disk.files || disk.files.length < 2) {
       swapBar.hidden = true;
@@ -786,7 +1332,8 @@
            be told. Marking the button as done before the emulator confirmed
            would make the UI claim a swap that may not have happened — the
            exact class of lie the swapfailed branch below exists to prevent. */
-        frame.contentWindow.postMessage({ type: "cat:swap", index: i }, "*");
+        if (MACHINE && disk === inserted && !running) { postMachine({ type: "cat:swap", index: i }); focusMachine(); }
+        else frame.contentWindow.postMessage({ type: "cat:swap", index: i }, "*");
       });
       swapBar.appendChild(b);
     });
@@ -799,15 +1346,30 @@
      and no message can cause a navigation. */
   window.addEventListener("message", function (e) {
     var m = e.data;
-    if (!m || typeof m !== "object" || !running) return;
+    if (!m || typeof m !== "object") return;
+    /* 🆕 2026-09-16 — two frames can talk now: the play overlay's cartridge,
+       and the real C64 on the screen. Told apart by WHICH WINDOW sent it, not by
+       what it says. `cur` is the disk the message is about. */
+    var fromMachine = MACHINE && machineStarted && e.source === machineFrame.contentWindow;
+    if (fromMachine) {
+      if (machineMessage(m)) return;
+    } else if (!running) {
+      return;
+    }
+    var cur = fromMachine ? inserted : running;
 
-    if (m.type === "cat:exit") { exitToHub(); return; }
+    if (m.type === "cat:exit") { exitGame(); return; }
 
     /* INPUT MODE. 🚨 The cartridge is the only thing that knows which mode is
        really live - EmulatorJS owns the setting - so the hub PAINTS this and
        never sets it. The button asks for a flip and waits to be told what
        happened; it does not toggle its own label optimistically, because a
        label that disagrees with the machine is worse than no label at all. */
+    if (m.type === "cat:inputmode" && fromMachine) {
+      side.keyboard = !!m.keyboard;
+      paintSide();
+      return;
+    }
     if (m.type === "cat:inputmode") {
       btnInput.hidden = false;
       inputLabel.textContent = m.keyboard ? "Input: Keyboard" : "Input: Joystick";
@@ -826,6 +1388,11 @@
        flip rather than announcing one. 🚨 The number is CLAMPED to 1 or 2 on
        the way in - it is going straight into a label, and a hub that will print
        whatever a frame sends it is a hub that can be made to say anything. */
+    if (m.type === "cat:portmode" && fromMachine) {
+      side.port = (String(m.port) === "1") ? "1" : "2";   /* clamped, as below */
+      paintSide();
+      return;
+    }
     if (m.type === "cat:portmode") {
       var p = (String(m.port) === "1") ? "1" : "2";
       btnPort.hidden = false;
@@ -841,10 +1408,11 @@
     }
 
     if (m.type === "cat:swapped") {
-      running.side = Number(m.index) || 0;
-      renderSwap(running);
-      var f = running.files[running.side];
-      write("disk " + (running.side + 1) + " in drive: " + (f ? f.name : ""), "dim");
+      if (!cur || !cur.files) return;
+      cur.side = Number(m.index) || 0;
+      renderSwap(cur);
+      var f = cur.files[cur.side];
+      write("disk " + (cur.side + 1) + " in drive: " + (f ? f.name : ""), "dim");
       return;
     }
 
@@ -964,6 +1532,8 @@
 
   /* ---- input ------------------------------------------------------------ */
   function focusTerminal() {
+    /* on the real C64 the terminal IS the machine */
+    if (MACHINE) { focusMachine(); return; }
     if (document.activeElement && document.activeElement.blur) {
       /* nothing to focus: the terminal is the document. Keeping the caret
          visible is the only affordance, and keydown is bound at document
@@ -980,10 +1550,21 @@
 
   document.addEventListener("keydown", function (e) {
     /* While a cartridge is running the keyboard belongs to the cartridge.
-       The only thing the hub keeps is the way out. */
+       The only thing the hub keeps is the way out. 🔄 2026-09-16: F10, which
+       was Shift/Ctrl+Escape — see HOTKEY_EXIT. */
     if (!play.hidden) {
-      if (e.key === "Escape" && (e.ctrlKey || e.shiftKey)) { e.preventDefault(); exitToHub(); }
+      if (e.key === HOTKEY_EXIT) { e.preventDefault(); exitGame(); }
       return;
+    }
+
+    /* 🆕 2026-09-16 — THE REAL C64 OWNS THE KEYBOARD. The hub only sees a key
+       when focus is on the hub's side (a crate was clicked); its own hotkeys
+       act here exactly as they do inside the frame, and anything else is passed
+       to the machine rather than lost. */
+    if (MACHINE && machineStarted) {
+      if (e.key === HOTKEY_EXIT)  { e.preventDefault(); exitGame(); return; }
+      if (e.key === HOTKEY_INPUT) { e.preventDefault(); postMachine({ type: "cat:input" }); focusMachine(); return; }
+      if (e.key === HOTKEY_PORT)  { e.preventDefault(); postMachine({ type: "cat:port" }); focusMachine(); return; }
     }
     if (busy) return;
 
@@ -1006,6 +1587,18 @@
       write(devUnlocked ? "developer mode on - empty cartridge available."
                         : "developer mode off.", "warn");
       ready();
+      return;
+    }
+
+    if (MACHINE && machineStarted) {
+      /* a record's own arrow keys already ran, and a focused button's Enter,
+         Space or Tab is the button's, not the machine's */
+      if (e.defaultPrevented || e.key === "Tab") return;
+      if (e.target && e.target.tagName === "BUTTON" && (e.key === "Enter" || e.key === " ")) return;
+      e.preventDefault();
+      forwarded[e.code] = true;
+      focusMachine();
+      forwardKey("keydown", e);
       return;
     }
 
@@ -1032,21 +1625,37 @@
     }
   });
 
+  /* ...and its release follows it, if the hub still has focus to see one.
+     ⚠️ Once focus has moved, the release lands in the frame instead, and
+     emu.js hands it to the core there — either way the key comes back up. */
+  document.addEventListener("keyup", function (e) {
+    if (!MACHINE || !forwarded[e.code]) return;
+    delete forwarded[e.code];
+    forwardKey("keyup", e);
+  });
+
   /* 🚨 Buttons submit COMMAND STRINGS, they do not call the loader. This is
      what keeps the two input surfaces honest — a button cannot drift from its
-     typed equivalent, because it *is* its typed equivalent. */
+     typed equivalent, because it *is* its typed equivalent. On the real C64
+     the string is typed into the machine instead (submitCommand). */
   Array.prototype.forEach.call(document.querySelectorAll("[data-cmd]"), function (b) {
-    b.addEventListener("click", function () { if (!busy) execute(b.dataset.cmd); });
+    b.addEventListener("click", function () { if (!busy) submitCommand(b.dataset.cmd); });
   });
   btnInsert.addEventListener("click", function () { if (!busy) insertSelected(); });
   btnEject.addEventListener("click", function () { if (!busy) ejectDisk(); });
-  btnExit.addEventListener("click", exitToHub);
+  btnExit.addEventListener("click", exitGame);
+  btnReset.addEventListener("click", exitGame);
+  /* Power Off, on the disk screen inside Fang Rock only: a browser tab cannot
+     close itself, so outside the shell the button would do nothing. */
+  btnPower.hidden = !IN_SHELL;
+  btnPower.addEventListener("click", leaveArcade);
 
   /* Ask the cartridge to FLIP; it answers with what actually took. 🚨 Focus
      goes straight back to the frame - a mode switch that leaves the caret on
      the hub's own button hands the next keystroke to the wrong document, which
      is precisely the confusion this control exists to remove. */
   btnInput.addEventListener("click", function () {
+    if (MACHINE && !running) { postMachine({ type: "cat:input" }); focusMachine(); return; }
     if (!running) return;
     try { frame.contentWindow.postMessage({ type: "cat:input" }, "*"); } catch (e) {}
     frame.focus();
@@ -1058,6 +1667,7 @@
      next test press goes to the wrong document and the port you just switched to
      looks just as dead as the one you left. */
   btnPort.addEventListener("click", function () {
+    if (MACHINE && !running) { postMachine({ type: "cat:port" }); focusMachine(); return; }
     if (!running) return;
     try { frame.contentWindow.postMessage({ type: "cat:port" }, "*"); } catch (e) {}
     frame.focus();
@@ -1067,11 +1677,12 @@
      🆕 2026-09-13 — THE LINK, `?cart=<token>`. How the Nerva Beacon corridor's
      Arcade room opens this page. His locked design:
        - a CABINET (Pitstop, Asteroid Command, Aquanaut) goes straight into its
-         own game — no hub menu step. The crack intro still plays first, and
-         Exit lands on the ordinary hub with the disk in the drive (both his
-         calls, 2026-09-13).
+         own game — no hub menu step. The crack intro still plays first (his
+         call, 2026-09-13). 🔄 2026-09-14, having played it: Exit Game goes back
+         to the Arcade room, not the hub — see `exitGame`.
        - the corner C64 opens the hub CRACKED DISKS ONLY (the roster filter near
-         the top of this file does that part; nothing further happens here).
+         the top of this file does that part, and resolves a cabinet's disk
+         before it; nothing further happens here).
      🚨 FANG ROCK KNOWS NONE OF THIS. It passes an opaque token and the meaning
      lives here only — so adding a cabinet is a disks.js entry and a corridor
      row, never a shell change. The corridor's browser fallback is the Pages hub
@@ -1085,29 +1696,23 @@
 
      🚨 A TOKEN THAT MATCHES NOTHING OPENS NOTHING, and says so, on the ordinary
      hub. Substituting another game looks exactly like success from the corridor.
-     🚨 RESOLVED AGAINST `visibleDisks()`, NEVER `DISKS`. A link must not be a
-     way round the Ctrl+Shift+B gate (Laws 0.15/0.16); `?cart=blank` gets the
-     same answer as a name that was never a disk, so it reveals nothing either.
-     ⚠️ `^[a-z]+$` ONLY, so a link can only ever name a hand-written cartridge —
-     library.js ids all carry a hyphen (`lib-…`). Anything else is not echoed:
-     a hub that prints whatever a URL says is a hub that can be made to say
-     anything (same reasoning as the port clamp above).
+     `?cart=blank` gets the same answer as a name that was never a disk (`LINKED`
+     is resolved against the dev-gated roster), so it reveals nothing either.
+     Anything that is not `^[a-z]+$` is not echoed: a hub that prints whatever a
+     URL says is a hub that can be made to say anything (same reasoning as the
+     port clamp above).
      📌 Acted on at boot, synchronously, so the intro is on screen before the
      first paint and there is no window in which a player could start something
      else first. The ids live in disks.js; renaming one breaks that cabinet.
      ===================================================================== */
-  var CART_ID = /^[a-z]+$/;
   var linkState = "none";   /* for the rig: none | launched | cracked | not found */
 
   function followLink(token) {
+    if (!LINKED) liftCurtain();   /* the curtain stays up for a launch and nothing else */
     if (token === null) return "none";
-    if (CRACKED_ONLY) { liftCurtain(); return "cracked"; }
-    var disk = null;
-    if (CART_ID.test(token)) {
-      visibleDisks().forEach(function (d) { if (!disk && d.id === token) disk = d; });
-    }
+    if (token === "cracked") return "cracked";
+    var disk = LINKED;
     if (!disk) {
-      liftCurtain();
       blank();
       write("cartridge link: " + (CART_ID.test(token) ? token : "no readable name"), "dim");
       write("?file not found  error", "err");
@@ -1134,6 +1739,7 @@
   function boot() {
     renderBox();
     setDrive(null);
+    if (MACHINE) setupMachineDeck();
 
     write("**** tommodore cat  basic ****", "hi");
     write("64k ram system   38911 basic bytes free", "dim");
@@ -1144,6 +1750,12 @@
     ready();
 
     linkState = followLink(LINK);
+
+    /* 🆕 2026-09-16 — the real C64 comes on with the hub. ⚠️ NOT behind a
+       cabinet's game: that launch covers the hub with the play overlay, and a
+       whole C64 would otherwise boot and run unseen behind it. It comes on when
+       that game exits to the hub instead (exitToHub). */
+    if (MACHINE && !LINKED) startMachine();
 
     setTimeout(function () { screen.classList.remove("booting"); }, 700);
 
@@ -1171,7 +1783,15 @@
      without a human at the keyboard. The page itself never uses this.
      🚫 Nothing here may do anything the UI cannot also do. */
   window.__cat = {
-    execute: execute,
+    /* the same entry point as the buttons: on the real C64 this TYPES */
+    execute: submitCommand,
+    /* 🆕 2026-09-16 — the real C64, as the hub sees it */
+    machine: function () {
+      return { on: MACHINE, started: machineStarted, failed: machineFailed, medium: medium,
+               busy: busy, src: machineStarted ? machineFrame.getAttribute("src") : null };
+    },
+    note: function () { return deckNote.hidden ? null : deckNote.textContent; },
+    reset: machineReset,
     disks: function () { return DISKS.slice(); },
     visible: function () { return visibleDisks().map(function (d) { return d.id; }); },
     select: function (id) {
@@ -1187,7 +1807,7 @@
     setDev: function (v) { devUnlocked = !!v; renderBox(); },
     playing: function () { return !play.hidden; },
     playingSrc: function () { return play.hidden ? null : frame.getAttribute("src"); },
-    exit: exitToHub,
+    exit: exitGame,
     link: function () { return linkState; },
 
     /* The library and the drive, for the rig. `library()` re-runs the real
