@@ -137,7 +137,15 @@
         </span>
         <span class="c64-part__label">Power</span>
       </button>
-      <span class="c64-side__gap" aria-hidden="true"></span>
+      <!-- 🆕 2026-09-17 — THE KEY CARD (his ruling). The machine types on a real
+           C64's key positions, so the characters that sit somewhere else on a PC
+           keyboard are listed on a card stuck to the case. It also takes the gap
+           that pushed the ports right. Rows come from KEYCARD in cat.js, every
+           one measured on the running core; verify-c64 §J types each. -->
+      <div class="c64-keycard" id="c64-keycard" role="group" aria-label="C64 keys: where each character is on this keyboard">
+        <span class="c64-keycard__title" aria-hidden="true">C64<br>keys</span>
+        <dl class="c64-keycard__list" id="c64-keycard-list"></dl>
+      </div>
       <button type="button" class="c64-part c64-port" id="c64-port1" data-port="1" aria-pressed="false"
               title="Joystick in port 1">
         <span class="c64-port__plug" aria-hidden="true"><span class="c64-port__pins"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>

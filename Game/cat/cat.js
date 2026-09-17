@@ -788,6 +788,8 @@
       ? (IN_SHELL ? "Stop the game and go back to the Arcade room" : "Stop the game")
       : "Stop the game and go back to the disk screen";
     frame.src = sourceFor(disk);
+    /* a fresh boot always starts on the first side, whichever was in last time */
+    if (disk.runner === "emulator") disk.side = 0;
     renderSwap(disk);
     /* 🚨 Hidden, NOT set to a guess. Only a cartridge running EmulatorJS has an
        input mode at all - a plain cartridge has none - so this stays out of the
@@ -1177,6 +1179,45 @@
      loop printing PEEK(56320),PEEK(56321) read the stick on port 2 ($DC00 126),
      then after one live switch on port 1 ($DC01 254), then back. */
   var side = { keyboard: null, port: null };
+
+  /* THE KEY CARD — his ruling of 2026-09-17. The machine types on a real C64's
+     key POSITIONS (emu.js, vice_keyboard_keymap), so a PC key's label is not
+     always what appears. The card on the side panel lists every character that
+     sits somewhere else, so nobody has to guess that `"` is Shift+2.
+     📌 EVERY ROW WAS MEASURED on the running core the same day: each PC key
+     pressed with real key events, with and without Shift, and the character read
+     back out of the C64's screen memory. Anything not listed types where its PC
+     label says: letters, digits, space, ! # $ % , . / < > ?
+     verify-c64 §J presses every row again, reading the keys off the card itself.
+     Column-first, three to a column: [C64 character, what the card shows, the key] */
+  var KEYCARD = [
+    ['"', "⇧2", "Shift+2"], ["(", "⇧8", "Shift+8"], [")", "⇧9", "Shift+9"],
+    [":", ";", ";"],        [";", "'", "'"],        ["=", "\\", "\\"],
+    ["*", "]", "]"],        ["+", "-", "-"],        ["-", "=", "="],
+    ["@", "[", "["],        ["&", "⇧6", "Shift+6"], ["'", "⇧7", "Shift+7"],
+    ["[", "⇧;", "Shift+;"], ["]", "⇧'", "Shift+'"], ["←", "`", "`"],
+    ["£", "Ins", "Insert"], ["↑", "Del", "Delete"]
+  ];
+  function renderKeycard() {
+    var list = document.getElementById("c64-keycard-list");
+    list.textContent = "";
+    KEYCARD.forEach(function (k) {
+      var row = document.createElement("div");
+      row.className = "c64-keycard__row";
+      row.dataset.c64 = k[0];
+      row.dataset.key = k[2];
+      var dt = document.createElement("dt");
+      dt.textContent = k[0];
+      var dd = document.createElement("dd");
+      dd.textContent = k[1];
+      dd.title = k[0] + " is " + k[2];
+      dd.setAttribute("aria-label", k[2]);
+      row.appendChild(dt);
+      row.appendChild(dd);
+      list.appendChild(row);
+    });
+  }
+
   function paintSide() {
     var kbd = side.keyboard === true, joy = side.keyboard === false;
     var lit = function (el, on, grey) {
@@ -1261,6 +1302,7 @@
     sidePort1.title = "Joystick in port 1 (" + HOTKEY_PORT + " swaps ports)";
     sidePort2.title = "Joystick in port 2 (" + HOTKEY_PORT + " swaps ports)";
     sideKeys.title = "Type on the keyboard (" + HOTKEY_INPUT + " switches to the joystick)";
+    renderKeycard();
     paintPower(true);
     paintSide();
     sidePower.addEventListener("click", pressPower);
@@ -1333,7 +1375,16 @@
            would make the UI claim a swap that may not have happened — the
            exact class of lie the swapfailed branch below exists to prevent. */
         if (MACHINE && disk === inserted && !running) { postMachine({ type: "cat:swap", index: i }); focusMachine(); }
-        else frame.contentWindow.postMessage({ type: "cat:swap", index: i }, "*");
+        else {
+          frame.contentWindow.postMessage({ type: "cat:swap", index: i }, "*");
+          /* the keyboard goes back to the game, as it does on the machine: a
+             game that asked for the other side is waiting for a key next, and a
+             focused button would take that key (Space would swap again).
+             🚨 BOTH steps: frame.focus() alone puts keys on the frame's body,
+             which the core ignores; cat:focus moves them onto the core. */
+          frame.focus();
+          frame.contentWindow.postMessage({ type: "cat:focus" }, "*");
+        }
       });
       swapBar.appendChild(b);
     });

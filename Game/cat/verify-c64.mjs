@@ -17,7 +17,10 @@
    and his answers the same day: keyboard mode at boot (§A), F10 is the way
    out, so Escape and Shift+Escape reach the C64 as RUN/STOP (§B, §E).
    🔄 2026-09-17, his ruling: people type on the C64's own key positions, as
-   the buttons do (§A reads the keymap; §B and §D type on it by hand).
+   the buttons do (§A reads the keymap; §B and §D type on it by hand); the
+   side panel's key card says where the moved characters are (§J); and the
+   ORDINARY hub's play overlay swaps a two-sided game's sides too (§K, in a
+   second window without the shell's preload).
 
    ===========================================================================
    🚨 WHY ELECTRON AND NOT NB's cdp.mjs, WHICH THE OTHER RIGS USE
@@ -155,11 +158,12 @@ async function runRig() {
     width: 1280, height: 860, show: false,
     webPreferences: { offscreen: true, contextIsolation: true, nodeIntegration: false, preload: PRELOAD },
   });
-  const wc = win.webContents;
+  /* `let`: §K moves the rig to a second window, and every helper below reads these at call time */
+  let wc = win.webContents;
   wc.setFrameRate(60);
 
   const ev = (code) => wc.executeJavaScript(code, true);
-  const FRAME = "document.getElementById('machine-frame').contentWindow";
+  let FRAME = "document.getElementById('machine-frame').contentWindow";
   const inMachine = (expr) => ev(`(() => { try { return ${FRAME}.${expr}; } catch (e) { return null; } })()`);
   async function until(code, ms = 20000, every = 150) {
     const t0 = Date.now();
@@ -682,6 +686,128 @@ async function runRig() {
       await idle();
       const s2 = await sides();
       ok(!s2.shown && s2.now === "", "Eject takes the swap control and the side label away with the disk");
+    }
+
+    /* --- J. the key card ------------------------------------------------------
+       His ruling, 2026-09-17: show where the characters that moved are (the
+       machine types on a C64's key positions). The rig reads each row OFF THE
+       CARD and presses exactly the key it names, so a card that says the wrong
+       key goes red here instead of in a player's hands. */
+    section("J. the key card: every character on it types where the card says");
+    const card = JSON.parse(await ev(`JSON.stringify(Array.prototype.map.call(document.querySelectorAll("#c64-keycard-list [data-c64]"), function (r) {
+      return { c64: r.dataset.c64, key: r.dataset.key }; }))`));
+    ok(card.length >= 17 && ['"', "*", ":", "@"].every((c) => card.some((r) => r.c64 === c)),
+       `the card is on the side panel, and has the ones his ruling names: " * : @   [${card.length} rows]`);
+    const geo = JSON.parse(await ev(`JSON.stringify((function () {
+      var r = function (id) { return document.getElementById(id).getBoundingClientRect(); };
+      var k = r("c64-keycard"), p = r("c64-power"), p1 = r("c64-port1"), s = r("c64-side");
+      return { inside: k.top >= s.top && k.bottom <= s.bottom, clear: k.left >= p.right && k.right <= p1.left,
+               w: Math.round(k.width), h: Math.round(k.height), side: Math.round(s.height) };
+    })())`));
+    ok(geo.inside && geo.clear, `it sits between the power switch and the ports, inside the panel   [card ${geo.w}x${geo.h}px, panel ${geo.side}px tall]`);
+    /* the screen code a typed character leaves at $0400 */
+    const SCREEN_CODE = { "@": 0, "[": 27, "£": 28, "]": 29, "↑": 30, "←": 31 };
+    const codeOf = (ch) => (ch in SCREEN_CODE ? SCREEN_CODE[ch] : ch.charCodeAt(0));
+    const misses = [];
+    await click("#machine-frame");
+    for (const row of card) {
+      await clearScreen();
+      const shift = /^Shift\+./.test(row.key);
+      await press(shift ? row.key.slice(6) : row.key, shift);
+      await frames(8);
+      const got = Number(await ev(`${FRAME}.EJS_emulator.gameManager.Module.HEAPU8[${RAM} + 0x400]`));
+      if (got !== codeOf(row.c64)) misses.push(`${row.c64} on ${row.key} typed screen code ${got}`);
+      /* 🚨 RETURN before the next clear: after a `"` the C64 is in quote mode, and
+         Shift+CLR/HOME then PRINTS a symbol instead of clearing (measured) */
+      await press("Enter");
+      await frames(20);
+    }
+    ok(card.length > 0 && misses.length === 0,
+       `pressed as the card says, every row types its character   [${card.length - misses.length}/${card.length}${misses.length ? "; " + misses.join("; ") : ""}]`);
+    await press("F2");
+    await until("document.getElementById('c64-side').dataset.mode === 'joystick'", 5000);
+    await wait(400);
+    const dim = Number(await ev("getComputedStyle(document.getElementById('c64-keycard')).opacity"));
+    await press("F2");
+    await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
+    await wait(400);
+    const lit = Number(await ev("getComputedStyle(document.getElementById('c64-keycard')).opacity"));
+    ok(dim < 0.6 && lit === 1, `the card dims while the stick is the input, when no key types   [joystick ${dim}, keyboard ${lit}]`);
+
+    /* --- K. outside Fang Rock: the play overlay swaps sides too ---------------
+       His ruling, 2026-09-17: fix the ORDINARY hub's swap, in line with the
+       machine's. It never worked (method names EmulatorJS 4.2.3 does not have,
+       and only side 1 handed to the core). Outside Fang Rock a library disk runs
+       in the play overlay, not the machine, so this needs a window WITHOUT the
+       shell's preload. The machine's window closes first, so two cores are not
+       running at once, and from here on the helpers read the overlay's frame. */
+    section("K. outside Fang Rock: a two-sided game in the play overlay swaps sides, without a reset");
+    if (PAIR) {
+      const plain = new BrowserWindow({ width: 1280, height: 860, show: false,
+        webPreferences: { offscreen: true, contextIsolation: true, nodeIntegration: false } });
+      win.destroy();
+      wc = plain.webContents;
+      wc.setFrameRate(60);
+      FRAME = "document.getElementById('play-frame').contentWindow";
+      RAM = -1;
+      await wc.loadURL(URL_HUB);
+      ok((await until("window.__cat && window.fangRockShell !== true && __cat.machine().on === false", 20000)) >= 0,
+         "[control] a plain window: the ordinary hub, with no machine on its screen");
+      await until(`__cat.disks().some(function (d) { return d.id === ${JSON.stringify(PAIR.id)}; })`, 30000);
+      await ev(`__cat.select(${JSON.stringify(PAIR.id)})`);
+      await ev("__cat.insert()");
+      await until(`__cat.inserted() === ${JSON.stringify(PAIR.id)}`, 10000);
+      await ev(`__cat.execute('LOAD"*",8,1')`);
+      const tPlay = await until(`__cat.playing() && __cat.running() === ${JSON.stringify(PAIR.id)}`, 60000);
+      const sidesNamed = ((await ev("__cat.playingSrc()")) || "").split(/[?&]d=/).length - 1;
+      ok(tPlay >= 0 && sidesNamed === 2, `the ordinary hub runs it in the play overlay, both sides named   [${took(tPlay)}, ${sidesNamed} sides]`);
+      const tCore = await until(`(() => { try { return ${FRAME}.EJS_emulator.gameManager.getFrameNum() > 60; } catch (e) { return false; } })()`, 90000);
+      /* the core's own count: 1 when it was handed side 1 alone (the old bug) */
+      const count = await inMachine("EJS_emulator.gameManager.getDiskCount()");
+      ok(tCore >= 0 && count === 2, `the core started holding BOTH sides, not side 1 alone   [${took(tCore)}, ${count} disks]`);
+      const tRam2 = await (async () => { const t0 = Date.now();
+        while (Date.now() - t0 < 30000) { RAM = await locateRam(); if (RAM >= 0) return Date.now() - t0; await wait(300); } return -1; })();
+      ok(tRam2 >= 0, `[control] the overlay's C64 screen memory was found   [${took(tRam2)}, ${RAM}]`);
+      if (RAM < 0) throw new Error("no overlay screen to read");
+      await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 60000);
+      await wait(2000);
+      say(`        (the overlay after boot: ${(await screen()).filter(Boolean).slice(1).join(" | ")})`);
+      await click("#play-frame");
+      const kbdLabel = "document.querySelector('#btn-input .btn__label').textContent";
+      if (!/Keyboard/.test(String(await ev(kbdLabel)))) await press("F2");
+      ok((await until(`/Keyboard/.test(${kbdLabel})`, 5000)) >= 0, "F2 puts the overlay's C64 in keyboard mode, to type at it");
+      /* 🚨 FAILS LOUDLY IF THE KEYS DID NOT LAND. Measured on the first run: after
+         a disk button the keys went nowhere, the screen kept the LAST listing, and
+         reading it "passed" the swap back to Side A. A cleared screen is the proof
+         that typing reached the game before anything on it is believed. */
+      const header2 = async () => {
+        await press("Home", true);
+        if ((await untilScreen((r) => r.every((x) => x === ""), 5000)) < 0) return "(the screen did not clear: keys are not reaching the game)";
+        await type('LOAD"$",8\n');
+        await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).slice(-1)[0] === "READY.", 60000);
+        await type("LIST\n");
+        await untilScreen((r) => toReady(after(r, /^LIST$/)).slice(-1)[0] === "READY.", 20000);
+        return (toReady(after(await screen(), /^LIST$/)).filter(Boolean)[0] || "").replace(/\s+/g, " ");
+      };
+      const kA = await header2();
+      ok(/^0 "RIG SIDE A/.test(kA), `it boots with Side A in the drive   [${kA || (await screen()).filter(Boolean).slice(-4).join(" / ")}]`);
+      const disk = (n) => `#play-disks button:nth-of-type(${n})`;
+      await click(disk(2));
+      const tK = await until("__cat.side() === 1", 10000);
+      const said = await ev("__cat.lines().slice(-3).join(' / ')");
+      ok(tK >= 0 && !/cannot swap/i.test(said), `one click on disk 2: the overlay confirms the swap, no refusal   [${took(tK)}; ${said}]`);
+      /* not just the iframe: the core's own element, or the keys land on its body */
+      const inCore = "document.activeElement === document.getElementById('play-frame') && " +
+        `(function (d, p) { return !!p && (d.activeElement === p || p.contains(d.activeElement)); })(${FRAME}.document, ${FRAME}.EJS_emulator.elements.parent)`;
+      ok((await until(inCore, 3000)) >= 0,
+         `and the keyboard is back IN the game's core, with no click   [focus: ${await ev("document.activeElement.id || document.activeElement.tagName")} > ${await inMachine("document.activeElement.className || document.activeElement.tagName")}]`);
+      ok((await screen()).some((r) => /^0 "RIG SIDE A/.test(r)), "the game was NOT reset by the swap: Side A's listing is still on its screen");
+      const kB = await header2();
+      ok(/^0 "RIG SIDE B/.test(kB), `and the same drive now reads Side B   [${kB}]`);
+      await click(disk(1));
+      await until("__cat.side() === 0", 10000);
+      const kA2 = await header2();
+      ok(/^0 "RIG SIDE A/.test(kA2), `and back on disk 1: Side A again   [${kA2}]`);
     }
 
     /* --- Z. the control that must fail -------------------------------------- */

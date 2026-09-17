@@ -1170,7 +1170,57 @@ html.cat-link #cat { visibility: hidden; }
 .c64-part__hint { font-weight: 400; opacity: .7; margin-left: .45em; }
 .c64-part__hint::before { content: "["; }
 .c64-part__hint::after  { content: "]"; }
-.c64-side__gap { flex: 1 1 auto; }
+
+/* the key card: a paper reference card stuck to the case between the power
+   switch and the ports. It takes the room the old spacer did (flex: 1), so the
+   ports stay right. Each C64 character sits on a dark key cap, the PC key that
+   types it beside it. Dimmed while the stick is the input, when no key types. */
+.c64-keycard {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1vw, 14px);
+  font-family: var(--mono);
+  color: #2c2418;
+  transition: opacity 240ms ease;
+}
+.c64-keycard__title {
+  font-size: clamp(9px, 1.1vh, 11px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  text-align: right;
+}
+.c64-keycard__list {
+  margin: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  column-gap: clamp(8px, .9vw, 14px);
+  row-gap: 3px;
+  padding: 5px 9px;
+  border-radius: 3px;
+  background: linear-gradient(#f3ead0, #e4d7b4);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(92, 76, 50, .25);
+}
+.c64-keycard__row { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.c64-keycard__row dt {
+  min-width: 15px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: #3a2f22;
+  box-shadow: inset 0 -2px 0 #1f1810, inset 0 1px 0 #5a4a36;
+  color: #f1e6c8;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+.c64-keycard__row dd { margin: 0; font-size: 11px; font-weight: 700; line-height: 15px; }
+#c64-side[data-mode="joystick"] .c64-keycard { opacity: .45; }
 
 /* power: a rocker in its housing, and the red light */
 .c64-power__body { display: flex; align-items: center; gap: 8px; }

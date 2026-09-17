@@ -109,10 +109,12 @@ reasoning; the measured facts it rests on:
 - **Proof:** `../verify-c64.mjs` runs under the shell's own Electron and reads the C64's screen
   memory. Headless Chrome cannot run the core at all.
 
-⚠️ Still open from the first-run checklist below: **disk swapping in the play overlay** (the
-ordinary hub's cracked disks). `swapDisk()` tries three method names EmulatorJS 4.2.3 does not
-have — the real one is `gameManager.setCurrentDisk(n)` — and the overlay only hands the core
-side 1. The machine does its own swaps (slot writes) and is not affected.
+✅ **Disk swapping in the play overlay** (the ordinary hub, outside Fang Rock) was fixed on
+2026-09-17, in line with the machine's swap. It used to try three method names EmulatorJS 4.2.3
+does not have and hand the core side 1 only. Now a game with more than one side boots on an
+in-memory **playlist** (an `.m3u` zipped with every side, like the machine's boot media), and a
+swap is `gameManager.setCurrentDisk(n)`: the running game is not reset. A one-sided game still
+boots on its image directly. `../verify-c64.mjs` §K proves it in a window without Fang Rock.
 
 ## ⚠️ First-run checklist — three things that are written but not yet watched working
 
@@ -124,7 +126,7 @@ names itself** rather than degrading quietly. Check them in this order the first
 |---|---|---|---|
 | 1 | The core loads and a disk autostarts | `EJS_core` / `EJS_gameUrl` | The page will already be telling you which step failed |
 | 2 | **Ctrl fires**, arrows move | `EJS_defaultControls`, player 0, index 0 = B | Remap the index; the C64 stick has one button, so a second binding does nothing |
-| 3 | **A two-disk game swaps without resetting** | `swapDisk()` — three API shapes tried in order | It reports `cat:swapfailed` and the hub offers an explicit restart. 🚫 Never make that restart automatic |
+| 3 | **A two-disk game swaps without resetting** ✅ 2026-09-17 | `swapDisk()` — `setCurrentDisk` over a playlist of every side | It reports `cat:swapfailed` and the hub offers an explicit restart. 🚫 Never make that restart automatic |
 
 Also unverified: the joystick-port option pair (`vice_joyport` / `"1"` `"2"`). If the hub's port
 flip appears to do nothing, check that key and value against the core's own option list before

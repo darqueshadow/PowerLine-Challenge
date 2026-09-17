@@ -24,6 +24,9 @@
    things to check in order are (1) the core loads at all, (2) Ctrl fires,
    (3) a two-disk game swaps without resetting. `./README.md` carries that as
    a checklist.
+   🔄 All three have since been watched on the real core: (1) and (2) on
+   2026-09-08/09, and (3) on 2026-09-17, when the swap was rebuilt on the
+   machine's measured call (see DISK SWAPPING) — verify-c64.mjs §I and §J.
    ========================================================================= */
 (function () {
   "use strict";
@@ -380,6 +383,12 @@
       return;
     }
     if (m.type === "cat:swap") swapDisk(Number(m.index));
+    /* the hub's play-bar buttons take the keyboard with the click. Focusing this
+       iframe from outside only lands keys on its <body>, which the core does
+       not listen to (measured 2026-09-17: after a disk button, typed keys went
+       nowhere) — so the hub asks, and the core's own element takes focus, as
+       the machine's cat:focus does. */
+    if (m.type === "cat:focus" && keyTarget()) keyTarget().focus();
     /* The hub asks for a FLIP, not for a specific state - it has no business
        holding the authoritative value. This answers with what actually took. */
     if (m.type === "cat:input") setInputMode(!kbdMode);
@@ -391,6 +400,18 @@
   /* -----------------------------------------------------------------------
      DISK SWAPPING — ruling 4, built now rather than deferred.
 
+     🔄 2026-09-17 — FIXED, IN LINE WITH THE MACHINE'S SWAP (his ruling: "bring it
+     in line with the corner's working swap"). It never worked: it tried three
+     method names EmulatorJS 4.2.3 does not have (setCurrentDiskIndex,
+     functions.setDisk, setDisk), and the core was only ever handed side 1, so
+     it had no other side to swap to. Now:
+     1. a game with more than one side BOOTS ON A PLAYLIST of all of them
+        (playlistMedia(), in boot) — the same in-memory .m3u zip the machine
+        boots on — so the core's own disk control holds every side from the start;
+     2. a swap is gameManager.setCurrentDisk(index), the call the machine makes,
+        measured live on the running core: the game is NOT reset.
+     A one-sided game still boots on its image directly, exactly as before.
+
      🚨 THE HARD PART, AND WHY THIS REFUSES INSTEAD OF GUESSING. A real
      multi-disk C64 game asks you to swap while it is RUNNING and then reads
      the drive again; the machine is never reset. Reloading the emulator with
@@ -398,60 +419,55 @@
      the game would lose everything and land back at its title screen, and the
      player would blame the game.
 
-     So: try the core's real disk-control interface, and if no shape of it is
-     present, SAY SO and offer a restart the player chooses explicitly. 🚫 Do
-     not make the restart automatic. A silent restart dressed as a swap is the
+     So: use the core's real disk-control interface, and if it is not there,
+     SAY SO and offer a restart the player chooses explicitly. 🚫 Do not make
+     the restart automatic. A silent restart dressed as a swap is the
      silent-wrong-destination failure the hub refuses one layer up.
-
-     ⚠️ Three shapes are tried because EmulatorJS's disk-control surface has
-     moved between versions and none of them was available to test against
-     when this was written. Whichever one answers on the real core, keep them
-     all — a version bump is exactly when this quietly stops working.
-     --------------------------------------------------------------------- */
+     ⚠️ If an EmulatorJS upgrade renames setCurrentDisk, this refuses (and
+     verify-c64.mjs §J goes red); it never falls back to reloading the page. */
+  var playlist = false;   /* true once this game booted on every side at once */
   function swapDisk(index) {
     if (!(index >= 0 && index < DISKS.length)) return;
     if (index === current) return;
 
-    var gm = window.EJS_emulator && window.EJS_emulator.gameManager;
-    var tried = [];
-
-    function attempt(label, fn) {
-      if (tried.indexOf(true) > -1) return;
-      try {
-        if (fn()) {
-          current = index;
-          toHub({ type: "cat:swapped", index: index, how: label });
-          tried.push(true);
-        }
-      } catch (err) {
-        toHub({ type: "cat:swapnote", note: label + " threw: " + err.message });
-      }
+    var g = gm();
+    /* 🚫 Deliberately not a restart. The hub renders a refusal as a choice. */
+    var refuse = function (reason) { toHub({ type: "cat:swapfailed", index: index, reason: reason }); };
+    if (!playlist) { refuse("this game did not boot with its other sides in the drive's list"); return; }
+    if (!g || typeof g.setCurrentDisk !== "function") { refuse("this core exposes no live disk-control interface"); return; }
+    try {
+      g.setCurrentDisk(index);
+    } catch (err) {
+      toHub({ type: "cat:swapnote", note: "setCurrentDisk threw: " + err.message });
+      refuse("the core refused the swap");
+      return;
     }
+    current = index;
+    toHub({ type: "cat:swapped", index: index, how: "setCurrentDisk" });
+  }
 
-    attempt("setCurrentDiskIndex", function () {
-      if (!gm || typeof gm.setCurrentDiskIndex !== "function") return false;
-      gm.setCurrentDiskIndex(index);
-      return true;
-    });
-    attempt("functions.setDisk", function () {
-      if (!gm || !gm.functions || typeof gm.functions.setDisk !== "function") return false;
-      gm.functions.setDisk(index);
-      return true;
-    });
-    attempt("diskControl", function () {
-      if (!gm || typeof gm.setDisk !== "function") return false;
-      gm.setDisk(index);
-      return true;
-    });
-
-    if (tried.indexOf(true) === -1) {
-      /* 🚫 Deliberately not a restart. The hub renders this as a choice. */
-      toHub({
-        type: "cat:swapfailed",
-        index: index,
-        reason: "this core exposes no live disk-control interface"
+  /* THE PLAYLIST a game with more than one side boots on: every side fetched,
+     then an .m3u naming them in order, zipped with them in memory (zipStore,
+     below). Side 1 is first, so the drive and autostart begin there as they
+     always did. 🚫 Same origin only, like the machine's inserts. */
+  function playlistMedia() {
+    var urls = DISKS.map(sameOriginUrl);
+    var bad = urls.indexOf(null);
+    if (bad !== -1) return Promise.reject(new Error("side " + (bad + 1) + " is not a file from this arcade"));
+    return Promise.all(urls.map(function (u, i) {
+      return fetch(u).then(function (r) {
+        if (!r.ok) throw new Error("side " + (i + 1) + " did not load (HTTP " + r.status + ")");
+        return r.arrayBuffer();
       });
-    }
+    })).then(function (bufs) {
+      var names = urls.map(function (u, i) {
+        var ext = (decodeURIComponent(u.split(/[?#]/)[0]).match(/\.[a-z0-9]{1,4}$/i) || [".d64"])[0].toLowerCase();
+        return "side-" + (i + 1) + ext;
+      });
+      var files = [{ name: "cat.m3u", data: new TextEncoder().encode(names.join("\n") + "\n") }];
+      bufs.forEach(function (b, i) { files.push({ name: names[i], data: new Uint8Array(b) }); });
+      return new File([zipStore(files)], "cat.zip");
+    });
   }
 
   /* =======================================================================
@@ -1005,15 +1021,28 @@
           console.log("[cat] cleared " + repaired.length +
             " cached control table(s) holding an unresolvable key: " + repaired.join(", "));
         }
-        var s = document.createElement("script");
-        s.src = "data/loader.js";
-        s.onerror = function () {
-          tell("the core is there but would not load", [
-            { text: "data/loader.js answered a HEAD request and then failed to execute.", cls: "err" },
-            "That usually means a partial or corrupt download. Delete Game/cat/emulator/data/ and fetch it again."
+        /* a game with more than one side boots on all of them (see DISK
+           SWAPPING). BEFORE the loader, which reads EJS_gameUrl as it starts. */
+        var media = !MACHINE && DISKS.length > 1
+          ? playlistMedia().then(function (file) { window.EJS_gameUrl = file; playlist = true; })
+          : Promise.resolve();
+        return media.then(function () {
+          var s = document.createElement("script");
+          s.src = "data/loader.js";
+          s.onerror = function () {
+            tell("the core is there but would not load", [
+              { text: "data/loader.js answered a HEAD request and then failed to execute.", cls: "err" },
+              "That usually means a partial or corrupt download. Delete Game/cat/emulator/data/ and fetch it again."
+            ]);
+          };
+          document.body.appendChild(s);
+        }, function (err) {
+          tell("a side of this disk would not load", [
+            { text: String(err && err.message || err), cls: "err" },
+            "Nothing was started: a game that asks for its other side and cannot have it would look broken halfway through.",
+            { text: "Check that every side's file is still in Game/disks/, then load it again.", cls: "dim" }
           ]);
-        };
-        document.body.appendChild(s);
+        });
       });
     });
   }
