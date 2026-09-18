@@ -663,26 +663,22 @@ async function runRig() {
        waiting for a flip that the page is right not to make.
        ⭐ What §G is actually for is unchanged: a key struck while the HUB has
        focus must still reach the machine. F9 proves that as well as F2 did. */
-    /* ⚠️ WHAT THIS ASSERTS, AND WHAT IT DELIBERATELY DOES NOT. §G is here to prove
-       that a key struck while the HUB has focus still reaches the machine — the
-       port moving proves that and nothing else is claimed.
-       🚨 A FINDING SITS HERE, UNFIXED ON PURPOSE (2026-09-17). His ruling that day
-       was that F9 PUTS YOU ON THE STICK, and emu.js's own handler implements it:
-       from the keyboard the first press selects joystick mode, and only then do
-       further presses swap ports. The HUB's copy does not — cat.js's F9 posts
-       `cat:port`, which swaps a port while the keyboard stays live. That is the
-       exact behaviour his ruling describes as the control appearing broken, and
-       it is the same ruling, applied in one of its two places.
-       🚫 Not asserted as joystick mode here, because the page would then be red
-       for a decision nobody has made. Ask him whether the hub's F9 should select
-       the stick the way the machine's does; if it should, this becomes a mode
-       check again and cat.js:2107 is the one line that moves. */
+    /* ⭐ THE SAME KEY, THE SAME ANSWER, WHICHEVER SIDE HAS FOCUS — which is the
+       whole point of this assertion and was not true until 2026-09-18.
+       🔄 §G proves two things at once: that a key struck while the HUB has focus
+       still reaches the machine, and that it does there what it does on the glass.
+       His ruling of 2026-09-17 is that F9 PUTS YOU ON THE STICK. It had been
+       written into emu.js's key handler only; the hub's F9 arrives by message and
+       went on doing a bare port flip, so the same key behaved two ways depending
+       on where the caret was. Both routes go through portKey() now.
+       🚫 Do not weaken this back to "the port changed". A port flip is exactly
+       the pre-ruling behaviour, so that assertion would go green on the bug. */
     const portWas = String(await ev("document.getElementById('c64-side').dataset.port"));
     await press("F9");
-    const tReach = await until(`document.getElementById('c64-side').dataset.port !== ${JSON.stringify(portWas)}`, 5000);
+    const tStick = await until("document.getElementById('c64-side').dataset.mode === 'joystick'", 5000);
     const portNow = String(await ev("document.getElementById('c64-side').dataset.port"));
-    ok(tReach >= 0,
-       `F9 pressed on the hub's side still reaches the machine   [port ${portWas} -> ${portNow}]`);
+    ok(tStick >= 0 && portNow === portWas,
+       `F9 on the hub's side reaches the machine and puts it on the STICK, without swapping an unused port   [port ${portWas} -> ${portNow}]`);
     await click("#btn-listing");
     await idle();
     const tKbd = await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);

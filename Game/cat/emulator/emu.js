@@ -286,8 +286,7 @@
     if (e.key === "F9") {
       e.preventDefault();
       e.stopPropagation();
-      if (kbdMode) setInputMode(false);
-      else setPort(port === "1" ? "2" : "1");
+      portKey();
       return;
     }
 
@@ -471,6 +470,24 @@
       }
       return null;
     });
+  }
+
+  /* WHAT THE PORT KEY DOES, IN ONE PLACE — and it has to be one place, because
+     the key arrives by TWO ROUTES and they had drifted apart.
+     🚨 F9 reaches the machine either as a real key on this document (when the
+     glass has focus) or as `cat:port` from the hub (when a crate was clicked and
+     the HUB has focus, cat.js HOTKEY_PORT). His ruling of 2026-09-17 — F9 PUTS
+     YOU ON THE STICK — was written into the key handler only. The message route
+     went on doing the pre-ruling thing, a bare port flip while the keyboard
+     stayed live, which is precisely the behaviour the ruling calls the control
+     appearing broken: you press it, a port light moves, and you still have no
+     joystick. So the same key did two different things depending on where the
+     caret happened to be. 📌 Found by the 2026-09-17 audit; fixed 2026-09-18.
+     ⭐ THE MACHINE DECIDES, as it does for every other flip here: the hub asks
+     for the KEY, never for a state, and is told what actually took. */
+  function portKey() {
+    if (kbdMode) setInputMode(false);
+    else setPort(port === "1" ? "2" : "1");
   }
 
   /* -----------------------------------------------------------------------
@@ -1290,7 +1307,9 @@
         if (keyTarget()) keyTarget().focus();
         break;
       case "cat:input": setInputMode(!kbdMode); break;
-      case "cat:port":  setPort(port === "1" ? "2" : "1"); break;
+      /* the hub's F9, and it goes through portKey() for the reason written there.
+         🚫 Not a bare setPort: that is what made the same key behave two ways. */
+      case "cat:port":  portKey(); break;
       /* 🆕 the side panel's ports and keyboard ask for a STATE, not a flip: a
          click on port 1 means "the stick, in port 1". Still answered with what
          actually took — both reports go back either way. */
