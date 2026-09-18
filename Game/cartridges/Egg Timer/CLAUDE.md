@@ -18,9 +18,9 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - **Andrew lifted the `coming-soon` hold on 2026-09-17** ("a normal, selectable cartridge in the Arcade
   for all players"), knowing the art, the instruction/title/end screens and audio are still placeholders
   or missing. The hub entry is live in `Game/cat/disks.js`, and players get it on the next push to main.
-- **Ruled 2026-09-17 (Draft 9):** C15 and the build questions D1, D2, D4, D5 and D6. Each one's switch
-  in `files/core/config.js` is set to its ruling, and the rigs assert it. The other value of a switch
-  still runs, but it isn't the design.
+- **The build questions D1, D2, D4, D5, D6 and C15 are settled** (Draft 9, 2026-09-17). Each switch in
+  `files/core/config.js` is set to its ruling and the rigs assert it; the reasoning, the traps and the
+  checks that pin them are in `docs/decisions.md` at the repo root.
 - **Still open (packet §11):** only **D3**, the Developer Mode phrase (`devModePasswordHash`, ⏳, null
   denies every entry). Andrew gives Code the digest from `ET.plcDigest('PHRASE')`, never the phrase.
   When it arrives, set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
@@ -141,8 +141,7 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-17
-Draft 9 rulings merged into the config, the Blank Dataset Module, the packet and the rigs (logic rig 74/0,
-browser rig 76/0 twice); another session committed the build at 06:54 (`0519a17`). Launched in the hub the
-same day on Andrew's word. Waiting on Andrew for the D3 digest (until then Developer Mode denies every
-entry, on the live site too). Next, each a design call through Chat: an instruction screen (players get
-none today), art direction, the title/end screens, and audio.
+Launched in the hub on Andrew's word, committed, **not pushed**, so players don't have it yet. Waiting on
+Andrew for the D3 digest (until then Developer Mode denies every entry, on the live site too). Next, each a
+design call through Chat: an instruction screen (players get none today), art direction, the title/end
+screens, and audio.

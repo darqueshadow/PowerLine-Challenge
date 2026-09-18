@@ -930,7 +930,7 @@ try {
     const m = JSON.parse(await b.ev(`JSON.stringify({ m: __cat.machine(),
       reset: (function (r) { return !r.hidden ? r.title : null; })(document.getElementById("btn-reset")) })`));
     ok(m.m.on && m.m.started, "no token: the screen is the real C64");
-    ok(/F10/.test(String(m.reset)), `no token: the deck's Reset is there and names its key   [${m.reset}]`);
+    ok(/F12/.test(String(m.reset)), `no token: the deck's Reset is there and names its key   [${m.reset}]`);
     const lib = String(await b.ev("__cat.visible()[0]"));
     await b.ev(`__cat.select(${JSON.stringify(lib)}), __cat.insert()`);
     /* 🔄 his addendum: here the drive animation replaces the crack intro */
@@ -983,6 +983,140 @@ try {
     const s = JSON.parse(await b.ev(SHELL));
     ok(s.state === "not found" && s.menuShown && !s.cadCrate && s.roster.length === 0 && !s.playing,
        "an unknown token inside Fang Rock: the C64 screen, refused, still no PLC games");
+  });
+
+  /* --- N. ?cart=book… — the shelf above the corner C64's bench -------------
+     🆕 2026-09-17. His ruling: the reader opens from the SHELF IN THE ROOM, so
+     a spine click has to arrive as one more opaque `?cart=` token, and the hub
+     is the only thing that may read it. What the reader DOES over a running
+     machine is verify-c64 §L's; this is the door it comes through, and the two
+     ways that door can be wrong: a token that opens the wrong thing, and a
+     token that opens something it should not. */
+  section("N. ?cart=book… — the room's shelf opens a book, and only a book");
+
+  async function bookOn(q, fn) {
+    const b = await open({ gpu: true, w: 1280, h: 860 });
+    try { await b.goto(LINK_HUB(q)); await wait(1100); return await fn(b); }
+    finally { b.close(); }
+  }
+  const BOOK = "JSON.stringify({ link: __cat.link(), book: __cat.book(), machine: __cat.machine().on, text: __cat.text() })";
+
+  await bookOn("?cart=book", async (b) => {
+    const s = JSON.parse(await b.ev(BOOK));
+    eq(s.link, "book", "?cart=book is a link state of its own, not a cartridge miss");
+    ok(s.book && s.book.shelf === true, "it opens the shelf rather than a book");
+    ok(s.book && s.book.spines.length === 6,
+       `all six books are on it   [${s.book ? s.book.spines.join(", ") : "none"}]`);
+    /* his ruling puts the shelf in the corner, so the token brings the corner */
+    ok(s.machine === true, "and a book token brings the corner C64 with it");
+    const one = JSON.parse(await b.ev("__cat.openBook('sprites'), " + BOOK));
+    ok(one.book && one.book.id === "sprites" && one.book.pages === 3,
+       `a spine opens its book at page 1 of 3   [${one.book && one.book.title}]`);
+  });
+
+  await bookOn("?cart=booksid", async (b) => {
+    const s = JSON.parse(await b.ev(BOOK));
+    ok(s.book && s.book.id === "sid" && s.book.page === 0,
+       `?cart=book<id> opens that one book   [${s.book && s.book.title}]`);
+    ok(s.book.atStart && !s.book.atEnd, "with Back spent and Next still to come");
+  });
+
+  /* 🚨 the same rule every other token obeys: no such thing OPENS NOTHING and
+     says so, and never quietly substitutes something that does exist */
+  await bookOn("?cart=bookzzz", async (b) => {
+    const s = JSON.parse(await b.ev(BOOK));
+    eq(s.link, "not found", "a book token naming no book is refused");
+    ok(s.book === null, "and no reader opens");
+    ok(/no such book/.test(s.text) && /file not found/.test(s.text), "and the terminal says so");
+    ok(!/bookzzz/.test(s.text), "without echoing the token back");
+  });
+
+  /* 🚨 THE LIVE DOOR IS SHUT OUTSIDE FANG ROCK. `cat:book` exists so the shell
+     can one day open a book in an ALREADY-RUNNING hub without the reload a
+     token costs. Until then nothing may drive it from an ordinary page. */
+  await bookOn("", async (b) => {
+    const before = JSON.parse(await b.ev(BOOK));
+    ok(before.book === null && before.machine === false,
+       "[control] no token: no reader, no C64");
+    await b.ev("window.postMessage({ type: 'cat:book', id: 'sid' }, '*')");
+    await wait(400);
+    ok((await b.ev("JSON.stringify(__cat.book())")) === "null",
+       "a cat:book message from an ordinary page opens nothing");
+  });
+
+  /* …and is open inside it, where the room's shelf actually is */
+  await shellOn("", async (b) => {
+    await until(async () => /disk library/i.test(String(await b.ev("__cat.text()"))), 10000);
+    ok((await b.ev("JSON.stringify(__cat.book())")) === "null", "[control] inside FR, no book yet");
+    await b.ev("window.postMessage({ type: 'cat:book', id: 'peekpoke' }, '*')");
+    await until(async () => (await b.ev("JSON.stringify(__cat.book())")) !== "null", 4000);
+    const s = JSON.parse(await b.ev(BOOK));
+    ok(s.book && s.book.id === "peekpoke",
+       `inside Fang Rock the same message opens the book   [${s.book && s.book.title}]`);
+    /* and the corner is still the corner: no PLC games arrived with it */
+    const g = JSON.parse(await b.ev(SHELL));
+    ok(!g.cadCrate && g.cartsInDom === 0 && g.roster.length === 0,
+       "and it brings no PLC games onto the C64 screen");
+    await b.ev("window.postMessage({ type: 'cat:book', id: 'no-such-book' }, '*')");
+    await wait(300);
+    ok(JSON.parse(await b.ev("JSON.stringify(__cat.book())")).id === "peekpoke",
+       "an unknown id leaves the open book alone");
+  });
+
+  /* --- O. the corner's hardware, and what must NOT leak out of it ----------
+     🆕 2026-09-17 — his ten changes. verify-c64 §J2 checks them on the real
+     machine; this checks the half that is about the HUB rather than the C64:
+     that the new parts exist in cracked mode, and — the part that is easy to get
+     wrong and that nothing here noticed before — that the 1980s monitor bezel and
+     the emulator's Fast Load control stay OUT of the ordinary hub, whose screen
+     is the 1970s PET-era CAT terminal. The project keeps those two eras apart on
+     purpose, and a bezel added unconditionally would have gone unmentioned. */
+  section("O. the C64 corner's hardware, and the era line it must not cross");
+
+  const CORNER = "JSON.stringify(__cat.corner())";
+
+  await bookOn("?cart=cracked", async (b) => {
+    const s = JSON.parse(await b.ev(CORNER));
+    ok(s.insertBy === "crates" && s.ejectBy === "crates",
+       `Eject moved to sit beside Insert   [insert ${s.insertBy}, eject ${s.ejectBy}]`);
+    ok(s.keycard === false, "the key card is off the panel");
+    const kc = JSON.parse(await b.ev("JSON.stringify(__cat.keycard())"));
+    ok(kc.length === 17, `but its 17 measured key positions are still carried   [${kc.length}]`);
+    ok(s.cartPort && s.drivePort, "the cartridge port and the drive port are both on the panel");
+    ok(s.cartridge === null, "the cartridge port is empty, with no .CRT in the library");
+    ok(s.monitor === true, "the corner's screen wears the monitor bezel");
+    ok(s.lamps.power && !s.lamps.loading && !s.lamps.failed,
+       `the drive's green lamp is steady and the red one is dark when idle   [${JSON.stringify(s.lamps)}]`);
+    /* 🚨 the bezel must not take a click meant for the screen: verify-c64 clicks
+       #machine-frame at its centre to put the keyboard in the machine, and a
+       layer over the glass would break every typed assertion in that rig */
+    const over = String(await b.ev(`(function () {
+      var f = document.getElementById("machine-frame").getBoundingClientRect();
+      var e = document.elementFromPoint(Math.round(f.left + f.width / 2), Math.round(f.top + f.height / 2));
+      return e ? (e.id || e.tagName) : "none"; })()`));
+    ok(over === "machine-frame", `and nothing the bezel added sits over the glass   [hit ${over}]`);
+    /* the panel grew by two ports: the power rocker must still be reachable */
+    const power = JSON.parse(await b.ev(`JSON.stringify((function () {
+      var r = document.getElementById("c64-power").getBoundingClientRect();
+      return { onScreen: r.bottom <= innerHeight && r.width > 20, bottom: Math.round(r.bottom), h: innerHeight }; })())`));
+    ok(power.onScreen, `the grown panel did not push the power rocker off the screen   [bottom ${power.bottom} of ${power.h}]`);
+    ok((await b.ev(`document.getElementById("btn-fastload").hidden`)) === false,
+       "the fast-load cartridge is at the cartridge port");
+    ok(s.fastSeated === false,
+       "and it starts OUT of the slot, so the corner runs at the real machine's speed");
+    /* it is a real button, not a decoration: clickable, focusable, and it must
+       be REFUSED while a .CRT game holds the one expansion port */
+    ok((await b.ev(`document.getElementById("btn-fastload").tagName`)) === "BUTTON",
+       "and it is a real button, not a picture of one");
+  });
+
+  /* the era line */
+  await bookOn("", async (b) => {
+    const s = JSON.parse(await b.ev(CORNER));
+    ok(s.monitor === false, "the ordinary hub does NOT get a 1980s monitor bezel around its PET-era terminal");
+    ok(s.cable === false && s.cartridge === null, "and none of the C64's hardware shows there");
+    ok((await b.ev(`document.getElementById("btn-fastload").hidden`)) === true,
+       "nor the fast-load cartridge, where there is no C64 to plug it into");
   });
 
   /* --- J. the control that must fail ------------------------------------ */

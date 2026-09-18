@@ -1101,12 +1101,18 @@ html.cat-link #cat { visibility: hidden; }
   82%, 100% { transform: rotate(90deg); }
 }
 /* and the drive light comes on */
+/* 🔄 2026-09-17 — THIS USED TO FLICKER THE DRIVE'S RED LIGHT ON A GOOD INSERT
+   (#4a1a16 → #ff4a3a → #7a241c → #ff4a3a), which is the 1541's DOS ERROR signal.
+   On a real drive the red light comes on SOLID the moment the head engages and
+   stays on for the access; a blink means the job FAILED and keeps blinking until
+   the error channel is read. Anyone who has used the machine read this animation
+   as "that disk just died" every single time a disk went in correctly.
+   ⭐ Now it simply comes on and stays on, which is both truthful and calmer. The
+   blink is spent in one place only — #drive-bay.is-failed, further down. */
 .drive-led { fill: #4a1a16; animation: drive-led 1.9s steps(1, end) forwards; }
 @keyframes drive-led {
   0%, 80%   { fill: #4a1a16; }
-  84%       { fill: #ff4a3a; }
-  90%       { fill: #7a241c; }
-  94%, 100% { fill: #ff4a3a; }
+  84%, 100% { fill: #ff4a3a; }
 }
 
 /* the tape: drops into the datasette, the door shuts, PLAY goes down */
@@ -1171,56 +1177,134 @@ html.cat-link #cat { visibility: hidden; }
 .c64-part__hint::before { content: "["; }
 .c64-part__hint::after  { content: "]"; }
 
-/* the key card: a paper reference card stuck to the case between the power
-   switch and the ports. It takes the room the old spacer did (flex: 1), so the
-   ports stay right. Each C64 character sits on a dark key cap, the PC key that
-   types it beside it. Dimmed while the stick is the input, when no key types. */
-.c64-keycard {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(8px, 1vw, 14px);
-  font-family: var(--mono);
-  color: #2c2418;
-  transition: opacity 240ms ease;
+/* 🗑 2026-09-17 — THE KEY CARD'S RULES WERE HERE and went with the card, on his
+   word. Nothing is orphaned: .c64-keycard, __title, __list, __row and the
+   [data-mode="joystick"] dimmer are all gone together. The MEASURED key map
+   itself lives on in cat.js's KEYCARD table and verify-c64 §J still presses
+   every row — see the note in index.html where the markup used to be. */
+
+/* 🆕 2026-09-17 — LABELS THAT SIT ABOVE THEIR PART AND STAY BLACK.
+   His ask, and it costs a signal: the label used to dim with .is-grey, so now
+   it says nothing about which port is live. The plug and cable below carry that
+   alone, which is why they have to be unmistakable. 🚫 Do not fade this. */
+.c64-part__label--over {
+  order: -1;
+  color: #16120a;
+  opacity: 1;
+  text-shadow: 0 1px 0 rgba(255, 246, 219, .45);
 }
-.c64-keycard__title {
-  font-size: clamp(9px, 1.1vh, 11px);
-  font-weight: 700;
-  letter-spacing: .08em;
-  line-height: 1.25;
-  text-transform: uppercase;
-  text-align: right;
-}
-.c64-keycard__list {
-  margin: 0;
+.c64-part.is-grey .c64-part__label--over { opacity: 1; filter: none; }
+
+/* ---- the cartridge port ------------------------------------------------
+   A card-EDGE slot: very flat, ~14:1, black inside, with the gold fingers of
+   the MACHINE's gripper along the bottom. 🚫 Not a pin socket — the pins are on
+   the cartridge's own tongue. Empty is the normal state: the library holds no
+   .CRT today (112 titles, all .D64/.T64), so this sits open until one arrives. */
+.c64-cart {
   display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(3, auto);
-  column-gap: clamp(8px, .9vw, 14px);
-  row-gap: 3px;
-  padding: 5px 9px;
-  border-radius: 3px;
-  background: linear-gradient(#f3ead0, #e4d7b4);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(92, 76, 50, .25);
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 5px 9px 4px;
+  font-family: var(--mono);
+  position: relative;
 }
-.c64-keycard__row { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
-.c64-keycard__row dt {
-  min-width: 15px;
-  padding: 0 3px;
+.c64-cart__well {
+  position: relative;
+  width: clamp(54px, 6vw, 86px);
+  height: 16px;
   border-radius: 2px;
-  background: #3a2f22;
-  box-shadow: inset 0 -2px 0 #1f1810, inset 0 1px 0 #5a4a36;
-  color: #f1e6c8;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 15px;
-  text-align: center;
+  background: linear-gradient(#0c0a12, #15121b 60%, #0c0a12);
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, .9), inset 0 -1px 0 #2a241a,
+              0 1px 0 rgba(255, 246, 219, .5);
+  overflow: hidden;
 }
-.c64-keycard__row dd { margin: 0; font-size: 11px; font-weight: 700; line-height: 15px; }
-#c64-side[data-mode="joystick"] .c64-keycard { opacity: .45; }
+/* 22 contacts a side on the real thing; drawn as a fading gold comb */
+.c64-cart__fingers {
+  position: absolute;
+  left: 4px; right: 4px; bottom: 2px;
+  height: 5px;
+  background: repeating-linear-gradient(90deg, #c9a24a 0 2px, transparent 2px 4px);
+  opacity: .55;
+  -webkit-mask-image: linear-gradient(transparent, #000);
+  mask-image: linear-gradient(transparent, #000);
+}
+/* the seated cartridge: a low dark block standing proud of the slot, its paper
+   label on the TOP face — the same label idiom the drive already draws.
+   🆕 2026-09-17 — TWO THINGS CAN OCCUPY THIS, and only ever one at a time: a .CRT
+   game (#c64-cart-shell) or the fast-load cartridge (#btn-fastload). That is not
+   a limitation of the drawing, it is how the machine works — one expansion port,
+   no expander here — so cat.js enforces it rather than letting them overlap. */
+.c64-cart__shell {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: clamp(58px, 6.4vw, 92px);
+  padding: 4px 4px 7px;
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(#2a2a2e, #1e1e21 60%, #141416);
+  box-shadow: inset 0 1px 0 #4a4a50, 0 2px 4px rgba(0, 0, 0, .55);
+}
+.c64-cart__shell[hidden] { display: none; }
+.c64-cart__paper {
+  display: block;
+  border-radius: 1px;
+  background: #f4eedb;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .45), inset 0 0 0 1px #d6cdb0;
+  overflow: hidden;
+}
+.c64-cart__band { display: block; height: 4px; background: #d9534f; }
+.c64-cart__name {
+  display: block;
+  padding: 2px 3px;
+  color: #2b2517;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- the drive (serial) port -------------------------------------------
+   A 6-pin DIN, always plugged: the drive is part of this machine. Beige cable,
+   as Commodore's own was, so it can never be mistaken for the joystick's black
+   one. The key notch at 12 o'clock is the recognisable feature. */
+.c64-iec {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 5px 9px 4px;
+  font-family: var(--mono);
+}
+.c64-iec__socket {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #d6d3cc, #8e8b84 62%, #55534e);
+  box-shadow: inset 0 0 0 2px #3a372f, 0 1px 0 rgba(255, 246, 219, .45);
+  display: grid;
+  place-items: center;
+}
+.c64-iec__hood {
+  position: relative;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 34%, #ded7c6, #c5bda9 60%, #9a9384);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, .45);
+}
+.c64-iec__notch {
+  position: absolute;
+  top: -1px; left: 50%;
+  width: 4px; height: 4px;
+  margin-left: -2px;
+  border-radius: 0 0 2px 2px;
+  background: #2a271f;
+}
 
 /* power: a rocker in its housing, and the red light */
 .c64-power__body { display: flex; align-items: center; gap: 8px; }
@@ -1258,36 +1342,72 @@ html.cat-link #cat { visibility: hidden; }
 }
 @keyframes power-led { 50% { box-shadow: 0 0 5px 1px rgba(255, 59, 47, .55), inset 0 -1px 2px rgba(0, 0, 0, .35); } }
 
-/* a joystick port: the metal D-shell of a 9-pin socket */
-.c64-port__plug {
+/* ---- a joystick port ----------------------------------------------------
+   🔄 2026-09-17 — THIS USED TO DRAW A PLUG AND CALL IT A PORT. The machine side
+   of a control port is a FEMALE DE-9: nine HOLES, five over four, the lower row
+   nesting between the upper. The old rule lit nine light PINS, which is what a
+   joystick's plug looks like. Holes read dark with a bright upper rim; pins read
+   bright with a dark underside — that difference is the whole tell.
+   ⭐ Empty: dark holes. Live: a black moulded plug seated over them, hiding them
+   completely, with its cable running out. Since his ruling froze the label black,
+   THIS is the only thing left that says which port the stick is in. */
+.c64-port__socket {
   position: relative;
   width: 56px; height: 24px;
-  background: linear-gradient(#d9d6cf, #9d998f);
+  background: linear-gradient(#d9d6cf, #9d998f 70%, #6e7377);
   clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%);
   display: grid; place-items: center;
 }
-.c64-port__plug::before {           /* the dark insulator inside the shell */
+.c64-port__socket::before {         /* the dark insulator inside the shell */
   content: "";
   position: absolute; inset: 3px 5px;
   background: #1c1914;
   clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%);
 }
-.c64-port__pins {
+.c64-port__holes {
   position: relative;
   display: grid;
   grid-template-columns: repeat(5, 5px);
   column-gap: 4px; row-gap: 3px;
   justify-content: center;
 }
-.c64-port__pins i { width: 5px; height: 5px; border-radius: 50%; background: #6d665a; }
-.c64-port__pins i:nth-child(n + 6) { transform: translateX(4.5px); }   /* the lower four sit between the upper five */
-.c64-port.is-lit .c64-port__pins i {
-  background: #ffd479;
-  box-shadow: 0 0 5px rgba(255, 212, 121, .9);
-  animation: pin-glow 1.4s ease-in-out infinite;
+.c64-port__holes i {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #241f19;
+  box-shadow: inset 0 1px 0 #6d665a, inset 0 -1px 0 rgba(0, 0, 0, .8);
 }
-.c64-port.is-lit .c64-port__pins i:nth-child(2n) { animation-delay: .35s; }
-@keyframes pin-glow { 50% { background: #b98c2c; box-shadow: none; } }
+.c64-port__holes i:nth-child(n + 6) { transform: translateX(4.5px); }   /* the lower four sit between the upper five */
+
+/* the plug, only in the port the stick is really in. A moulded BLACK hood —
+   period joystick plugs had no metal backshell or thumbscrews — with grip ribs
+   and a tapered strain-relief boot where the cable leaves. */
+.c64-port__plug {
+  position: absolute;
+  inset: -2px -3px -2px -3px;
+  border-radius: 3px;
+  background: linear-gradient(#2e2e33, #1a1a1d 55%, #111114);
+  box-shadow: inset 0 1px 0 #45454c, 0 2px 5px rgba(0, 0, 0, .55);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  pointer-events: none;
+}
+.c64-port__plug::before {           /* three moulded grip ribs across the hood */
+  content: "";
+  position: absolute; inset: 5px 8px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .06) 0 2px, transparent 2px 7px);
+}
+.c64-port__boot {                   /* strain relief, pointing the way out */
+  position: absolute;
+  right: -7px; top: 50%;
+  width: 10px; height: 11px;
+  margin-top: -5.5px;
+  border-radius: 2px 3px 3px 2px;
+  background: linear-gradient(#2e2e33, #141416);
+  box-shadow: inset -2px 0 0 rgba(0, 0, 0, .5);
+}
+.c64-port.is-lit .c64-port__plug { opacity: 1; transform: translateY(0); }
 
 /* the keyboard: a small board of keys that ripple while it is the input */
 .c64-keys__board {
@@ -1312,8 +1432,438 @@ html.cat-link #cat { visibility: hidden; }
 .c64-keys.is-lit .c64-keys__row:nth-child(5) i { animation-delay: .6s; }
 @keyframes key-ripple { 0%, 70%, 100% { background: #e9dcc0; } 80% { background: #ffd479; } }
 
+/* ---- the book reader ----------------------------------------------------
+   🆕 2026-09-17. A paper object resting on top of the machine: cream stock and
+   dark ink, against the CRT's purple. That contrast is doing work, not
+   decoration — the whole point of the panel is reading a listing off it while
+   the C64's own screen is inches away, and two surfaces that look alike is how
+   you lose your place between them.
+
+   🚨 Z-INDEX 60, ABOVE EVERYTHING. His point 1: "anchored so it stays on top
+   always (doesn't get lost behind other room elements)". #play is 40 and the
+   crack intro is 50, so 60 clears both. ⚠️ The one thing it cannot clear is the
+   emulator going FULLSCREEN — only children of the fullscreen element paint
+   over it, and that element is inside another document. cat.js closes the
+   reader and says so rather than leaving a panel that is silently invisible.
+
+   📌 Position and size are set INLINE by cat.js (dragging and resizing write
+   px), so everything here is the starting state and the parts that do not move. */
+#reader {
+  position: fixed;
+  z-index: 60;
+  top: 8vh;
+  left: 50%;
+  width: min(560px, 46vw);
+  height: min(560px, 74vh);
+  min-width: 300px;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  background: #f4ecd6;
+  color: #2b2418;
+  border: 1px solid #8d8058;
+  border-radius: 6px;
+  /* it is lying ON something, so it casts on it */
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .55), inset 0 1px 0 #fffaea;
+  overflow: hidden;
+}
+#reader[hidden] { display: none; }
+
+/* The bar is the drag handle (see the markup), so it says so with its cursor. */
+#reader-bar {
+  display: flex;
+  align-items: center;
+  gap: .6ch;
+  padding: .5em .6em;
+  background: linear-gradient(#e2d6b2, #cfc09a);
+  border-bottom: 1px solid #8d8058;
+  cursor: grab;
+  user-select: none;
+}
+#reader.is-dragging #reader-bar { cursor: grabbing; }
+#reader-title {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: clamp(11px, 1.35vh, 14px);
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Same shape as .btn, smaller: this is chrome on a paper object, not the deck. */
+.reader__btn {
+  font-family: var(--mono);
+  font-size: clamp(10px, 1.2vh, 12px);
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #2b2517;
+  background: linear-gradient(#fdf6dd, #ded3aa);
+  border: 1px solid #9a9068;
+  border-radius: 4px;
+  padding: .4em .8em;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #9a9068, inset 0 1px 0 #fffdf2;
+}
+.reader__btn:hover:not(:disabled) { background: linear-gradient(#fffbe9, #e9dfb8); }
+.reader__btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 #9a9068, inset 0 1px 0 #fffdf2; }
+.reader__btn:disabled { opacity: .42; cursor: not-allowed; box-shadow: 0 2px 0 #9a9068; }
+.reader__btn:focus-visible { outline: 2px solid #3f329b; outline-offset: 2px; }
+
+#reader-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 1em 1.1em;
+}
+
+/* ---- the shelf view: six spines standing up ---- */
+#reader-spines {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: .5ch;
+  height: 100%;
+  min-height: 180px;
+  padding-bottom: .5em;
+}
+/* 🚨 `[hidden]` HAS TO BE RESTATED — the same rule this file writes out in full
+   at .crate__notice above. An author `display` outranks the UA sheet's
+   `[hidden] { display: none }`, so renderReader()'s `readerSpines.hidden = true`
+   did nothing: the six spines kept `display:flex` AND `height:100%`, filled the
+   panel, and laid the page the player had just asked for out BELOW them, off the
+   bottom of the scroll — while staying clickable. Neither rig could see it: §L
+   reads the page through textContent, which does not care about layout. */
+#reader-spines[hidden] { display: none; }
+.reader-spine {
+  flex: 0 1 auto;
+  width: clamp(38px, 15%, 62px);
+  height: clamp(150px, 80%, 260px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .7em .2em;
+  border: 1px solid rgba(0, 0, 0, .45);
+  border-radius: 2px 4px 4px 2px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: clamp(9px, 1.15vh, 12px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  /* spines read bottom-to-top, as they do on a shelf */
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  line-height: 1.25;
+  box-shadow: inset -3px 0 0 rgba(0, 0, 0, .28), inset 3px 0 0 rgba(255, 255, 255, .14), 0 3px 6px rgba(0, 0, 0, .4);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.reader-spine:hover, .reader-spine:focus-visible {
+  transform: rotate(180deg) translateY(6px);
+  box-shadow: inset -3px 0 0 rgba(0, 0, 0, .28), inset 3px 0 0 rgba(255, 255, 255, .2), 0 6px 12px rgba(0, 0, 0, .5);
+}
+.reader-spine:focus-visible { outline: 2px solid #3f329b; outline-offset: 2px; }
+.reader-spine__line { display: block; }
+#reader-empty { margin: 0; text-align: center; opacity: .7; }
+
+/* ---- the open page ---- */
+#reader-page h3 {
+  margin: 0 0 .8em;
+  font-size: clamp(12px, 1.5vh, 15px);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #b9ab80;
+  padding-bottom: .35em;
+}
+#reader-page p {
+  margin: 0 0 .9em;
+  font-size: clamp(11px, 1.4vh, 14px);
+  line-height: 1.55;
+}
+/* A listing is the thing being copied, so it gets the most legible treatment
+   on the page: bigger than the prose, generous line height, and a tint that
+   marks where it starts and stops without a box the eye has to climb out of. */
+#reader-page pre {
+  margin: 0 0 1em;
+  padding: .7em .8em;
+  background: #e5d9b8;
+  border-left: 3px solid #8d8058;
+  border-radius: 0 4px 4px 0;
+  font-family: var(--mono);
+  font-size: clamp(11px, 1.45vh, 14px);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  /* the player is copying this by hand, character by character */
+  user-select: text;
+}
+
+#reader-foot {
+  display: flex;
+  align-items: center;
+  gap: .8ch;
+  padding: .5em .6em;
+  background: #e2d6b2;
+  border-top: 1px solid #8d8058;
+}
+/* 🚨 And here, for the same reason. index.html ships `#reader-foot` hidden, so
+   without this the footer was visible from the reader's FIRST paint — Back and
+   Next both enabled, focusable, nothing between them, and doing nothing when
+   clicked, because turnPage() returns on `!readerBook`. */
+#reader-foot[hidden] { display: none; }
+#reader-where {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: clamp(10px, 1.2vh, 12px);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  opacity: .8;
+}
+
+#reader-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, #8d8058 3px 4px);
+}
+
+/* ---- the stick in the live port -----------------------------------------
+   🔄 2026-09-17 — this was a drawn cable running out of the port and off the
+   bottom of the window. His call swapped it for the joystick itself, which
+   says the same thing in one glyph. The cable needed position:fixed and a
+   resize handler to escape its ancestors' clipping; none of that is needed
+   for a character sitting under the port.
+   🚨 pointer-events:none all the same — the rig clicks a port at its CENTRE,
+   and anything overlapping that point can swallow the click. */
+.c64-port__stick {
+  display: block;
+  height: 0;
+  margin-top: 2px;
+  font-size: 15px;
+  line-height: 1;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+.c64-port.has-stick .c64-port__stick { opacity: 1; transform: translateY(0); }
+
+/* ---- the drive bay around the disk artwork ------------------------------
+   🆕 2026-09-17, his ask. The frame is the DRIVE and the picture inside the
+   aperture is the disk - a 5.25 inch floppy has no lights of its own, so the bay
+   has to read as the machine or the lamps make no sense.
+   🚫 No eject button is drawn on it: a 1541 has none. You turn the lever and
+   pull the disk out. The hub's Eject button is a UI affordance, not this part. */
+#drive-bay {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 8px 10px 6px;
+  border-radius: 5px;
+  background: linear-gradient(#ded6c0, var(--cat-case) 45%, #c2b895);
+  box-shadow: inset 0 1px 0 #fff7dc, inset 0 -2px 4px rgba(0, 0, 0, .28),
+              0 2px 5px rgba(0, 0, 0, .4);
+}
+#drive-lamps { display: grid; gap: 6px; justify-items: center; }
+.drive-lamp {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  box-shadow: inset 0 -1px 1px rgba(0, 0, 0, .55);
+}
+/* GREEN = POWER. Steady the whole time the machine is on. It never flashes, and
+   it has nothing to do with loading. */
+.drive-lamp--power { background: #2b6b3a; }
+#drive-bay.is-powered .drive-lamp--power {
+  background: #3fbf5f;
+  box-shadow: 0 0 6px rgba(63, 191, 95, .55), inset 0 -1px 1px rgba(0, 0, 0, .4);
+}
+/* RED = DRIVE ACTIVITY. SOLID for the length of the access, dark when idle. */
+.drive-lamp--act { background: #4a1a16; }
+#drive-bay.is-loading .drive-lamp--act {
+  background: #ff4a3a;
+  box-shadow: 0 0 7px rgba(255, 74, 58, .8), inset 0 -1px 1px rgba(0, 0, 0, .4);
+}
+/* 🚨 A BLINKING RED IS THE 1541's DOS ERROR SIGNAL - read error, file not
+   found, a failed format. On a real drive it blinks at about 1 Hz until the
+   error channel is read. It is spent HERE, on a disk that actually failed, and
+   nowhere else. 🚫 Never put it on a good load: to anyone who knows the
+   machine it says the disk just died. This hub used to do exactly that, on every
+   successful insert. */
+#drive-bay.is-failed .drive-lamp--act {
+  animation: drive-error 1s steps(1, end) infinite;
+}
+@keyframes drive-error {
+  0%, 49%   { background: #ff4a3a; box-shadow: 0 0 7px rgba(255, 74, 58, .8); }
+  50%, 100% { background: #4a1a16; box-shadow: inset 0 -1px 1px rgba(0, 0, 0, .55); }
+}
+#drive-bay #detail-shot { margin: 0; }
+#drive-bay-model {
+  grid-column: 1 / -1;
+  font: 700 9px var(--mono);
+  letter-spacing: .18em;
+  color: #5c5038;
+  text-align: right;
+}
+
+/* ---- the monitor bezel --------------------------------------------------
+   🆕 2026-09-17, his ask: a C64-era monitor around the corner's screen.
+   🚨 #screen-shell IS the bezel - there is no new element over the glass. A
+   layer on top would intercept the rig's real mouse click on #machine-frame and
+   the book reader's elementFromPoint, and verify-c64 asserts #screen-shell's
+   DIRECT child. Everything here is padding, background, and a chin UNDER it.
+   ⭐ The DEEP CHIN is the whole silhouette. A thin even frame reads as a modern
+   flat panel; the chin is what makes it 1984.
+   📌 CORNER ONLY - cat.js adds .is-monitor in cracked mode. The ordinary hub's
+   screen is the 1970s PET-era CAT terminal, and this project keeps those two
+   eras apart on purpose; a 1980s monitor around the PET terminal collapses them.
+   🚫 No Commodore wordmark, no C= device, no rainbow bar, no model number. */
+#screen-shell.is-monitor {
+  background: linear-gradient(#d4ccba, #c6bead 42%, #a79f8e);
+  border-radius: 14px 14px 10px 10px;
+  padding: clamp(14px, 2vh, 26px) clamp(16px, 2.2vw, 34px) clamp(30px, 5.2vh, 62px);
+  box-shadow: inset 0 1px 0 #e8e1cf, inset 0 -2px 6px rgba(0, 0, 0, .3),
+              0 12px 34px rgba(0, 0, 0, .6);
+}
+#screen-shell.is-monitor::before {    /* fine vent slots across the cabinet top */
+  content: "";
+  position: absolute;
+  left: 14%; right: 14%; top: 5px;
+  height: 5px;
+  background: repeating-linear-gradient(90deg, #9a917f 0 2px, transparent 2px 6px);
+  opacity: .5;
+  pointer-events: none;
+}
+/* a CRT face is not a flat rounded rectangle: fat, UNEQUAL corner radii, and the
+   well is lit from above, so the catch-light belongs on the BOTTOM inner lip */
+#screen-shell.is-monitor > #screen {
+  border-radius: 26px / 34px;
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, .8), inset 0 -1px 0 rgba(255, 255, 255, .12),
+              0 0 0 7px #16141a, 0 0 0 9px #2a2620;
+}
+#monitor-chin {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: clamp(30px, 5.2vh, 62px);
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(16px, 2.2vw, 34px);
+  pointer-events: none;
+}
+#screen-shell.is-monitor #monitor-chin { display: flex; }
+#monitor-badge {
+  font: 700 11px var(--mono);
+  letter-spacing: .18em;
+  color: #5c5038;
+  text-shadow: 0 1px 0 rgba(255, 247, 220, .6);
+}
+#monitor-lamp {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #3fbf5f;
+  box-shadow: 0 0 5px rgba(63, 191, 95, .5), inset 0 -1px 1px rgba(0, 0, 0, .45);
+}
+
+/* ---- the F-key hints ----------------------------------------------------
+   🆕 2026-09-17, his ask: make them obvious. Nice, bold, dark.
+   Drawn as little raised KEYCAPS, which is also the period-true answer: on a
+   breadbin the four function keys are the LIGHT grey caps at the right of the
+   board, and it is the contrast of COLOUR, not size, that makes them read as
+   special. #2b2517 on #cfc6a8 is about 10:1, and it is the deck's own ink.
+   🚨 THE BRACKETS STAY IN CSS AND THE TEXT STAYS BARE. cat.js writes "F2",
+   "F9", "F10" and the brackets came from ::before/::after; verify-c64 asserts
+   the text is exactly "F2 F9 F10", so baking a bracket or the word "key" into
+   the textContent turns that assertion red. The keycap replaces the brackets. */
+.btn__hint, .c64-part__hint {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: linear-gradient(#e4dcc4, #cfc6a8);
+  border: 1px solid #8f8672;
+  box-shadow: 0 2px 0 #8f8672, inset 0 1px 0 #fffaea;
+  color: #2b2517;
+  font-weight: 700;
+  font-size: .92em;
+  letter-spacing: .04em;
+  opacity: 1;
+  line-height: 1.25;
+}
+.btn__hint::before, .btn__hint::after,
+.c64-part__hint::before, .c64-part__hint::after { content: none; }
+.c64-part.is-grey .c64-part__hint { opacity: 1; filter: none; }
+
+
+/* ---- the fast-load cartridge -------------------------------------------
+   🆕 2026-09-17, his call. It is a CARTRIDGE, not a switch, because that is
+   what a fast loader actually was. OUT of the slot when off, seated IN it when
+   on — so the state is a physical position and nothing has to be labelled.
+   🚨 It is a real <button>: it must be clickable, focusable and reachable by
+   keyboard, which the .c64-cart__shell span beside it is not. */
+.c64-cart__fast {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  /* OUT: standing below the port, clear of the slot's mouth */
+  bottom: -30px;
+  padding: 4px 4px 7px;
+  transition: bottom 260ms cubic-bezier(.3, .8, .4, 1), filter 200ms ease;
+  filter: brightness(.86);
+}
+.c64-cart__fast:hover:not(:disabled) { filter: brightness(1); }
+.c64-cart__fast:focus-visible { outline: 2px solid #3f329b; outline-offset: 3px; }
+/* IN: seated in the slot, the way a cartridge sits proud of the case */
+.c64-cart__fast.is-seated {
+  bottom: 12px;
+  filter: brightness(1);
+  box-shadow: inset 0 1px 0 #4a4a50, 0 3px 7px rgba(0, 0, 0, .6);
+}
+.c64-cart__fast.is-seated .c64-cart__band { background: #4f9f4a; }
+.c64-cart__fast:disabled { cursor: not-allowed; filter: brightness(.55) grayscale(.6); }
+/* the port has to be tall enough to hold a cartridge standing below it */
+.c64-cart { padding-bottom: 34px; }
+
+/* ---- the C64 badge on the monitor's chin --------------------------------
+   🔄 2026-09-17 — this said TOMMODORE CAT until his call. The rainbow bar and
+   the model name are drawn; the C= chicken-head device is deliberately NOT — it
+   is a registered device mark and Game/ publishes to a public site. Adding it
+   should be a decision, not something that drifts in. See index.html. */
+#monitor-badge { display: inline-flex; align-items: center; gap: 7px; }
+.c64-rainbow {
+  display: inline-block;
+  width: 9px; height: 15px;
+  border-radius: 1px;
+  background: linear-gradient(#b4453a 0 20%, #d97b33 20% 40%, #e3bb3a 40% 60%,
+                              #6fa653 60% 80%, #3f7fb5 80% 100%);
+  box-shadow: 0 1px 0 rgba(255, 247, 220, .5), inset 0 0 0 1px rgba(0, 0, 0, .2);
+}
+.c64-wordmark {
+  font: 700 13px var(--mono);
+  letter-spacing: .12em;
+  color: #4a4030;
+  text-shadow: 0 1px 0 rgba(255, 247, 220, .6);
+}
+
+/* ---- the deck's own drive light -----------------------------------------
+   🔄 2026-09-17, his ask: the little lamp beside "Drive 8" now works the way
+   the drive bay's does, because it is the same drive. Red, SOLID for the length
+   of an access; dark when idle; and the 1 Hz DOS error blink only on a failure.
+   🚫 Same rule as the bay: never blink it on a good load. */
+#drive-led.is-loading { background: #ff4a3a; box-shadow: 0 0 8px rgba(255, 74, 58, .85); }
+#drive-led.is-failed { animation: drive-error 1s steps(1, end) infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   #crates > #btn-insert.btn--insert:not(:disabled) { animation: none; box-shadow: 0 3px 0 #a8791c, 0 0 14px 2px rgba(255, 196, 64, .5); }
+  .reader-spine { transition: none; }
+  .c64-cart__fast { transition: none; }
   .drive-insert, .drive-insert--disk .drive-disk__body, .drive-insert--tape .drive-disk__body,
   .drive-latch, .drive-led, .drive-door, .drive-key--play { animation-duration: .45s; }
   .c64-power[aria-pressed="true"] .c64-led,

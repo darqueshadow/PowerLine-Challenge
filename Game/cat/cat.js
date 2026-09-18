@@ -61,7 +61,15 @@
      READY. It was Shift/Ctrl+Escape. His call moved it, because Shift+Escape is
      Shift+RUN/STOP, and on a real C64 that is how a tape loads. emu.js holds
      the same key (HOTKEY_EXIT there) for when the frame has focus. */
-  var HOTKEY_EXIT  = "F10";
+  /* 🔄 2026-09-17 — MOVED F10 -> F12, his call, and the reason is good:
+     Reset sat one key from the joystick-port key, and a mis-hit wiped the
+     machine. The DANGEROUS key is the one that moved, not the safe one.
+     🚫 F4 was asked for first and refused, on a fact worth keeping: F1..F8
+     are REAL C64 keys and games use them, so a hub hotkey there would fire
+     while someone was playing. F2, F9 and F12 are not C64 keys at all, which
+     is the whole reason those three were chosen. Keep any new hotkey off
+     F1..F8. */
+  var HOTKEY_EXIT  = "F12";
   var swapBar   = document.getElementById("play-disks");
 
   /* 🆕 2026-09-16 — the real C64 and the deck controls that go with it */
@@ -86,6 +94,15 @@
   /* 🆕 2026-09-16 — the multi-disk side swap (his second addendum) */
   var sideSwap   = document.getElementById("side-swap");
   var driveSide  = document.getElementById("drive-side");
+  /* 🆕 2026-09-17 — the corner's new hardware: the cartridge port, the joystick
+     cable, and the 1541 front the disk artwork now sits in */
+  var cartPort   = document.getElementById("c64-cart");
+  var cartShell  = document.getElementById("c64-cart-shell");
+  var cartName   = document.getElementById("c64-cart-name");
+  var cartStatus = document.getElementById("c64-cart-status");
+  var driveBay   = document.getElementById("drive-bay");
+  var btnFast    = document.getElementById("btn-fastload");
+  var fastLoad   = false;   /* what the MACHINE last confirmed, not what was asked */
 
   /* the two crates and the detail panel, 2026-09-11 */
   var stackPlc  = document.querySelector("#crate-plc .crate__stack");
@@ -152,11 +169,45 @@
   var LINK = window.CAT_LINK === undefined ? null : window.CAT_LINK;
   var IN_SHELL = window.fangRockShell === true;
   var CART_ID = /^[a-z]+$/;
+
+  /* 🆕 2026-09-17 — the six books on the corner's shelf (books.js). An empty
+     shelf is a SUPPORTED state, like a missing crackintro.js: the reader opens
+     and says the shelf is empty, rather than the hub failing over a decoration.
+     🚨 DECLARED HERE, NOT WITH CRACK AND DRIVE BELOW. The book token a few
+     lines down reads it at IIFE time, and `var` hoisting made that an
+     `undefined.forEach` that killed cat.js before `window.__cat` existed —
+     i.e. a blank hub, not a missing reader. Keep it above its first reader. */
+  var BOOKS = window.CAT_BOOKS || [];
+
+  /* 🆕 2026-09-17 — A BOOK IS A TOKEN TOO, and `book` is a RESERVED PREFIX.
+     His ruling: the reader opens from the SHELF IN THE ROOM, not from a hub
+     button — so a spine click has to reach this page, and the only thing that
+     reaches this page is the one opaque `?cart=` string (his guardrail: Fang
+     Rock must not interpret it). `book` alone is the shelf; `book` + a books.js
+     id is that one book, so the spine opens the book it shows.
+     🚫 A cartridge may therefore never be given an id starting with "book" —
+     it would be shadowed here and simply never launch. Nothing does today.
+     🚨 An unknown `book…` token is NOT FOUND, exactly like an unknown cartridge,
+     and never quietly falls back to the shelf: substituting something that
+     works for something that does not is indistinguishable from success on the
+     corridor's side, which is the same reasoning as `followLink` below. */
+  var BOOK_PREFIX = "book";
+  var BOOK_LINK = null;   /* null | "shelf" | "<books.js id>" | "none" */
+  if (LINK !== null && CART_ID.test(LINK) && LINK.indexOf(BOOK_PREFIX) === 0) {
+    if (LINK === BOOK_PREFIX) BOOK_LINK = "shelf";
+    else {
+      BOOKS.forEach(function (b) { if (!BOOK_LINK && BOOK_PREFIX + b.id === LINK) BOOK_LINK = b.id; });
+      if (!BOOK_LINK) BOOK_LINK = "none";
+    }
+  }
+
   var LINKED = null;
-  if (LINK !== "cracked" && CART_ID.test(LINK || "")) {
+  if (LINK !== "cracked" && !BOOK_LINK && CART_ID.test(LINK || "")) {
     visibleDisks().forEach(function (d) { if (!LINKED && d.id === LINK) LINKED = d; });
   }
-  var CRACKED_ONLY = LINK === "cracked" || IN_SHELL;
+  /* A book token is a CORNER token — the shelf it came from is in the corner —
+     so it brings the real C64 with it, just as `cracked` does. */
+  var CRACKED_ONLY = LINK === "cracked" || IN_SHELL || !!BOOK_LINK;
   if (CRACKED_ONLY) {
     DISKS = DISKS.filter(function (d) { return d.runner === "emulator"; });
     var cratePlc = document.getElementById("crate-plc");
@@ -853,7 +904,7 @@
   }
 
   /* 🆕 2026-09-14 — THE PLAY BAR'S WAY OUT, and the one function the button,
-     the F10 key (Ctrl/Shift+Esc until 2026-09-16) and the emulator's own exit message all use, so the
+     the exit key (F10 from 2026-09-16, F12 from 2026-09-17) and the emulator's own exit message all use, so the
      three cannot disagree about where a player lands.
      His call: a PLC game's Exit Game goes BACK TO THE ARCADE ROOM. Inside Fang
      Rock that means closing this window. A cracked disk's Reset goes back to the
@@ -901,7 +952,7 @@
           identical machine state, "no parallel fake logic path";
        3. real typing: arbitrary BASIC works;
      and his answers the same day: the crack intro plays ON INSERT DISK, the
-     machine opens in KEYBOARD mode, and the exit key is F10.
+     machine opens in KEYBOARD mode, and the exit key is F12 (F10 until 2026-09-17).
 
      ⭐ THE ONE-PATH RULE STILL HOLDS; ITS PATH MOVED. In the resolver hub a
      button submits a string to execute(). Here a button TYPES its string into
@@ -1013,6 +1064,11 @@
     if (machineOff) { write("the c64 is switched off. power it on first.", "warn"); return; }
     busy = true;
     led.classList.add("on");
+    /* 🆕 2026-09-17 — the drive's red lamp comes on SOLID for the access, and a
+       cartridge never lights it at all: a cart is read by the CPU on power-up,
+       the drive is not touched, and lighting it would be the corner telling a
+       lie about the machine. */
+    if (!isCartridge(disk)) paintDrive("loading");
     releaseMachineFocus();
     var files = (disk.files || []).map(function (f) { return new URL(f.url, location.href).href; });
     DRIVE.play(disk, { medium: mediumOfDisk(disk), host: screenShell })
@@ -1025,17 +1081,24 @@
           medium = m.medium === "tape" ? "tape" : "disk";
           setDrive(disk);
           paintLoad();
+          paintCart(disk);
           renderSwap(disk);
           write((medium === "tape" ? "tape inserted: " : "disk inserted: ") + disk.displayName.toUpperCase(), "dim");
         } else {
+          /* 🚨 THE BLINK IS SPENT HERE, and only here: on a real 1541 a blinking
+             red light is the DOS error signal, so this is the one moment it is
+             telling the truth. */
+          paintDrive("failed");
           write("could not insert " + disk.displayName.toUpperCase() + ": " + String(m.reason || "no reason given"), "err");
         }
       })
       .catch(function (err) {
+        paintDrive("failed");
         if (!err.byPowerOff) write("could not insert " + disk.displayName.toUpperCase() + ": " + err.message, "err");
       })
       .then(function () {
         led.classList.remove("on");
+        if (!driveBay.classList.contains("is-failed")) paintDrive(null);
         busy = false;
         ready();
         renderBox();
@@ -1144,6 +1207,34 @@
       });
   }
 
+  /* 🆕 2026-09-17 — LOAD, AND THEN RUN IF THERE IS ANYTHING TO RUN.
+     His ask, built the only way that is safe. The naive version — type RUN after
+     a fixed wait — is wrong on a large slice of this library, because a great
+     many cracked releases START THEMSELVES the instant the load finishes. On
+     those, three keystrokes land inside the running game; on a pure machine-code
+     load, RUN prints ?SYNTAX ERROR. So the machine is ASKED whether it is
+     genuinely sitting at a BASIC prompt, and RUN is typed only if it says yes.
+     ⭐ `ready: false` is a success, not a failure: it is what a self-starting
+     crack looks like from out here, and the right response is to do nothing.
+     🚫 It must also stay silent on a FAILED load — a failed LOAD"*",8,1 leaves
+     READY. on screen, so the drive is asked too, via the lamp state. */
+  function loadThenRun(cmd) {
+    if (busy) return;
+    busy = true;
+    paintDrive("loading");
+    machineCall({ type: "cat:type", text: String(cmd) + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
+      .then(function (m) {
+        if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
+        return machineCall({ type: "cat:awaitready", ms: 120000 }, ["cat:atready"], 130000);
+      })
+      .then(function (m) {
+        if (!m.ready) { write("it started on its own.", "dim"); return null; }
+        return machineCall({ type: "cat:type", text: "RUN\n" }, ["cat:typed", "cat:typefailed"], 30000);
+      })
+      .catch(function (err) { if (!err.byPowerOff) write("could not load: " + err.message, "err"); })
+      .then(function () { paintDrive(null); busy = false; focusMachine(); });
+  }
+
   /* One entry point for every command button and for the tooling surface. */
   function submitCommand(cmd) {
     if (MACHINE && machineStarted) machineType(cmd);
@@ -1180,16 +1271,29 @@
      then after one live switch on port 1 ($DC01 254), then back. */
   var side = { keyboard: null, port: null };
 
-  /* THE KEY CARD — his ruling of 2026-09-17. The machine types on a real C64's
-     key POSITIONS (emu.js, vice_keyboard_keymap), so a PC key's label is not
-     always what appears. The card on the side panel lists every character that
-     sits somewhere else, so nobody has to guess that `"` is Shift+2.
+  /* THE KEY POSITIONS — his ruling of 2026-09-17, and what is left of the key
+     card. The machine types on a real C64's key POSITIONS (emu.js,
+     vice_keyboard_keymap), so a PC key's label is not always what appears.
+
+     🔄 RETITLED 2026-09-17, LATER THE SAME DAY, AND THE DIFFERENCE MATTERS. This
+     was written as a card that TOLD THE PLAYER where a character had moved to —
+     "`"` is Shift+2". It is not that any more. His second ask the same day ("us
+     humans need that visual reference") put a translator in the page: emu.js's
+     relayKey() reads the character off the PC key the player actually pressed
+     and presses the C64 position below for them. So ten of these seventeen rows
+     are no longer true as instructions — `"` is Shift+' on the C64 corner now,
+     the same as everywhere else, because the page does the moving.
+     ⭐ WHAT THE TABLE IS NOW: the RAW POSITIONAL MATRIX, the machine's own
+     wiring, and the single source both emu.js's KEYS table and verify-c64 §J
+     read so the two can never drift. Read the third column as "where the C64
+     keeps this character", not as "what to press".
      📌 EVERY ROW WAS MEASURED on the running core the same day: each PC key
      pressed with real key events, with and without Shift, and the character read
-     back out of the C64's screen memory. Anything not listed types where its PC
-     label says: letters, digits, space, ! # $ % , . / < > ?
-     verify-c64 §J presses every row again, reading the keys off the card itself.
-     Column-first, three to a column: [C64 character, what the card shows, the key] */
+     back out of the C64's screen memory. Anything not listed sits in the same
+     place on both keyboards: letters, digits, space, ! # $ % , . / < > ?
+     verify-c64 §J presses every row again, as a player would — it types the
+     character and checks the machine stored that character.
+     Column-first, three to a column: [C64 character, what the card showed, the key] */
   var KEYCARD = [
     ['"', "⇧2", "Shift+2"], ["(", "⇧8", "Shift+8"], [")", "⇧9", "Shift+9"],
     [":", ";", ";"],        [";", "'", "'"],        ["=", "\\", "\\"],
@@ -1198,25 +1302,13 @@
     ["[", "⇧;", "Shift+;"], ["]", "⇧'", "Shift+'"], ["←", "`", "`"],
     ["£", "Ins", "Insert"], ["↑", "Del", "Delete"]
   ];
-  function renderKeycard() {
-    var list = document.getElementById("c64-keycard-list");
-    list.textContent = "";
-    KEYCARD.forEach(function (k) {
-      var row = document.createElement("div");
-      row.className = "c64-keycard__row";
-      row.dataset.c64 = k[0];
-      row.dataset.key = k[2];
-      var dt = document.createElement("dt");
-      dt.textContent = k[0];
-      var dd = document.createElement("dd");
-      dd.textContent = k[1];
-      dd.title = k[0] + " is " + k[2];
-      dd.setAttribute("aria-label", k[2]);
-      row.appendChild(dt);
-      row.appendChild(dd);
-      list.appendChild(row);
-    });
-  }
+  /* 🗑 2026-09-17 — renderKeycard() WAS HERE. The card came off the panel on his
+     word ("remove the C64 keys thing ... for now").
+     🚨 THE TABLE ABOVE DID NOT GO WITH IT, and must not. Those 17 rows are not a
+     design; they are MEASUREMENTS, each one taken off the running core with real
+     key events and read back out of screen memory. verify-c64 §J still presses
+     every one of them — it just reads them from `__cat.keycard()` now instead of
+     off the DOM. Putting the card back is markup; re-measuring is a morning. */
 
   function paintSide() {
     var kbd = side.keyboard === true, joy = side.keyboard === false;
@@ -1231,6 +1323,82 @@
     sidePanel.dataset.mode = kbd ? "keyboard" : joy ? "joystick" : "";
     sidePanel.dataset.port = side.port || "";
     sideStatus.textContent = kbd ? "Input: keyboard" : joy ? "Input: joystick in port " + side.port : "";
+    paintCable(joy ? (side.port === "1" ? sidePort1 : sidePort2) : null);
+  }
+
+  /* 🔄 2026-09-17 — A JOYSTICK, NOT A CABLE. This drew a black cable running
+     out of the live port and dropping off the bottom of the window; his call
+     replaced it with the stick itself, which says the same thing in one glyph
+     and costs no geometry at all. The cable had to be position:fixed and
+     re-placed on every resize to escape its ancestors' clipping — all of that
+     is gone with it.
+     ⭐ STILL PAINTED FROM THE MACHINE'S REPORT, never from the click: his ruling
+     froze the port labels black, so the stick is the only thing left that says
+     which port is live, and it must not be able to disagree with the machine. */
+  function paintCable(port) {
+    [sidePort1, sidePort2].forEach(function (p) {
+      p.classList.toggle("has-stick", p === port);
+    });
+  }
+
+  /* 🆕 2026-09-17 — THE CARTRIDGE PORT.
+     ⚠️ A cartridge is NOT a disk, and this is the one place the corner could
+     easily lie about the machine. A real cart auto-starts at power-on: there is
+     no LOAD, no drive access, no READY. to type RUN at — and you must switch the
+     machine OFF to insert one. So the port fills ONLY for a genuine .CRT, and
+     the drive lamps and the auto-RUN below must stay out of its way.
+     📌 Empty is the normal state today: the library holds 112 titles and not one
+     of them is a .CRT, so nothing has ever been in this slot. That is honest
+     rather than broken — library.js already accepts the extension. */
+  function isCartridge(disk) {
+    if (!disk || disk.runner !== "emulator") return false;
+    var f = (disk.files && disk.files[0] && disk.files[0].url) || "";
+    return /\.crt$/i.test(String(f));
+  }
+  function paintCart(disk) {
+    if (cartShell.hidden === undefined) return;
+    var on = isCartridge(disk);
+    cartShell.hidden = !on;
+    cartName.textContent = on ? disk.displayName.toUpperCase() : "";
+    cartStatus.textContent = on ? "Cartridge in: " + disk.displayName : "Cartridge port empty";
+    /* the fast loader and a .CRT game cannot both be in the one port */
+    paintFast();
+  }
+
+  /* 🆕 2026-09-17 — THE DRIVE'S TWO LAMPS, and what each one is allowed to say.
+     🚨 Green is POWER and is steady; red is ACTIVITY and is SOLID for the length
+     of an access; a BLINKING red is the 1541's DOS error signal and belongs to a
+     disk that actually failed. The hub used to blink red on every successful
+     insert, which to anyone who has used the machine reads as "that disk died".
+     🚫 Never call this with "loading" for a cartridge — see paintCart. */
+  /* 🔄 2026-09-17, his ask — THE DECK'S OWN LAMP IS THE SAME DRIVE'S LAMP. The
+     little light beside "Drive 8" now follows exactly what the drive bay does,
+     because there is only one drive: solid red for the length of an access, dark
+     when idle, and the 1 Hz DOS error blink only on a real failure. It used to
+     light on an insert and nothing else, so a LOAD — the longest the drive is
+     ever busy — left it dark. */
+  function paintDrive(state) {
+    if (!driveBay) return;
+    driveBay.classList.toggle("is-loading", state === "loading");
+    driveBay.classList.toggle("is-failed", state === "failed");
+    led.classList.toggle("is-loading", state === "loading");
+    led.classList.toggle("is-failed", state === "failed");
+  }
+
+  /* 🔄 2026-09-17 — FAST LOAD IS A CARTRIDGE NOW, so "on" means SEATED IN THE
+     PORT and "off" means standing below it. The position is the state; there is
+     no label making a claim the machine has not confirmed.
+     🚨 ONE EXPANSION PORT, ONE CARTRIDGE — the real constraint, not a drawing
+     limitation. A .CRT game in the slot means the fast loader physically cannot
+     be in it, so the button says so rather than overlapping two carts. */
+  function paintFast() {
+    var taken = !cartShell.hidden;
+    btnFast.classList.toggle("is-seated", fastLoad && !taken);
+    btnFast.setAttribute("aria-pressed", String(fastLoad));
+    btnFast.disabled = taken;
+    btnFast.title = taken
+      ? "The cartridge port is taken by " + (cartName.textContent || "a game") + " — a C64 has one expansion port"
+      : (fastLoad ? "Fast-load cartridge in. Click to take it out." : "A fast-load cartridge: click to plug it in, and the drive loads warped.");
   }
   function paintPower(on) {
     sidePower.setAttribute("aria-pressed", String(on));
@@ -1294,15 +1462,19 @@
        ever show for an emulator, and none runs in that overlay here). */
     btnPower.hidden = true;
     sidePanel.hidden = false;
-    /* his F-key addendum: [F2] at the keyboard, [F9] at the ports, [F10] at
-       Reset — each rendered from its constant, like the play bar's hints */
+    /* his F-key addendum: [F2] at the keyboard, [F9] at the ports, [F12] at
+       Reset — each rendered from its constant, like the play bar's hints.
+       🔄 2026-09-17: Reset moved F10 -> F12, away from the port key. */
     document.getElementById("c64-keys-hint").textContent = HOTKEY_INPUT;
     document.getElementById("c64-port-hint").textContent = HOTKEY_PORT;
     document.getElementById("btn-reset-hint").textContent = HOTKEY_EXIT;
     sidePort1.title = "Joystick in port 1 (" + HOTKEY_PORT + " swaps ports)";
     sidePort2.title = "Joystick in port 2 (" + HOTKEY_PORT + " swaps ports)";
-    sideKeys.title = "Type on the keyboard (" + HOTKEY_INPUT + " switches to the joystick)";
-    renderKeycard();
+    sideKeys.title = "Type on the keyboard (" + HOTKEY_INPUT + ")";
+    /* 🆕 2026-09-17 — the monitor bezel, and ONLY here. See the .is-monitor note
+       in cat.css: the ordinary hub's screen is the 1970s PET-era terminal. */
+    screenShell.classList.add("is-monitor");
+    driveBay.classList.add("is-powered");
     paintPower(true);
     paintSide();
     sidePower.addEventListener("click", pressPower);
@@ -1310,16 +1482,49 @@
     [sidePort1, sidePort2].forEach(function (p) {
       p.addEventListener("click", function () { postMachine({ type: "cat:joystick", port: p.dataset.port }); focusMachine(); });
     });
-    /* his addendum: Insert Disk goes where the disks are, and stands out there */
+    /* his addendum: Insert Disk goes where the disks are, and stands out there.
+       🔄 2026-09-17, his ask: EJECT COMES WITH IT. The two are one decision —
+       what is in the drive — and having them at opposite ends of the deck made
+       you cross the hub to undo the thing you just did.
+       🚨 INSERTED AS SIBLINGS, NOT WRAPPED IN A DIV. verify-c64 §A asserts
+       btnInsert.parentNode.id === "crates"; a tidy .disk-buttons wrapper would
+       fail it, and the fix would be to weaken the assertion, which is backwards. */
     btnInsert.classList.add("btn--insert");
     var cratesEl = document.getElementById("crates");
     cratesEl.insertBefore(btnInsert, sideSwap);   /* the side swap sits right under it */
+    cratesEl.insertBefore(btnEject, sideSwap);    /* and Eject right beside it */
+    /* 🚨 EJECT MUST BE IN THIS SELECTOR TOO. The #deck guard below does not reach
+       it any more, and a button that keeps focus after a click sends the player's
+       next keystroke into the button instead of into BASIC — measured in §G, and
+       §F's hand-typed LOAD"$",8 is what catches it. Moving a button out of #deck
+       without moving it into this list is the regression. */
     cratesEl.addEventListener("mousedown", function (e) {
-      if (machineStarted && e.target.closest && e.target.closest("#btn-insert, #side-swap button")) e.preventDefault();
+      if (machineStarted && e.target.closest && e.target.closest("#btn-insert, #btn-eject, #side-swap button")) e.preventDefault();
     });
     btnListing.hidden = false;
     btnRun.hidden = false;
     btnReset.hidden = false;
+    /* 🆕 2026-09-17 — the fast loader, off until asked for. It PAINTS FROM THE
+       MACHINE'S ANSWER, never from the click: changeSettingOption can land in
+       the settings object and reach nothing at all if the core's option table
+       failed to build, and a button that says "On" while the core is still slow
+       is worse than no button — the same contract the Input and Port controls
+       keep. */
+    btnFast.hidden = false;
+    btnFast.addEventListener("click", function () {
+      if (busy) return;
+      machineCall({ type: "cat:warp", on: !fastLoad }, ["cat:warped", "cat:warpfailed"], 8000)
+        .then(function (m) {
+          if (m.type !== "cat:warped") throw new Error(String(m.reason || "no reason given"));
+          fastLoad = !!m.on;
+          paintFast();
+          write(fastLoad ? "fast load cartridge in: the drive loads warped."
+                         : "fast load cartridge out: the drive runs at its own speed.", "dim");
+        })
+        .catch(function (err) { write("could not change fast load: " + err.message, "warn"); })
+        .then(function () { focusMachine(); });
+    });
+    paintFast();
     btnList.textContent = "Load \"$\",8";
     btnReset.title = "Reset the C64, back to READY. The disk stays in the drive (" + HOTKEY_EXIT + ")";
     deckNote.hidden = false;
@@ -1337,6 +1542,266 @@
       if (machineStarted && e.target.closest && e.target.closest("button")) e.preventDefault();
     });
   }
+
+  /* =======================================================================
+     THE READER — the six books from the shelf above the corner C64's bench.
+
+     🆕 2026-09-17, his ruling of 2026-09-16 clarified the same week: the SHELF
+     IN THE ROOM is the trigger, and the reader DISPLAYS HERE. His four asks
+     were: on top always, reshape-able, page turns or scrolling, and a close
+     control — plus the sentence the whole thing is really for: *"Player should
+     be able to read the book while the C64 emulator is still active/visible, so
+     they can read a page and type it into the emulator."*
+
+     ⭐⭐ THAT SENTENCE IS THE DESIGN, AND FOCUS IS THE WHOLE DIFFICULTY. The
+     player reads a line, then types it into the machine. EmulatorJS takes keys
+     only while its frame has focus. A mouse click on "Next" that moves focus to
+     this panel means the next thing they type goes nowhere — or worse, turns a
+     page. So:
+       1. every control REFUSES FOCUS on mousedown (the same fix the deck
+          buttons needed — see setupMachineDeck, measured in verify-c64 §G), and
+       2. every click ENDS IN focusMachine(), which posts cat:focus rather than
+          trusting frame.focus() — focusing the iframe alone lands keys on its
+          body, which the core does not listen to.
+     🚫 AND THE READER TAKES NO KEYS OF ITS OWN. No arrow keys for page turns,
+     no Escape to close, however natural they would feel: every one of those is
+     a key the player might be typing into BASIC. Page turns are the mouse's
+     job here. The ONE exception is the ordinary Tab/Enter path, which only
+     reaches these buttons when someone has deliberately tabbed to them.
+     📌 The listing block is the deliberate hole in rule 1: mousedown is allowed
+     through inside a <pre> so the text can still be selected and copied.
+
+     ⚠️ FULLSCREEN is the one place "on top always" cannot be honoured: only
+     children of the fullscreen element paint over it, and that element lives in
+     another document. The reader closes and says so — the brief predicted this
+     and allowed it ("or say it closes in fullscreen"). A panel that is silently
+     invisible would be the worse answer.
+
+     Nothing here knows the title of a single book; books.js is the shelf.
+     ===================================================================== */
+  var readerEl    = document.getElementById("reader");
+  var readerBar   = document.getElementById("reader-bar");
+  var readerTitle = document.getElementById("reader-title");
+  var readerSpines= document.getElementById("reader-spines");
+  var readerBody  = document.getElementById("reader-body");
+  var readerPage  = document.getElementById("reader-page");
+  var readerFoot  = document.getElementById("reader-foot");
+  var readerWhere = document.getElementById("reader-where");
+  var readerPrev  = document.getElementById("reader-prev");
+  var readerNext  = document.getElementById("reader-next");
+  var readerShelfBtn = document.getElementById("reader-shelf");
+  var readerCloseBtn = document.getElementById("reader-close");
+  var readerResize   = document.getElementById("reader-resize");
+
+  var readerBook = null;    /* the open book object, or null for the shelf */
+  var readerPg   = 0;
+  var readerPlaced = false; /* has it been given a position yet */
+
+  function bookById(id) {
+    var found = null;
+    BOOKS.forEach(function (b) { if (!found && b.id === id) found = b; });
+    return found;
+  }
+
+  /* ---- drawing ---------------------------------------------------------- */
+  function renderSpines() {
+    readerSpines.textContent = "";
+    if (!BOOKS.length) {
+      var none = document.createElement("p");
+      none.id = "reader-empty";
+      none.textContent = "the shelf is empty.";
+      readerSpines.appendChild(none);
+      return;
+    }
+    BOOKS.forEach(function (b) {
+      var s = document.createElement("button");
+      s.type = "button";
+      s.className = "reader-spine";
+      s.dataset.book = b.id;
+      s.style.background = b.tint;
+      s.style.color = b.ink;
+      /* the spine's OWN lines, so what stands on this shelf reads exactly as
+         what stands on the room's shelf (books.js warns about the pairing) */
+      (b.spine || [b.title]).forEach(function (l) {
+        var i = document.createElement("span");
+        i.className = "reader-spine__line";
+        i.textContent = l;
+        s.appendChild(i);
+      });
+      s.title = b.title + (b.imprint ? " — " + b.imprint : "");
+      s.setAttribute("aria-label", b.title);
+      readerSpines.appendChild(s);
+    });
+  }
+
+  function renderPage() {
+    readerPage.textContent = "";
+    var page = readerBook.pages[readerPg];
+    var h = document.createElement("h3");
+    h.textContent = page.title;
+    readerPage.appendChild(h);
+    (page.blocks || []).forEach(function (blk) {
+      if (blk.code) {
+        var pre = document.createElement("pre");
+        /* joined here rather than stored joined, so a listing is a list of
+           LINES in books.js — which is what the rig types, one at a time */
+        pre.textContent = blk.code.join("\n");
+        readerPage.appendChild(pre);
+      } else if (blk.p) {
+        var p = document.createElement("p");
+        p.textContent = blk.p;
+        readerPage.appendChild(p);
+      }
+    });
+  }
+
+  function renderReader() {
+    var onShelf = !readerBook;
+    readerSpines.hidden = !onShelf;
+    readerPage.hidden = onShelf;
+    readerFoot.hidden = onShelf;
+    readerShelfBtn.hidden = onShelf;
+    if (onShelf) {
+      readerTitle.textContent = "The shelf";
+      renderSpines();
+      return;
+    }
+    readerTitle.textContent = readerBook.title;
+    renderPage();
+    readerWhere.textContent = "page " + (readerPg + 1) + " of " + readerBook.pages.length;
+    readerPrev.disabled = readerPg === 0;
+    readerNext.disabled = readerPg >= readerBook.pages.length - 1;
+    /* a page turn starts at the top of the new page, not wherever the last
+       one was scrolled to — the listing is usually what they came for */
+    readerBody.scrollTop = 0;
+  }
+
+  /* ---- where it sits ---------------------------------------------------- */
+  /* 🚨 CLAMPED TO THE WINDOW on every move, resize and window resize. A panel
+     dragged off the edge cannot be dragged back, and there is no taskbar to
+     recover it from — it would simply be gone for the rest of the session. */
+  function placeReader(left, top) {
+    var w = readerEl.offsetWidth, h = readerEl.offsetHeight;
+    var maxL = Math.max(0, window.innerWidth - w);
+    var maxT = Math.max(0, window.innerHeight - h);
+    readerEl.style.left = Math.min(Math.max(0, left), maxL) + "px";
+    readerEl.style.top  = Math.min(Math.max(0, top), maxT) + "px";
+  }
+  function clampReader() {
+    if (readerEl.hidden) return;
+    placeReader(readerEl.offsetLeft, readerEl.offsetTop);
+  }
+  window.addEventListener("resize", clampReader);
+
+  /* ---- opening and closing ---------------------------------------------- */
+  function openReader(id) {
+    readerBook = id ? bookById(id) : null;
+    readerPg = 0;
+    readerEl.hidden = false;
+    if (!readerPlaced) {
+      readerPlaced = true;
+      /* centred on first open, and never again: after that it is where the
+         player last put it, which is the point of a reshape-able panel */
+      placeReader((window.innerWidth - readerEl.offsetWidth) / 2,
+                  (window.innerHeight - readerEl.offsetHeight) / 2);
+    } else {
+      clampReader();
+    }
+    renderReader();
+    focusMachine();
+  }
+  function closeReader() {
+    if (readerEl.hidden) return;
+    readerEl.hidden = true;
+    readerBook = null;
+    focusMachine();
+  }
+  function openBook(id) {
+    var b = bookById(id);
+    if (!b) return false;
+    readerBook = b;
+    readerPg = 0;
+    if (readerEl.hidden) { openReader(id); return true; }
+    renderReader();
+    return true;
+  }
+  function turnPage(delta) {
+    if (!readerBook) return;
+    var n = readerBook.pages.length;
+    readerPg = Math.min(Math.max(0, readerPg + delta), n - 1);
+    renderReader();
+  }
+
+  /* ---- the controls ----------------------------------------------------- */
+  /* Rule 1: refuse focus, with the <pre> hole so a listing stays selectable. */
+  readerEl.addEventListener("mousedown", function (e) {
+    if (e.target.closest && e.target.closest("#reader-page pre")) return;
+    e.preventDefault();
+  });
+
+  /* Rule 2: every click ends in the machine. One handler for the whole panel,
+     so a control added later cannot forget to hand the keyboard back. */
+  readerEl.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("button");
+    if (!btn) return;
+    if (btn === readerCloseBtn)      closeReader();
+    else if (btn === readerShelfBtn) { readerBook = null; renderReader(); }
+    else if (btn === readerPrev)     turnPage(-1);
+    else if (btn === readerNext)     turnPage(1);
+    else if (btn.dataset.book)       openBook(btn.dataset.book);
+    focusMachine();
+  });
+
+  /* Dragging and resizing share one shape: remember where the handle went down
+     and what the panel was, then track deltas until the button comes up.
+
+     🚨 MOUSE EVENTS, NOT POINTER EVENTS, and that is a measurement rather than a
+     preference. The first cut used pointerdown/pointermove with setPointerCapture.
+     It works in Chrome — verify-cat drives it there and it resizes correctly —
+     but under the Fang Rock shell's Electron the resize did not move at all
+     (verify-c64 §L, 2026-09-17: 560x560 in, 560x560 out) while everything else
+     on the panel behaved. ⚠️ The shell IS Electron, so that is the engine this
+     actually ships to, and a control that only reshapes in a browser is a
+     control Andrew cannot use in the room. Mouse events work in both.
+     ⭐ The move and up listeners go on the DOCUMENT, not the handle, which is
+     what pointer capture was buying: the drag survives the cursor leaving the
+     panel, so a fast drag cannot strand it half-moved. */
+  function grip(handle, onMove) {
+    handle.addEventListener("mousedown", function (e) {
+      if (e.button !== 0) return;
+      if (e.target.closest && e.target.closest("button")) return;
+      var x0 = e.clientX, y0 = e.clientY;
+      var l0 = readerEl.offsetLeft, t0 = readerEl.offsetTop;
+      var w0 = readerEl.offsetWidth, h0 = readerEl.offsetHeight;
+      readerEl.classList.add("is-dragging");
+      function move(ev) { onMove(ev.clientX - x0, ev.clientY - y0, l0, t0, w0, h0); }
+      function up() {
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", up);
+        readerEl.classList.remove("is-dragging");
+        focusMachine();
+      }
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", up);
+    });
+  }
+  grip(readerBar, function (dx, dy, l0, t0) { placeReader(l0 + dx, t0 + dy); });
+  grip(readerResize, function (dx, dy, l0, t0, w0, h0) {
+    /* the minimums are in the stylesheet as well; these are what stops a drag
+       from collapsing the panel to nothing before CSS gets a say */
+    var w = Math.max(300, Math.min(w0 + dx, window.innerWidth - l0));
+    var h = Math.max(220, Math.min(h0 + dy, window.innerHeight - t0));
+    readerEl.style.width = w + "px";
+    readerEl.style.height = h + "px";
+  });
+
+  /* ⚠️ Fullscreen: see the section note. Closed, and said out loud. */
+  document.addEventListener("fullscreenchange", function () {
+    if (document.fullscreenElement && !readerEl.hidden) {
+      closeReader();
+      write("the book closes while the screen is full.", "dim");
+    }
+  });
 
   /* =======================================================================
      DISK SWAPPING — ruling 4, built now rather than deferred, because Andrew
@@ -1398,6 +1863,25 @@
   window.addEventListener("message", function (e) {
     var m = e.data;
     if (!m || typeof m !== "object") return;
+
+    /* 🆕 2026-09-17 — A BOOK OPENED FROM THE ROOM WITHOUT A RELOAD.
+       ⚠️ THE HALF THAT IS NOT BUILT YET. A `?cart=book…` token works today, but
+       it arrives on a NAVIGATION, and a navigation reboots the C64 — which is
+       exactly what his use case cannot afford, because the player wants the book
+       beside the machine they are already typing into. This is the door for the
+       shell to deliver a spine click to an ALREADY-OPEN arcade window instead.
+       🚫 Shell work is not a PLC session's to do (see the Morbius note); this
+       side is ready, testable, and costs nothing until something calls it.
+       🚨 GATED ON `IN_SHELL`, and it only ever opens a book that books.js
+       already lists — so the worst a stray postMessage can do is open a page of
+       the hub's own writing, and outside Fang Rock it cannot do even that. */
+    if (m.type === "cat:book") {
+      if (!IN_SHELL) return;
+      if (m.id === null || m.id === undefined) { openReader(null); return; }
+      if (!openBook(String(m.id))) write("shelf: no such book", "dim");
+      return;
+    }
+
     /* 🆕 2026-09-16 — two frames can talk now: the play overlay's cartridge,
        and the real C64 on the screen. Told apart by WHICH WINDOW sent it, not by
        what it says. `cur` is the disk the message is about. */
@@ -1424,7 +1908,7 @@
     if (m.type === "cat:inputmode") {
       btnInput.hidden = false;
       inputLabel.textContent = m.keyboard ? "Input: Keyboard" : "Input: Joystick";
-      inputHint.textContent = HOTKEY_INPUT + " to swap";
+      inputHint.textContent = HOTKEY_INPUT;
       return;
     }
 
@@ -1448,7 +1932,7 @@
       var p = (String(m.port) === "1") ? "1" : "2";
       btnPort.hidden = false;
       portLabel.textContent = "Port: " + p;
-      portHint.textContent = HOTKEY_PORT + " to swap";
+      portHint.textContent = HOTKEY_PORT;
       return;
     }
 
@@ -1614,7 +2098,12 @@
        to the machine rather than lost. */
     if (MACHINE && machineStarted) {
       if (e.key === HOTKEY_EXIT)  { e.preventDefault(); exitGame(); return; }
-      if (e.key === HOTKEY_INPUT) { e.preventDefault(); postMachine({ type: "cat:input" }); focusMachine(); return; }
+      /* 🔄 2026-09-17, his call: F2 SELECTS THE KEYBOARD, it does not toggle.
+         Toggling meant F2 could take you AWAY from the keyboard, which is the
+         opposite of what someone reaching for it wants — they are reaching for
+         it in order to type. Pressing it when the keyboard is already live is
+         now a no-op instead of a trap. */
+      if (e.key === HOTKEY_INPUT) { e.preventDefault(); postMachine({ type: "cat:keyboard" }); focusMachine(); return; }
       if (e.key === HOTKEY_PORT)  { e.preventDefault(); postMachine({ type: "cat:port" }); focusMachine(); return; }
     }
     if (busy) return;
@@ -1690,7 +2179,19 @@
      typed equivalent, because it *is* its typed equivalent. On the real C64
      the string is typed into the machine instead (submitCommand). */
   Array.prototype.forEach.call(document.querySelectorAll("[data-cmd]"), function (b) {
-    b.addEventListener("click", function () { if (!busy) submitCommand(b.dataset.cmd); });
+    b.addEventListener("click", function () {
+      if (busy) return;
+      /* 🆕 2026-09-17, his ask: THE LOAD BUTTON RUNS WHAT IT LOADED.
+         🚨 THE BUTTON STILL ONLY TYPES THINGS A PLAYER COULD TYPE — it now types
+         two commands instead of one, which is exactly what a person does. That
+         keeps the single-execution-path rule this file is built on intact; what
+         it does NOT keep is parity with the hand-typed line, and verify-c64 §D
+         exists to compare those two. The carve-out is Load, and only Load.
+         🚫 data-cmd is NOT touched. Two rig assertions pin it to the exact string
+         LOAD"*",8,1, and the button must go on saying what it types. */
+      if (b === btnLoad && MACHINE && machineStarted) { loadThenRun(b.dataset.cmd); return; }
+      submitCommand(b.dataset.cmd);
+    });
   });
   btnInsert.addEventListener("click", function () { if (!busy) insertSelected(); });
   btnEject.addEventListener("click", function () { if (!busy) ejectDisk(); });
@@ -1761,6 +2262,25 @@
   function followLink(token) {
     if (!LINKED) liftCurtain();   /* the curtain stays up for a launch and nothing else */
     if (token === null) return "none";
+
+    /* 🆕 2026-09-17 — a spine clicked on the room's shelf. Checked before the
+       cracked token because a book token is its own thing; it has already
+       brought cracked mode with it (see "THE LINK" above).
+       🚫 The token is NOT echoed back, unlike a cartridge's: there is nothing
+       useful to say beyond "no such book", and a hub that prints whatever the
+       URL says is a hub that can be made to say anything. */
+    if (BOOK_LINK) {
+      if (BOOK_LINK === "none") {
+        blank();
+        write("shelf: no such book", "dim");
+        write("?file not found  error", "err");
+        ready();
+        return "not found";
+      }
+      openReader(BOOK_LINK === "shelf" ? null : BOOK_LINK);
+      return "book";
+    }
+
     if (token === "cracked") return "cracked";
     var disk = LINKED;
     if (!disk) {
@@ -1842,6 +2362,42 @@
                busy: busy, src: machineStarted ? machineFrame.getAttribute("src") : null };
     },
     note: function () { return deckNote.hidden ? null : deckNote.textContent; },
+    /* 🆕 2026-09-17 — the measured key map, which OUTLIVED the card that showed
+       it. verify-c64 §J presses every one of these on the real core; it used to
+       read them off the DOM, and reads them from here now. 🚫 Do not let this go
+       when the card goes: re-measuring 17 key positions is not markup. */
+    keycard: function () {
+      return KEYCARD.map(function (k) { return { c64: k[0], shows: k[1], key: k[2] }; });
+    },
+    /* the corner's new hardware, as the panel is actually painting it */
+    corner: function () {
+      var lit = function (el) { return el.classList.contains("is-lit"); };
+      return {
+        monitor: screenShell.classList.contains("is-monitor"),
+        keycard: !!document.getElementById("c64-keycard"),
+        cartridge: cartShell.hidden ? null : cartName.textContent,
+        cartPort: !cartPort.hidden,
+        drivePort: !!document.getElementById("c64-iec"),
+        /* 🔄 2026-09-17 — the drawn cable became a joystick glyph on the live
+           port. The keys stay named `cable`/`cablePort` so the rigs that already
+           read them keep working; what they report is now the stick. */
+        cable: sidePort1.classList.contains("has-stick") || sidePort2.classList.contains("has-stick"),
+        cablePort: sidePort1.classList.contains("has-stick") ? "1"
+                 : sidePort2.classList.contains("has-stick") ? "2" : null,
+        lamps: { power: driveBay.classList.contains("is-powered"),
+                 loading: driveBay.classList.contains("is-loading"),
+                 failed: driveBay.classList.contains("is-failed") },
+        ejectBy: btnEject.parentNode ? btnEject.parentNode.id : null,
+        insertBy: btnInsert.parentNode ? btnInsert.parentNode.id : null,
+        /* fastLoad is what the MACHINE confirmed; fastSeated is where the
+           cartridge is actually drawn. They must agree — if they ever do not,
+           the panel is telling the player something the core did not say. */
+        fastLoad: fastLoad,
+        fastSeated: btnFast.classList.contains("is-seated"),
+        fastBlocked: btnFast.disabled,
+        keys: { keyboard: HOTKEY_INPUT, port: HOTKEY_PORT, reset: HOTKEY_EXIT }
+      };
+    },
     reset: machineReset,
     disks: function () { return DISKS.slice(); },
     visible: function () { return visibleDisks().map(function (d) { return d.id; }); },
@@ -1880,6 +2436,34 @@
             greetz: window.CAT_CRACK.greetz, onScreen: !!document.getElementById("crack") }
         : null;
     },
+    /* 🆕 2026-09-17 — the reader. `listings()` is the one the rig leans on: it
+       hands back the page's code as LINES, which is what gets typed into the
+       real C64 one at a time — the use case his ruling is actually about. */
+    books: function () { return BOOKS.map(function (b) { return b.id; }); },
+    openBook: function (id) { return id === null ? (openReader(null), true) : openBook(id); },
+    closeBook: closeReader,
+    turnPage: turnPage,
+    book: function () {
+      if (readerEl.hidden) return null;
+      var r = readerEl.getBoundingClientRect();
+      return {
+        shelf: !readerBook,
+        id: readerBook ? readerBook.id : null,
+        title: readerTitle.textContent,
+        page: readerBook ? readerPg : -1,
+        pages: readerBook ? readerBook.pages.length : 0,
+        spines: Array.prototype.map.call(readerSpines.children, function (c) { return c.dataset.book || null; }),
+        rect: { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) },
+        atStart: readerPrev.disabled, atEnd: readerNext.disabled
+      };
+    },
+    bookText: function () { return readerEl.hidden ? null : readerPage.textContent; },
+    listings: function () {
+      return Array.prototype.map.call(readerPage.querySelectorAll("pre"), function (pre) {
+        return pre.textContent.split("\n");
+      });
+    },
+
     text: function () { return out.textContent; },
     lines: function () {
       return Array.prototype.map.call(out.children, function (c) { return c.textContent; });

@@ -225,16 +225,24 @@
      🚨 Capture phase, ahead of the emulator's own key handling, or the core
      eats it as a C64 keystroke and the player is stuck inside the game.
 
-     🔄 2026-09-16 — THE EXIT KEY IS F10, NO LONGER SHIFT/CTRL+ESCAPE. His call.
+     🔄 2026-09-16 — THE EXIT KEY LEFT SHIFT/CTRL+ESCAPE. His call. (It was F10
+     that day; 2026-09-17 moved it again, to F12 — see HOTKEY_EXIT below.)
      The concrete case the old limitation was waiting for arrived with the real
      C64 screen: 63 of the 108 disks are tapes, and Shift+RUN/STOP (Shift+Esc)
      is how a tape is loaded. So Escape and Shift+Escape now reach the core as
-     RUN/STOP and Shift+RUN/STOP. ⭐ F10, like F2 and F9 below, is not a key a
+     RUN/STOP and Shift+RUN/STOP. ⭐ F12, like F2 and F9 below, is not a key a
      C64 has, so it cannot collide with anything a game or BASIC wants.
      ⚠️ The hub (cat.js, HOTKEY_EXIT) catches the same key when it has focus.
      Two renderings of one fact; verify-c64.mjs presses it here. */
-  var HOTKEY_EXIT = "F10";
+  /* 🔄 2026-09-17 — F10 -> F12 (his call). Reset sat one key away from the
+     port key and was too easy to hit by accident. 🚫 Not F4, and not any of
+     F1..F8: those are REAL C64 keys that games read. See cat.js HOTKEY_EXIT. */
+  var HOTKEY_EXIT = "F12";
   document.addEventListener("keydown", function (e) {
+    /* 🆕 2026-09-17 — remember the player's own Shift, by code. It is NOT claimed
+       here: it has to reach the core, because Shift is a real C64 key. relayKey
+       needs to know which one is down (see heldShift). */
+    if (e.key === "Shift") heldShift[e.code] = true;
     if (e.key === HOTKEY_EXIT) {
       e.preventDefault();
       e.stopPropagation();
@@ -248,10 +256,14 @@
        leave, with no key that works to get out. 🚫 Never move this to bubble.
        ⭐ A function key is deliberate: it is the one class of key a C64 has no
        use for, so it cannot collide with anything the game wants. */
+    /* 🔄 2026-09-17, his call: F2 SELECTS the keyboard, it does not toggle.
+       Someone pressing F2 is reaching for the keyboard in order to type; a
+       toggle could take them the other way, which is the one thing they did
+       not want. Pressing it when the keyboard is already live does nothing. */
     if (e.key === "F2") {
       e.preventDefault();
       e.stopPropagation();
-      setInputMode(!kbdMode);
+      if (!kbdMode) setInputMode(true);
       return;
     }
     /* 🆕 F9 — JOYSTICK PORT, his ask 2026-09-09. Same capture-phase reasoning as
@@ -265,12 +277,201 @@
        is disabled. That is exactly why it is caught HERE, in this document, and
        not left to the core's own `vice_mapper_joyport_switch` hotkey (which is
        RETROK_RCTRL and needs the keyboard to reach the core to fire at all). */
+    /* 🔄 2026-09-17, his call: F9 FROM THE KEYBOARD PUTS YOU ON THE STICK.
+       It used to swap ports silently while the keyboard stayed live, so the
+       player pressed it, saw a port light change, and still had no joystick —
+       the control appeared broken. Reaching for the port key means reaching for
+       the stick, so the first press selects joystick mode and each one after
+       that swaps the port, which is what the key was always for. */
     if (e.key === "F9") {
       e.preventDefault();
       e.stopPropagation();
-      setPort(port === "1" ? "2" : "1");
+      if (kbdMode) setInputMode(false);
+      else setPort(port === "1" ? "2" : "1");
+      return;
+    }
+
+    /* 🆕 2026-09-17 — WHAT IS ON YOUR PC KEY IS WHAT THE C64 PRINTS.
+       His ask: "have the special characters on the PC keyboard be the same on
+       the C64 — us humans need that visual reference."
+
+       🚨 THE OBVIOUS WAY TO DO THAT IS THE ONE THAT WAS ALREADY MEASURED AND
+       REJECTED. Switching the core to the SYMBOLIC keymap makes PC labels line
+       up, and it races: about 1 `*` in 10 arrived as SHIFT+*, and `+`, `:` and
+       `@` did the same. POSITIONAL measured 40/40, which is why the machine runs
+       on it and why this file carries a 🚫 against going back.
+       ⭐ So the keymap does NOT change. Instead the character you asked for is
+       translated to the C64 KEY POSITION that produces it, and that position is
+       pressed. You get label-matching AND the reliable keymap — the same trick
+       typeText() already uses for the deck's buttons, applied to live typing.
+       📌 The table is KEYS, the same MEASURED one the buttons type through, so
+       the two can never drift apart. Anything not in it is already correct on
+       both keyboards and is left alone.
+       ⚠️ RE-ENTRANCY: the synthetic key we send arrives at this very handler, so
+       `relaying` guards it. Without that it recurses until the stack blows.
+       ⚠️ Only in KEYBOARD mode, and never with Ctrl/Alt/Meta held — those are
+       the browser's and the shell's, not the machine's. */
+    if (kbdMode && !relaying && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== "Shift") {
+      var pos = null;
+      if (typeof e.key === "string" && e.key.length === 1) {
+        var found = KEYS[e.key.toUpperCase()];
+        if (found && !sameKey(e, found)) pos = found;
+      }
+      /* ⚠️ AUTO-REPEAT, THROTTLED AT THE SOURCE. A held key repeats far faster
+         than a relay takes, so a repeat is dropped once the queue is already
+         carrying one — but a FRESH press never is. It is swallowed rather than
+         let through, because letting it through is how it types the wrong
+         character. */
+      if (e.repeat && relayPending > 1) { e.preventDefault(); e.stopPropagation(); return; }
+      if (pos) {
+        e.preventDefault();
+        e.stopPropagation();
+        claimed[e.code] = true;
+        relayKey(pos, e.key);
+        return;
+      }
+      /* 🚨🚨 ORDER. ONE PATH, OR NONE OF THIS WORKS.
+         A key that needs no translation — a letter, a digit, RETURN, and every
+         character that already sits in the same place on both keyboards — would
+         otherwise go STRAIGHT to the core while a translated one was still
+         working its way through the queue, and land in front of it.
+         📌 MEASURED 2026-09-17 by verify-c64 §D: `LOAD"*",8,1` typed by hand came
+         back as `LOAD"*,"(,1`. The comma overtook the closing quote, and the 8
+         landed while the relay was holding ShiftLeft down for that quote, so it
+         came out as `(` — Shift+8 on a C64. Two paths, two defects, one cause.
+         ⭐ So while anything is in flight, EVERY core-bound key goes through the
+         same queue, in the order it was struck. With nothing in flight the key
+         takes the direct path as before and this costs nothing.
+         🚫 Never give a key a way past this queue. Shift is the one exception,
+         in the test above: it is a modifier the relay itself reads, so it must
+         not be held back behind the key it modifies. */
+      if (relayBusy()) {
+        e.preventDefault();
+        e.stopPropagation();
+        claimed[e.code] = true;
+        relayKey([e.code, e.keyCode, e.shiftKey ? 1 : 0], e.key);
+        return;
+      }
     }
   }, true);
+
+  /* true when the key the player actually pressed IS already the position we
+     would send — nothing to translate, let it through untouched */
+  function sameKey(e, pos) {
+    return e.code === pos[0] && !!e.shiftKey === !!pos[2];
+  }
+  var relaying = false;
+  /* WHICH PHYSICAL SHIFT KEYS THE PLAYER IS ACTUALLY HOLDING.
+     🚨 The player's own Shift is never intercepted — the translate test above
+     only claims single characters, and "Shift" is five — so it reaches the core
+     and the C64's shift really is down. That is the state relayKey has to bend
+     to the position it wants, and then put back exactly as it found it.
+     📌 Tracked by CODE, not as a boolean: releasing ShiftLeft to type `*` and
+     then restoring ShiftLeft when the player was holding ShiftRight would leave
+     a shift stuck down in the core for the rest of the session. */
+  var heldShift = {};
+  /* 🚨 IF WE TOOK THE KEYDOWN WE MUST TAKE THE KEYUP. The release was never
+     claimed, so it went STRAIGHT to the core while the keydown was still waiting
+     its turn in the queue — and for a key struck twice in a row that stray release
+     lands between our own press and release and merges the two into one.
+     📌 MEASURED 2026-09-17 by verify-c64 §L: a listing typed off a book page came
+     back as `10 PRINT "HELO, REC-BAY 4"`. One L of the two, every run.
+     ⭐ Our own synthetic release is what the core gets instead, in its turn. */
+  var claimed = {};
+  /* a window that loses focus never delivers the keyup, so the record would
+     stay stuck down; alt-tab away holding Shift and back proves it */
+  window.addEventListener("blur", function () { heldShift = {}; claimed = {}; });
+  document.addEventListener("keyup", function (e) {
+    if (e.key === "Shift") delete heldShift[e.code];
+    if (relaying) return;                  /* our own release, on its way to the core */
+    if (claimed[e.code]) {
+      delete claimed[e.code];
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+
+  var relayQueue = Promise.resolve(), relayPending = 0, relayIdleAt = -1;
+  /* 🚨 THE QUEUE DOES NOT REOPEN THE INSTANT IT EMPTIES. If the direct path came
+     back the moment relayPending hit 0, a key struck in that gap would reach the
+     core while the last relayed key was still being RELEASED — and two presses of
+     the SAME key overlapping read as one.
+     📌 MEASURED 2026-09-17 by verify-c64 §L: a listing typed off a book page came
+     back as `10 PRINT "HELO, REC-BAY 4"`. One L of the two. So the queue stays
+     the only path for a short tail after it drains, and a burst of typing is
+     carried by one mechanism from its first key to its last. */
+  function relayBusy() { return relayPending > 0 || frameNow() < relayIdleAt; }
+  function relayKey(pos, ch) {
+    var t = keyTarget();
+    if (!t) return;
+    /* ⚠️ NOTHING IS DROPPED HERE. A fresh keystroke always joins the queue and
+       is always typed, in the order it was struck; the only key that is ever
+       refused is an auto-REPEAT, and that is refused at the handler above, where
+       it can still be swallowed instead of reaching the core untranslated. */
+    relayPending++;
+    var run = relayQueue.then(function () { return relayOnce(t, pos, ch); });
+    relayQueue = run.catch(function () { /* one lost key must not stop the next */ })
+                    .then(function () { relayPending--; relayIdleAt = frameNow() + KEY_FRAMES.hold + KEY_FRAMES.after; });
+    return run;
+  }
+  /* 🚨 PACED IN EMULATED FRAMES, exactly as typeText() paces the deck's buttons.
+     The first cut fired all four events in one synchronous block, so ZERO frames
+     passed between the keydown and the keyup — which is the condition the banner
+     above KEY_FRAMES calls fatal: "A key pressed and released between two reads
+     was never pressed at all." 📌 MEASURED 2026-09-17: every moved character
+     typed NOTHING. verify-c64 §B read `PRINT 45-3` back as `PRINT 453` and §J
+     typed 5 of its 17 rows. 🚫 Never collapse these steps back together. */
+  function relayOnce(t, pos, ch) {
+    /* ⚠️ GUARD PER EVENT, NEVER ACROSS A WAIT. Holding `relaying` true for the
+       whole ~13 frames would swallow every real key the player struck inside the
+       window. dispatchEvent is synchronous, so the handler runs and returns
+       inside this try. */
+    var send = function (type, code, key, keyCode, shift) {
+      relaying = true;
+      try {
+        t.dispatchEvent(new KeyboardEvent(type, {
+          code: code, key: key, keyCode: keyCode, which: keyCode,
+          shiftKey: !!shift, bubbles: true, cancelable: true
+        }));
+      } finally { relaying = false; }
+    };
+    var want = !!pos[2], lifted = [], added = false;
+    return Promise.resolve().then(function () {
+      var held = Object.keys(heldShift);
+      /* the position is UNSHIFTED on a C64 but the player is holding Shift to
+         reach the character on their PC — `*` `+` `:` `@`, the four this whole
+         feature exists for. Take the shift away for the keystroke. */
+      if (!want && held.length) {
+        lifted = held;
+        lifted.forEach(function (code) { send("keyup", code, "Shift", 16, false); });
+        return frames(KEY_FRAMES.lead);
+      }
+      /* the position NEEDS a shift and the player is not holding one */
+      if (want && !held.length) {
+        added = true;
+        send("keydown", "ShiftLeft", "Shift", 16, true);
+        return frames(KEY_FRAMES.lead);
+      }
+      return null;
+    }).then(function () {
+      send("keydown", pos[0], ch, pos[1], want);
+      return frames(KEY_FRAMES.hold);
+    }).then(function () {
+      send("keyup", pos[0], ch, pos[1], want);
+      return frames(KEY_FRAMES.after);
+    }).then(function () {
+      if (added) { send("keyup", "ShiftLeft", "Shift", 16, false); return frames(KEY_FRAMES.trail); }
+      /* put back only a shift the player is STILL holding: those frames are long
+         enough for them to have let go, and pressing it again here would leave
+         the core holding a key the keyboard is not */
+      var back = lifted.filter(function (code) { return heldShift[code]; });
+      if (back.length) {
+        back.forEach(function (code) { send("keydown", code, "Shift", 16, true); });
+        return frames(KEY_FRAMES.trail);
+      }
+      return null;
+    });
+  }
 
   /* -----------------------------------------------------------------------
      INPUT MODE — joystick or keyboard, and never both at once.
@@ -550,7 +751,15 @@
     '"': ["Digit2", 50, 1], "$": ["Digit4", 52, 1], "(": ["Digit8", 56, 1], ")": ["Digit9", 57, 1],
     "*": ["BracketRight", 221, 0], "+": ["Minus", 189, 0], "-": ["Equal", 187, 0],
     ":": ["Semicolon", 186, 0], ";": ["Quote", 222, 0], "=": ["Backslash", 220, 0],
-    ",": ["Comma", 188, 0], ".": ["Period", 190, 0], "/": ["Slash", 191, 0]
+    ",": ["Comma", 188, 0], ".": ["Period", 190, 0], "/": ["Slash", 191, 0],
+    /* 🆕 2026-09-17 — the last five moved characters. They were missing here
+       because no deck button ever typed one; the live translation above needs
+       them, and having two different ideas of where `@` lives is exactly the
+       drift this file warns about everywhere else. 📌 Every one is a MEASURED
+       position, taken from the same key-card table cat.js still carries
+       (__cat.keycard()) — not derived, not guessed. */
+    "@": ["BracketLeft", 219, 0], "&": ["Digit6", 54, 1], "'": ["Digit7", 55, 1],
+    "[": ["Semicolon", 186, 1], "]": ["Quote", 222, 1]
   };
   var KEYMAP_OPTION = "vice_keyboard_keymap";
   /* frames for a keymap switch to be in force before the first key */
@@ -675,6 +884,244 @@
     var e = window.EJS_emulator, want = on ? "enabled" : "disabled";
     if (e && e.allSettings && e.allSettings[TRAPS_OPTION] === want) return;
     if (e && typeof e.changeSettingOption === "function") e.changeSettingOption(TRAPS_OPTION, want);
+  }
+
+  /* =======================================================================
+     🆕 2026-09-17 — THE FAST LOADER (his question: "Is there a way to have a
+     Fast Loader?"). Yes, and it was already inside the core you ship.
+
+     `vice_autoloadwarp` is one of VICE's own options — decoded out of
+     data/cores/vice_x64sc-wasm.data, default "disabled", values disabled /
+     enabled / mute / disk / disk_mute / tape / tape_mute. It puts the machine
+     into warp while the drive or datasette is being accessed and takes it out
+     again when the access ends. ⭐ THE CORE OWNS BOTH EDGES, which is the whole
+     reason to prefer it: nothing here has to work out when a load finished.
+
+     🚫 REJECTED, and why, so nobody re-opens them:
+       · turning OFF vice_drive_true_emulation would make loads near-instant by
+         destroying the cycle-exact 1541 this corner exists for (README: full
+         VICE's drive emulation "is the reason a folder of cracked .d64 images
+         actually runs"). It also silently kills drive sound.
+       · virtual device traps are NOT a speed lever here: with true drive
+         emulation on they do not serve drive 8 at all, and the core's own note
+         for the option is "causes loading issues on rare cases" — which
+         corroborates the ~2% LOADING hang this project measured.
+       · JiffyDOS exists as an option and the core names the five ROMs it wants,
+         but they are licensed, absent, and Game/ is a public Pages root — and a
+         KERNAL replacement does nothing for a cracked disk carrying its own
+         fastloader, which is most of this library.
+
+     ⚠️ DEFAULT "disk", AND ONLY WHEN THE HUB ASKS. Tapes are left on the slow
+     path deliberately: they ride the KERNAL traps that are already blamed for a
+     hang, and putting a fast clock on that path is exactly the wrong experiment.
+     🚨 NEVER WARP WHILE TYPING. KEY_FRAMES is counted in EMULATED frames and was
+     tuned at 1x; warp stretches a three-frame hold into something much longer,
+     and this file already records two measured typing failures from timing.
+     The hub only asks for warp around a LOAD, never around a keystroke. */
+  var WARP_OPTION = "vice_autoloadwarp";
+  function setWarp(on) {
+    var e = window.EJS_emulator, want = on ? "disk" : "disabled";
+    if (!e || typeof e.changeSettingOption !== "function") return null;
+    e.changeSettingOption(WARP_OPTION, want);
+    /* 🚨 READ IT BACK. changeSettingOption only reaches the core for ids that
+       came from getCoreOptions(), and getCoreOptions() is already known to trap
+       with "memory access out of bounds" on some builds — so a write can land in
+       allSettings and reach nothing at all. Reporting what actually took is the
+       same contract setPort and setInputMode keep: this panel never claims a
+       state the machine did not confirm. */
+    return (e.allSettings && e.allSettings[WARP_OPTION]) || null;
+  }
+
+  /* =======================================================================
+     🆕 2026-09-17 — IS THE MACHINE BACK AT `READY.`?
+
+     His ask: after the Load button, type RUN automatically. The trap is that a
+     great many cracked releases AUTO-START the moment the load ends — on those,
+     a RUN typed afterwards lands inside the running game, and on a pure
+     machine-code load it prints ?SYNTAX ERROR. So the answer cannot be a timer;
+     the hub has to know the machine is genuinely sitting at a BASIC prompt.
+
+     📌 THIS IS THE ONE PLACE THAT READS THE C64's MEMORY, and it is deliberate.
+     The HUB still never does — cat.js only types. This is the machine's own
+     page reading its own machine, which is a different thing, and the technique
+     is not new: verify-c64.mjs has read screen RAM this way since 2026-09-16.
+     EmulatorJS exports no memory accessor, so the screen is found by hunting the
+     boot banner's screen codes in the WASM heap once, then read at $0400.
+     ⚠️ Re-read HEAPU8 every time: the heap can grow and the old view detaches. */
+  var screenAt = -1;
+  function heap() {
+    try { return window.EJS_emulator.gameManager.Module.HEAPU8; } catch (e) { return null; }
+  }
+  /* "READY." in screen codes: R=18 E=5 A=1 D=4 Y=25 .=46 */
+  var READY_CODES = [18, 5, 1, 4, 25, 46];
+  /* `**** COMMODORE 64` off the boot banner, in screen codes. It sits at row 1,
+     column 4 of the 40x25 grid, so the grid itself starts BANNER_AT bytes before
+     the first star.
+
+     🚨 HUNT THIS, NOT THE WORD "BASIC". The boot screen carries "BASIC" TWICE —
+     once in `**** COMMODORE 64 BASIC V2 ****` and again in `38911 BASIC BYTES
+     FREE` — so a five-code hunt for it is ALWAYS ambiguous, and the "refuse
+     rather than guess" test on the hit count therefore refused on EVERY boot.
+     📌 MEASURED 2026-09-17: the screen was never found once, so waitReady()
+     could never answer early and every press of Load held the whole deck busy
+     for its full two-minute backstop before reporting that the game had started
+     itself. This 17-code run occurs exactly once on that screen, which is why
+     verify-c64.mjs's locateRam() has always hunted it instead.
+     🚫 Do not shorten it back to a word the banner repeats. */
+  var BANNER_CODES = [42, 42, 42, 42, 32, 3, 15, 13, 13, 15, 4, 15, 18, 5, 32, 54, 52];
+  var BANNER_AT = 40 + 4;                   /* row 1, column 4 of the grid */
+  function findScreen() {
+    var H = heap();
+    if (!H) return -1;
+    var hits = 0, at = -1;
+    outer: for (var i = BANNER_AT; i < H.length - 0x800; i++) {
+      if (H[i] !== BANNER_CODES[0]) continue;
+      for (var k = 1; k < BANNER_CODES.length; k++) if (H[i + k] !== BANNER_CODES[k]) continue outer;
+      hits++;
+      if (hits > 1) return -1;              /* ambiguous: refuse rather than guess */
+      /* ⭐ THE START OF THE GRID, not the start of the banner. readState() and
+         screenSig() both treat this as $0400 and index rows off it, so returning
+         the banner's own address would aim every read 44 bytes into row 1. */
+      at = i - BANNER_AT;
+    }
+    return hits === 1 ? at : -1;
+  }
+  /* What is the machine doing? Three outcomes have to be told apart, and only
+     the first may be typed into:
+       "ready"   a good load: "READY." with the LOAD's own lines above it
+       "error"   a FAILED load: "?FILE NOT FOUND ERROR" and THEN "READY."
+       "other"   a game is on screen — it started itself
+     🚨 THE ERROR CASE IS THE ONE THAT IS EASY TO MISS. A failed LOAD still
+     leaves a READY. prompt, so "is it at READY.?" on its own would cheerfully
+     type RUN after a disk that did not load. A leading "?" is BASIC's own error
+     marker, and screen code 63 is "?". */
+  /* the machine's own words for "I am still working". A drive access paints one
+     of these and then holds the screen PERFECTLY STILL for seconds at a time,
+     which is exactly what a settled picture looks like from out here.
+     🚨 THIS IS WHY THE WORDS ARE READ. Without it the settle below fires DURING a
+     load, the hub concludes the game started itself, and it lets go of a machine
+     that is mid-LOAD. 📌 MEASURED 2026-09-17, and it only became reachable once
+     findScreen() was fixed: before that nothing ever got this far, and every Load
+     sat out its full backstop instead — which accidentally gave the drive all the
+     time in the world. Fixing the screen hunt is what exposed this. */
+  var BUSY_WORDS = /^(SEARCHING|LOADING|FOUND |PRESS PLAY|SAVING|VERIFYING)/;
+  function rowText(H, base, row) {
+    var out = "", start = base + row * 40, v, c;
+    for (c = 0; c < 40; c++) {
+      v = H[start + c] & 127;
+      out += v === 32 ? " " : v === 0 ? "@" : v < 27 ? String.fromCharCode(v + 64) : v < 64 ? String.fromCharCode(v) : "#";
+    }
+    return out;
+  }
+  function readState() {
+    var H = heap();
+    if (!H || screenAt < 0) return "other";
+    var base = screenAt, seen = 0;
+    for (var row = 24; row >= 0; row--) {
+      var blank = true, start = base + row * 40;
+      for (var c = 0; c < 40; c++) if ((H[start + c] & 127) !== 32) { blank = false; break; }
+      if (blank) continue;
+      if (seen === 0) {
+        /* the drive is still going: not ready, not finished, and NOT settled */
+        if (BUSY_WORDS.test(rowText(H, base, row))) return "busy";
+        for (var k = 0; k < READY_CODES.length; k++) {
+          if ((H[start + k] & 127) !== READY_CODES[k]) return "other";
+        }
+        seen = 1;
+        continue;             /* now look at the line the prompt answered */
+      }
+      return (H[start] & 127) === 63 ? "error" : "ready";
+    }
+    return "other";
+  }
+  /* 🚨 HUNT THE SCREEN AT BOOT, WHILE THE BANNER IS STILL UP. It is the only
+     landmark this heap has, and the very first thing a button or a player does
+     is clear it off the screen. Looking lazily on the first Load meant looking
+     at a screen something had already wiped — so the grid was never found, and
+     the deck sat busy for the whole backstop with no RUN at the end of it.
+     📌 MEASURED 2026-09-17 by verify-c64 §D2, which does exactly that: reset,
+     clear, then Load. Fixing findScreen() alone was not enough; WHEN it is asked
+     is half the bug.
+     📌 The core prints the banner a second or two after it starts, so this polls
+     instead of asking once — the same 20 seconds the rig's own locateRam() gives
+     it. Once found the address never moves: a wasm heap only ever grows, and the
+     KERNAL keeps the screen at $0400 for the life of the machine. */
+  function locateScreenAtBoot() {
+    /* ⚠️ A SCAN IS NOT FREE, AND THIS ONE RUNS ON THE MACHINE'S OWN THREAD. It
+       walks the whole wasm heap, so asking five times a second from the instant
+       the core starts — before the KERNAL has even printed the banner — starves
+       the emulator. MEASURED 2026-09-17: 20 frames a second, slow enough that the
+       rig could not find the screen either and the run died at its own control.
+       ⭐ So the FIRST look waits for the banner to exist, and the rest are spaced
+       out. It normally lands on that first try.
+       🚫 Do not tighten this to make it feel quicker. Nothing is waiting on it —
+       the deck's first Load is many seconds away. */
+    var tries = 0;
+    var look = function () {
+      if (screenAt >= 0) return;
+      screenAt = findScreen();
+      if (screenAt >= 0 || ++tries > 25) return;
+      setTimeout(look, 800);
+    };
+    setTimeout(look, 2000);
+  }
+
+  /* a cheap signature of the screen, to notice when it has stopped changing */
+  function screenSig() {
+    var H = heap();
+    if (!H || screenAt < 0) return -1;
+    var h = 0;
+    for (var i = 0; i < 1000; i += 7) h = (h * 31 + H[screenAt + i]) & 0x7fffffff;
+    return h;
+  }
+  /* Wait until the machine has SETTLED, and say whether there is a BASIC prompt
+     worth typing RUN at. "No" is a perfectly good answer — it is what a
+     self-starting crack and a failed disk both look like from out here.
+
+     🚨 IT MUST BE ABLE TO CONCLUDE FROM ALL THREE OUTCOMES, NOT JUST SUCCESS.
+     The first cut only resolved early on a good READY. and otherwise polled to
+     its timeout — so a FAILED load sat here for the full two minutes with the
+     hub held busy, and twelve failed loads in a row (which verify-c64 §F2 does
+     deliberately) would have taken twenty-four minutes. Measured the hard way:
+     it stalled the rig.
+       · "error"  -> answer NO at once. The disk did not load.
+       · "ready"  -> answer YES, once the drive has had a moment to stop.
+       · "other"  -> a game is painting. Wait for the picture to STOP CHANGING
+                    for ~2s, then answer NO: it started itself.
+     ⚠️ The timeout is the backstop, not the mechanism. If it is ever the thing
+     that answers, something is wrong — a game animating forever with no settle,
+     or a screen that was never found. */
+  var SETTLE_MS = 2000;
+  function waitReady(ms) {
+    return new Promise(function (resolve) {
+      var t0 = frameNow(), gaveUp = Date.now() + (Number(ms) || 90000);
+      var lastSig = -2, stillSince = 0, lastHunt = 0;
+      /* 🔄 2026-09-17 — the duplicate hunt that stood here is gone: tick() runs
+         immediately below and hunts on its own first line. While the screen was
+         never found, this scanned the whole wasm heap once up front and then
+         four more times a second for two minutes. */
+      var tick = function () {
+        /* a backstop only: locateScreenAtBoot() owns finding this, and a full
+           heap scan four times a second is what made the machine crawl. */
+        if (screenAt < 0 && Date.now() - lastHunt > 2000) { lastHunt = Date.now(); screenAt = findScreen(); }
+        if (screenAt >= 0) {
+          var st = readState();
+          if (st === "error") { resolve(false); return; }
+          if (st === "ready" && frameNow() > t0 + 30) { resolve(true); return; }
+          /* ⭐ A WORKING DRIVE IS NEVER SETTLED, however still the screen is. The
+             settle clock is held down rather than allowed to run out. */
+          if (st === "busy") { lastSig = -2; stillSince = 0; }
+          else {
+            var sig = screenSig();
+            if (sig !== lastSig) { lastSig = sig; stillSince = Date.now(); }
+            else if (stillSince && Date.now() - stillSince > SETTLE_MS) { resolve(false); return; }
+          }
+        }
+        if (Date.now() > gaveUp) { resolve(false); return; }
+        setTimeout(tick, 250);
+      };
+      tick();
+    });
   }
 
   function putIn(url, medium) {
@@ -813,6 +1260,23 @@
         enqueue(function () { return resetMachine(); })
           .then(function () { toHub({ type: "cat:resetdone" }); }, fail("cat:resetfailed"));
         break;
+      /* 🆕 2026-09-17 — "has the load finished, and is BASIC waiting?" The hub
+         asks this before it types RUN for you. 🚫 NOT enqueued: it is a read, it
+         must not take the machine's turn, and a LOAD the hub is waiting on has
+         already left the queue. `ran: false` is a normal answer — it means the
+         disk started itself, which is the case that must not be typed into. */
+      case "cat:awaitready":
+        waitReady(Number(m.ms) || 90000)
+          .then(function (ok) { toHub({ type: "cat:atready", ready: !!ok }); });
+        break;
+      /* 🆕 2026-09-17 — the fast loader. Reports what the core actually took,
+         never what it was asked for. */
+      case "cat:warp":
+        var took = setWarp(!!m.on);
+        toHub({ type: took === null ? "cat:warpfailed" : "cat:warped",
+                on: took === "disk", value: took,
+                reason: took === null ? "this build exposes no settings interface" : "" });
+        break;
       /* a key the HUB received while it had focus, passed on so it is not lost */
       case "cat:key":
         if ((m.phase === "keydown" || m.phase === "keyup") && keyTarget() && typeof m.code === "string") {
@@ -846,7 +1310,7 @@
      inside has not taken it yet — would be lost, or worse: a keydown that
      reached the core with its keyup landing here leaves the key HELD, and the
      machine repeats it forever. So such keys are passed on, and the element
-     takes focus. ⚠️ Keys the capture handler above already used (F2, F9, F10)
+     takes focus. ⚠️ Keys the capture handler above already used (F2, F9, F12)
      are marked defaultPrevented and are left alone. */
   if (MACHINE) {
     ["keydown", "keyup"].forEach(function (type) {
@@ -1052,6 +1516,7 @@
     if (MACHINE) {
       /* nothing is typed until keyboard mode has had its settling time */
       machine.started = true;
+      locateScreenAtBoot();
       settle();
       startedResolve();
       toHub({ type: "cat:machine", state: "ready" });
@@ -1076,7 +1541,13 @@
     machine: function () {
       return { on: MACHINE, started: machine.started, failed: machine.failed, slot: machine.slot,
                medium: machine.medium, side: machine.side, keyboard: kbdMode, port: port };
-    }
+    },
+    /* how many live keystrokes are still working their way through the
+       translator's queue (see relayKey). 🚫 read-only, and rig-only: it exists
+       so verify-c64 can WAIT FOR THE TYPING TO LAND instead of guessing a frame
+       count. A guessed wait is exactly the kind of load-sensitive assertion that
+       has already cost this rig whole runs. */
+    typing: function () { return relayBusy() ? (relayPending || 1) : 0; }
   };
 
   window.EJS_gameUrl = MACHINE ? machineMedia() : DISKS[0];

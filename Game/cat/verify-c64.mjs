@@ -21,6 +21,10 @@
    side panel's key card says where the moved characters are (§J); and the
    ORDINARY hub's play overlay swaps a two-sided game's sides too (§K, in a
    second window without the shell's preload).
+   🆕 2026-09-17 — §L is the BOOK READER: it opens over the machine, drags and
+   resizes, turns pages, and — the part his ruling is really about — a listing
+   is typed straight off the page into the running C64 with the mouse last on
+   the READER, which is where focus goes wrong if it is going to.
 
    ===========================================================================
    🚨 WHY ELECTRON AND NOT NB's cdp.mjs, WHICH THE OTHER RIGS USE
@@ -250,8 +254,26 @@ async function runRig() {
      📌 THIS TABLE IS ALSO THE PROOF OF THE KEYMAP: on the symbolic keymap Shift+2
      types `@` and `]` types `]`, so §B's quote and §D's `*` pass only on
      positional. */
-  const SHIFTED = { '"': "2", "$": "4", "(": "8", ")": "9" };
-  const PLAIN = { "*": "]", "+": "-", "-": "=", ":": ";", ";": "'", "=": "\\", ",": ",", ".": ".", "/": "/" };
+  /* 🔄 2026-09-17, LATER THE SAME DAY — THE TWO TABLES ARE GONE, AND THAT IS THE
+     POINT OF THE CHANGE RATHER THAN A TIDY-UP OF IT.
+
+     🚨 THE RIG TYPES WHAT IS PRINTED ON THE PC KEY, exactly as a player does.
+     His ruling of 2026-09-17 ("us humans need that visual reference") put a
+     translator in the page: emu.js's relayKey() takes the CHARACTER the PC key
+     bears and presses the C64 POSITION that produces it. A rig that goes on
+     pressing positions is asking to be translated a second time — press `]` for
+     a star and the page reads `]`, looks it up, and dutifully types `]`.
+     📌 MEASURED 2026-09-17: with the translator half-built, §B read `PRINT 45-3`
+     back as `PRINT 453` and §J typed 5 of its 17 rows. Once relayKey was
+     frame-paced, those same presses would have given `PRINT 45=3` — wrong in a
+     new way. The rig was reading its own double translation as a hub fault.
+     ⭐ SO THE PAGE IS NOT THE THING THAT MOVES. Electron is handed the character
+     itself and works the key and the modifier out of the layout, which is the
+     truest imitation available of a person at the keyboard — and it means this
+     file no longer carries a second copy of a key map that can drift from the
+     one in emu.js. That drift is the very hazard the old table warned about.
+     🚫 Do not reintroduce a position table here to make a section pass. */
+  const TYPEABLE = /^[ -~]$/;   /* printable ASCII: what a US PC keyboard bears */
   async function press(keyCode, shift = false) {
     const modifiers = shift ? ["shift"] : [];
     if (shift) { wc.sendInputEvent({ type: "keyDown", keyCode: "Shift", modifiers }); await frames(3); }
@@ -263,14 +285,30 @@ async function runRig() {
   }
   async function type(s) {
     for (const ch of s) {
-      if (ch === "\n") await press("Enter");
-      else if (ch === " ") await press("Space");
-      else if (SHIFTED[ch]) await press(SHIFTED[ch], true);
-      else if (PLAIN[ch] || /[A-Z0-9]/i.test(ch)) await press(PLAIN[ch] || ch.toUpperCase());
-      else throw new Error("the rig does not type " + JSON.stringify(ch) + " by hand (see §B)");
+      if (ch === "\n") { await press("Enter"); continue; }
+      if (ch === " ") { await press("Space"); continue; }
+      /* a C64 character with no PC key at all — `←` `£` `↑`. Nobody can type one
+         by hand, and §L reports a listing that needs one rather than faking it. */
+      if (!TYPEABLE.test(ch)) throw new Error("the rig does not type " + JSON.stringify(ch) + " by hand (see §B)");
+      await press(/[A-Z0-9]/i.test(ch) ? ch.toUpperCase() : ch);
     }
+    /* ⭐ WAIT FOR THE PAGE TO FINISH TYPING; DO NOT GUESS AT IT. Since his ruling
+       of 2026-09-17 a keystroke may be translated (emu.js, relayKey), which costs
+       real emulated frames and queues behind whatever was struck before it. The
+       count is asked of the machine's own page, so this holds on a loaded machine
+       as well as a quiet one — unlike a guessed frame count, which is the kind of
+       assertion that has already cost this rig whole runs. */
+    await until(`(function () { try { return (${FRAME}.CAT_EMU.typing() || 0) === 0; } catch (e) { return true; } })()`, 20000, 60);
+    await frames(3);
   }
+
   const idle = () => until("!__cat.machine().busy", 60000, 100);
+  /* 🆕 2026-09-17 — the Load button now waits for the LOAD to finish before it
+     decides whether to type RUN, so the hub can legitimately stay busy for far
+     longer than 60s on a slow disk. Using idle() there made the rig walk on
+     while the machine was still working, and everything after it read a screen
+     that was still moving. */
+  const idleLoad = () => until("!__cat.machine().busy", 200000, 200);
   /* the side panel, as the player sees it: each part lit, grey, or neither */
   const SIDE = `(function () {
     var st = function (id) { var e = document.getElementById(id); return e.classList.contains("is-lit") ? "lit" : e.classList.contains("is-grey") ? "grey" : "plain"; };
@@ -349,7 +387,7 @@ async function runRig() {
     /* his F-key addendum: each hint names the key that emu.js and cat.js actually catch */
     const hints = await ev(`[document.getElementById("c64-keys-hint").textContent, document.getElementById("c64-port-hint").textContent,
       document.getElementById("btn-reset-hint").textContent]`);
-    ok(hints.join(" ") === "F2 F9 F10", `the side panel and Reset carry their keys: [F2] keyboard, [F9] ports, [F10] reset   [${hints.join(" ")}]`);
+    ok(hints.join(" ") === "F2 F9 F12", `the side panel and Reset carry their keys: [F2] keyboard, [F9] ports, [F12] reset   [${hints.join(" ")}]`);
     ok(deck.load === 'LOAD"*",8,1' && /empty/i.test(deck.slot), `Load types LOAD"*",8,1; the drive is empty   [${deck.load} / ${deck.slot}]`);
     /* his ruling, 2026-09-17: people type on the C64's key positions, as the buttons do */
     const keymap = await inMachine("EJS_emulator.allSettings.vice_keyboard_keymap || EJS_emulator.getSettingValue('vice_keyboard_keymap') || null");
@@ -451,17 +489,29 @@ async function runRig() {
       await untilScreen((r) => toReady(after(r, /^LOAD"\*",8,1$/)).slice(-1)[0] === "READY.", 120000);
       return toReady(after(await screen(), /^LOAD"\*",8,1$/)).filter(Boolean);
     };
+    /* 🚨 2026-09-17 — THE ONE CARVE-OUT IN THIS SECTION'S LAW, and it is his.
+       Every other button here IS its typed equivalent. The Load button now types
+       LOAD"*",8,1 and then, if the machine comes back to a BASIC prompt, types
+       RUN as well — so it is still only typing things a player could type, but it
+       is no longer line-for-line identical to the hand-typed form, which is what
+       :482 below compares. The carve-out is LOAD ONLY.
+       📌 So the button's own load lines are captured BEFORE the RUN can land, and
+       what the auto-RUN did is asserted separately, in §D2. Reading the screen
+       after the RUN would be a race against the game clearing it. */
     await click("#btn-load");
-    await idle();
     const loadButton = await loadRows();
     ok(loadButton.join("|") === "SEARCHING FOR *|LOADING|READY.",
        `button: Load "*",8,1 loads the first file   [${loadButton.join(" | ")}${loadButton.length ? "" :
        "; screen: " + (await screen()).filter(Boolean).slice(-4).join(" / ") + "; note: " + (await ev("__cat.note()"))}]`);
-    await press("F10");
+    /* 🚨 LET THE AUTO-RUN FINISH BEFORE ANYTHING ELSE TOUCHES THE MACHINE. F10
+       is refused while the hub is busy, so walking on here made the next
+       assertion fail on a reset that was never allowed to happen. */
+    await idleLoad();
+    await press("F12");
     const tReset = await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
     await idle();
     ok(tReset >= 0 && (await ev("__cat.inserted()")) === DISK.id,
-       `F10 resets to the boot screen, and the disk stays in   [${took(tReset)}, drive ${await ev("__cat.inserted()")}]`);
+       `F12 resets to the boot screen, and the disk stays in   [${took(tReset)}, drive ${await ev("__cat.inserted()")}]`);
     await type('LOAD"*",8,1\n');
     const loadTyped = await loadRows();
     /* The one hand-typed `*` in this rig, on `]`. A `*` that came out as SHIFT+*
@@ -478,6 +528,35 @@ async function runRig() {
        or BASIC's screen (the LOAD it answered) is gone because something ran. */
     const tRunB = await untilScreen((r) => r.includes("RUN") || !r.includes('LOAD"*",8,1'), 20000);
     ok(tRunB >= 0, `the Run button types RUN, and the machine runs what it loaded   [${took(tRunB)}]`);
+
+    /* --- D2. the Load button runs what it loaded ------------------------------
+       🆕 2026-09-17, his ask. The naive version of this — type RUN after a fixed
+       wait — is wrong on a large part of this library, because many cracked
+       releases START THEMSELVES the moment the load ends; three keystrokes then
+       land inside a running game. So the hub asks the machine whether it is
+       genuinely back at a BASIC prompt and types RUN only if it is.
+       ⭐ BOTH ANSWERS ARE CORRECT, which is why this asserts the OUTCOME (the
+       machine is no longer sitting at a bare post-LOAD prompt) rather than
+       demanding the letters R-U-N: on a self-starting disk, doing nothing IS the
+       right behaviour, and a rig that insisted on RUN would force the bug. */
+    section("D2. the Load button runs what it loaded, unless it started itself");
+    await press("F12");
+    await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
+    await idle();
+    await clearScreen();
+    await click("#btn-load");
+    /* 🚨 WAIT FOR THE LINE TO APPEAR BEFORE WAITING FOR THE OUTCOME. The first
+       cut asked only "is the LOAD line gone, or is RUN on screen?" — which is
+       TRIVIALLY TRUE on a screen that was just cleared, so it passed in 1ms and
+       measured nothing. A cleared screen satisfies "not-includes" for free.
+       That is the exact shape of a vacuous assertion: green, and empty. */
+    const tLine = await untilScreen((r) => r.includes('LOAD"*",8,1'), 20000);
+    ok(tLine >= 0, `[control] the Load button really typed its line   [${took(tLine)}]`);
+    const tAuto = await untilScreen((r) => r.includes("RUN") || !r.includes('LOAD"*",8,1'), 200000);
+    const settled = await idleLoad();
+    const autoRows = (await screen()).filter(Boolean);
+    ok(tAuto >= 0, `after the load the machine is running, not parked at READY.   [${took(tAuto)}; ${autoRows.slice(-2).join(" / ")}]`);
+    ok(settled >= 0, `and the hub let go of the machine afterwards   [${took(settled)}]`);
     await wait(8000);
     await wc.capturePage().then((img) => writeFileSync(fileURLToPath(new URL("./verify-c64-run.png", import.meta.url)), img.toPNG()));
     say(`        (shot: Game/cat/verify-c64-run.png — ${DISK.name} after RUN, for a human eye)`);
@@ -502,11 +581,18 @@ async function runRig() {
     const trapsTape = await inMachine("EJS_emulator.allSettings.vice_virtual_device_traps");
     ok(trapsTape === "enabled", `with a tape in, the traps a .T64 needs are on   [${trapsTape}]`);
     await click("#btn-load");
-    await idle();
+    /* 🔄 2026-09-17 — WATCH THE LOAD, THEN WAIT FOR THE HUB, not the other way
+       round. idle() used to come back while the tape was still going, so the two
+       sweeps below saw the whole sequence unfold. Now that the hub correctly holds
+       itself busy until the drive stops (emu.js, BUSY_WORDS) and then types RUN,
+       idling first means looking at a screen the GAME has already painted over —
+       the LOAD line and everything under it gone, and both sweeps timing out on a
+       machine that did exactly the right thing. */
     const tFound = await untilScreen((r) => after(r, /^LOAD$/).some((x) => /^FOUND /.test(x)), 30000);
     const tTapeReady = await untilScreen((r) => toReady(after(r, /^LOAD$/)).slice(-1)[0] === "READY.", 90000);
+    await idle();
     ok(tFound >= 0 && tTapeReady >= 0, `button: the tape is searched, FOUND and loaded   [${after(await screen(), /^LOAD$/).filter(Boolean).join(" | ")}]`);
-    await press("F10");
+    await press("F12");
     await idle();
     await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
     await press("Escape", true);
@@ -517,7 +603,7 @@ async function runRig() {
 
     /* --- F. eject ---------------------------------------------------------- */
     section("F. Eject empties the drive, as far as the machine is concerned too");
-    await press("F10");
+    await press("F12");
     await idle();
     await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
     await click("#btn-eject");
@@ -551,6 +637,15 @@ async function runRig() {
     }
     const wrong = typedLines.filter((x) => x !== 'LOAD"*",8,1');
     ok(wrong.length === 0, `every press typed exactly LOAD"*",8,1   [${12 - wrong.length}/12${wrong.length ? "; got " + wrong.join(" | ") : ""}]`);
+    /* 🆕 2026-09-17 — AND NOT ONE STRAY RUN AMONG THEM. These twelve presses are
+       on an EMPTY drive: every one of them FAILS. A failed LOAD still leaves a
+       READY. prompt on screen, so a naive "type RUN once it is back at READY."
+       would have typed twelve RUNs nobody asked for — which the assertion above
+       would not have noticed, because its finder skips any line that is not a
+       LOAD. That is precisely the kind of quiet wrongness this rig exists to
+       catch, so it is asserted rather than assumed. */
+    const strayRuns = (await screen()).filter((r) => r === "RUN").length;
+    ok(strayRuns === 0, `and no RUN was typed after any of the twelve failed loads   [${strayRuns} on screen]`);
 
     /* --- G. keys that reach the hub first ---------------------------------- */
     section("G. with focus on the hub's side, keys still reach the machine");
@@ -560,9 +655,34 @@ async function runRig() {
     ok((await untilScreen((r) => toReady(after(r, /^PRINT 3$/))[0] === " 3", 6000)) >= 0,
        "typing with the hub focused lands in the machine, first key included");
     await click("#detail");
-    await press("F2");
-    ok((await until("document.getElementById('c64-side').dataset.mode === 'joystick'", 3000)) >= 0,
-       "F2 pressed on the hub's side flips the machine to joystick");
+    /* 🔄 2026-09-17 — F9, NOT F2, AND THE RIG WAS THE STALE ONE HERE. His call
+       the same day made F2 SELECT the keyboard instead of toggling, precisely so
+       that someone reaching for the keyboard could never be taken the other way;
+       F9 is the key that puts you on the stick. §J2 below already asserts both
+       halves of that ruling and passes. This section was still pressing F2 and
+       waiting for a flip that the page is right not to make.
+       ⭐ What §G is actually for is unchanged: a key struck while the HUB has
+       focus must still reach the machine. F9 proves that as well as F2 did. */
+    /* ⚠️ WHAT THIS ASSERTS, AND WHAT IT DELIBERATELY DOES NOT. §G is here to prove
+       that a key struck while the HUB has focus still reaches the machine — the
+       port moving proves that and nothing else is claimed.
+       🚨 A FINDING SITS HERE, UNFIXED ON PURPOSE (2026-09-17). His ruling that day
+       was that F9 PUTS YOU ON THE STICK, and emu.js's own handler implements it:
+       from the keyboard the first press selects joystick mode, and only then do
+       further presses swap ports. The HUB's copy does not — cat.js's F9 posts
+       `cat:port`, which swaps a port while the keyboard stays live. That is the
+       exact behaviour his ruling describes as the control appearing broken, and
+       it is the same ruling, applied in one of its two places.
+       🚫 Not asserted as joystick mode here, because the page would then be red
+       for a decision nobody has made. Ask him whether the hub's F9 should select
+       the stick the way the machine's does; if it should, this becomes a mode
+       check again and cat.js:2107 is the one line that moves. */
+    const portWas = String(await ev("document.getElementById('c64-side').dataset.port"));
+    await press("F9");
+    const tReach = await until(`document.getElementById('c64-side').dataset.port !== ${JSON.stringify(portWas)}`, 5000);
+    const portNow = String(await ev("document.getElementById('c64-side').dataset.port"));
+    ok(tReach >= 0,
+       `F9 pressed on the hub's side still reaches the machine   [port ${portWas} -> ${portNow}]`);
     await click("#btn-listing");
     await idle();
     const tKbd = await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
@@ -688,23 +808,32 @@ async function runRig() {
       ok(!s2.shown && s2.now === "", "Eject takes the swap control and the side label away with the disk");
     }
 
-    /* --- J. the key card ------------------------------------------------------
-       His ruling, 2026-09-17: show where the characters that moved are (the
-       machine types on a C64's key positions). The rig reads each row OFF THE
-       CARD and presses exactly the key it names, so a card that says the wrong
-       key goes red here instead of in a player's hands. */
-    section("J. the key card: every character on it types where the card says");
-    const card = JSON.parse(await ev(`JSON.stringify(Array.prototype.map.call(document.querySelectorAll("#c64-keycard-list [data-c64]"), function (r) {
-      return { c64: r.dataset.c64, key: r.dataset.key }; }))`));
+    /* --- J. the positional keymap, row by row ---------------------------------
+       His ruling, 2026-09-17: the machine types on a real C64's KEY POSITIONS.
+       🔄 2026-09-17, later the same day: the rig presses the CHARACTER a player
+       would press and reads what the machine stored back out of screen memory,
+       so the row, the translator and the keymap are all proved at once,
+       player's hands.
+
+       🔄 2026-09-17, later the same day — THE CARD THAT SHOWED THESE IS GONE, on
+       his word, and this section deliberately did NOT go with it. The card was
+       markup; these rows are MEASUREMENTS, and they are still the only row-by-row
+       proof the positional keymap is right (§A only reads a setting, §B tests one
+       character, §D tests one). So the table is read from the TOOLING SURFACE now
+       instead of off the DOM, and the press loop is untouched.
+       🚨 The two assertions that measured the card's PIXELS — where it sat in the
+       panel, and that it dimmed in joystick mode — are deleted rather than
+       adapted: there is nothing left to measure. They would not have failed
+       cleanly either. getElementById returns null for a deleted card, and
+       .getBoundingClientRect() on null THROWS, which unwinds to this file's one
+       catch and silently takes §L, §K and §Z down with it — a whole run lost to
+       one deleted element, reported as a single failure. */
+    section("J. the positional keymap: every measured key types its character");
+    const card = JSON.parse(await ev(`JSON.stringify(__cat.keycard())`));
     ok(card.length >= 17 && ['"', "*", ":", "@"].every((c) => card.some((r) => r.c64 === c)),
-       `the card is on the side panel, and has the ones his ruling names: " * : @   [${card.length} rows]`);
-    const geo = JSON.parse(await ev(`JSON.stringify((function () {
-      var r = function (id) { return document.getElementById(id).getBoundingClientRect(); };
-      var k = r("c64-keycard"), p = r("c64-power"), p1 = r("c64-port1"), s = r("c64-side");
-      return { inside: k.top >= s.top && k.bottom <= s.bottom, clear: k.left >= p.right && k.right <= p1.left,
-               w: Math.round(k.width), h: Math.round(k.height), side: Math.round(s.height) };
-    })())`));
-    ok(geo.inside && geo.clear, `it sits between the power switch and the ports, inside the panel   [card ${geo.w}x${geo.h}px, panel ${geo.side}px tall]`);
+       `the hub still carries the measured key map, including the ones his ruling names: " * : @   [${card.length} rows]`);
+    ok((await ev(`!document.getElementById("c64-keycard")`)) === true,
+       "and the card itself is off the panel, as he asked");
     /* the screen code a typed character leaves at $0400 */
     const SCREEN_CODE = { "@": 0, "[": 27, "£": 28, "]": 29, "↑": 30, "←": 31 };
     const codeOf = (ch) => (ch in SCREEN_CODE ? SCREEN_CODE[ch] : ch.charCodeAt(0));
@@ -712,27 +841,252 @@ async function runRig() {
     await click("#machine-frame");
     for (const row of card) {
       await clearScreen();
-      const shift = /^Shift\+./.test(row.key);
-      await press(shift ? row.key.slice(6) : row.key, shift);
+      /* ⭐ THE ROW IS A C64 KEY POSITION, AND A PLAYER NEVER PRESSES ONE. Since
+         his ruling of 2026-09-17 the page translates the character printed on
+         the PC key into that position (emu.js, relayKey), so the rig presses the
+         CHARACTER — and this section now proves the whole chain end to end: the
+         card's row, the KEYS table it feeds, and the positional keymap under it.
+         A wrong row still goes red here, which is what it is for.
+         📌 `←` `£` `↑` are on no PC keyboard at all, so for those three the raw
+         position is pressed instead. The page leaves them alone: their key names
+         are longer than one character, and nothing translates those. */
+      if (TYPEABLE.test(row.c64)) await type(row.c64);
+      else {
+        const shift = /^Shift\+./.test(row.key);
+        await press(shift ? row.key.slice(6) : row.key, shift);
+      }
       await frames(8);
       const got = Number(await ev(`${FRAME}.EJS_emulator.gameManager.Module.HEAPU8[${RAM} + 0x400]`));
-      if (got !== codeOf(row.c64)) misses.push(`${row.c64} on ${row.key} typed screen code ${got}`);
+      if (got !== codeOf(row.c64)) misses.push(`${row.c64} (pressed as itself; the card puts it on ${row.key}) came out as screen code ${got}`);
       /* 🚨 RETURN before the next clear: after a `"` the C64 is in quote mode, and
          Shift+CLR/HOME then PRINTS a symbol instead of clearing (measured) */
       await press("Enter");
       await frames(20);
     }
     ok(card.length > 0 && misses.length === 0,
-       `pressed as the card says, every row types its character   [${card.length - misses.length}/${card.length}${misses.length ? "; " + misses.join("; ") : ""}]`);
-    await press("F2");
+       `pressed where the map says, every row types its character   [${card.length - misses.length}/${card.length}${misses.length ? "; " + misses.join("; ") : ""}]`);
+
+    /* --- J2. the corner's hardware --------------------------------------------
+       🆕 2026-09-17 — his ten changes to the C64 corner. Everything here was a
+       GAP before today: nothing in either rig asserted where Eject lived, that a
+       cable follows the live port, that the drive lamps mean anything, or that
+       the monitor bezel stays out of the ordinary hub. A change nobody checks is
+       a change that quietly comes undone. */
+    section("J2. the corner: the ports, the cable, the drive's lamps and the bezel");
+    const corner = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
+    ok(corner.insertBy === "crates" && corner.ejectBy === "crates",
+       `Eject sits with Insert, where the disks are   [insert ${corner.insertBy}, eject ${corner.ejectBy}]`);
+    ok(corner.cartPort && corner.drivePort, "the panel has a cartridge port and a drive port");
+    ok(corner.cartridge === null, `no .CRT game is in the port, as it must be with none in the library   [${corner.cartridge}]`);
+    /* 🆕 2026-09-17 — the fast loader IS a cartridge, so "off" means standing
+       out of the slot and "on" means seated in it. The position is the state. */
+    ok(corner.fastLoad === false && corner.fastSeated === false,
+       "the fast-load cartridge starts out of the port, so the corner runs at the real machine's speed");
+    ok(corner.monitor === true, "the screen wears the monitor bezel");
+    ok(corner.lamps.power === true && corner.lamps.loading === false && corner.lamps.failed === false,
+       `the drive's green light is on and steady, and the red one is dark when idle   [${JSON.stringify(corner.lamps)}]`);
+    /* his ruling froze the port labels black, so the CABLE is the only thing left
+       that says which port the stick is in — and it must follow the machine's
+       report, not the click */
+    ok(corner.cable === false, "[control] no joystick shown while the keyboard is the input");
+    await press("F9");   /* F9 selects the stick; F2 only ever selects the keyboard */
     await until("document.getElementById('c64-side').dataset.mode === 'joystick'", 5000);
-    await wait(400);
-    const dim = Number(await ev("getComputedStyle(document.getElementById('c64-keycard')).opacity"));
+    await wait(300);
+    const onPort = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
+    const litPort = String(await ev("document.getElementById('c64-side').dataset.port"));
+    ok(onPort.cable === true && onPort.cablePort === litPort,
+       `a joystick shows on the port the stick is really in   [port ${litPort}, stick on ${onPort.cablePort}]`);
+    await press("F9");
+    await until("document.getElementById('c64-side').dataset.port === " + JSON.stringify(litPort === "1" ? "2" : "1"), 5000);
+    await wait(300);
+    const swapped = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
+    ok(swapped.cablePort === (litPort === "1" ? "2" : "1"),
+       `and it moves when the port changes   [now on ${swapped.cablePort}]`);
+    /* 🚨 the joystick sits inside the port button: it must never eat a click
+       meant for the port itself (pointer-events:none). The rig clicks a port at
+       its CENTRE, so this is exactly the failure mode. */
+    const hit = String(await ev(`(function () {
+      var r = document.getElementById("c64-port" + ${JSON.stringify(litPort)}).getBoundingClientRect();
+      var e = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+      return e ? (e.closest(".c64-port") ? "port" : (e.id || e.tagName)) : "none"; })()`));
+    ok(hit === "port", `and it cannot swallow a click meant for the port   [hit ${hit}]`);
     await press("F2");
     await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
-    await wait(400);
-    const lit = Number(await ev("getComputedStyle(document.getElementById('c64-keycard')).opacity"));
-    ok(dim < 0.6 && lit === 1, `the card dims while the stick is the input, when no key types   [joystick ${dim}, keyboard ${lit}]`);
+    await wait(300);
+    ok(JSON.parse(await ev("JSON.stringify(__cat.corner())")).cable === false,
+       "and it goes away again when the keyboard is chosen");
+
+    /* 🆕 2026-09-17 — F2 SELECTS the keyboard, it does not toggle. Pressing it
+       when the keyboard is already live must be a NO-OP: a toggle there would
+       throw the player onto the joystick, which is the opposite of what someone
+       reaching for the keyboard wants. */
+    await press("F2");
+    await wait(500);
+    ok(String(await ev("document.getElementById('c64-side').dataset.mode")) === "keyboard",
+       "F2 pressed again keeps the keyboard, it does not toggle away from it");
+    /* and F9 from the keyboard puts you ON the stick, rather than silently
+       swapping a port you are not using */
+    await press("F9");
+    await until("document.getElementById('c64-side').dataset.mode === 'joystick'", 5000);
+    ok(String(await ev("document.getElementById('c64-side').dataset.mode")) === "joystick",
+       "F9 from the keyboard selects the joystick, instead of swapping an unused port");
+    await press("F2");
+    await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
+    /* the F-key hints: his ask was weight and colour, which no assertion can
+       judge — but the TEXT must stay bare, because §A asserts exactly "F2 F9 F12" */
+    const caps = JSON.parse(await ev(`JSON.stringify(["c64-keys-hint", "c64-port-hint", "btn-reset-hint"].map(function (id) {
+      var e = document.getElementById(id), s = getComputedStyle(e);
+      return { t: e.textContent, w: s.fontWeight, cap: s.backgroundImage.indexOf("gradient") >= 0 }; }))`));
+    ok(caps.every((c) => c.w === "700" && c.cap) && caps.map((c) => c.t).join(" ") === "F2 F9 F12",
+       `the F-key hints are bold keycaps and their text is still bare   [${caps.map((c) => c.t).join(" ")}]`);
+
+    /* --- L. the book reader ---------------------------------------------------
+       His ruling, 2026-09-16/17: the shelf in the room opens a reader, and the
+       reader draws HERE, over the machine, so a page can be read and typed in
+       while the C64 stays live. His four asks are checked below — on top,
+       reshape-able, page turns, a close control — but the one that matters is
+       the last block: AFTER clicking the reader's own controls with the real
+       mouse, the rig types a listing straight off the page and the machine
+       receives every character. That is the use case, and focus is the way it
+       breaks: a control that takes the keyboard sends the player's next line
+       into a page turn instead of into BASIC.
+
+       📌 IT SITS BEFORE §K ON PURPOSE. §K destroys this window and re-points
+       every helper at a second, preload-less one, so anything needing the
+       corner's machine has to come first. The letters are the order these were
+       built, not the order they run — as §A/§C/§D/§B already are. */
+    section("L. the book reader: it opens over the machine, and a listing types off it");
+
+    const bookIds = JSON.parse(await ev("JSON.stringify(__cat.books())"));
+    ok(bookIds.length === 6, `the shelf holds the six books   [${bookIds.join(", ")}]`);
+
+    /* 🚨 EVERY LISTING IN books.js, AGAINST THE KEYS THIS MACHINE HAS. Not a
+       run — the rig types one listing below, and the rest are still unrun — but
+       a listing containing a character the corner cannot produce is a page that
+       can never be followed, and that is worth catching for all eighteen at
+       once rather than one at a time. The test is the rig's own `type()`.
+    const allCode = JSON.parse(await ev(`JSON.stringify((window.CAT_BOOKS || []).map(function (b) {
+      return { id: b.id, lines: b.pages.reduce(function (a, p) {
+        (p.blocks || []).forEach(function (k) { if (k.code) a = a.concat(k.code); }); return a; }, []) }; }))`));
+    const untypeable = [];
+    let lineCount = 0;
+    allCode.forEach((b) => b.lines.forEach((l) => {
+      lineCount++;
+      for (const ch of l) {
+        if (TYPEABLE.test(ch)) continue;
+        untypeable.push(`${b.id}: ${JSON.stringify(ch)} in ${JSON.stringify(l)}`);
+      }
+    }));
+    ok(untypeable.length === 0,
+       `every line of every listing can be typed on this keyboard   [${lineCount} lines${untypeable.length ? "; " + untypeable.slice(0, 3).join("; ") : ""}]`);
+
+    /* the shelf, then a spine, both with the real mouse */
+    await ev("__cat.openBook(null)");
+    await until("__cat.book() && __cat.book().shelf === true", 5000);
+    const spines = JSON.parse(await ev("JSON.stringify(__cat.book().spines)"));
+    ok(spines.length === 6, `the shelf shows six spines to click   [${spines.join(", ")}]`);
+    await click('#reader-spines [data-book="nightshift"]');
+    const opened = JSON.parse(await ev("JSON.stringify(__cat.book())"));
+    ok(opened && opened.id === "nightshift" && opened.page === 0,
+       `clicking a spine opens that book at page 1   [${opened && opened.title}]`);
+
+    /* his point 1: on top of the machine, not behind it */
+    const onTop = JSON.parse(await ev(`JSON.stringify((function () {
+      var r = document.getElementById("reader").getBoundingClientRect();
+      var f = document.getElementById("machine-frame").getBoundingClientRect();
+      var x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      var hit = document.elementFromPoint(x, y);
+      return { over: x > f.left && x < f.right && y > f.top && y < f.bottom,
+               inReader: !!(hit && hit.closest && hit.closest("#reader")),
+               hit: hit ? (hit.id || hit.className || hit.tagName) : null }; })())`));
+    ok(onTop.over && onTop.inReader,
+       `it lies ON the machine's screen, and the machine is not in front of it   [hit ${onTop.hit}]`);
+
+    /* ⭐⭐ THE USE CASE. No click on the machine first, deliberately: the last
+       thing the mouse touched was the reader, and the keys must still arrive. */
+    const focusNow = async () => String(await ev(`(function () { var e = document.activeElement; return e ? (e.id || e.tagName) : "none"; })()`));
+    const clearL = async () => { await press("Home", true); return await untilScreen((r) => r.every((x) => x === ""), 5000); };
+
+    /* 🚨 TWO CONTROLS BEFORE THE LONG LISTING, so a red line names its own
+       cause. If the screen will not clear, or one short line will not reach
+       BASIC, then nothing below is about the listing and everything below it is
+       noise — it is the keyboard, and the label says where focus actually was. */
+    const cleared = await clearL();
+    ok(cleared >= 0, `[control] with the reader open, the screen still clears   [focus ${await focusNow()}${cleared < 0 ? "; Shift+CLR/HOME did nothing" : ", " + cleared + "ms"}]`);
+    await type("PRINT 1+1\n");
+    const alive = await untilScreen((r) => r.some((x) => x === " 2"), 10000);
+    ok(alive >= 0, `[control] and a line typed with the mouse last on the READER reaches BASIC   [focus ${await focusNow()}, ${alive < 0 ? "NEVER" : alive + "ms"}]`);
+
+    await clearL();
+    await type("NEW\n");
+    await frames(20);
+    const listing = JSON.parse(await ev("JSON.stringify(__cat.listings())"))[0] || [];
+    const program = listing.filter((l) => /^\d/.test(l));   /* the lines, not RUN */
+    ok(program.length >= 2, `the page hands the rig a listing to type   [${program.length} numbered lines]`);
+    for (const l of program) { await type(l + "\n"); await frames(14); }
+    await clearL();
+    await type("LIST\n");
+    const listed = await untilScreen((r) => toReady(after(r, /^LIST$/)).slice(-1)[0] === "READY.", 20000);
+    const rowsBack = await screen();
+    const back = toReady(after(rowsBack, /^LIST$/)).filter(Boolean);
+    /* 🚨 SPACES ARE NOT THE POINT. Whether LIST puts one space after the line
+       number or repeats the one that was typed is BASIC's business; what is
+       being asserted is that every CHARACTER arrived. Runs of spaces collapse. */
+    const flat = (a) => a.map((s) => s.replace(/\s+/g, " ").trim()).join("|");
+    ok(listed >= 0 && flat(back) === flat(program.concat(["READY."])),
+       `typed straight off the page with the mouse last on the READER, the machine stored every character   [${
+         back.length ? back.join(" / ") : "screen: " + JSON.stringify(rowsBack.filter(Boolean).slice(-4))}]`);
+
+    /* his point 3, and the focus trap again: a page turn is a mouse click on a
+       control, and the very next keystroke must still be BASIC's */
+    await click("#reader-next");
+    const turned = JSON.parse(await ev("JSON.stringify(__cat.book())"));
+    ok(turned.page === 1, `Next turns the page   [page ${turned.page + 1} of ${turned.pages}]`);
+    await clearL();
+    await type("PRINT 7*6\n");
+    const sum = await untilScreen((r) => r.some((x) => x === " 42"), 8000);
+    ok(sum >= 0, `and the keyboard is still the machine's after the click   [PRINT 7*6 -> 42, ${sum}ms]`);
+    await click("#reader-prev");
+    ok(JSON.parse(await ev("JSON.stringify(__cat.book())")).page === 0, "Back turns it again");
+    await click("#reader-shelf");
+    ok(JSON.parse(await ev("JSON.stringify(__cat.book())")).shelf === true, "and Shelf goes back to the six");
+
+    /* his point 2: reshape-able, and never off the edge of the window */
+    await ev("__cat.openBook('peekpoke')");
+    const before = JSON.parse(await ev("JSON.stringify(__cat.book().rect)"));
+    const drag = async (sel, dx, dy) => {
+      const r = JSON.parse(await ev(`JSON.stringify((function (el) { var b = el.getBoundingClientRect();
+        return { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) }; })(document.querySelector(${JSON.stringify(sel)})))`));
+      wc.sendInputEvent({ type: "mouseDown", x: r.x, y: r.y, button: "left", clickCount: 1 });
+      await wait(60);
+      for (let i = 1; i <= 4; i++) {
+        wc.sendInputEvent({ type: "mouseMove", x: r.x + (dx * i) / 4, y: r.y + (dy * i) / 4, button: "left" });
+        await wait(40);
+      }
+      wc.sendInputEvent({ type: "mouseUp", x: r.x + dx, y: r.y + dy, button: "left", clickCount: 1 });
+      await wait(120);
+    };
+    await drag("#reader-bar", -120, 60);
+    const moved = JSON.parse(await ev("JSON.stringify(__cat.book().rect)"));
+    ok(Math.abs(moved.left - before.left) > 40 && Math.abs(moved.top - before.top) > 20,
+       `the title bar drags it   [${before.left},${before.top} -> ${moved.left},${moved.top}]`);
+    await drag("#reader-resize", 90, 70);
+    const sized = JSON.parse(await ev("JSON.stringify(__cat.book().rect)"));
+    ok(sized.width > moved.width + 30 && sized.height > moved.height + 20,
+       `the corner resizes it   [${moved.width}x${moved.height} -> ${sized.width}x${sized.height}]`);
+    /* dragged hard at the edge, it stays whole and reachable */
+    await drag("#reader-bar", -4000, -4000);
+    const pinned = JSON.parse(await ev("JSON.stringify(__cat.book().rect)"));
+    ok(pinned.left >= 0 && pinned.top >= 0,
+       `and it cannot be dragged off the window and lost   [${pinned.left},${pinned.top}]`);
+
+    /* his point 4 */
+    await click("#reader-close");
+    ok((await ev("JSON.stringify(__cat.book())")) === "null", "Close puts the book away");
+    await clearL();
+    await type("PRINT 1+1\n");
+    ok((await untilScreen((r) => r.some((x) => x === " 2"), 8000)) >= 0,
+       "and the machine still has the keyboard once it is gone");
 
     /* --- K. outside Fang Rock: the play overlay swaps sides too ---------------
        His ruling, 2026-09-17: fix the ORDINARY hub's swap, in line with the

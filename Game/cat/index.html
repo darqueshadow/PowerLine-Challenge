@@ -81,6 +81,47 @@
            for the tooling surface. Elsewhere this stays blank and hidden. -->
       <iframe id="machine-frame" title="C64" src="about:blank" hidden></iframe>
     </div>
+
+    <!-- 🆕 2026-09-17 — THE MONITOR'S CHIN (his ask for a C64 monitor bezel).
+         🚨 THE BEZEL IS #screen-shell ITSELF, restyled — NOT a new wrapper around
+         #screen. Two reasons, both paid for: verify-c64 §C asserts
+         `#screen-shell > #drive-insert` with a DIRECT-child combinator, and a new
+         layer over the glass would intercept the rig's real mouse click on
+         #machine-frame and the book reader's elementFromPoint. Nothing here may
+         sit over the screen; the chin sits under it.
+         ⭐ The deep chin is the single most recognisable thing about a 1980s
+         monitor — a thin even frame reads as a modern LCD.
+         🚫 No Commodore wordmark, no C= device, no rainbow bar, and not even the
+         model number: the silhouette is the tribute, the words are not. The badge
+         is this project's own name, in the same idiom as the drive's.
+         📌 CORNER ONLY. cat.js adds .is-monitor in cracked mode, because the
+         ordinary hub's screen is the 1970s PET-era CAT terminal and a 1980s
+         monitor bezel around it would collapse the two eras the project keeps
+         apart on purpose. -->
+    <!-- 🔄 2026-09-17 — THIS BADGE SAID "TOMMODORE CAT", AND HIS CALL CHANGED IT.
+         ⚠️ THAT REVERSES A STANDING RULE, and the rule is left written down rather
+         than quietly deleted (cat.css, crackintro.js, driveinsert.js, cat.js and
+         the head of this file all still carry it, because it still governs the
+         PET-era hub). The rule was: no literal Commodore branding anywhere, the
+         look is the tribute and the trademarked words are not reproduced. His
+         earlier ruling had already carved out the real ROM banner as "authentic
+         hardware text, not branding"; this extends that to the corner's own
+         chrome, on the reasoning that the corner IS a C64 and the hub is not.
+         🚨 SCOPE IS THE CORNER ONLY. The hub's boot banner still reads
+         "**** tommodore cat basic ****" because that screen is the 1970s PET-era
+         CAT terminal — the machine PowerLine Challenge is actually about. Naming
+         it a C64 would collapse the two eras this project keeps apart.
+         🚨 NO C= DEVICE MARK. The rainbow bar and the model name are here; the
+         chicken-head device is deliberately NOT, because Game/ publishes to a
+         public site and that device is a registered mark. Adding it is one
+         element — it should be a decision, not a drift.
+         📌 Drawn in CSS. No image, no webfont: this runs off file://. -->
+    <div id="monitor-chin" aria-hidden="true">
+      <span id="monitor-badge">
+        <span class="c64-rainbow"></span><span class="c64-wordmark">C64</span>
+      </span>
+      <span id="monitor-lamp"></span>
+    </div>
   </div>
 
   <!-- ---- the deck ------------------------------------------------------ -->
@@ -137,27 +178,100 @@
         </span>
         <span class="c64-part__label">Power</span>
       </button>
-      <!-- 🆕 2026-09-17 — THE KEY CARD (his ruling). The machine types on a real
-           C64's key positions, so the characters that sit somewhere else on a PC
-           keyboard are listed on a card stuck to the case. It also takes the gap
-           that pushed the ports right. Rows come from KEYCARD in cat.js, every
-           one measured on the running core; verify-c64 §J types each. -->
-      <div class="c64-keycard" id="c64-keycard" role="group" aria-label="C64 keys: where each character is on this keyboard">
-        <span class="c64-keycard__title" aria-hidden="true">C64<br>keys</span>
-        <dl class="c64-keycard__list" id="c64-keycard-list"></dl>
+      <!-- 🗑 2026-09-17 — THE KEY CARD WAS HERE, and is gone on his word ("remove
+           the C64 keys thing ... for now"). 🚨 The 17 MEASURED KEY POSITIONS DID
+           NOT GO WITH IT: the KEYCARD table stays in cat.js and is exposed as
+           __cat.keycard(), and verify-c64 §J still presses every row on the real
+           core. Losing the card must not cost the proof that the positional
+           keymap is right — putting the card back is markup, re-measuring is not. -->
+
+      <!-- 🆕 2026-09-17 — THE CARTRIDGE PORT (his ask).
+           📌 Told honestly: on a real breadbin the expansion port is on the BACK
+           of the case and the cartridge goes in horizontally, sticking out. This
+           panel is the machine's right-hand SIDE, which has no such slot. It is
+           here because this is the corner's control panel, not a photograph.
+           ⚠️ A card-EDGE slot, so the contacts belong to the CARTRIDGE, not the
+           machine: empty, this is a flat black letterbox with a row of gold
+           fingers along the bottom, never a pin socket. -->
+      <div class="c64-cart" id="c64-cart" role="group" aria-label="Cartridge port">
+        <span class="c64-part__label c64-part__label--over">Cartridge</span>
+        <span class="c64-cart__well" aria-hidden="true">
+          <span class="c64-cart__fingers"></span>
+        </span>
+        <!-- filled by cat.js the moment a .CRT is the medium in the machine -->
+        <span class="c64-cart__shell" id="c64-cart-shell" hidden aria-hidden="true">
+          <span class="c64-cart__paper"><span class="c64-cart__band"></span><span class="c64-cart__name" id="c64-cart-name"></span></span>
+        </span>
+
+        <!-- 🆕 2026-09-17 — THE FAST LOAD CARTRIDGE (his call, and it corrects me).
+             I had built this as a button on the deck with a note saying no real
+             C64 has a fast-load switch, so it must not be drawn on the hardware.
+             That was wrong in the interesting direction: real fast loaders WERE
+             CARTRIDGES — Epyx Fast Load, Action Replay — so the honest place for
+             it is exactly here, and switching it on is plugging it in.
+             ⭐ It sits BELOW the port while it is off and SEATS INTO the slot when
+             it is on, which is the whole state indicator: no label has to claim
+             anything the machine did not confirm, you can see where the cart is.
+             🚨 ONE SLOT, ONE CARTRIDGE, which is also how the real machine works
+             (one expansion port, no expander here): if a .CRT game is ever in the
+             port, this cannot seat and cat.js disables it and says why. -->
+        <button type="button" class="c64-cart__shell c64-cart__fast" id="btn-fastload"
+                aria-pressed="false" hidden
+                title="A fast-load cartridge: warps the machine while the drive is loading">
+          <span class="c64-cart__paper">
+            <span class="c64-cart__band"></span>
+            <span class="c64-cart__name">Fast Load</span>
+          </span>
+        </button>
+        <span class="sr-only" id="c64-cart-status" role="status"></span>
       </div>
+
+      <!-- 🔄 2026-09-17 — THE JOYSTICK PORTS, rebuilt to his ask: the label sits
+           ABOVE the port and stays BLACK whether the port is live or not.
+           🚨 THAT REMOVES THE LABEL AS A STATE SIGNAL, so the socket has to carry
+           it alone: empty it shows nine dark HOLES (the machine side of a DE-9 is
+           female — the old markup drew nine light PINS, which is what a joystick's
+           plug looks like, not the port); live it is filled by a black moulded
+           plug whose cable runs out sideways and drops off the bottom of the
+           screen. aria-pressed still carries the state for assistive tech. -->
       <button type="button" class="c64-part c64-port" id="c64-port1" data-port="1" aria-pressed="false"
               title="Joystick in port 1">
-        <span class="c64-port__plug" aria-hidden="true"><span class="c64-port__pins"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
-        <span class="c64-part__label">Port&nbsp;1</span>
+        <span class="c64-part__label c64-part__label--over">Port&nbsp;1</span>
+        <span class="c64-port__socket" aria-hidden="true">
+          <span class="c64-port__holes"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="c64-port__plug"><span class="c64-port__boot"></span></span>
+        </span>
+        <span class="c64-port__stick" aria-hidden="true">🕹</span>
       </button>
       <button type="button" class="c64-part c64-port" id="c64-port2" data-port="2" aria-pressed="false"
               title="Joystick in port 2">
-        <span class="c64-port__plug" aria-hidden="true"><span class="c64-port__pins"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
-        <span class="c64-part__label">Port&nbsp;2</span>
+        <span class="c64-part__label c64-part__label--over">Port&nbsp;2</span>
+        <span class="c64-port__socket" aria-hidden="true">
+          <span class="c64-port__holes"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="c64-port__plug"><span class="c64-port__boot"></span></span>
+        </span>
+        <span class="c64-port__stick" aria-hidden="true">&#x1F579;</span>
       </button>
-      <!-- 🆕 his F-key addendum: ONE hint for the pair, since F9 swaps between them -->
+
+      <!-- 🆕 his F-key addendum: ONE hint for the pair, since F9 swaps between them
+           🚨 KEEP THIS ID. verify-c64 §A reads #c64-port-hint by id with no null
+           guard, and a missing id there throws inside the rig's one try/catch and
+           takes EVERY LATER SECTION with it — a whole run lost to one deleted span. -->
       <span class="c64-part__hint c64-ports__hint" id="c64-port-hint" aria-hidden="true"></span>
+
+      <!-- 🆕 2026-09-17 — THE DRIVE PORT (his ask): the serial socket the 1541
+           hangs off, with its cable already in. Same honest note as the cartridge
+           port — the real IEC socket is on the BACK of both machines, and the real
+           cable is a short beige run between two rear panels. It is drawn beige
+           rather than black so it cannot be mistaken for the joystick's cable.
+           📌 Always plugged: the drive is part of this machine, not an option. -->
+      <div class="c64-iec" id="c64-iec" role="group" aria-label="Disk drive port, connected">
+        <span class="c64-part__label c64-part__label--over">Drive</span>
+        <span class="c64-iec__socket" aria-hidden="true">
+          <span class="c64-iec__hood"><span class="c64-iec__notch"></span></span>
+        </span>
+      </div>
+
       <button type="button" class="c64-part c64-keys" id="c64-keys" aria-pressed="false" title="Type on the keyboard">
         <span class="c64-keys__board" aria-hidden="true">
           <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
@@ -233,8 +347,29 @@
          back to games.js's screenshot, and otherwise shows this blank sleeve.
          🚫 The sleeve is the records' own `.sleeve`, not a second drawing of a
          disk — two of them would drift. -->
-    <div id="detail-shot" class="is-empty" aria-hidden="true">
-      <div class="sleeve"><div class="label">no art yet</div></div>
+    <!-- 🆕 2026-09-17 — THE DRIVE BAY (his ask): the disk's picture now sits
+         inside a 1541 front, so putting it in reads as putting it in THAT drive.
+         🚨 THE LIGHTS ARE THE DRIVE'S, NOT THE DISK'S — a 5.25" floppy has none.
+         The bay is the machine; the picture inside the aperture is the disk.
+         ⭐ REAL 1541 BEHAVIOUR, and it corrects what this hub did before:
+           · GREEN is POWER. Steady whenever the machine is on. It never flashes
+             and has nothing to do with loading.
+           · RED is DRIVE ACTIVITY. SOLID for the whole access, out when idle —
+             with one truthful drop between the parts of a multi-load.
+           · A BLINKING RED IS THE DOS ERROR SIGNAL (read error, file not found).
+             It is reserved for a disk that actually failed, so it stays worth
+             something. 🚫 Never blink it on a good load: to anyone who has used
+             the machine that says "this disk just died". The old
+             @keyframes drive-led did exactly that on every successful insert. -->
+    <div id="drive-bay" aria-hidden="true">
+      <div id="drive-lamps">
+        <span id="drive-power-led" class="drive-lamp drive-lamp--power" title="Drive power"></span>
+        <span id="drive-act-led" class="drive-lamp drive-lamp--act" title="Drive activity"></span>
+      </div>
+      <div id="detail-shot" class="is-empty">
+        <div class="sleeve"><div class="label">no art yet</div></div>
+      </div>
+      <div id="drive-bay-model">DISK DRIVE</div>
     </div>
     <div id="detail-title">&mdash;</div>
     <div id="detail-meta"></div>
@@ -305,6 +440,56 @@
   <iframe id="play-frame" title="Cartridge" src="about:blank"></iframe>
 </div>
 
+<!-- ---- the book reader --------------------------------------------------
+     🆕 2026-09-17 — the six books from the shelf above the corner C64's bench.
+     His ruling: the SHELF IN THE ROOM is the trigger, and the reader DISPLAYS
+     HERE, in the hub, as a panel over the machine. The reason is focus: the
+     whole use case is reading a listing and typing it into the C64 beside it,
+     and a reader drawn by the room could not put the keys back in the machine.
+
+     🚨 A SIBLING OF #cat AND #play, NOT A CHILD OF THE SCREEN. It has to be
+     able to draw over the machine's iframe AND over a running cartridge, and a
+     z-index inside #screen cannot escape #screen. (It is still clamped to the
+     window by cat.js, so it cannot be dragged off the edge and lost.)
+
+     🚨 NOTHING IN HERE MAY TAKE THE KEYBOARD. Every control refuses focus on
+     mousedown and hands it straight back to the machine — see "THE READER" in
+     cat.js, which is where the reasoning lives. That is also why this is a
+     `region` and not a `dialog`: a dialog promises focus management this panel
+     deliberately does not do. Tab and Enter still reach every button. -->
+<div id="reader" hidden role="region" aria-labelledby="reader-title">
+
+  <!-- The title bar is also the drag handle: the whole bar, not a separate
+       grip, because a 6px grip is a poor target with a mouse and impossible
+       with a trackpad. The buttons inside it stop the drag themselves. -->
+  <div id="reader-bar">
+    <h2 id="reader-title">The shelf</h2>
+    <button class="reader__btn" id="reader-shelf" type="button"
+            title="Back to the shelf">Shelf</button>
+    <button class="reader__btn" id="reader-close" type="button"
+            title="Close the book">Close</button>
+  </div>
+
+  <div id="reader-body">
+    <!-- Six spines, drawn from books.js. 🚨 No role="list"/"listitem" here:
+         each spine IS a button, and a listitem role would take that away from
+         a screen reader in exchange for nothing. -->
+    <div id="reader-spines" aria-label="Books on the shelf"></div>
+    <!-- the open page -->
+    <article id="reader-page" hidden aria-live="polite"></article>
+  </div>
+
+  <div id="reader-foot" hidden>
+    <button class="reader__btn" id="reader-prev" type="button">&lsaquo; Back</button>
+    <span id="reader-where"></span>
+    <button class="reader__btn" id="reader-next" type="button">Next &rsaquo;</button>
+  </div>
+
+  <!-- Reshape-able, his point 2. Bottom-right corner, the ordinary place. -->
+  <div id="reader-resize" role="separator" aria-label="Resize the reader"
+       title="Drag to resize"></div>
+</div>
+
 <p class="sr-only" id="help-text">
   The CAT terminal accepts typed commands. Type LOAD, quote, a program name,
   quote, comma 8 and press Enter to load it, or LOAD "$",8 to list the
@@ -329,6 +514,10 @@
 <!-- 🆕 2026-09-16 — the disk-into-drive animation for the C64 corner. Optional
      like the others: cat.js stands in with a no-op if it is missing. -->
 <script src="driveinsert.js"></script>
+<!-- 🆕 2026-09-17 — the six books on the corner's shelf. Optional in the same
+     way: without it the reader simply has an empty shelf and says so, which is
+     the honest answer and not a broken hub. -->
+<script src="books.js"></script>
 <script src="cat.js"></script>
 </body>
 </html>
