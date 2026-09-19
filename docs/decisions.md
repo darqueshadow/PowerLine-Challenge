@@ -115,3 +115,73 @@ D6 already matched the build; D1 made `files/datasets/cav_types_blank.csv` a byt
   gives the digest, never the phrase. Until then `devModePasswordHash: null` refuses every entry.
 - Draft 9 says the D1 values come from the "packet / Data Sheet". The CAV table is the cartridge's own
   `files/datasets/cav_types.csv`; the shared Data Sheet holds the units. The values match either way.
+
+## Resolved 2026-09-18 — the C64 corner's audit, and the six defects it found in the ten-changes batch
+
+**Solved:** The corner C64 is sound end to end. A full read-only audit of its interface, mechanics, core
+and ROMs, disk images and art, and the six manuals found nothing wrong in anything already committed —
+the real ROMs, the positional keymap, the drive contract, the crates, the books and the multi-disk swap all
+came through clean. Six real defects, all of them in the uncommitted 2026-09-17 batch, are fixed, and F9
+now does the same thing whichever side of the glass has focus. Both rigs green on a quiet machine:
+verify-c64 **116/0**, verify-cat **214/0**, each control that must fail still failing.
+
+**Approach:** Twelve read-only auditors, one per dimension, every finding then put to two or three
+verifiers told to refute it; 87 survived. The four confirmed critical/high were fixed, and running the rig
+after each fix exposed two more that no static read could have found. Committed as `a6bbf97` (the batch)
+and `af767f0` (F9). The other ~83 findings are deliberately untouched; the full report and every finding is
+archived outside the repo at `~/.claude/projects/C--Users-darqu-OneDrive--PCL-/memory/archive/audit-c64-corner-2026-09-17.md`.
+
+**If you touch this again:**
+- **`findScreen()` must hunt `**** COMMODORE 64`, not the word BASIC.** The boot screen carries "BASIC"
+  TWICE — in the banner and in "38911 BASIC BYTES FREE" — so a hunt for it is always ambiguous and the
+  "refuse rather than guess" test refused on every boot. The 17-code run occurs once. It returns the START
+  OF THE GRID (`i - 44`), not the banner's address: `readState()` and `screenSig()` both index rows off it.
+- **WHEN it is asked was half that bug.** It is hunted at boot from `EJS_onGameStart`, because the banner
+  is the only landmark and the first thing anything does is clear it off the screen. First look at 2s, then
+  every 800ms, max 25 — do NOT tighten it: a full wasm-heap scan on the machine's own thread five times a
+  second starves the core to 20fps, and the rig then dies at its own control.
+- **A WORKING DRIVE IS NEVER SETTLED.** A drive access paints `SEARCHING FOR *` and holds the screen
+  perfectly still, which is indistinguishable from a game that painted and stopped. `readState()` reads the
+  machine's own words (`BUSY_WORDS`) and returns `"busy"`, which holds the settle clock down. Without it the
+  hub lets go mid-LOAD and types no RUN. Only reachable once findScreen worked — before, every Load sat out
+  its full 120s backstop, which accidentally gave the drive all the time in the world.
+- **Live typing is paced in EMULATED FRAMES, like `typeText`.** `relayKey()` first fired all four key events
+  in one synchronous block: zero frames between press and release, which is the condition emu.js's own
+  KEY_FRAMES banner calls fatal. Every moved character typed nothing.
+- **ONE PATH, or typing scrambles.** While a relay is in flight EVERY core-bound key goes through the same
+  queue. Mixing an immediate path with a queued one put keys out of order and let an un-translated key land
+  while the relay held ShiftLeft (`LOAD"*",8,1` came back `LOAD"*,"(,1`). Shift itself is the one exception:
+  the relay reads it. And if the handler takes a keydown it must take the matching keyup — an unclaimed
+  release reaches the core out of order and merges a key struck twice into one (`HELLO` → `HELO`).
+- **Physical Shift is tracked by CODE, not as a boolean.** Releasing ShiftLeft to type `*` and restoring
+  ShiftLeft when ShiftRight was held sticks a shift down for the session. `blur` clears the record.
+- **An author `display` beats `[hidden]`, so `[hidden]` must be restated.** `#reader-spines` and
+  `#reader-foot` set `display:flex` and did not; clicking a book gave the shelf back with the page laid out
+  below it and off the scroll. cat.css writes this rule out in full for `.crate__notice`.
+- **The rig carries NO key map.** It hands Electron the character and lets the layout do the rest: a rig
+  that presses C64 POSITIONS gets translated a second time by the page. `CAT_EMU.typing()` reports the relay
+  queue depth so the rig waits on it instead of guessing a frame count. Do not reintroduce a table here to
+  make a section pass — a second copy of the keymap is exactly the drift hazard.
+- **`KEYCARD` in cat.js is the RAW POSITIONAL MATRIX, not player-facing advice.** Ten of its seventeen rows
+  stopped being true as instructions the moment the translator landed.
+- **F9 arrives by two routes and both go through `portKey()`.** A real key on the emulator's document when
+  the glass has focus; a `cat:port` message from cat.js (HOTKEY_PORT) when the hub does. The ruling — F9
+  puts you on the stick — had been written into the key handler only. Only the MACHINE-mode route was
+  changed: the play overlay's Port button is a different listener and a plain flip is right there.
+  🚫 A 2026-09-18 handoff asserted the opposite direction (that cat.js was compliant and emu.js should
+  match it). It was wrong, and following it would have deleted the ruling's only implementation. Check which
+  file carries the DATED ruling comment before believing a stated direction.
+- **verify-c64 §G must assert joystick MODE, not that the port changed.** A port flip is precisely the
+  pre-ruling behaviour, so the weaker assertion goes green on the bug.
+- **`verify-c64.mjs` has ONE try/catch around every section**, so a single stale reference kills every later
+  section and reports as one failure — a stale `SHIFTED` lookup cost §L, §K and §Z a whole run. Check the
+  blast radius before removing anything a later section reads.
+- **verify-cat failing in a DIFFERENT place on each run means orphaned browsers, not a regression.** A run
+  that throws skips its cleanup and leaves ~5 `--headless=new` Chromes on `chromeprof-*` temp profiles.
+  Killing only processes whose command line matches `chromeprof-` is safe; Andrew's own Chrome is neither
+  headless nor on a temp profile.
+- **The public Pages INSTALL screen is a presentation defect, not a leak** (triaged 2026-09-18, left in the
+  backlog). `?cart=cracked`, `?cart=book<id>` or the emulator URL direct reaches it, because
+  `emulator/emu.js` and `index.html` are published while `data/` is gitignored. Contents are a public
+  upstream `git clone`, a public `npm install`, and repo-relative paths only — no tokens, no absolute
+  paths, no unlock phrases. Do not re-triage it as a security item.
