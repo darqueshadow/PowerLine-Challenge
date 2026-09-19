@@ -52,6 +52,12 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - **Developer Mode:** Ctrl+Shift+B (lowercase `b` too), then a timed password prompt, as in the other
   cartridges. On unlock, the next game uses the Blank Dataset Module (so far it plays like a normal game,
   since D1 made it a copy of the real types).
+  - `node make-dev-hash.mjs` turns a phrase into the `devModePasswordHash` digest **in a terminal**, so
+    Andrew never needs the browser console for it. It asks twice with the echo off, prints only the digest,
+    and takes nothing from the command line, so the phrase stays out of shell history — **Code never sees
+    it, only the code that comes back.** It calls the game's own `ET.plcDigest` (config.js loaded in a VM,
+    as the logic rig does) rather than a copy, so it cannot drift. `--self-test` re-checks four
+    browser-measured vectors and the keystroke handling; `make-*.mjs` is excluded from the deploy.
 - ⚠️ **Esc in browser fullscreen:** the browser keeps Esc, so reclaim it with Keyboard Lock as The
   Aquanaut does (`lockEscapeKey` in its `files/script.js`). That only works in Chrome and Edge, and
   pausing on fullscreen exit would make Esc pause instead of closing an open switcher. Keys sent over

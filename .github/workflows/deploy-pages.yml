@@ -57,6 +57,7 @@ jobs:
           *.tsx
           verify-*.mjs
           bake-*.mjs
+          make-*.mjs
           package.json
           package-lock.json
           sprite-compare.html
