@@ -18,10 +18,16 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - **Andrew lifted the `coming-soon` hold on 2026-09-17** ("a normal, selectable cartridge in the Arcade
   for all players"), knowing the art, the instruction/title/end screens and audio are still placeholders
   or missing. The hub entry is live in `Game/cat/disks.js`.
-- **The build questions D1, D2, D4, D5, D6 and C15 are settled** (Draft 9, 2026-09-17). Each switch in
+- **The build questions D1, D2, D4, D6 and C15 are settled** (Draft 9, 2026-09-17; D5 was removed by the
+  2026-09-22 Timer Refinement). Each switch in
   `files/core/config.js` is set to its ruling and the rigs assert it; the reasoning, the traps and the
   checks that pin them are in `docs/decisions.md` at the repo root.
-- **Still open (packet §11):** only **D3**, the Developer Mode phrase (`devModePasswordHash`, ⏳, null
+- **Timer Refinement (2026-09-22), built for a LOCAL playtest, NOT pushed:** 🚫 don't push it until
+  Andrew has played it locally and approved. E1–E4 were ruled the same day (E1 rounds "Clear @" up;
+  E2, E4 as built; E3: say **displayed time** and **the player's seconds**). Still open: whether clock
+  speed replaces the spawn-gap shrink.
+  Skipped spawns are logged per wave (console, and the game-over screen) for Chat.
+- **Still open (packet §11):** **D3**, the Developer Mode phrase (`devModePasswordHash`, ⏳, null
   denies every entry). Andrew gives Code the digest from `ET.plcDigest('PHRASE')`, never the phrase.
   When it arrives, set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
 - **A new build question** gets the same treatment: one ⏳ PENDING switch with a provisional value
@@ -79,20 +85,25 @@ a session must not re-derive or break. Decision history lives in the memory stor
   then a placement chance of 0% at wave 3, +10% a wave), and Both. The mode buttons are the difficulty
   menu, and there's no dataset menu.
 - **CAV data:** Andrew's durations for VS, STR, SS, EOS, MB and AD, plus VF's random 10–30 min.
-  **1 real minute = 2 game-seconds**, one ratio, exact, never jittered. Transport units only. Readouts
+  **The clocks show displayed time and run sped up:** 1 displayed minute = 2 of the player's seconds at base
+  speed, **one speed shared by every clock** (nest clocks and the wall clock), +10% on even waves, cap 2×.
+  The real duration sets the bold mark exactly, in displayed time; never jitter it. Transport units only. Readouts
   show the literal type code. The optional `, comment` is accepted. Every new CAV draws a **new random
   unit**, never one already showing on the board (D2).
 - **Egg lifecycle:** the egg appears when a CAV starts and grows, for information only. **`RCAV` does
   nothing until the CAV's real duration has passed.** That floor stops place-then-instantly-clear, so
   don't loosen it. At that moment the readout goes bold, `RCAV` becomes valid and the egg starts
-  cracking, as one event. A 5 s overtime window follows (jitter ±10% in wave 1, +5% a wave, cap ±35%),
-  then the hatch. A hatch is final and the nest resets itself. **VF shows no egg and no timer**
-  until "Clear Fuel" at the trigger. Its unit and "VF" stay visible (C15b).
+  cracking, as one event. An overtime window in **the player's seconds** follows (6 s, −0.25 s every 2
+  waves, floor 4.5 s, fixed ±10%), then the hatch. A hatch is final and the nest resets itself. **VF shows no egg and no timer**
+  until the trigger, when a "Clear Fueling" bubble pops (the only type with a pop-up). Its unit and "VF"
+  stay visible (C15b). **Every AD shows a post-it** ("20 min", or "Clear @ 14:36" against the wall clock:
+  the next whole minute after start + draw, E1).
 - **Placement:** 10 points, with no penalty for waiting, but **an ignored trigger auto-opens** after
   20 s (−1 s a wave, floor 8 s) and starts its timer normally. A wrong code is rejected silently, whether
   nonsense or a real code that doesn't match the nest, and a rejected Enter leaves the text in the box (D6).
-- **The timer** counts **up** in **game seconds** (VS bold at 00:20, EOS and MB at 01:00; D5) and keeps
-  counting through overtime. The older "countdown" wording is retired.
+- **The timer** counts **up** in **displayed time**, MM:SS (VS and STR bold at 10:00, SS 15:00, EOS and MB
+  30:00) and keeps counting through overtime. A 24-hour **wall clock** starts at the player's time of day
+  (`?clock=HH:MM` pins it, so `?seed=N&clock=HH:MM` replays exactly). The older "countdown" wording is retired.
 - **Waves and pool:** 5 nests, +1 every 2 waves, cap 12. Adjacency is up/down/left/right on a
   **logical** grid under an organic on-screen layout (Code and Gemini pick the grid's size). A wave
   ends after a quota of resolved CAVs, cleared or hatched: 8, +2 a wave, and spawning stops once the
@@ -147,7 +158,8 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-22
-Live for players on the public site since 2026-09-19, and its table in Nerva Beacon's Arcade fires (NB
+The Timer Refinement is built and both rigs pass, **uncommitted and unpushed**, waiting on Andrew's local
+playtest. Live for players on the public site since 2026-09-19, and its table in Nerva Beacon's Arcade fires (NB
 `4f8e940`); both are written up in `docs/decisions.md` at the repo root. Waiting on
 Andrew for the D3 digest (until then Developer Mode denies every entry, on the live site too). Next, each a
 design call through Chat: an instruction screen (players get none today), art direction, the title/end

@@ -44,6 +44,8 @@
       <div><span class="label">CAVs</span> <span id="hud-cavs">0/8</span></div>
       <div><span class="label" id="hud-pool-label">POOL</span> <span id="hud-pool" class="pool"></span></div>
       <div><span class="label">SCORE</span> <span id="hud-score">0</span></div>
+      <!-- ⏳ placeholder look: the wall clock (Timer Refinement §3), 24-hour, same speed as the nest clocks -->
+      <div class="wallclock" aria-label="Wall clock"><span id="wall-hm">00:00</span><span id="wall-ss">00</span></div>
       <div id="hud-mode" class="mode"></div>
     </header>
 
@@ -75,6 +77,8 @@
     <h2 class="over">GAME OVER</h2>
     <p><span class="label">SCORE</span> <span id="over-score">0</span></p>
     <p><span class="label">WAVE</span> <span id="over-wave">1</span> &nbsp; <span id="over-mode" class="label"></span></p>
+    <!-- playtest stand-in (Timer Refinement §9): spawns lost to a full board, per wave -->
+    <p id="over-skipped" class="skip-log"></p>
     <p class="blink">PRESS ENTER</p>
   </section>
 

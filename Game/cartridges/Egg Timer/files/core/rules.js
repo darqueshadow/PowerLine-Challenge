@@ -38,9 +38,21 @@
       return Math.max(c.placementTimeoutFloor, c.placementTimeoutStart - c.placementTimeoutShrink * (wave - 1));
     },
 
-    jitterForWave: function (wave) {
+    /* Clock speed, a multiple of base: up on even waves (W1 1.0, W2 1.1, W3 1.1, W4 1.2), cap 2×. */
+    clockSpeed: function (wave) {
       var c = C();
-      return Math.min(c.jitterCap, c.jitterStart + c.jitterPerWave * (wave - 1));
+      return Math.min(c.speedCap, 1 + c.speedStep * Math.floor(wave / c.speedEveryWaves));
+    },
+
+    /* Displayed seconds that pass per player second at this wave's speed. */
+    clockRate: function (wave) {
+      return (60 / C().secondsPerMinute) * ET.rules.clockSpeed(wave);
+    },
+
+    /* The overtime window before jitter: 6 s, −0.25 s on odd waves from 3, floor 4.5 s at wave 13. */
+    overtimeBaseFor: function (wave) {
+      var c = C();
+      return Math.max(c.overtimeFloor, c.overtimeStart - c.overtimeShrink * Math.floor((wave - 1) / c.overtimeEveryWaves));
     },
 
     /* Follow Progression: 0 for waves 1–2, then 0% at wave 3, +10% per wave. */
@@ -58,17 +70,18 @@
       return p > 0 && rng() < p;
     },
 
-    /* Overtime length for one CAV: 5 s, jittered by ±(wave's jitter). */
+    /* Overtime length for one CAV, in player seconds (clock speed doesn't touch it), fixed ±10%. */
     overtimeFor: function (wave, rng) {
-      var j = ET.rules.jitterForWave(wave);
-      return C().overtimeBase * (1 + (rng() * 2 - 1) * j);
+      return ET.rules.overtimeBaseFor(wave) * (1 + (rng() * 2 - 1) * C().overtimeJitter);
     },
 
-    /* A CAV type's base duration in game-seconds: its real minutes × the scale.
-       A fixed type has min === max. A ranged type (AD, VF) draws uniformly. */
-    baseDurationFor: function (type, rng) {
-      var minutes = type.min === type.max ? type.min : type.min + rng() * (type.max - type.min);
-      return minutes * C().timeScale;
+    /* A CAV type's duration in real minutes, which is where its clock goes bold.
+       A fixed type has min === max. A post-it type (AD) draws whole minutes, since
+       its note reads them; other ranged types (VF) draw uniformly. */
+    minutesFor: function (type, rng) {
+      if (type.min === type.max) return type.min;
+      if (C().postItCodes.indexOf(type.code) >= 0) return type.min + Math.floor(rng() * (type.max - type.min + 1));
+      return type.min + rng() * (type.max - type.min);
     },
 
     /* 100 right as it goes bold, linearly down to 25 at the moment it would hatch. */

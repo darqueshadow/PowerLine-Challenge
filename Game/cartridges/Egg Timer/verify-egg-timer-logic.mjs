@@ -42,16 +42,20 @@ eq(R.cleanupRange(1), [5, 10], "cleanup window wave 1 is 5–10 s");
 eq(R.cleanupRange(5), [3, 8], "cleanup: low end at the 3 s floor by wave 5");
 eq(R.cleanupRange(15), [3, 3], "cleanup is a flat 3 s by wave 15");
 eq([1, 2, 13, 20].map(R.placementTimeout), [20, 19, 8, 8], "auto-open timeout: 20 s, −1 s per wave, floor 8 s at wave 13");
-eq([1, 2, 6, 7].map((w) => Math.round(R.jitterForWave(w) * 100)), [10, 15, 35, 35], "overtime jitter: ±10%, +5% per wave, cap ±35% from wave 6");
+eq([1, 2, 3, 4, 5, 12, 13, 30].map(R.overtimeBaseFor), [6, 6, 5.75, 5.75, 5.5, 4.75, 4.5, 4.5], "overtime: 6 s, −0.25 s every 2 waves (odd waves), floor 4.5 s at wave 13");
+eq([1, 2, 3, 4, 5, 18, 20, 40].map((w) => Math.round(R.clockSpeed(w) * 100) / 100), [1, 1.1, 1.1, 1.2, 1.2, 1.9, 2, 2], "clock speed: 1.0, +10% on even waves, cap 2× at wave 20");
+eq([1, 20].map(R.clockRate), [30, 60], "a displayed minute takes 2 s at base speed, 1 s at the cap (10:00 in 10 s)");
 eq([1, 2, 3, 4, 13, 14].map((w) => Math.round(R.placementChance(w) * 100)), [0, 0, 0, 10, 100, 100], "Follow Progression: 0 in waves 1–3, 10% at wave 4, 100% at wave 13");
 eq([0, 2.5, 5, 9].map((x) => R.clearPoints(x, 5)), [100, 63, 25, 25], "clear points: 100 at bold, linear to 25 at the hatch");
 eq([1, 5, 10].map(R.perfectWaveBonus), [50, 250, 500], "perfect wave bonus: 50 × wave");
-eq(R.baseDurationFor({ min: 10, max: 10 }, () => 0.5), 20, "VS: 10 real minutes = 20 game-seconds");
-eq(R.baseDurationFor({ min: 30, max: 30 }, () => 0.5), 60, "MB: 30 real minutes = 60 game-seconds");
-eq([R.baseDurationFor({ min: 10, max: 30 }, () => 0), R.baseDurationFor({ min: 10, max: 30 }, () => 0.999999)].map(Math.round), [20, 60], "AD/VF: random 10–30 min = 20–60 game-seconds");
+eq([R.minutesFor({ code: "VS", min: 10, max: 10 }, () => 0.5), R.minutesFor({ code: "MB", min: 30, max: 30 }, () => 0.5)], [10, 30], "fixed types go bold at their own minutes");
+eq([0, 0.5, 0.999999].map((u) => R.minutesFor({ code: "AD", min: 10, max: 30 }, () => u)), [10, 20, 30], "AD: whole minutes, 10–30 inclusive");
+ok(!Number.isInteger(R.minutesFor({ code: "VF", min: 10, max: 30 }, () => 0.37)), "VF: still a uniform draw across 10–30 min (hidden, and no note to read)");
 {
   const ot = [0, 0.5, 0.999999].map((u) => R.overtimeFor(1, () => u));
-  eq(ot.map((x) => Math.round(x * 100) / 100), [4.5, 5, 5.5], "overtime wave 1: 5 s ±10%");
+  eq(ot.map((x) => Math.round(x * 100) / 100), [5.4, 6, 6.6], "overtime wave 1: 6 s ±10%");
+  const late = [0, 0.999999].map((u) => R.overtimeFor(20, () => u));
+  eq(late.map((x) => Math.round(x * 100) / 100), [4.05, 4.95], "overtime wave 20: 4.5 s, still only ±10%");
 }
 
 /* -------------------------------------------------------------- B. commands */
@@ -285,9 +289,116 @@ section("K. adjacency");
   eq(g.unlocked().map((n) => n.id).sort((a, b) => a - b), [1, 2, 5, 6, 9], "wave 1 unlocks one compact cluster");
 }
 
-section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17)");
-eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.timerDisplay, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides],
-  ["per-spawn", true, "game", true, "timer"], "D2 per spawn · D4 stop at quota · D5 game seconds · D6 text stays · C15(b) timer only");
+section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock, AD notes");
+{
+  const g = new ET.Game({ mode: "clear", types: [T("VS", 10)], units, rng: ET.seededRandom(7), wallStart: 14 * 3600 });
+  g.start();
+  advance(g, 2);
+  eq(Math.round(g.clock), 60, "the clocks run 1 displayed minute per 2 s in wave 1");
+  eq(Math.round(g.wall()), 14 * 3600 + 60, "the wall clock starts where it's told and runs at the same speed");
+  const n = inState(g, "active")[0];
+  const el = g.snapshot().nests.find((x) => x.id === n.id).elapsed;
+  ok(Math.abs(el - (g.time - n.startedAt) * 30) < 1e-6, `a nest clock shows displayed seconds, at the same speed   [${el.toFixed(1)} after ${(g.time - n.startedAt).toFixed(2)} s]`);
+}
+{
+  const g = new ET.Game({ mode: "clear", types: [T("VS", 10)], units, rng: ET.seededRandom(7), wallStart: 86400 - 30 });
+  g.start();
+  advance(g, 2);
+  ok(g.wall() >= 0 && g.wall() < 60, `the wall clock wraps past midnight   [${g.wall().toFixed(1)}]`);
+}
+{
+  // Every clock shares one speed: at wave 20 a VS bolds in 10 s, and its overtime is still player seconds.
+  const g = game("clear", [T("VS", 10)]);
+  g.startWave(20);
+  advance(g, 0.05);
+  const n = inState(g, "active")[0];
+  const t0 = n.startedAt;
+  advance(g, 9.9);
+  eq(n.state, "active", "wave 20 (2×): still regular weight just before 10 s");
+  advance(g, 0.1);
+  eq(n.state, "overtime", "…bold by 10 s: 10:00 in 10 real seconds");
+  const ot = n.hatchAt - n.boldAt;
+  ok(ot >= 4.05 - 1e-9 && ot <= 4.95 + 1e-9, `…and its overtime is 4.5 s ±10% of player time, speed or no speed   [${ot.toFixed(2)} s]`);
+  ok(Math.abs(n.boldAt - (t0 + 10)) < 1e-6, `overtime counts from the instant the clock crossed the mark   [bold at +${(n.boldAt - t0).toFixed(4)} s]`);
+}
+{
+  // The nest clock keeps counting through overtime.
+  const g = game("clear", [T("VS", 10)]);
+  advance(g, 0.05);
+  const n = inState(g, "active")[0];
+  advance(g, 22);
+  const e = g.snapshot().nests.find((x) => x.id === n.id);
+  ok(e.state === "overtime" && e.elapsed > 600, `a bold nest clock keeps counting past 10:00   [${Math.floor(e.elapsed / 60)}:${String(Math.floor(e.elapsed % 60)).padStart(2, "0")}]`);
+}
+{
+  // Speed changes at wave start; the step lands on the even waves.
+  const g = game("clear", [T("XX", 1)]);
+  const speeds = {};
+  advance(g, 400, (x) => {
+    x.drain().forEach((e) => { if (e.type === "wave-start") speeds[e.wave] = e.speed; });
+    inState(x, "overtime").forEach((n) => x.submit("RCAV " + n.unit));
+  });
+  eq([1, 2, 3, 4].map((w) => speeds[w]), [1, 1.1, 1.1, 1.2], "each wave starts at its own speed (W1 1.0, W2 1.1, W3 1.1, W4 1.2)");
+}
+{
+  // AD post-its: every AD gets one, both kinds turn up, and each goes bold exactly where it says.
+  const AD = { code: "AD", meaning: "AD", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
+  const g = new ET.Game({ mode: "clear", types: [AD, T("VS", 10)], units, rng: ET.seededRandom(9), wallStart: 9 * 3600 + 17 * 60 + 40 });
+  g.start();
+  const seen = { clock: 0, duration: 0 };
+  let adWithout = 0, vsWith = 0, checked = 0;
+  const wrongBold = [];
+  const pending = new Map();
+  advance(g, 900, (x) => {
+    x.unlocked().forEach((n) => {
+      if (n.state === "active" && !pending.has(n)) {
+        if (n.type.code === "VS") { if (n.note) vsWith++; return; }
+        if (!n.note) { adWithout++; return; }
+        seen[n.note.kind]++;
+        pending.set(n, { note: n.note, startClock: n.startedClock });
+      }
+      if (n.state === "overtime" && pending.has(n)) {
+        const p = pending.get(n);
+        const boldNest = n.boldClock - p.startClock;
+        if (p.note.kind === "duration" && boldNest !== p.note.minutes * 60) wrongBold.push("dur " + boldNest);
+        if (p.note.kind === "clock") {
+          const at = (x.wallStart + n.boldClock) % 86400;
+          const run = boldNest / 60;
+          if (at !== p.note.at || at % 60 !== 0 || run < p.note.minutes || run >= p.note.minutes + 1) wrongBold.push("clock " + at + " " + run.toFixed(2));
+        }
+        checked++;
+        pending.delete(n);
+      }
+      if (n.state !== "active" && n.state !== "overtime") pending.delete(n);
+    });
+    inState(x, "overtime").forEach((n) => x.submit("RCAV " + n.unit));
+  });
+  eq([adWithout, vsWith], [0, 0], "every AD shows a post-it, and no other type does");
+  ok(seen.clock > 5 && seen.duration > 5, `both kinds of note turn up   [${seen.clock} "Clear @", ${seen.duration} "min"]`);
+  ok(checked > 10 && wrongBold.length === 0, `each note goes bold where it says: "N min" at N:00 on the nest clock, "Clear @ HH:MM" when the wall clock reads it   [${checked} checked${wrongBold.length ? "; " + wrongBold.slice(0, 3).join(", ") : ""}]`);
+}
+{
+  // E1 (ruled 2026-09-22): round UP. A start at 14:15:40 with a draw of 20 → "Clear @ 14:36", 20:20 later.
+  const AD = { code: "AD", meaning: "AD", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
+  const g = new ET.Game({ mode: "clear", types: [AD], units, wallStart: 14 * 3600 + 15 * 60 + 40 });
+  const seq = [0.5, 0.1];                     // minutes → 20, then the clock-time kind
+  g.rng = () => seq.shift();
+  const n = g.nests[5];
+  n.type = AD;
+  g.activate(n, "auto");
+  eq([n.note.kind, n.note.minutes, n.note.at, n.boldClock - n.startedClock], ["clock", 20, 14 * 3600 + 36 * 60, 20 * 60 + 20], "E1: 14:15:40 + 20 min reads \"Clear @ 14:36\" and bolds 20:20 later, never before the draw");
+}
+{
+  // Skipped spawns are logged per wave (Refinement §9).
+  const g = game("clear", [T("LONG", 60)]);
+  advance(g, 60);
+  ok(g.stats.skipped > 0 && g.stats.skippedByWave[1] === g.stats.skipped, `skipped spawns are counted against the wave they fell in   [W1 ${g.stats.skippedByWave[1]} of ${g.stats.skipped}]`);
+}
+
+section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
+eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides, "timerDisplay" in ET.CONFIG],
+  ["per-spawn", true, true, "timer", false], "D2 per spawn · D4 stop at quota · D6 text stays · C15(b) timer only · D5's switch is gone");
+eq([ET.CONFIG.adClockTarget, ET.CONFIG.adNoteFrom], ["full-minutes", "start"], "E1 round up · E2 note at the start (ruled 2026-09-22)");
 eq(ET.CONFIG.devModePasswordHash, null, "⏳ D3: no phrase set yet, so Developer Mode denies every entry");
 
 console.log(`\n${pass} passed, ${fail} failed`);

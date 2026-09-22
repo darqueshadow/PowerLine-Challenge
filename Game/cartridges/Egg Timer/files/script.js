@@ -31,6 +31,15 @@
 
   var params = new URLSearchParams(location.search);
   var SEED = params.has("seed") ? Number(params.get("seed")) : null;
+  // ?clock=HH:MM starts the wall clock there, so ?seed=N&clock=14:00 replays a game exactly
+  var CLOCK = /^(\d{1,2}):(\d{2})$/.exec(params.get("clock") || "");
+
+  /* Where the wall clock starts: the player's own time of day (Timer Refinement §3). */
+  function wallStart() {
+    if (CLOCK) return (Number(CLOCK[1]) % 24) * 3600 + Number(CLOCK[2]) * 60;
+    var d = new Date();
+    return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+  }
 
   function $(sel) { return document.querySelector(sel); }
 
@@ -80,6 +89,7 @@
       boxes: boxes,
       types: types,
       units: app.data.units,
+      wallStart: wallStart(),
       rng: SEED === null ? Math.random : ET.seededRandom(SEED)
     });
     app.paused = false;
@@ -97,6 +107,8 @@
     var events = app.game.drain();
     events.forEach(function (e) {
       if (e.type === "wave-start") ET.boxes.clearInactive();
+      // playtest log (Timer Refinement §9): spawns that came due with every nest busy
+      if (e.type === "wave-end") console.info("[Egg Timer] wave " + e.wave + ": " + e.skipped + " skipped spawn(s)");
       if (e.type === "game-over") {
         ET.boxes.close();
         app.overTimer = setTimeout(gameOver, (C.escapeSeconds + 0.5) * 1000);
@@ -120,6 +132,10 @@
     $("#over-score").textContent = s.score;
     $("#over-wave").textContent = s.wave;
     $("#over-mode").textContent = $("#hud-mode").textContent;
+    var byWave = s.stats.skippedByWave;
+    $("#over-skipped").textContent = "SKIPPED SPAWNS  " + Object.keys(byWave).map(function (w) {
+      return "W" + w + " " + byWave[w];
+    }).join(" · ");
     show("over");
   }
 

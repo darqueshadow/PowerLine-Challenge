@@ -4,10 +4,16 @@
    waves. The view reads snapshots and drains `events`; a rig can drive it by
    calling step() directly.
 
+   Two clocks (Timer Refinement, 2026-09-22):
+     time   the player's seconds. Spawns, timeouts, overtime, cleanup and scoring run on it.
+     clock  the displayed seconds every clock on screen shows. It runs sped up, at one
+            shared rate that steps up on even waves, and a CAV goes bold on it.
+   The wall clock is wallStart + clock, wrapped at midnight.
+
    A nest's life (packet §6–§7):
      idle ─spawn─▶ trigger (two-phase: waits for CAV #### TYPE, auto-opens on timeout)
           └───────▶ active  (timer counts up, egg grows; RCAV does nothing yet)
-                    ─real duration─▶ overtime (bold + RCAV valid + egg cracks, one event)
+                    ─real duration on the clock─▶ overtime (bold + RCAV valid + egg cracks, one event)
                     ─RCAV─▶ splat ─▶ idle          (cleared: points, mess on nest + neighbours)
                     ─overtime runs out─▶ escape ─▶ idle   (hatched: pool −1)
    ========================================================================= */
@@ -29,6 +35,10 @@
     this.units = opts.units || [];
     this.rng = opts.rng || Math.random;
     this.time = 0;
+    this.clock = 0;
+    this.wallStart = opts.wallStart || 0;  // seconds past midnight when the game starts
+    this.speed = 1;
+    this.rate = 0;
     this.wave = 0;
     this.phase = "ready";                  // ready | wave | cleanup | over
     this.pool = C.poolStart;
@@ -40,7 +50,7 @@
     this.nextSpawnAt = 0;
     this.cleanupEndsAt = 0;
     this.events = [];
-    this.stats = { placed: 0, autoOpened: 0, cleared: 0, hatched: 0, skipped: 0, rejected: 0, perfectWaves: 0 };
+    this.stats = { placed: 0, autoOpened: 0, cleared: 0, hatched: 0, skipped: 0, rejected: 0, perfectWaves: 0, skippedByWave: {} };
     this.nests = [];
     for (var i = 0; i < COLS * ROWS; i++) {
       this.nests.push({ id: i, col: i % COLS, row: Math.floor(i / COLS), unlocked: false, fixedUnit: null });
@@ -66,6 +76,9 @@
     n.placement = false;
     n.timeoutAt = 0;
     n.startedAt = 0;
+    n.startedClock = 0;
+    n.boldClock = 0;
+    n.note = null;
     n.boldAt = 0;
     n.hatchAt = 0;
     n.busyUntil = 0;
@@ -82,9 +95,12 @@
     this.resolved = 0;
     this.spawned = 0;
     this.escapes = 0;
+    this.speed = ET.rules.clockSpeed(wave);   // every clock shares one speed (a wave starts on an empty board, D4)
+    this.rate = ET.rules.clockRate(wave);
+    this.stats.skippedByWave[wave] = 0;
     this.phase = "wave";
     this.nextSpawnAt = this.time;
-    this.emit("wave-start", { wave: wave, quota: this.quota });
+    this.emit("wave-start", { wave: wave, quota: this.quota, speed: this.speed });
   };
 
   Game.prototype.unlockTo = function (count) {
@@ -136,6 +152,7 @@
     var idle = this.unlocked().filter(function (n) { return n.state === "idle"; });
     if (!idle.length) {
       this.stats.skipped++;
+      this.stats.skippedByWave[this.wave]++;
       this.emit("spawn-skipped");   // packet §4: a full board loses the spawn, no queueing
       return false;
     }
@@ -161,16 +178,36 @@
   };
 
   Game.prototype.activate = function (n, how) {
+    var C = ET.CONFIG;
+    var minutes = ET.rules.minutesFor(n.type, this.rng);
     n.state = "active";
     n.startedAt = this.time;
-    n.boldAt = this.time + ET.rules.baseDurationFor(n.type, this.rng);
-    n.hatchAt = n.boldAt + ET.rules.overtimeFor(this.wave, this.rng);
+    n.startedClock = this.clock;
+    n.boldClock = this.clock + minutes * 60;
+    n.note = null;
+    if (C.postItCodes.indexOf(n.type.code) >= 0) {
+      if (this.rng() < C.postItClockChance) {
+        // "Clear @ 14:35": bold when the WALL clock reads it, whatever the nest clock says (E1: the next whole minute after start + draw)
+        var wall = this.wallStart + this.clock;
+        var minute = C.adClockTarget === "full-minutes" ? Math.ceil(wall / 60) : Math.floor(wall / 60);
+        var target = (minute + minutes) * 60;
+        n.boldClock = target - this.wallStart;
+        n.note = { kind: "clock", minutes: minutes, at: ((target % 86400) + 86400) % 86400 };
+      } else {
+        n.note = { kind: "duration", minutes: minutes };   // "20 min": bold at 20:00 on the nest clock
+      }
+    }
     this.emit("active", { nest: n.id, how: how });
+  };
+
+  Game.prototype.wall = function () {
+    return (((this.wallStart + this.clock) % 86400) + 86400) % 86400;
   };
 
   Game.prototype.step = function (dt) {
     if (this.phase !== "wave" && this.phase !== "cleanup") return;
     this.time += dt;
+    this.clock += dt * this.rate;
     var C = ET.CONFIG;
 
     var nests = this.unlocked();
@@ -180,7 +217,10 @@
         this.stats.autoOpened++;
         this.activate(n, "auto-open");
       }
-      if (n.state === "active" && this.time >= n.boldAt) {
+      if (n.state === "active" && this.clock >= n.boldClock) {
+        // overtime is player seconds from the moment the clock crossed the mark, not from this step
+        n.boldAt = this.time - (this.clock - n.boldClock) / this.rate;
+        n.hatchAt = n.boldAt + ET.rules.overtimeFor(this.wave, this.rng);
         n.state = "overtime";
         this.emit("bold", { nest: n.id });
       }
@@ -235,7 +275,10 @@
     }
     this.phase = "cleanup";
     this.cleanupEndsAt = this.time + ET.rules.randIn(ET.rules.cleanupRange(this.wave), this.rng);
-    this.emit("wave-end", { wave: this.wave, perfect: perfect, bonus: bonus, poolGained: poolGained, cleanupEndsAt: this.cleanupEndsAt });
+    this.emit("wave-end", {
+      wave: this.wave, perfect: perfect, bonus: bonus, poolGained: poolGained, cleanupEndsAt: this.cleanupEndsAt,
+      skipped: this.stats.skippedByWave[this.wave]
+    });
   };
 
   /* One Enter from the active Command Box. Returns what happened; anything that
@@ -287,9 +330,12 @@
   };
 
   Game.prototype.snapshot = function () {
-    var t = this.time;
+    var t = this.time, self = this;
     return {
       time: t,
+      clock: this.clock,
+      wall: this.wall(),
+      speed: this.speed,
       mode: this.mode,
       wave: this.wave,
       phase: this.phase,
@@ -307,8 +353,9 @@
           id: n.id, col: n.col, row: n.row, state: n.state, unit: n.unit,
           code: n.type ? n.type.code : null,
           hidden: !!(n.type && n.type.hiddenUntilTrigger && n.state === "active"),
-          elapsed: running ? t - n.startedAt : 0,
-          grow: running ? Math.min(1, (t - n.startedAt) / Math.max(0.001, n.boldAt - n.startedAt)) : 0,
+          elapsed: running ? self.clock - n.startedClock : 0,   // displayed seconds, still counting through overtime
+          grow: running ? Math.min(1, (self.clock - n.startedClock) / Math.max(0.001, n.boldClock - n.startedClock)) : 0,
+          note: running && n.note ? { kind: n.note.kind, minutes: n.note.minutes, at: n.note.at } : null,
           crack: n.state === "overtime" ? Math.min(1, (t - n.boldAt) / Math.max(0.001, n.hatchAt - n.boldAt)) : 0
         };
       })

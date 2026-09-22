@@ -10,7 +10,7 @@
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  var field, hud, banner, popups;
+  var field, hud, banner, popups, wall;
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
@@ -27,12 +27,22 @@
     return out;
   }
 
+  function two(x) { return (x < 10 ? "0" : "") + x; }
+
+  /* A nest clock: displayed time, MM:SS since the CAV started (Timer Refinement §2). */
   function clockText(seconds) {
-    var C = ET.CONFIG;
-    var total = C.timerDisplay === "game" ? seconds : (seconds / C.timeScale) * 60;
-    total = Math.max(0, Math.floor(total));
-    var m = Math.floor(total / 60), s = total % 60;
-    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+    var total = Math.max(0, Math.floor(seconds));
+    return two(Math.floor(total / 60)) + ":" + two(total % 60);
+  }
+
+  /* Seconds past midnight → 24-hour "HH:MM", and the seconds on their own. */
+  function hhmm(sec) {
+    var t = Math.floor(sec);
+    return two(Math.floor(t / 3600) % 24) + ":" + two(Math.floor(t / 60) % 60);
+  }
+
+  function noteText(note) {
+    return note.kind === "clock" ? "Clear @ " + hhmm(note.at) : note.minutes + " min";
   }
 
   function popup(nestEl, text, cls) {
@@ -69,6 +79,7 @@
       banner = $("#banner");
       popups = $("#popups");
       hud.poolLabel.textContent = ET.CONFIG.poolKey;
+      wall = { hm: $("#wall-hm"), ss: $("#wall-ss") };
 
       var offs = offsets();
       for (var i = 0; i < ET.Game.COLS * ET.Game.ROWS; i++) {
@@ -91,12 +102,25 @@
         ro.innerHTML = '<span class="unit">----</span><span class="code"></span><span class="clock">--:--</span>';
         n.appendChild(ro);
 
+        // ⏳ placeholder look: the AD post-it (Timer Refinement §4)
+        var note = document.createElement("div");
+        note.className = "postit";
+        note.hidden = true;
+        n.appendChild(note);
+
+        // ⏳ placeholder look: VF's "Clear Fueling" bubble (Timer Refinement §5)
+        var bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent = "Clear Fueling";
+        bubble.hidden = true;
+        n.appendChild(bubble);
+
         var mess = ET.mess.create();
         n.appendChild(mess);
 
         field.appendChild(n);
         nests.push({
-          el: n, svg: svg, readout: ro, mess: mess,
+          el: n, svg: svg, readout: ro, mess: mess, note: note, bubble: bubble,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
@@ -111,6 +135,8 @@
         v.el.classList.remove("bold", "hide-readout", "hide-clock", "hide-egg", "scurry", "lunge");
         ET.mess.clear(v.mess);
         ET.art.clearSplat(v.svg);
+        v.note.hidden = true;
+        v.bubble.hidden = true;
       });
       banner.hidden = true;
       popups.innerHTML = "";
@@ -125,6 +151,8 @@
       var pips = "";
       for (var p = 0; p < C.poolCap; p++) pips += p < snap.pool ? "●" : "○";
       hud.pool.textContent = pips;
+      wall.hm.textContent = hhmm(snap.wall);
+      wall.ss.textContent = two(Math.floor(snap.wall) % 60);
 
       snap.nests.forEach(function (s) {
         var v = nests[s.id];
@@ -142,6 +170,12 @@
         el.classList.toggle("hide-egg", s.hidden);
         el.classList.toggle("hide-readout", s.hidden && C.vfHides === "readout");
         el.classList.toggle("hide-clock", s.hidden && C.vfHides === "timer");
+
+        v.note.hidden = !s.note;
+        if (s.note) {
+          var nt = noteText(s.note);
+          if (v.note.textContent !== nt) v.note.textContent = nt;
+        }
 
         var scale = C.eggMinScale + (1 - C.eggMinScale) * s.grow;
         var wobble = s.state === "overtime" ? Math.sin(snap.time * 38) * (3 + 6 * s.crack) : 0;
@@ -181,6 +215,17 @@
             ET.art.clearSplat(v.svg);
             v.el.classList.remove("scurry", "lunge");
             break;
+          case "bold":
+            // VF is the only type with a pop-up: "Clear Fueling" as its clock and cracking egg appear
+            var nest = game && game.nests[e.nest];
+            if (nest && nest.type && nest.type.hiddenUntilTrigger) {
+              v.bubble.hidden = false;
+              v.bubble.classList.remove("show");
+              void v.bubble.offsetWidth;
+              v.bubble.style.animationDuration = ET.CONFIG.vfBubbleSeconds + "s";
+              v.bubble.classList.add("show");
+            }
+            break;
           case "placed":
             popup(v.el, "+" + e.points, "good");
             break;
@@ -200,6 +245,7 @@
             hud.pool.classList.add("hit");
             break;
           case "idle":
+            v.bubble.hidden = true;
             ET.art.clearSplat(v.svg);
             v.el.classList.remove("scurry", "lunge");
             break;

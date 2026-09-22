@@ -1,8 +1,9 @@
 /* ===========================================================================
    EGG TIMER — CONFIG
    Every number here comes from EGG_TIMER_CONTEXT_PACKET.md (merged through the
-   Addendum's eighth draft and the Draft 9 rulings). The section each one comes
-   from is noted beside it.
+   Addendum's eighth draft, the Draft 9 rulings and the 2026-09-22 Timer
+   Refinement). The section each one comes from is noted beside it. [T] marks a
+   tunable the Refinement set for playtesting.
    🚫 Never invent a CAV timing or type code here: durations and codes live in
    datasets/cav_types.csv, which is Andrew's table.
 
@@ -14,12 +15,24 @@
   var ET = (root.ET = root.ET || {});
 
   ET.CONFIG = {
-    // ── Time (packet §3, §7) ─────────────────────────────────────────────────
-    timeScale: 2,            // game-seconds per real minute. Exact, never jittered.
-    overtimeBase: 5,         // game-seconds after the bold trigger, before jitter
-    jitterStart: 0.10,       // ±10% in wave 1
-    jitterPerWave: 0.05,     // +5% per wave
-    jitterCap: 0.35,         // capped at ±35%
+    // ── Time (packet §3, §7; Timer Refinement 2026-09-22) ───────────────────
+    // Two kinds of time (E3). The clocks show DISPLAYED time (a VS goes bold at 10:00);
+    // they run sped up, and every clock on screen shares one speed at all times.
+    // Everything else here (spawns, timeouts, overtime, cleanup) is THE PLAYER'S SECONDS.
+    secondsPerMinute: 2,     // [T] player seconds per displayed minute at base speed (10:00 takes 20 s)
+    speedStep: 0.10,         // [T] +10% of base speed…
+    speedEveryWaves: 2,      //     …on every even wave (W2 1.1, W4 1.2, …)
+    speedCap: 2.0,           // [T] capped at 2× (10:00 in 10 s)
+    overtimeStart: 6.0,      // [T] player seconds after the bold trigger, before jitter
+    overtimeShrink: 0.25,    // [T] −0.25 s…
+    overtimeEveryWaves: 2,   //     …every 2 waves, on the odd waves the nests grow (W3, W5, …)
+    overtimeFloor: 4.5,      // [T] reached at wave 13
+    overtimeJitter: 0.10,    // [T] fixed ±10%, every wave
+
+    // ── Wall clock and the AD post-it (Timer Refinement §3–§4) ──────────────
+    postItCodes: ["AD"],     // the only type with a note; it draws whole minutes
+    postItClockChance: 0.5,  // [T] 50/50: "Clear @ 14:35" vs "20 min"
+    vfBubbleSeconds: 1.6,    // [T] how long "Clear Fueling" stays before it has faded
 
     // ── Nests and waves (packet §4) ──────────────────────────────────────────
     nestsStart: 5,
@@ -70,8 +83,7 @@
     // The other value of each switch still works, but it isn't the design.
     // D2: a new unit per CAV, never one already showing on the board.
     unitAssignment: "per-spawn",   // "per-spawn" | "per-nest"
-    // D5: the timer counts up (C12) in game seconds: VS goes bold at 00:20.
-    timerDisplay: "game",          // "game" = game seconds | "real" = real-time mm:ss (10:00 at VS's bold)
+    // (D5's game-seconds timer is superseded by the Timer Refinement: the clocks show displayed time.)
     // C15(b): VF hides only its timer until "Clear Fuel"; the unit and "VF" stay.
     vfHides: "timer",              // "timer" | "readout"
     // D4: a wave stops spawning once its quota has spawned.
@@ -79,6 +91,15 @@
     stopSpawningAtQuota: true,
     // D6: a rejected Enter leaves the text in the box (F12 clears it).
     keepTextOnReject: true,
+
+    // ── Timer Refinement gaps, ruled 2026-09-22 (E1–E4) ──────────────────────
+    // E1: "Clear @" is the next whole minute after start + draw, so it never bolds before
+    //   the draw has passed (14:15:40 + 20 → "Clear @ 14:36"). The other value still works:
+    //   "shown-minute" = the minute on the wall clock at the start + the draw (can be shorter).
+    adClockTarget: "full-minutes",   // "full-minutes" | "shown-minute"
+    // E2: an AD placement trigger shows its note when the CAV starts, not at the trigger.
+    //   Only "start" is built.
+    adNoteFrom: "start",
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

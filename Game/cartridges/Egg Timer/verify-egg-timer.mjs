@@ -25,7 +25,7 @@ if (!existsSync(fileURLToPath(DRIVER))) {
 const { open } = await import(DRIVER);
 
 const SHOTS = process.argv[2] || null;
-const URL_GAME = "http://localhost:8898/Game/cartridges/Egg%20Timer/files/index.html?seed=42&cb=" + process.pid;
+const URL_GAME = "http://localhost:8898/Game/cartridges/Egg%20Timer/files/index.html?seed=42&clock=23:58&cb=" + process.pid;
 
 let pass = 0, fail = 0;
 const fails = [];
@@ -118,15 +118,29 @@ try {
   await press("F12");
   eq(await ev("__et.boxes().values[0]"), "", "F12 clears the box, no penalty");
 
-  const r = await until((x) => x.nests.find((y) => y.id === n.id && y.state === "overtime"), 80, 0.25);
+  // clear the other nests on the way, or a long CAV (EOS, MB) waits out three hatches and the game ends first
+  let r = { hit: null };
+  for (let t = 0; t < 80 && !r.hit; t += 0.25) {
+    const x = await snap();
+    r.hit = x.nests.find((y) => y.id === n.id && y.state === "overtime") || null;
+    if (r.hit) break;
+    for (const y of x.nests.filter((z) => z.state === "overtime" && z.id !== n.id)) await ev(`__et.submit('RCAV ${y.unit}')`);
+    await ev("__et.advance(0.25)");
+  }
   ok(!!r.hit, "the nest reaches its trigger");
   eq(await ev(`getComputedStyle(${q(".readout")}).fontWeight`), "900", "at the trigger the readout goes bold");
-  const expect = { VS: "00:20", STR: "00:20", SS: "00:30", EOS: "01:00", MB: "01:00" }[n.code];
-  // the rig samples every 0.25 game-s, and the clock shows whole game seconds, so at the trigger it reads the duration exactly
-  if (expect) eq(await ev(`${q(".clock")}.textContent`), expect, `D5: the timer shows game seconds, ${n.code} going bold at ${expect}`);
+  const expect = { VS: 10, STR: 10, SS: 15, EOS: 30, MB: 30 }[n.code];
+  // the rig samples every 0.25 s, which is 7.5 displayed seconds at base speed, so the trigger reads N:00 to N:07
+  if (expect) {
+    const clk = await ev(`${q(".clock")}.textContent`);
+    const [mm, ss] = clk.split(":").map(Number);
+    ok(mm === expect && ss < 8, `the nest clock shows displayed time: ${n.code} goes bold at ${expect}:00   [${clk}]`);
+  }
   ok(Number(await ev(`${q(".crack")}.style.strokeDashoffset`)) <= 1, "the egg starts cracking");
   await shot("03-bold");
 
+  // the clears on the way left mess of their own: start the mess checks below from a clean board
+  await ev("(() => { document.querySelectorAll('.nest .mess').forEach(m => ET.mess.clear(m)); return 1; })()");
   const before = await ev("__et.snapshot().score");
   await typeAndEnter(`RCAV ${n.unit}`);
   s = await snap();
@@ -143,6 +157,26 @@ try {
   const far = [1, 2, 5, 6, 9].filter((i) => i !== n.id && !nb.includes(i));
   if (far.length) eq(await ev(`[${far}].map(i => __et.mess(i))`), far.map(() => 0), `non-neighbours stay clean   [${far.join(",")}]`);
   await shot("04-splat");
+
+  /* ------------------------------------------------------ C2. wall clock */
+  section("C2. the wall clock");
+  const wallTxt = () => ev("document.querySelector('#wall-hm').textContent + '|' + document.querySelector('#wall-ss').textContent");
+  const w0 = await wallTxt();
+  ok(/^\d\d:\d\d\|\d\d$/.test(w0), `24-hour HH:MM with the seconds on their own   [${w0}]`);
+  eq(await ev("parseFloat(getComputedStyle(document.querySelector('#wall-ss')).fontSize) < parseFloat(getComputedStyle(document.querySelector('#wall-hm')).fontSize)"), true, "the seconds are smaller than HH:MM");
+  eq(await ev("getComputedStyle(document.querySelector('#wall-ss')).verticalAlign !== 'baseline'"), true, "…and raised");
+  {
+    const s0 = await snap();
+    const wallNow = (x) => ((x.wall % 86400) + 86400) % 86400;
+    const nestNow = s0.nests.find((y) => y.state === "active" || y.state === "overtime");
+    await ev("__et.advance(2)");
+    const s1 = await snap();
+    const dWall = (wallNow(s1) - wallNow(s0) + 86400) % 86400;
+    // the page's own frames keep running between the two reads, so allow a frame or two of drift
+    ok(Math.abs(dWall - 60) < 2, `2 s moves the wall clock one minute, like the nest clocks   [+${dWall.toFixed(2)}]`);
+    const n1 = nestNow && s1.nests.find((y) => y.id === nestNow.id);
+    if (n1 && (n1.state === "active" || n1.state === "overtime")) ok(Math.abs((n1.elapsed - nestNow.elapsed) - dWall) < 0.01, "the nest clock moved exactly as far");
+  }
 
   /* ------------------------------------------------------------- D. wipe */
   section("D. click-and-drag wiping");
@@ -224,6 +258,11 @@ try {
   const p0 = (await snap()).time;
   await wait(500);
   eq((await snap()).time, p0, "no game time passes while paused");
+  {
+    const wp = await ev("document.querySelector('#wall-hm').textContent + ':' + document.querySelector('#wall-ss').textContent");
+    await wait(400);
+    eq(await ev("document.querySelector('#wall-hm').textContent + ':' + document.querySelector('#wall-ss').textContent"), wp, "the wall clock freezes on pause too");
+  }
   await shot("07-paused");
   await press("Escape");
   ok(await ev("!__et.paused() && __et.boxes().focused"), "Esc resumes, keyboard back in the box");
@@ -263,8 +302,46 @@ try {
     eq(await ev(`${vq(" .unit")}.textContent + ' ' + ${vq(" .code")}.textContent`), `${vf.unit} VF`, "…and they read the fuelling unit and VF");
     await shot("08-vf-hidden");
     await until((x) => x.nests.find((y) => y.id === vf.id && y.state === "overtime"), 80, 0.25);
-    eq([await ev(`getComputedStyle(${vq(" .egg")}).display`), await vis("clock"), await ev(`getComputedStyle(${vq(" .readout")}).fontWeight`)], ["inline", "visible", "900"], "at \"Clear Fuel\" (the trigger) the egg and the timer appear, bold");
+    eq([await ev(`getComputedStyle(${vq(" .egg")}).display`), await vis("clock"), await ev(`getComputedStyle(${vq(" .readout")}).fontWeight`)], ["inline", "visible", "900"], "at \"Clear Fueling\" (the trigger) the egg and the timer appear, bold");
+    const shown = await ev(`(() => { const b = document.querySelector('.nest[data-id="${vf.id}"] .bubble'); return [!b.hidden, b.classList.contains('show'), b.textContent]; })()`);
+    eq(shown, [true, true, "Clear Fueling"], "…with a \"Clear Fueling\" speech bubble");
+    const vclk = await ev(`${vq(" .clock")}.textContent`);
+    ok(/^\d\d:\d\d$/.test(vclk) && Number(vclk.slice(0, 2)) >= 10, `…and the clock appears already showing the time elapsed   [${vclk}]`);
+    const eggVis = await ev(`Number(document.querySelector('.nest[data-id="${vf.id}"] .crack').style.strokeDashoffset) < 1`);
+    ok(eggVis, "…and the egg appears already cracking");
+    await shot("08b-vf-bubble");
+    await wait(2000);
+    eq(await ev(`getComputedStyle(document.querySelector('.nest[data-id="${vf.id}"] .bubble')).opacity`), "0", "the bubble has faded a moment later");
+    eq(await ev("document.querySelectorAll('.bubble.show').length"), 1, "no other nest has a bubble (VF is the only type with a pop-up)");
   }
+
+  /* ---------------------------------------------------------- H2. AD note */
+  section("H2. the AD post-it");
+  await ev("__et.start('clear', 1)");
+  let kinds = new Set(), adOk = true, otherNotes = 0, sawBold = false;
+  for (let i = 0; i < 600 && (kinds.size < 2 || !sawBold); i++) {
+    s = await snap();
+    for (const x of s.nests) {
+      const txt = await ev(`(() => { const p = document.querySelector('.nest[data-id="${x.id}"] .postit'); return p.hidden ? null : p.textContent; })()`);
+      if (x.state !== "active" && x.state !== "overtime") continue;
+      if (x.code !== "AD") { if (txt !== null) otherNotes++; continue; }
+      if (!x.note || txt === null) { adOk = false; continue; }
+      if (x.note.kind === "clock") {
+        if (!/^Clear @ \d\d:\d\d$/.test(txt)) adOk = false;
+      } else if (txt !== x.note.minutes + " min") adOk = false;
+      kinds.add(x.note.kind);
+      if (x.state === "overtime" && !sawBold) {
+        sawBold = (await ev(`getComputedStyle(document.querySelector('.nest[data-id="${x.id}"] .postit')).fontWeight`)) === "900";
+        if (sawBold) await shot("11-ad-postit");
+      }
+    }
+    for (const x of s.nests.filter((y) => y.state === "overtime" && !(y.code === "AD" && !sawBold))) await ev(`__et.submit('RCAV ${x.unit}')`);
+    await ev("__et.advance(0.5)");
+  }
+  ok(adOk, "every running AD shows its note, reading \"N min\" or \"Clear @ HH:MM\"");
+  eq([...kinds].sort(), ["clock", "duration"], "both kinds of note turn up");
+  eq(otherNotes, 0, "no other type shows a note");
+  ok(sawBold, "an AD's note goes bold with the nest");
 
   /* ------------------------------------------------------ I. developer mode */
   section("I. Developer Mode gate");
@@ -291,6 +368,7 @@ try {
   for (let i = 0; i < 40 && (await ev("__et.screen()")) !== "over"; i++) await wait(100);
   eq(await ev("__et.screen()"), "over", "the end screen follows the last escape");
   eq(await ev("document.querySelector('#over-score').textContent"), String(o.s.score), "it shows the final score");
+  ok(/^SKIPPED SPAWNS  W1 \d+/.test(await ev("document.querySelector('#over-skipped').textContent")), `the playtest log lists skipped spawns per wave   [${await ev("document.querySelector('#over-skipped').textContent")}]`);
   await shot("09-over");
   await press("Enter");
   eq(await ev("__et.screen()"), "setup", "Enter goes back to setup");
