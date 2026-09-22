@@ -185,3 +185,38 @@ archived outside the repo at `~/.claude/projects/C--Users-darqu-OneDrive--PCL-/m
   `emulator/emu.js` and `index.html` are published while `data/` is gitignored. Contents are a public
   upstream `git clone`, a public `npm install`, and repo-relative paths only — no tokens, no absolute
   paths, no unlock phrases. Do not re-triage it as a security item.
+
+## Resolved 2026-09-22 — Egg Timer's launch, and its cabinet in Nerva Beacon's Arcade
+
+**Solved:** Egg Timer is live for players on the public site, and its table in NB's Rec-Bay 4 now fires
+like the three cabinets beside it. Two separate faults, three days apart, both reported as "it will not
+launch" — and in neither case was the PLC hub at fault.
+
+**Approach:** The first was simply that `main` had never been pushed: origin sat at `501eb27`, with no
+`Egg Timer/` folder on the remote at all and no `eggtimer` in the live `disks.js`, so the hub could not
+have shown a tile. Pushed `501eb27..fc05229` (14 commits) on 2026-09-19 after pre-flighting that every
+file the game fetches is tracked and survives the deploy filter. The second was NB's Egg Timer table,
+built as scenery on 2026-09-16 with no game token; its DEST kit row gained `tool`/`label`/`app`/`url`
+like the other three (NB `4f8e940`).
+
+**If you touch this again:**
+- 🚫 **The PLC hub tile has been measured working twice and is not the place to look.** On the live site
+  at five window sizes it is present, `pointer-events:auto`, `elementFromPoint` lands inside the button,
+  its markup is structurally identical to Asteroid Command's, and click → Insert → Load reaches a playable
+  game. The only console output is a `disks/` 404, which is the local-only disk library and expected.
+- **Insert is not Load.** Selecting a disk and pressing Insert Disk only fills DRIVE 8 and prints
+  `DISK INSERTED`; `#btn-load` ("Load \"*\",8,1") is what launches. A test that stops after Insert reports
+  a false failure.
+- **In NB, a cabinet is armed by its DEST kit row, nothing else** (`Nerva Beacon Main/app.js`): `roomKit()`
+  hands `mq--hot mq--who-<who>` to the builder only when the row carries a `url` or `soon`, and
+  `kitEggTable` already threads that modifier onto every box. Tokens are the hub's disk ids, never display
+  names — a wrong one fails silently. Two rigs PIN the armed list and must move with any change:
+  `tools/verify-arcade-links.mjs` (`WANT`, `CARTRIDGES`) and `tools/verify-room-tools.mjs` (`ARC_WHO`).
+- **`make-*.mjs` is in the deploy excludes** (`.github/workflows/deploy-pages.yml`) beside `verify-*.mjs`.
+  Without it `make-dev-hash.mjs` would publish; that workflow's own leak check does not inspect `.mjs`.
+- ⚠️ **`verify-cat.mjs` crashes at random with `ReferenceError: __cat is not defined`** — `cat.js` is the
+  last script on the hub page, so when cdp.mjs's `goto()` returns early it is the one thing undefined
+  (~2 pages in 38). Not a hub bug. Re-run it; a clean run is 214/0. It also rewrites two tracked
+  screenshots — restore them with `git checkout --` rather than committing them.
+- Still open and deliberately untouched: the root cassette menu (`Game/core/submenu.js`) does not list Egg
+  Timer, and NB's `EGG-TIMER-WALL` / `EGG-TIMER-HATCH` are Andrew's calls.

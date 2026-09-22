@@ -17,7 +17,7 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - **Andrew authorized and confirmed the build on 2026-09-16.** The first playable build is in `files/`.
 - **Andrew lifted the `coming-soon` hold on 2026-09-17** ("a normal, selectable cartridge in the Arcade
   for all players"), knowing the art, the instruction/title/end screens and audio are still placeholders
-  or missing. The hub entry is live in `Game/cat/disks.js`, and players get it on the next push to main.
+  or missing. The hub entry is live in `Game/cat/disks.js`.
 - **The build questions D1, D2, D4, D5, D6 and C15 are settled** (Draft 9, 2026-09-17). Each switch in
   `files/core/config.js` is set to its ruling and the rigs assert it; the reasoning, the traps and the
   checks that pin them are in `docs/decisions.md` at the repo root.
@@ -72,7 +72,7 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - ⚠️ Rigs that start browsers fail with "Chrome never opened a debug port" while another session's rig
   keeps the CPU at 100% (seen 2026-09-17 with `verify-c64.mjs`). It's load, not a failing check: wait and re-run.
 - Not wired: the old cassette menu in `Game/index.html` (`Game/core/submenu.js`) doesn't list Egg Timer,
-  which is Andrew's call; the Fang Rock room cabinet is the separate Rec-Bay 4 handoff.
+  which is Andrew's call.
 
 ## Locked design (summary; the packet has the detail)
 - **Modes:** Clear CAVs Only (nests open one at a time), Follow Progression (one-phase for waves 1–2,
@@ -127,7 +127,7 @@ a session must not re-derive or break. Decision history lives in the memory stor
   comes from Andrew, never a guess.
 - **Use the packet's own vocabulary:** nests, eggs, hatching, escape, the pool.
 - **The hub id is `eggtimer`, letters only:** Fang Rock drops any cabinet token that isn't `^[a-z]+$`.
-  The `Game/index.html` menu is Andrew's call. The room's cabinet is a separate Rec-Bay 4 handoff.
+  The `Game/index.html` menu is Andrew's call.
 - It is its own cartridge: don't borrow another cartridge's theme, and don't push its conventions onto others.
 - Folder names are Title Case with spaces, and GitHub Pages is case-sensitive: `Egg Timer` ≠ `egg-timer`.
 
@@ -146,8 +146,9 @@ Open it via the **Egg Timer (Claude Code)** desktop shortcut (`claude-et.cmd`) a
 means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists), then `et-track.md`,
 and read and write Egg Timer memories **there**.
 
-## State 2026-09-17
-Launched in the hub on Andrew's word, committed, **not pushed**, so players don't have it yet. Waiting on
+## State 2026-09-22
+Live for players on the public site since 2026-09-19, and its table in Nerva Beacon's Arcade fires (NB
+`4f8e940`); both are written up in `docs/decisions.md` at the repo root. Waiting on
 Andrew for the D3 digest (until then Developer Mode denies every entry, on the live site too). Next, each a
 design call through Chat: an instruction screen (players get none today), art direction, the title/end
 screens, and audio.
