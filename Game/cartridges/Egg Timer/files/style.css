@@ -434,7 +434,7 @@ h2 {
 /* Refinement 5 §1: while Time Warp runs, every ACTIVE nest and its display boxes' borders glow Time Warp green,
    off the instant it ends (render() toggles #board.warp every frame from the snapshot). No egg is ever bold
    during a warp, and the bold look is a fill and weight change, not a glow; :not(.bold) keeps them apart anyway.
-   Which nests get .glow is the ⏳ E22 switch (warpGlow). */
+   Which nests get .glow is the E22 switch (warpGlow): ruled, only those whose clock is running. */
 #board.warp .nest.glow:not(.bold) .nest-art { filter: drop-shadow(0 0 3px var(--warp)) drop-shadow(0 0 7px var(--warp)); }
 #board.warp .nest.glow:not(.bold) .readout > span { border-color: var(--warp); box-shadow: 2px 2px 0 var(--shadow), 0 0 8px 2px var(--warp); }
 

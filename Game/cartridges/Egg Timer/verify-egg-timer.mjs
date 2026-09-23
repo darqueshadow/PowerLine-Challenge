@@ -808,13 +808,22 @@ try {
     await ev("__et.advance(0)");
     const glow = () => ev(`(() => {
       const one = (n) => ({ border: getComputedStyle(n.querySelector('.readout .unit')).borderTopColor, art: getComputedStyle(n.querySelector('.nest-art')).filter });
-      return { active: [...document.querySelectorAll('.nest:not(.inactive)')].map(one), inactive: [...document.querySelectorAll('.nest.inactive')].map(one) };
+      const running = (n) => n.dataset.state === 'active' || n.dataset.state === 'overtime';
+      return { running: [...document.querySelectorAll('.nest')].filter(running).map(one), idleInPlay: [...document.querySelectorAll('.nest:not(.inactive)')].filter(n => !running(n)).map(one),
+               inactive: [...document.querySelectorAll('.nest.inactive')].map(one), active: [...document.querySelectorAll('.nest:not(.inactive)')].map(one) };
     })()`);
     const G = "rgb(61, 255, 154)";
     const g1 = await glow();
-    eq(await ev("ET.CONFIG.warpGlow"), "unlocked", "⏳ E22: \"active nests\" is built as every nest in play, egg or not");
-    ok(g1.active.length === 5 && g1.active.every((x) => x.border === G && x.art.includes("drop-shadow")), `Refinement 5 §1: during the warp every active nest and its boxes' borders glow Time Warp green   [${g1.active.length} active]`);
-    ok(g1.inactive.every((x) => x.border !== G && x.art === "none"), "…but not the inactive nests");
+    eq(await ev("ET.CONFIG.warpGlow"), "running", "E22 (ruled): only the nests whose clock is running glow");
+    ok(g1.running.length > 0 && g1.running.every((x) => x.border === G && x.art.includes("drop-shadow")), `Refinement 5 §1: during the warp every nest with a running clock, and its boxes' borders, glows Time Warp green   [${g1.running.length} running]`);
+    ok(g1.idleInPlay.every((x) => x.border !== G && x.art === "none") && g1.inactive.every((x) => x.border !== G && x.art === "none"), `…but not an empty nest in play, nor an inactive one   [${g1.idleInPlay.length} empty in play]`);
+    {
+      // the other reading still works as a switch (it isn't the design): every nest in play
+      await ev("ET.CONFIG.warpGlow = 'unlocked'; __et.advance(0); 1");
+      const gu = await glow();
+      await ev("ET.CONFIG.warpGlow = 'running'; __et.advance(0); 1");
+      ok(gu.active.length === 5 && gu.active.every((x) => x.border === G), "…(the \"unlocked\" switch value glows every nest in play instead)");
+    }
     await shot("13-time-warp");
     // measured over a short step that stays inside the warp (an egg going bold part-way would end it)
     // (the live page keeps stepping in real time too, so try until a step starts and ends inside a warp)
@@ -840,7 +849,7 @@ try {
   await ev("__et.advance(0.1)");
   {
     const C0 = await ev("JSON.stringify([ET.CONFIG.momFaceChance, ET.CONFIG.momFaceWindow])");
-    eq(await ev("ET.CONFIG.momFaceZones"), ["top", "panel"], "⏳ E23: both zones are in use (the top one covers the HUD bar, the panel one some how-to text, for that moment)");
+    eq(await ev("ET.CONFIG.momFaceZones"), ["top", "panel"], "E23 (ruled): both zones are kept (the top one may cover the HUD bar, the panel one some how-to text, for its 0.85 s)");
     ok((await ev("ET.CONFIG.momFaceSeconds")) < 1, `it lasts under a second   [${await ev("ET.CONFIG.momFaceSeconds")} s]`);
     await ev("window.__hiss = 0; (function (h) { ET.audio.hiss = function () { window.__hiss++; return h.apply(this, arguments); }; })(ET.audio.hiss)");
     for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {

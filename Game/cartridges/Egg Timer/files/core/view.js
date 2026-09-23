@@ -432,7 +432,7 @@
       wall.hm.textContent = hhmm(snap.wall);
       wall.ss.textContent = two(Math.floor(snap.wall) % 60);
       warp.classList.toggle("lit", !!snap.warp);
-      board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the active nests glow while it runs (E22)
+      board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the nests with a running clock glow (E22)
 
       snap.nests.forEach(function (s) {
         var v = nests[s.id];
@@ -445,7 +445,7 @@
         v.clock.textContent = s.state === "active" || s.state === "overtime" ? clockText(s.elapsed) : "--:--";
 
         el.classList.toggle("bold", s.state === "overtime");
-        el.classList.toggle("glow", !!snap.warp && (C.warpGlow === "running" ? (s.state === "laying" || s.state === "active") : !el.classList.contains("inactive")));
+        el.classList.toggle("glow", !!snap.warp && (C.warpGlow === "running" ? (s.state === "active" || s.state === "overtime") : !el.classList.contains("inactive")));
         // C15(b) (ruled): a running VF hides its egg and its timer until "Clear Fuel"; the unit and "VF" stay
         el.classList.toggle("hide-egg", s.hidden);
         el.classList.toggle("hide-readout", s.hidden && C.vfHides === "readout");
