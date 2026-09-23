@@ -21,7 +21,8 @@ the memory store (below).
   `git log origin/main..main` first.
 - **Refinement 3 (2026-09-23) replaced every switching ruling:** Tab / Shift+Tab / F12 as in CAD5. The Alt+1–4
   ruling was never built and its hand test is cancelled; the switcher, MRU order, quick-tap flip and Ctrl+Tab
-  are gone, and E9 with them. **Open for Chat, one at a time: E13–E18** (packet §11).
+  are gone, and E9 with them. E14 and E15 are ruled and the **egg ladder** added (*Refinement 3 rulings*). **Open: E13, E16–E18**: the rulings
+  say "as in the previous ruling block", which never reached Code; they stay on their provisional values till it does.
 - **Open:** the spawn-rate question (does clock speed replace or stack with the spawn-gap shrink?). It waits
   on the skipped-spawn log from Andrew's playtest, shown on the game-over screen and in the console. **D3**, the
   Developer Mode phrase (`devModePasswordHash`, null denies every entry): Andrew gives Code the digest,
@@ -97,15 +98,17 @@ the memory store (below).
   wave, cap 3; placeholder key `POOL`. **Only an empty pool ends the game.**
 - **Scoring:** a clear is 100 at the trigger, falling linearly to 25 at the hatch; perfect-wave bonus 50 ×
   the wave; no penalty for an escape or for wiping.
-- **Clear and hatch:** a frying pan slams on a clear (under 0.5 s, pure CSS: it must never hold the keyboard),
-  and the fried egg shows the overtime third: sunny-side-up, broken yolk, burnt. The random cooked eggs are
-  retired (E11). On a hatch the pan comes down late on the empty nest.
-- **Mess and hose:** a clear dirties its own nest and its direct neighbours (active or not), and flings more
-  anywhere on the board (a floor layer under the nests), no cap; mess belongs to the nest; wiping is
-  click-and-drag. **All mess draws under the readouts** (Refinement 3; E14, E15 open). **In-game the cursor is
-  always the hose nozzle** (menus keep the pointer); the hose body curves to a spigot on the board's bottom edge,
-  **under** the nests, HUD, how-to panel and Command Lines, so it never covers text; behind the nests and eggs is
-  by design (E12). Water only while dragging. The cleanup call is a banner over the HUD bar.
+- **Clear and hatch:** a frying pan slams on a clear (under 0.5 s, pure CSS: it must never hold the keyboard).
+  On a hatch the pan comes down late on the empty nest.
+- **Mess and hose:** a clear leaves a small splat on its own nest and drops the rest evenly at random over the
+  whole board (a blob on a nest goes on that nest's mess, anywhere else on a floor layer under the nests); no
+  neighbour targeting (E15), no cap; mess belongs to the nest and **covers its readout and post-it** (E14).
+  Wiping is click-and-drag. **In-game the cursor is always the hose nozzle** (menus keep the pointer); the hose
+  body and the egg-laying cord draw **under** all text (nests, HUD, how-to panel, Command Lines); behind the nests
+  and eggs is by design (E12). Water only while dragging. The cleanup call is a banner over the HUD bar.
+- **Egg ladder:** a fast clear (first third of overtime [T]) serves the next dish over the nest for ~1 s: Scrambled
+  → … → Steak, Eggs & Brew!, holding at the top. A slow clear, any ERROR or a hatch resets it; it carries across
+  waves; **no score effect**. It replaced the fried eggs by overtime third.
 - **How-to panel** beside play **is** the instruction screen (E10). It **never lists CAV durations**. Refinement 3
   set its lines (Goal, Switch, F12, Esc, Cleanup), with no RCAV, AD or VF line (E17 open); its Place line shows
   only in Both and Follow Progression (E8). The wall clock and the TIME WARP panel sit in a band above the board.
@@ -151,6 +154,6 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-23
-Refinement 3 is built and committed locally as seven commits (six builds, then the packet) on top of the E12 ruling; rigs logic 122/0, browser
-190/0. Waiting on Andrew for: E13–E18 through Chat, his local playtest (then the skipped-spawn log for Chat),
-push approval, and the D3 digest.
+Refinement 3 and its rulings (E14, E15, the egg ladder) are built and committed locally; rigs logic 128/0,
+browser 189/0. Waiting on Andrew for: the missing ruling block for E13 and E16–E18, his local playtest (then the
+skipped-spawn log for Chat), push approval, and the D3 digest.
