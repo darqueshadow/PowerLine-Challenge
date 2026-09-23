@@ -6,7 +6,8 @@
    Screens: title → setup (mode buttons + Command Box count, one combined step)
             → play → over → setup.
    ⏳ The title and end screens here are functional placeholders: their design
-   is deferred (packet §11 items 14–15). There is no instruction screen yet.
+   is deferred (packet §11 items 14–15). Play has a how-to panel down one side
+   (Refinement 2 §1); there is still no instruction screen of its own.
    ========================================================================= */
 (function () {
   var ET = window.ET;
@@ -146,7 +147,7 @@
   }
 
   function submit(text) {
-    if (!app.game || app.paused) return { ok: false };
+    if (!app.game || app.paused) return { ok: false, blocked: true };
     var r = app.game.submit(text);
     flush();
     return r;
@@ -188,6 +189,16 @@
     }
   }, true);
 
+  /* A quick Tab tap flips Command Lines on release (Refinement 2 §4). */
+  document.addEventListener("keyup", function (ev) {
+    if (app.screen === "play" && !app.paused && !ET.devmode.isOpen() && ET.boxes.keyUp(ev)) ev.preventDefault();
+  }, true);
+
+  /* Browsers hold audio until the player presses or clicks something. */
+  ["keydown", "pointerdown"].forEach(function (t) {
+    document.addEventListener(t, function () { ET.audio.unlock(); }, { capture: true, once: true });
+  });
+
   /* the active box keeps the keyboard during play */
   document.addEventListener("focusout", function () {
     setTimeout(function () {
@@ -196,9 +207,34 @@
   });
 
   /* ---------------------------------------------------------------- boot */
+  /* Refinement 2 §1: the how-to panel. Simple how-to only; it NEVER lists CAV durations. */
+  function paintHowTo() {
+    var lines = [
+      ["GOAL", "Clear each egg with RCAV once its clock goes bold, before it hatches."],
+      ["SYNTAX", "RCAV <unit>, e.g. RCAV 2101"],
+      ["AD", "The post-it tells you when to clear."],
+      ["VF", "Clear when “Clear Fueling” pops up."],
+      ["SWITCH", "Command Lines: Tab" + (ET.boxes.inFangRock() ? " or Ctrl+Tab" : "")],
+      ["F12", "Clear the active Command Line."],
+      ["ESC", "Pause."],
+      ["CLEANUP", "Drag the hose over messes."]
+    ];
+    var ul = $("#howto ul");
+    ul.innerHTML = "";
+    lines.forEach(function (l) {
+      var li = document.createElement("li");
+      var b = document.createElement("b");
+      b.textContent = l[0];
+      li.appendChild(b);
+      li.appendChild(document.createTextNode(" " + l[1]));
+      ul.appendChild(li);
+    });
+  }
+
   function wire() {
     ET.view.build();
     ET.boxes.build({ submit: submit });
+    paintHowTo();
     ET.devmode.build({
       toggled: function (on) {
         $("#setup-dev").hidden = !on;

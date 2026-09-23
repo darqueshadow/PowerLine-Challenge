@@ -92,6 +92,13 @@
       return Math.round(c.clearPointsMax - (c.clearPointsMax - c.clearPointsMin) * t);
     },
 
+    /* Which third of the overtime window a clear landed in (Refinement 2 §5): 0, 1 or 2. */
+    clearThird: function (intoOvertime, overtimeLength) {
+      var t = overtimeLength > 0 ? intoOvertime / overtimeLength : 1;
+      var cuts = C().friedSplits;
+      return t < cuts[0] ? 0 : t < cuts[1] ? 1 : 2;
+    },
+
     perfectWaveBonus: function (wave) {
       return C().perfectWavePerWave * wave;
     },

@@ -69,6 +69,35 @@
     if (ms) bannerTimer = setTimeout(function () { banner.hidden = true; }, ms);
   }
 
+  /* Restart a CSS animation on an element by swapping its class. */
+  function replay(elm, base, cls) {
+    elm.className = base;
+    void elm.offsetWidth;
+    if (cls) elm.className = base + " " + cls;
+  }
+
+  function slam(v, how) {
+    v.pan.style.setProperty("--pan", ET.CONFIG.panSeconds + "s");
+    v.pan.style.setProperty("--pan-delay", (how === "late" ? ET.CONFIG.hatchPanDelay : 0) + "s");
+    replay(v.pan, "pan", how);
+  }
+
+  function flash(v, kind) { replay(v.fx, "fx", kind); }
+
+  /* ⏳ placeholder: water from the hose while a drag is wiping. */
+  function spray(x, y) {
+    var f = field.getBoundingClientRect();
+    for (var i = 0; i < 3; i++) {
+      var d = document.createElement("i");
+      d.className = "drop";
+      d.style.left = (x - f.left + (Math.random() * 16 - 8)) + "px";
+      d.style.top = (y - f.top + (Math.random() * 10 - 5)) + "px";
+      d.style.setProperty("--dx", (Math.random() * 30 - 15) + "px");
+      popups.appendChild(d);
+      setTimeout(function (el) { el.remove(); }.bind(null, d), 450);
+    }
+  }
+
   ET.view = {
     build: function () {
       field = $("#field");
@@ -115,12 +144,19 @@
         bubble.hidden = true;
         n.appendChild(bubble);
 
+        // ⏳ placeholder: the frying pan, and a slot for the sparkle or smoke after it (Refinement 2 §5)
+        var pan = ET.art.panEl();
+        n.appendChild(pan);
+        var fx = document.createElement("div");
+        fx.className = "fx";
+        n.appendChild(fx);
+
         var mess = ET.mess.create();
         n.appendChild(mess);
 
         field.appendChild(n);
         nests.push({
-          el: n, svg: svg, readout: ro, mess: mess, note: note, bubble: bubble,
+          el: n, svg: svg, readout: ro, mess: mess, note: note, bubble: bubble, pan: pan, fx: fx,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
@@ -137,7 +173,10 @@
         ET.art.clearSplat(v.svg);
         v.note.hidden = true;
         v.bubble.hidden = true;
+        v.pan.className = "pan";
+        v.fx.className = "fx";
       });
+      field.classList.remove("hose");
       banner.hidden = true;
       popups.innerHTML = "";
       noTypesShown = false;
@@ -183,6 +222,9 @@
         var off = String(1 - s.crack);
         for (var k = 0; k < v.cracks.length; k++) v.cracks[k].style.strokeDashoffset = off;
       });
+
+      // ⏳ E5: the hose is the cursor during cleanup (the wipe underneath is unchanged)
+      field.classList.toggle("hose", ET.CONFIG.hoseWhen === "always" || snap.phase === "cleanup");
 
       if (snap.phase === "cleanup") {
         var left = banner.querySelector(".left");
@@ -230,7 +272,12 @@
             popup(v.el, "+" + e.points, "good");
             break;
           case "cleared":
-            ET.art.showSplat(v.svg, ET.art.SPLATS[Math.floor(Math.random() * ET.art.SPLATS.length)]);
+            // the pan slams, and the egg is fried by how late the clear came (Refinement 2 §5)
+            slam(v, "hit");
+            ET.art.showSplat(v.svg, ET.art.FRIED[e.third] || "sunny");
+            v.el.dataset.fried = ET.art.FRIED[e.third] || "sunny";
+            flash(v, e.third === 0 ? "sparkle" : e.third === 2 ? "smoke" : "");
+            if (ET.audio) { ET.audio.thong(); if (e.third === 0) ET.audio.ding(); }
             ET.mess.splatter(v.mess, ET.CONFIG.messBlobsOwn);
             e.neighbors.forEach(function (id) { ET.mess.splatter(nests[id].mess, ET.CONFIG.messBlobsNeighbor); });
             popup(v.el, "+" + e.points, "good");
@@ -240,6 +287,9 @@
             void v.el.offsetWidth;
             v.el.style.setProperty("--dir", Math.random() < 0.5 ? -1 : 1);
             v.el.classList.add(ET.art.FLOURISHES[Math.floor(Math.random() * ET.art.FLOURISHES.length)]);
+            // the pan comes down late, on the empty nest: look only, the hatch is already final
+            slam(v, "late");
+            if (ET.audio) ET.audio.clunk(ET.CONFIG.hatchPanDelay);
             hud.pool.classList.remove("hit");
             void hud.pool.offsetWidth;
             hud.pool.classList.add("hit");
@@ -279,6 +329,7 @@
         return hits;
       }
       function wipe(ev) {
+        if (field.classList.contains("hose")) spray(ev.clientX, ev.clientY);
         at(ev).forEach(function (h) {
           var from = last && last.id === h.v.el.dataset.id ? last : { x: h.x, y: h.y };
           ET.mess.wipe(h.v.mess, from.x, from.y, h.x, h.y, ET.CONFIG.wipeRadius * h.sx);

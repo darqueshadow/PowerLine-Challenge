@@ -89,8 +89,8 @@
     // D4: a wave stops spawning once its quota has spawned.
     // (false keeps spawning, but what happens to CAVs left running at the wave's end was never designed.)
     stopSpawningAtQuota: true,
-    // D6: a rejected Enter leaves the text in the box (F12 clears it).
-    keepTextOnReject: true,
+    // D6 is superseded by Refinement 2 §6: ANY rejected Enter clears the box and shows ERROR.
+    keepTextOnReject: false,
 
     // ── Timer Refinement gaps, ruled 2026-09-22 (E1–E4) ──────────────────────
     // E1: "Clear @" is the next whole minute after start + draw, so it never bolds before
@@ -100,6 +100,21 @@
     // E2: an AD placement trigger shows its note when the CAV starts, not at the trigger.
     //   Only "start" is built.
     adNoteFrom: "start",
+
+    // ── Refinement 2 (2026-09-22): pan, ERROR, switcher, hose ───────────────
+    panSeconds: 0.32,        // [T] the frying pan's slam, well under 0.5 s; never holds the keyboard
+    friedSplits: [1 / 3, 2 / 3], // [T] overtime in thirds: sunny-side-up, broken yolk, burnt
+    hatchPanDelay: 0.35,     // [T] on a hatch the pan comes down this late, on the empty nest
+    thongPitchJitter: 0.06,  // [T] ±6% pitch on each THONG so repeats don't grate
+    errorSeconds: 1.0,       // [T] how long the red ERROR shows under the Command Line
+    tapSeconds: 0.25,        // [T] Tab released this fast (no other key) flips to the last-used box
+    sound: true,             // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
+
+    // ── Refinement 2 gaps — ⏳ PENDING, flagged to Chat ─────────────────────
+    // E5: the hose is the handoff's "during cleanup". Mid-wave wiping (still allowed) keeps the plain cursor.
+    hoseWhen: "cleanup",           // "cleanup" | "always"
+    // E6: an Enter on an EMPTY Command Line does nothing (no ERROR, no buzz), as before.
+    errorOnEmpty: false,
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

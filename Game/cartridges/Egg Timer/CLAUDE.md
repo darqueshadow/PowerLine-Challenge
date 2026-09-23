@@ -18,15 +18,21 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - **Andrew lifted the `coming-soon` hold on 2026-09-17** ("a normal, selectable cartridge in the Arcade
   for all players"), knowing the art, the instruction/title/end screens and audio are still placeholders
   or missing. The hub entry is live in `Game/cat/disks.js`.
-- **The build questions D1, D2, D4, D6 and C15 are settled** (Draft 9, 2026-09-17; D5 was removed by the
-  2026-09-22 Timer Refinement). Each switch in
+- **The build questions D1, D2, D4 and C15 are settled** (Draft 9, 2026-09-17; D5 was removed by the
+  2026-09-22 Timer Refinement, D6 by Refinement 2). Each switch in
   `files/core/config.js` is set to its ruling and the rigs assert it; the reasoning, the traps and the
   checks that pin them are in `docs/decisions.md` at the repo root.
 - **Timer Refinement (2026-09-22), built for a LOCAL playtest, NOT pushed:** 🚫 don't push it until
   Andrew has played it locally and approved. E1–E4 were ruled the same day (E1 rounds "Clear @" up;
   E2, E4 as built; E3: say **displayed time** and **the player's seconds**). Still open: whether clock
   speed replaces the spawn-gap shrink.
-  Skipped spawns are logged per wave (console, and the game-over screen) for Chat.
+  Skipped spawns are logged per wave (console, and the game-over screen) for Chat. Committed locally as
+  `46469a4`.
+- **Refinement 2 (2026-09-22), built for a LOCAL playtest, NOT pushed, a SEPARATE change** on top of
+  `46469a4`, so either can be rolled back alone: the how-to panel, the hose, a larger wall clock, the
+  most-recently-used switcher (quick Tab tap flips; Ctrl+Tab inside Fang Rock only), the frying pan and
+  fried eggs by overtime third, ERROR on any rejected Enter, and placeholder sounds (`core/audio.js`).
+  Open: **E5–E11** (⏳ `hoseWhen`, `errorOnEmpty`; the rest in the packet's §11).
 - **Still open (packet §11):** **D3**, the Developer Mode phrase (`devModePasswordHash`, ⏳, null
   denies every entry). Andrew gives Code the digest from `ET.plcDigest('PHRASE')`, never the phrase.
   When it arrives, set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
@@ -43,7 +49,7 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - `index.html`, `style.css`, `script.js` (boot, screens, loop, keyboard), `favicon.svg`.
 - `core/`: `config.js` (every number with its packet section, plus the build-question switches), `rules.js` (pure
   curves), `commands.js` (PowerLine parsing), `data.js`, `game.js` (the whole mechanic, **no DOM**: keep
-  it that way), `art.js` (placeholder SVG), `mess.js`, `view.js`, `boxes.js` (Command Boxes + switcher),
+  it that way), `art.js` (placeholder SVG), `audio.js` (placeholder sounds), `mess.js`, `view.js`, `boxes.js` (Command Boxes + switcher),
   `devmode.js`.
 - `datasets/cav_types.csv` is Andrew's table, kept as data; `cav_types_blank.csv` is the Blank Dataset
   Module, a Developer-Mode-only copy of the same seven types (D1). **Edit both** if the real table changes:
@@ -99,8 +105,9 @@ a session must not re-derive or break. Decision history lives in the memory stor
   stay visible (C15b). **Every AD shows a post-it** ("20 min", or "Clear @ 14:36" against the wall clock:
   the next whole minute after start + draw, E1).
 - **Placement:** 10 points, with no penalty for waiting, but **an ignored trigger auto-opens** after
-  20 s (−1 s a wave, floor 8 s) and starts its timer normally. A wrong code is rejected silently, whether
-  nonsense or a real code that doesn't match the nest, and a rejected Enter leaves the text in the box (D6).
+  20 s (−1 s a wave, floor 8 s) and starts its timer normally. **Any rejected Enter** (too early, a typo,
+  a wrong unit, a wrong or nonsense code) clears the Command Line, shows a red ERROR under it for ~1 s
+  and buzzes, with no score or pool penalty (Refinement 2, replacing D6 and the silent rejection).
 - **The timer** counts **up** in **displayed time**, MM:SS (VS and STR bold at 10:00, SS 15:00, EOS and MB
   30:00) and keeps counting through overtime. A 24-hour **wall clock** starts at the player's time of day
   (`?clock=HH:MM` pins it, so `?seed=N&clock=HH:MM` replays exactly). The older "countdown" wording is retired.
@@ -115,11 +122,16 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - **Scoring:** a clear is 100 at the trigger, falling linearly to 25 at the hatch; perfect-wave bonus
   50 × the wave number; no penalty for an escape or for mid-wave wiping.
 - **Mess:** a smoosh dirties its own nest and its direct neighbours only, with no cap. Mess belongs to
-  the nest. Wiping is click-and-drag.
+  the nest. Wiping is click-and-drag; during cleanup the cursor is a hose (look only).
+- **Clear and hatch look:** a frying pan slams on a clear (under 0.5 s, pure CSS: it must never hold the
+  keyboard) and the fried egg shows the overtime third: sunny-side-up, broken yolk, burnt. On a hatch the
+  pan comes down late on the empty nest. The how-to panel beside play **never lists CAV durations**.
 - **Command Boxes:** 1–4, picked on the mode-selection screen, in all three modes, inside one page.
   Each box has its own colour. Staged text in an inactive box clears when a new wave starts. **F12**
   keeps its arcade-wide meaning: clear the active box, no penalty.
-- **Keys:** **Tab** opens the switcher (no-op with 1 box). The boxes are its only entries, with
+- **Keys:** **Tab** opens the switcher (no-op with 1 box), listed most-recently-used first and open on
+  the last-used box; a quick tap-and-release flips to it (Refinement 2). **Ctrl+Tab** does the same inside
+  Fang Rock only; in a browser the game leaves it alone. The boxes are its only entries, with
   previews. Tab/Shift+Tab or the arrows move, Enter confirms, Escape closes without switching. The
   game keeps running meanwhile. Tab's different job in The Aquanaut was ruled fine, and there's no
   suggestion list for v1. **Esc, and only Esc, pauses** (after closing an open switcher), the
@@ -158,9 +170,9 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-22
-The Timer Refinement is built and both rigs pass, **uncommitted and unpushed**, waiting on Andrew's local
-playtest. Live for players on the public site since 2026-09-19, and its table in Nerva Beacon's Arcade fires (NB
+The Timer Refinement (`46469a4`, local) and Refinement 2 (on top, uncommitted) are built and both rigs
+pass, **unpushed**, waiting on Andrew's local playtest. Live for players on the public site since 2026-09-19, and its table in Nerva Beacon's Arcade fires (NB
 `4f8e940`); both are written up in `docs/decisions.md` at the repo root. Waiting on
 Andrew for the D3 digest (until then Developer Mode denies every entry, on the live site too). Next, each a
-design call through Chat: an instruction screen (players get none today), art direction, the title/end
-screens, and audio.
+design call through Chat: E5–E11, whether the how-to panel is the instruction screen (E10), art
+direction, the title/end screens, and real audio.

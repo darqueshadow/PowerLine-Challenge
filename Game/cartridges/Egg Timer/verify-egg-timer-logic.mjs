@@ -289,6 +289,32 @@ section("K. adjacency");
   eq(g.unlocked().map((n) => n.id).sort((a, b) => a - b), [1, 2, 5, 6, 9], "wave 1 unlocks one compact cluster");
 }
 
+section("N. Refinement 2 (2026-09-22): the fried egg shows the timing");
+eq([0, 0.3, 0.34, 0.6, 0.67, 0.99, 1].map((t) => R.clearThird(t * 6, 6)), [0, 0, 1, 1, 2, 2, 2], "overtime in thirds: sunny-side-up, broken yolk, burnt");
+eq(ET.CONFIG.panSeconds < 0.5, true, "the pan's slam is under 0.5 s");
+{
+  // A clear reports its third, and an early clear is the high-points one.
+  const g = game("clear", [T("VS", 10)]);
+  advance(g, 0.05);
+  const n = inState(g, "active")[0];
+  advance(g, 20);
+  g.drain();
+  const r = g.submit("RCAV " + n.unit);
+  const e = g.drain().find((x) => x.type === "cleared");
+  ok(r.ok && e && e.third === 0 && e.points >= 90, `an RCAV right at the bold is the early third, near 100   [third ${e && e.third}, ${e && e.points} pts]`);
+}
+{
+  const g = game("clear", [T("VS", 10)]);
+  advance(g, 0.05);
+  const n = inState(g, "active")[0];
+  advance(g, 20);
+  advance(g, (n.hatchAt - g.time) - 0.1);
+  g.drain();
+  const r = g.submit("RCAV " + n.unit);
+  const e = g.drain().find((x) => x.type === "cleared");
+  ok(r.ok && e && e.third === 2 && e.points <= 35, `an RCAV just before the hatch is the last third, near 25   [third ${e && e.third}, ${e && e.points} pts]`);
+}
+
 section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock, AD notes");
 {
   const g = new ET.Game({ mode: "clear", types: [T("VS", 10)], units, rng: ET.seededRandom(7), wallStart: 14 * 3600 });
@@ -397,7 +423,8 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
 
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
 eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides, "timerDisplay" in ET.CONFIG],
-  ["per-spawn", true, true, "timer", false], "D2 per spawn · D4 stop at quota · D6 text stays · C15(b) timer only · D5's switch is gone");
+  ["per-spawn", true, false, "timer", false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · C15(b) timer only · D5's switch is gone");
+eq([ET.CONFIG.hoseWhen, ET.CONFIG.errorOnEmpty], ["cleanup", false], "⏳ Refinement 2 gaps: hose during cleanup only, no ERROR on an empty Enter (provisional, flagged to Chat)");
 eq([ET.CONFIG.adClockTarget, ET.CONFIG.adNoteFrom], ["full-minutes", "start"], "E1 round up · E2 note at the start (ruled 2026-09-22)");
 eq(ET.CONFIG.devModePasswordHash, null, "⏳ D3: no phrase set yet, so Developer Mode denies every entry");
 

@@ -51,6 +51,14 @@ async function press(name, mods = 0) {
   await c.key("keyUp", name, code, kc, mods);
   await wait(30);
 }
+/* Hold a key past the quick-tap window, so Tab opens the switcher and leaves it open. */
+async function hold(name, mods = 0, ms = 400) {
+  const [code, kc] = KEYS[name] || [name, name.toUpperCase().charCodeAt(0)];
+  await c.key("rawKeyDown", name, code, kc, mods);
+  await wait(ms);
+  await c.key("keyUp", name, code, kc, mods);
+  await wait(30);
+}
 const ev = (s) => c.ev(s);
 const snap = () => ev("__et.snapshot()");
 async function shot(name) { if (SHOTS) await c.shot(`${SHOTS}\\${name}.png`); }
@@ -114,9 +122,26 @@ try {
 
   await typeAndEnter(`RCAV ${n.unit}`);
   eq((await snap()).nests.find((x) => x.id === n.id).state, "active", "RCAV before the trigger does nothing");
-  eq(await ev("__et.boxes().values[0]"), `RCAV ${n.unit}`, "D6: the rejected text stays in the box");
+  eq(await ev("__et.boxes().values[0]"), "", "a rejected Enter (RCAV too early) clears the Command Line");
+  eq(await ev("__et.boxes().error[0]"), true, "…and a red ERROR shows under it");
+  eq(await ev("getComputedStyle(document.querySelector('.box.active .err')).visibility"), "visible", "…drawn directly under the box");
+  {
+    const eb = await ev("document.querySelector('.box.active').getBoundingClientRect().bottom");
+    const et = await ev("document.querySelector('.box.active .err').getBoundingClientRect().top");
+    const vh = await ev("innerHeight");
+    const errBottom = await ev("document.querySelector('.box.active .err').getBoundingClientRect().bottom");
+    ok(et >= eb && errBottom <= vh, `…below the box and still on screen   [box ${eb.toFixed(0)}, ERROR ${et.toFixed(0)}–${errBottom.toFixed(0)}, window ${vh}]`);
+  }
+  eq((await snap()).pool, 3, "…with no pool penalty");
+  eq(await ev("document.querySelector('.box.active').getBoundingClientRect().width > 0.9 * document.querySelector('#console').getBoundingClientRect().width"), true, "…and the Command Line keeps its full width (no class clash with the title screen's .error)");
+  await shot("03a-error");
+  await wait(1200);
+  eq(await ev("__et.boxes().error[0]"), false, "the ERROR is gone after about a second");
+  await c.insert("RCAV 1");
   await press("F12");
   eq(await ev("__et.boxes().values[0]"), "", "F12 clears the box, no penalty");
+  await press("Enter");
+  eq(await ev("__et.boxes().error[0]"), false, "⏳ E6: an Enter on an empty Command Line shows no ERROR");
 
   // clear the other nests on the way, or a long CAV (EOS, MB) waits out three hatches and the game ends first
   let r = { hit: null };
@@ -148,6 +173,12 @@ try {
   ok(s.score > before, `points awarded   [+${s.score - before}]`);
   eq(await ev("__et.boxes().values[0]"), "", "an accepted command clears the box");
   ok(await ev(`${q(".splat")}.childElementCount > 0`), "a cooked-egg splat is drawn");
+  eq(await ev(`${q(".pan")}.className`), "pan hit", "the frying pan slams down on the clear");
+  eq(await ev(`parseFloat(getComputedStyle(${q(".pan")}).animationDuration) < 0.5`), true, "…in under half a second");
+  eq(await ev(`document.querySelector('.nest[data-id="${n.id}"]').dataset.fried + '/' + ${q(".fx")}.className`), "sunny/fx sparkle", "a clear right at the bold fries a perfect sunny-side-up, with a sparkle");
+  ok(await ev("__et.boxes().focused"), "the keyboard stays in the Command Line while the pan comes down");
+  await wait(600);
+  eq(await ev(`getComputedStyle(${q(".pan")}).opacity`), "0", "…and the pan is gone again a moment later");
 
   const cov = await ev(`__et.mess(${n.id})`);
   ok(cov > 0.02, `the smooshed nest gets mess   [${(cov * 100).toFixed(1)}%]`);
@@ -204,38 +235,66 @@ try {
   eq(await ev("document.querySelector('#hud-pool').textContent"), "●●○", "the pool shows 2 of 3");
   eq(await ev("document.querySelector('#hud-pool-label').textContent"), "POOL", "the pool is shown by its placeholder key only");
   ok(await ev("!!document.querySelector('.nest.scurry, .nest.lunge')"), "the creature does an escape flourish (scurry or lunge)");
+  ok(await ev("!!document.querySelector('.nest.scurry .pan.late, .nest.lunge .pan.late')"), "the pan comes down late on the empty nest");
   await shot("05-escape");
 
   /* ------------------------------------------------------ F. command boxes */
-  section("F. Command Boxes and the switcher");
+  section("F. Command Boxes and the switcher (most-recently-used, Refinement 2 §4)");
   await ev("__et.start('clear', 3)");
   let b = await ev("__et.boxes()");
   eq([b.count, b.active, b.focused], [3, 0, true], "3 boxes, box 1 active and focused");
   await ev("document.querySelector('.box.active input').focus()");
   await c.insert("RCAV 2041");
-  await press("Tab");
+  await hold("Tab");
   b = await ev("__et.boxes()");
-  eq([b.open, b.highlight], [true, 1], "Tab opens the switcher on the next box");
+  eq([b.open, b.highlighted], [true, 1], "a held Tab opens the switcher on the last-used box");
+  eq(await ev("[...document.querySelectorAll('#switcher li .num')].map(e => e.textContent).join('')"), "123", "a fresh game lists the boxes in order");
   eq(await ev("document.querySelector('#switcher li .preview').textContent"), "RCAV 2041", "staged text shows as a preview");
+  eq(await ev("document.querySelectorAll('#switcher li').length"), 3, "Command Lines only, no other entries");
   const t0 = (await snap()).time;
   await wait(500);
   ok((await snap()).time > t0 + 0.2, "the game keeps running while the switcher is open");
   await shot("06-switcher");
   await press("Tab"); await press("Tab", SHIFT);
-  eq((await ev("__et.boxes()")).highlight, 1, "Tab and Shift+Tab move the highlight");
+  eq((await ev("__et.boxes()")).highlighted, 1, "Tab and Shift+Tab move the highlight");
   await press("ArrowDown");
-  eq((await ev("__et.boxes()")).highlight, 2, "arrows move it too");
+  eq((await ev("__et.boxes()")).highlighted, 2, "arrows move it too");
   await c.insert("X");
   eq((await ev("__et.boxes()")).values, ["RCAV 2041", "", ""], "typing is ignored while the switcher is open");
   await press("Escape");
   b = await ev("__et.boxes()");
   eq([b.open, b.active, b.focused, (await ev("__et.paused()"))], [false, 0, true, false], "Esc closes the switcher without switching (and doesn't pause)");
-  await press("Tab"); await press("Enter");
+  await hold("Tab"); await press("Enter");
   b = await ev("__et.boxes()");
   eq([b.open, b.active, b.focused, b.values[0]], [false, 1, true, "RCAV 2041"], "Enter switches to the highlighted box; box 1 keeps its text");
   await c.insert("CAV 2042 MB");
   await press("F12");
   eq((await ev("__et.boxes()")).values, ["RCAV 2041", "", ""], "F12 clears only the active box");
+
+  await press("Tab");
+  b = await ev("__et.boxes()");
+  eq([b.open, b.active, b.focused], [false, 0, true], "a quick tap of Tab flips straight back to the last-used box");
+  await press("Tab");
+  eq((await ev("__et.boxes()")).active, 1, "…and again flips between the two most recent");
+  await hold("Tab"); await press("ArrowDown"); await press("Enter");
+  eq((await ev("__et.boxes()")).active, 2, "picking box 3 from the list");
+  await hold("Tab");
+  eq(await ev("[...document.querySelectorAll('#switcher li .num')].map(e => e.textContent).join('')"), "321", "the list is in most-recently-used order");
+  await press("Escape");
+
+  // A real browser keeps Ctrl+Tab before the page sees it (so a CDP key never arrives); send it in-page instead.
+  const ctrlTab = `(() => {
+    const opts = { key: 'Tab', code: 'Tab', ctrlKey: true, bubbles: true, cancelable: true };
+    const down = new KeyboardEvent('keydown', opts);
+    document.activeElement.dispatchEvent(down);
+    document.activeElement.dispatchEvent(new KeyboardEvent('keyup', opts));
+    return down.defaultPrevented;
+  })()`;
+  eq([await ev(ctrlTab), (await ev("__et.boxes()")).active], [false, 2], "in a plain browser the game leaves Ctrl+Tab alone (not even preventDefault)");
+  await ev("window.fangRockShell = true");
+  eq([await ev(ctrlTab), (await ev("__et.boxes()")).active], [true, 1], "inside Fang Rock, a quick Ctrl+Tab flips like Tab (⚠ the shell's flag, simulated here)");
+  await ev("delete window.fangRockShell");
+  // box 2 is active now, so box 1's staged text sits in an inactive box for the wave check below
 
   let reached = false;
   for (let t = 0; t < 400 && !reached; t += 0.5) {
@@ -277,6 +336,7 @@ try {
   const wrong = trig.code === "MB" ? "VS" : "MB";
   await typeAndEnter(`CAV ${trig.unit} ${wrong}`);
   eq((await snap()).nests.find((x) => x.id === trig.id).state, "trigger", "the wrong (real) code is rejected");
+  eq([await ev("__et.boxes().values[0]"), await ev("__et.boxes().error[0]")], ["", true], "…the Command Line clears and shows ERROR (no more silent rejection)");
   await press("F12");
   const sc = (await snap()).score;
   await typeAndEnter(`CAV ${trig.unit} ${trig.code}, on scene late`);
@@ -342,6 +402,48 @@ try {
   eq([...kinds].sort(), ["clock", "duration"], "both kinds of note turn up");
   eq(otherNotes, 0, "no other type shows a note");
   ok(sawBold, "an AD's note goes bold with the nest");
+
+  /* ----------------------------------------------- O. Refinement 2 extras */
+  section("O. the how-to panel, the hose, sound");
+  {
+    const txt = await ev("document.querySelector('#howto').innerText");
+    ok(await ev("!!document.querySelector('#howto') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "a how-to panel sits down one side during play");
+    for (const want of ["RCAV <unit>", "post-it", "Clear Fueling", "Tab", "F12", "Pause", "hose"]) ok(txt.includes(want), `…it covers "${want}"`);
+    ok(!/\d+:\d\d|\b\d+\s*min/i.test(txt), "…and never lists a CAV duration");
+    const overlap = await ev(`(() => {
+      const h = document.querySelector('#howto').getBoundingClientRect();
+      return [...document.querySelectorAll('.nest:not([hidden])')].filter(n => { const r = n.getBoundingClientRect(); return r.right > h.left && r.left < h.right && r.bottom > h.top && r.top < h.bottom; }).length;
+    })()`);
+    eq(overlap, 0, "…without covering a nest");
+  }
+  eq(await ev("parseFloat(getComputedStyle(document.querySelector('.wallclock')).fontSize) > 1.4 * parseFloat(getComputedStyle(document.querySelector('#hud-score')).fontSize)"), true, "the wall clock is larger than the rest of the HUD");
+  ok((await ev("ET.audio.state()")) !== "none", `sound is unlocked by the first key press   [${await ev("ET.audio.state()")}]`);
+  await ev("__et.start('clear', 1)");
+  await ev("__et.advance(0.2)");
+  eq(await ev("document.querySelector('#field').classList.contains('hose')"), false, "⏳ E5: mid-wave, the cursor is not the hose");
+  {
+    let cleanup = false;
+    for (let t = 0; t < 400 && !cleanup; t += 0.5) {
+      const x = await snap();
+      if (x.phase === "cleanup") { cleanup = true; break; }
+      for (const y of x.nests.filter((z) => z.state === "overtime")) await ev(`__et.submit('RCAV ${y.unit}')`);
+      await ev("__et.advance(0.5)");
+    }
+    ok(cleanup, "play reaches the cleanup between waves");
+    eq(await ev("document.querySelector('#field').classList.contains('hose') && getComputedStyle(document.querySelector('#field')).cursor.includes('url(')"), true, "during cleanup the cursor is a hose nozzle");
+    const drops = await ev(`(() => {
+      const field = document.querySelector('#field');
+      const r = field.getBoundingClientRect();
+      const fire = (type, x, y) => field.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 9, buttons: 1 }));
+      fire('pointerdown', r.left + 200, r.top + 200);
+      fire('pointermove', r.left + 240, r.top + 220);
+      const n = document.querySelectorAll('#popups .drop').length;
+      fire('pointerup', r.left + 240, r.top + 220);
+      return n;
+    })()`);
+    ok(drops > 0, `dragging the hose sprays water   [${drops} drops]`);
+    await shot("12-hose");
+  }
 
   /* ------------------------------------------------------ I. developer mode */
   section("I. Developer Mode gate");

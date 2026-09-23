@@ -49,9 +49,16 @@
       <div id="hud-mode" class="mode"></div>
     </header>
 
-    <div id="field">
-      <div id="popups"></div>
-      <div id="banner" hidden></div>
+    <div class="playrow">
+      <div id="field">
+        <div id="popups"></div>
+        <div id="banner" hidden></div>
+      </div>
+      <!-- Refinement 2 §1: how to play, down one side (⏳ placeholder look). Never lists CAV durations. -->
+      <aside id="howto" aria-label="How to play">
+        <div class="title">HOW TO PLAY</div>
+        <ul></ul>
+      </aside>
     </div>
 
     <footer id="console"></footer>
@@ -99,6 +106,7 @@
   <script src="core/data.js"></script>
   <script src="core/game.js"></script>
   <script src="core/art.js"></script>
+  <script src="core/audio.js"></script>
   <script src="core/mess.js"></script>
   <script src="core/view.js"></script>
   <script src="core/boxes.js"></script>

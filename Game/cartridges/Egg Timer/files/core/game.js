@@ -303,7 +303,8 @@
     if (live && cmd && cmd.kind === "rcav") {
       hit = nests.filter(function (n) { return n.state === "overtime" && n.unit === cmd.unit; })[0];
       if (hit) {
-        var points = ET.rules.clearPoints(this.time - hit.boldAt, hit.hatchAt - hit.boldAt);
+        var into = this.time - hit.boldAt, span = hit.hatchAt - hit.boldAt;
+        var points = ET.rules.clearPoints(into, span);
         this.score += points;
         hit.state = "splat";
         hit.busyUntil = this.time + ET.CONFIG.splatSeconds;
@@ -312,6 +313,7 @@
         this.emit("cleared", {
           nest: hit.id,
           points: points,
+          third: ET.rules.clearThird(into, span),   // which fried egg: 0 sunny-side-up, 1 broken yolk, 2 burnt
           neighbors: this.neighborsOf(hit).map(function (x) { return x.id; })
         });
         return { ok: true, kind: "rcav", nest: hit.id, points: points };
