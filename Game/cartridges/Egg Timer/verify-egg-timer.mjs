@@ -193,34 +193,57 @@ try {
   eq(s.nests.find((x) => x.id === n.id).state, "splat", "the same RCAV after the trigger smooshes the egg");
   ok(s.score > before, `points awarded   [+${s.score - before}]`);
   eq(await ev("__et.boxes().values[0]"), "", "an accepted command clears the box");
-  ok(await ev(`${q(".splat")}.childElementCount > 0`), "a cooked-egg splat is drawn");
   eq(await ev(`${q(".pan")}.className`), "pan hit", "the frying pan slams down on the clear");
   eq(await ev(`parseFloat(getComputedStyle(${q(".pan")}).animationDuration) < 0.5`), true, "…in under half a second");
-  eq(await ev(`document.querySelector('.nest[data-id="${n.id}"]').dataset.fried + '/' + ${q(".fx")}.className`), "sunny/fx sparkle", "a clear right at the bold fries a perfect sunny-side-up, with a sparkle");
+  {
+    // the egg ladder (Refinement 3 rulings): a fast clear serves the next dish over the nest, with a caption
+    const d = await ev(`(() => { const d = [...document.querySelectorAll('#popups .dish')].pop(); return d ? [d.dataset.rung, d.querySelector('.caption').textContent, getComputedStyle(d).pointerEvents] : null; })()`);
+    const want = (await snap()).streak - 1;
+    ok(!!d && Number(d[0]) === Math.min(want, 6) && d[2] === "none", `a fast clear serves the egg ladder's dish over the nest   [${d && d[1]}, streak ${want + 1}]`);
+    await shot("04a-dish");
+  }
   ok(await ev("__et.boxes().focused"), "the keyboard stays in the Command Line while the pan comes down");
   await wait(600);
   eq(await ev(`getComputedStyle(${q(".pan")}).opacity`), "0", "…and the pan is gone again a moment later");
 
   const cov = await ev(`__et.mess(${n.id})`);
-  ok(cov > 0.02, `the smooshed nest gets mess   [${(cov * 100).toFixed(1)}%]`);
-  // direct neighbours on the 4 × 3 grid, active or not (every nest is on screen)
-  const nb = [n.id - 4, n.id + 4, n.id % 4 ? n.id - 1 : -1, n.id % 4 < 3 ? n.id + 1 : -1].filter((i) => i >= 0 && i < 12);
-  const nbCov = await ev(`[${nb}].map(i => __et.mess(i))`);
-  ok(nbCov.every((x) => x > 0), `its direct neighbours get mess too   [${nb.join(",")}]`);
-  ok((await ev("__et.floor()")) > 0.002, `Refinement 3 §5: the clear also flings gunk anywhere on the board   [${((await ev("__et.floor()")) * 100).toFixed(2)}% of the floor]`);
+  ok(cov > 0.005, `the smashed nest gets a small splat of its own   [${(cov * 100).toFixed(1)}%]`);
   {
+    // E15 (ruled): the rest of the gunk lands evenly at random over the whole board, on nests and floor alike
+    const spread = await ev(`(() => ({ nests: [...Array(12).keys()].filter(i => i !== ${n.id} && __et.mess(i) > 0).length, floor: __et.floor() }))()`);
+    ok(spread.floor > 0 || spread.nests > 0, `the rest lands anywhere on the board   [${spread.nests} other nests, ${(spread.floor * 100).toFixed(2)}% of the floor]`);
+    // over many clears it covers the board evenly: every quarter of the board gets some
+    const quarters = await ev(`(() => {
+      const f = ET.view.floor(); ET.mess.clear(f);
+      document.querySelectorAll('.nest .mess').forEach(m => ET.mess.clear(m));
+      for (let i = 0; i < 12; i++) ET.view.fling(10);
+      const b = document.querySelector('#board').getBoundingClientRect();
+      const g = f.getContext('2d'), q = [0, 0, 0, 0];
+      const cv = [f, ...document.querySelectorAll('.nest .mess')];
+      for (const c of cv) {
+        const r = c.getBoundingClientRect(), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        for (let y = 2; y < c.height; y += 8) for (let x = 2; x < c.width; x += 8) {
+          if (d[(y * c.width + x) * 4 + 3] <= 40) continue;
+          const px = r.left + x / c.width * r.width, py = r.top + y / c.height * r.height;
+          q[(px > b.left + b.width / 2 ? 1 : 0) + (py > b.top + b.height / 2 ? 2 : 0)]++;
+        }
+      }
+      cv.forEach(c => ET.mess.clear(c));
+      return q;
+    })()`);
+    ok(quarters.every((x) => x > 0), `…evenly: 120 blobs reach every quarter of the board   [${quarters.join(", ")}]`);
     const z = await ev(`(() => {
       const nest = document.querySelector('.nest[data-id="${n.id}"]');
       const zi = (e) => Number(getComputedStyle(e).zIndex) || 0;
       const board = document.querySelector('#board');
-      return { mess: zi(nest.querySelector('.mess')), readout: zi(nest.querySelector('.readout')), postit: zi(nest.querySelector('.postit')), bubble: zi(nest.querySelector('.bubble')),
+      return { mess: zi(nest.querySelector('.mess')), readout: zi(nest.querySelector('.readout')), postit: zi(nest.querySelector('.postit')),
+               cords: zi(document.querySelector('#cords')), hose: zi(document.querySelector('#hose')), playrow: zi(document.querySelector('.playrow')),
                floorFirst: board.firstElementChild.classList.contains('floor-mess') && zi(board.firstElementChild) === 0 };
     })()`);
-    ok(z.readout > z.mess && z.postit > z.mess && z.bubble > z.mess, `…and all mess draws under the readout, post-it and bubble, which stay readable   [mess ${z.mess} < ${z.readout}, ${z.postit}, ${z.bubble}]`);
-    ok(z.floorFirst, "…the board-wide gunk under every nest");
+    ok(z.mess > z.readout && z.mess > z.postit, `E14 (ruled): a nest's gunk covers its readout and post-it again   [mess ${z.mess} > ${z.readout}, ${z.postit}]`);
+    ok(z.hose < z.playrow && z.cords < z.playrow, "…while the hose and the egg-laying cord still draw under all text");
+    ok(z.floorFirst, "the floor gunk sits under every nest");
   }
-  const far = [...Array(12).keys()].filter((i) => i !== n.id && !nb.includes(i));
-  if (far.length) eq(await ev(`[${far}].map(i => __et.mess(i))`), far.map(() => 0), `non-neighbours stay clean   [${far.join(",")}]`);
   await shot("04-splat");
 
   /* ------------------------------------------------------ C2. wall clock */
@@ -519,7 +542,7 @@ try {
   await ev("__et.start('progression', 1)");
   ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>"), "E8: Follow Progression shows it too");
   eq(await ev("document.querySelector('#screen-setup h2:nth-of-type(2)').textContent"), "COMMAND LINES", "E7: players see \"Command Line\" on the setup screen");
-  eq(await ev("ET.art.FRIED.join(',')"), "sunny,broken,burnt", "E11: only the three fried eggs remain");
+  eq([await ev("'FRIED' in ET.art"), await ev("ET.art.DISHES")], [false, 7], "the egg ladder replaces the fried eggs: seven dishes, no fried-egg art");
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");
   {

@@ -1,7 +1,7 @@
 /* ===========================================================================
    EGG TIMER — ART (placeholders)
-   ⏳ Every shape here is a stand-in. The creature family, the cooked-egg splat
-   variants and the escape flourishes are Gemini's once art direction starts
+   ⏳ Every shape here is a stand-in. The creature family, the egg ladder's
+   dishes and the escape flourishes are Gemini's once art direction starts
    (packet §11 item 6). Keep them original — no likeness of Spielberg's E.T.
    Built as inline SVG so the placeholders scale with the nest and need no files.
    ========================================================================= */
@@ -17,31 +17,71 @@
     return e;
   }
 
-  /* The fried eggs, picked by timing (Refinement 2 §5). The random pool of
-     poached, deviled and scrambled is retired (E11). */
-  var SPLATS = {
-    sunny: function (g) {
-      el("path", { class: "white", d: "M-30 4 C-34 -14 -14 -22 0 -18 C16 -26 34 -12 30 4 C34 20 12 26 -2 22 C-18 28 -36 18 -30 4Z" }, g);
-      el("circle", { class: "yolk", cx: 2, cy: 0, r: 10 }, g);
-      el("circle", { class: "shine", cx: -1, cy: -4, r: 3 }, g);
-    },
-    // middle third: the yolk has run
-    broken: function (g) {
-      el("path", { class: "white", d: "M-30 4 C-34 -14 -14 -22 0 -18 C16 -26 34 -12 30 4 C34 20 12 26 -2 22 C-18 28 -36 18 -30 4Z" }, g);
-      el("path", { class: "yolk", d: "M-8 -6 C-2 -12 10 -8 10 -1 C16 4 22 8 14 12 C8 14 4 8 0 10 C-6 14 -16 12 -12 4 C-14 0 -12 -4 -8 -6Z" }, g);
-    },
-    // last third: scrambled and burnt at the edges
-    burnt: function (g) {
-      el("path", { class: "white burnt", d: "M-30 4 C-34 -14 -14 -22 0 -18 C16 -26 34 -12 30 4 C34 20 12 26 -2 22 C-18 28 -36 18 -30 4Z" }, g);
-      [[-12, -4, 7], [2, -8, 8], [13, -1, 7], [-5, 8, 7], [9, 9, 6]].forEach(function (b) {
-        el("circle", { class: "yolk scorched", cx: b[0], cy: b[1], r: b[2] }, g);
+  /* ⏳ placeholder dishes for the egg ladder (Refinement 3 rulings), one a rung, bottom to top. They
+     replace Refinement 2's fried eggs by overtime third. Final art is Gemini's. Drawn on a plate
+     centred at 0,0 in a -50..50 × -34..34 box. */
+  function sunny(g, x, y, k) {
+    el("path", { class: "white", transform: "translate(" + x + " " + y + ") scale(" + k + ")", d: "M-18 2 C-20 -9 -8 -13 0 -11 C10 -15 20 -7 18 2 C20 12 7 15 -1 13 C-11 16 -21 10 -18 2Z" }, g);
+    el("circle", { class: "yolk", cx: x + k, cy: y, r: 6 * k }, g);
+  }
+  var DISHES = [
+    function (g) {   // Scrambled
+      [[-14, -2, 8], [-2, -7, 9], [11, -1, 8], [-6, 7, 8], [8, 8, 7], [0, 1, 7]].forEach(function (b) {
+        el("circle", { class: "yolk", cx: b[0], cy: b[1], r: b[2] }, g);
       });
+    },
+    function (g) { sunny(g, 0, 0, 1.3); },   // Sunny-Side Up
+    function (g) {   // Over Easy: folded, the yolk showing through
+      el("path", { class: "white", d: "M-24 4 C-22 -12 22 -12 24 4 C14 12 -14 12 -24 4Z" }, g);
+      el("ellipse", { class: "yolk pale", cx: 0, cy: -1, rx: 9, ry: 5 }, g);
+    },
+    function (g) {   // Poached
+      el("ellipse", { class: "white", cx: 0, cy: 0, rx: 17, ry: 14 }, g);
+      el("ellipse", { class: "yolk pale", cx: 2, cy: -2, rx: 6, ry: 5 }, g);
+    },
+    function (g) {   // Eggs Benny: a muffin, a poached egg, hollandaise
+      el("ellipse", { class: "muffin", cx: 0, cy: 6, rx: 22, ry: 10 }, g);
+      el("ellipse", { class: "white", cx: 0, cy: -1, rx: 17, ry: 11 }, g);
+      el("path", { class: "sauce", d: "M-15 -4 C-8 -12 8 -12 15 -4 C12 2 10 8 6 4 C2 10 -3 6 -5 3 C-9 8 -13 3 -15 -4Z" }, g);
+    },
+    function (g) {   // Eggs Benny w/ Avocado
+      el("ellipse", { class: "muffin", cx: -4, cy: 6, rx: 20, ry: 10 }, g);
+      el("ellipse", { class: "white", cx: -4, cy: -1, rx: 15, ry: 10 }, g);
+      el("path", { class: "sauce", d: "M-17 -4 C-10 -11 4 -11 11 -4 C8 2 6 7 2 4 C-2 9 -7 5 -9 2 C-12 7 -15 2 -17 -4Z" }, g);
+      [[20, -6], [24, 2], [20, 10]].forEach(function (a) {
+        el("ellipse", { class: "avocado", cx: a[0], cy: a[1], rx: 9, ry: 4, transform: "rotate(-20 " + a[0] + " " + a[1] + ")" }, g);
+      });
+    },
+    function (g) {   // Steak, Eggs & Brew!
+      el("path", { class: "steak", d: "M-38 -8 C-30 -18 -8 -16 -4 -6 C0 4 -8 14 -22 13 C-36 12 -44 2 -38 -8Z" }, g);
+      el("path", { class: "grill", d: "M-32 -8 L-14 6 M-26 -12 L-8 2" }, g);
+      sunny(g, 6, -4, 0.8);
+      sunny(g, 12, 10, 0.8);
+      el("rect", { class: "mug", x: 30, y: -20, width: 16, height: 26, rx: 2 }, g);
+      el("rect", { class: "foam", x: 29, y: -24, width: 18, height: 7, rx: 3 }, g);
+      el("path", { class: "handle", d: "M46 -14 C54 -14 54 0 46 0" }, g);
     }
-  };
+  ];
 
   ET.art = {
-    SPLATS: Object.keys(SPLATS),
-    FRIED: ["sunny", "broken", "burnt"],   // by the third of overtime the clear landed in
+    DISHES: DISHES.length,
+
+    /* The egg ladder's dish for rung `i` (0 = bottom), with its caption (Refinement 3 rulings). */
+    dishEl: function (i, caption) {
+      var d = document.createElement("div");
+      d.className = "dish";
+      d.dataset.rung = i;
+      var svg = el("svg", { viewBox: "-56 -38 112 76", "aria-hidden": "true" }, d);
+      el("ellipse", { class: "plate", cx: 0, cy: 2, rx: 54, ry: 34 }, svg);
+      el("ellipse", { class: "plate-rim", cx: 0, cy: 2, rx: 44, ry: 26 }, svg);
+      var food = el("g", {}, svg);
+      DISHES[Math.max(0, Math.min(DISHES.length - 1, i))](food);
+      var c = document.createElement("div");
+      c.className = "caption";
+      c.textContent = caption;
+      d.appendChild(c);
+      return d;
+    },
 
     /* ⏳ placeholder: the frying pan that slams down on a clear (and late, on a hatch). */
     panEl: function () {
@@ -83,8 +123,6 @@
       el("path", { d: "M-50 16 C-38 34 38 34 50 16" }, twigsFront);
       el("path", { d: "M-44 22 L-30 14 M-20 30 L-8 18 M4 32 L16 20 M26 28 L40 18 M-36 28 L-24 34 M30 32 L44 24" }, twigsFront);
 
-      el("g", { class: "splat" }, svg);
-
       var shells = el("g", { class: "shells" }, svg);
       el("path", { class: "shell half", d: "M-22 6 C-24 -8 -16 -18 -6 -18 L-10 -10 L-4 -4 L-12 4 Z" }, shells);
       el("path", { class: "shell half", d: "M22 6 C24 -8 16 -18 6 -18 L10 -10 L4 -4 L12 4 Z" }, shells);
@@ -100,17 +138,6 @@
       el("path", { class: "antenna", d: "M-4 -15 L-10 -26 M4 -15 L10 -26" }, bug);
 
       return svg;
-    },
-
-    showSplat: function (svg, variant) {
-      var g = svg.querySelector(".splat");
-      while (g.firstChild) g.removeChild(g.firstChild);
-      (SPLATS[variant] || SPLATS.sunny)(g);
-    },
-
-    clearSplat: function (svg) {
-      var g = svg.querySelector(".splat");
-      while (g.firstChild) g.removeChild(g.firstChild);
     }
   };
 })(window);

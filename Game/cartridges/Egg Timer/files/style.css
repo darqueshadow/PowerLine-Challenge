@@ -266,14 +266,6 @@ h2 {
 .speckle { fill: var(--speckle); }
 .crack { fill: none; stroke: var(--crack); stroke-width: 3; stroke-dasharray: 1; stroke-dashoffset: 1; stroke-linejoin: miter; }
 
-.splat { display: none; }
-.nest[data-state="splat"] .splat { display: inline; animation: pop 0.25s steps(3); transform-box: fill-box; transform-origin: center; }
-@keyframes pop { from { transform: scale(0.3); } }
-.splat .white { fill: #fff6e0; stroke: var(--shadow); stroke-width: 2.5; }
-.splat .yolk { fill: #ffc21a; stroke: var(--shadow); stroke-width: 2.5; }
-.splat .yolk.pale { fill: #ffe08a; }
-.splat .shine { fill: #fff; }
-.splat .paprika { fill: #d2361b; }
 
 .shells, .creature { display: none; }
 .nest[data-state="escape"] .shells,
@@ -340,14 +332,47 @@ h2 {
   70% { opacity: 1; transform: translate(-45%, -66%) rotate(0) scale(1); }
   100% { opacity: 0; transform: translate(-45%, -150%) rotate(-12deg) scale(1.05); }
 }
-.nest[data-state="splat"] .splat { animation-delay: 0.12s; animation-fill-mode: backwards; }
-.splat .white.burnt { fill: #d9b98a; stroke: #3a1d05; }
-.splat .yolk.scorched { fill: #b8741c; stroke: #3a1d05; }
-.fx { position: absolute; left: 50%; top: 20%; width: 60%; aspect-ratio: 1; transform: translate(-50%, -50%); pointer-events: none; z-index: 23; }
-.fx.sparkle { background: radial-gradient(circle, #fff 0 12%, transparent 13%), conic-gradient(from 0deg, transparent 0 10%, #ffe95c 10% 14%, transparent 14% 35%, #ffe95c 35% 39%, transparent 39% 60%, #ffe95c 60% 64%, transparent 64% 85%, #ffe95c 85% 89%, transparent 89%); border-radius: 50%; animation: sparkle 0.5s steps(5) forwards; }
-@keyframes sparkle { 0% { transform: translate(-50%, -50%) scale(0.2) rotate(0); opacity: 1; } 100% { transform: translate(-50%, -80%) scale(1) rotate(45deg); opacity: 0; } }
-.fx.smoke { background: radial-gradient(circle at 40% 60%, #8a8a8a 0 22%, transparent 23%), radial-gradient(circle at 62% 42%, #6f6f6f 0 18%, transparent 19%), radial-gradient(circle at 50% 30%, #9b9b9b 0 14%, transparent 15%); animation: smoke 0.9s steps(6) forwards; }
-@keyframes smoke { 0% { transform: translate(-50%, -30%) scale(0.5); opacity: 0.9; } 100% { transform: translate(-50%, -110%) scale(1.3); opacity: 0; } }
+/* ⏳ placeholder: the egg ladder's dish and caption over the nest after a fast clear (Refinement 3 rulings).
+   It sits in the popups layer (no pointer, no keyboard) for about a second [T]. */
+.dish {
+  position: absolute;
+  width: clamp(90px, 9vw, 150px);
+  transform: translate(-50%, -60%);
+  pointer-events: none;
+  text-align: center;
+  animation: dish var(--dish, 1s) steps(10) forwards;
+}
+.dish svg { display: block; width: 100%; overflow: visible; }
+@keyframes dish {
+  0% { transform: translate(-50%, -40%) scale(0.4); opacity: 1; }
+  20%, 80% { transform: translate(-50%, -60%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -75%) scale(1); opacity: 0; }
+}
+.dish .caption {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 2px 8px;
+  background: var(--gold);
+  color: var(--shadow);
+  border: 3px solid var(--shadow);
+  box-shadow: 3px 3px 0 var(--hot);
+  font-family: var(--font-display);
+  font-size: clamp(11px, 1.1vw, 16px);
+  white-space: nowrap;
+}
+.dish .plate { fill: #f4f4f8; stroke: var(--shadow); stroke-width: 3; }
+.dish .plate-rim { fill: none; stroke: #c9c9d6; stroke-width: 2; }
+.dish .white { fill: #fff6e0; stroke: var(--shadow); stroke-width: 2; }
+.dish .yolk { fill: #ffc21a; stroke: var(--shadow); stroke-width: 2; }
+.dish .yolk.pale { fill: #ffe08a; }
+.dish .muffin { fill: #c98a4b; stroke: var(--shadow); stroke-width: 2; }
+.dish .sauce { fill: #ffd84d; stroke: #8a5a00; stroke-width: 1.5; }
+.dish .avocado { fill: #8ccf4d; stroke: #2e5a12; stroke-width: 2; }
+.dish .steak { fill: #7a3a1c; stroke: var(--shadow); stroke-width: 2.5; }
+.dish .grill { fill: none; stroke: #3a1507; stroke-width: 3; }
+.dish .mug { fill: #e0a018; stroke: var(--shadow); stroke-width: 2; }
+.dish .foam { fill: #fffbe8; stroke: var(--shadow); stroke-width: 1.5; }
+.dish .handle { fill: none; stroke: var(--shadow); stroke-width: 3; }
 
 /* ⏳ placeholder look: the AD post-it, on the nest's shoulder (Timer Refinement §4) */
 .postit {
@@ -400,9 +425,10 @@ h2 {
 
 .skip-log { color: var(--dim); font-family: var(--font-mono); font-size: 13px; max-width: 80vw; }
 
-/* Refinement 3 §5: gunk sits over the egg but UNDER the readout, post-it and bubble, which always stay
-   readable; the board-wide floor mess sits under every nest */
-.mess { position: absolute; left: -6%; top: 6%; width: 112%; height: 100%; pointer-events: none; z-index: 1; }
+/* Refinement 3 rulings (E14): a nest's gunk sits over its egg, its readout AND its post-it again, as in the
+   original design (the VF bubble, the pan and the fx stay above it); the board-wide floor mess sits under
+   every nest */
+.mess { position: absolute; left: -6%; top: 6%; width: 112%; height: 100%; pointer-events: none; z-index: 5; }
 .readout { position: relative; z-index: 3; }
 .floor-mess { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 

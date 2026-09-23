@@ -92,11 +92,10 @@
       return Math.round(c.clearPointsMax - (c.clearPointsMax - c.clearPointsMin) * t);
     },
 
-    /* Which third of the overtime window a clear landed in (Refinement 2 §5): 0, 1 or 2. */
-    clearThird: function (intoOvertime, overtimeLength) {
+    /* A fast clear (Refinement 3 rulings, the egg ladder): inside the first part of the overtime window. */
+    isFastClear: function (intoOvertime, overtimeLength) {
       var t = overtimeLength > 0 ? intoOvertime / overtimeLength : 1;
-      var cuts = C().friedSplits;
-      return t < cuts[0] ? 0 : t < cuts[1] ? 1 : 2;
+      return t < C().fastClearShare;
     },
 
     perfectWaveBonus: function (wave) {

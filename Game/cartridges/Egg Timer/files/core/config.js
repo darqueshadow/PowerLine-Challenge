@@ -75,9 +75,12 @@
     eggMinScale: 0.35,       // egg size when a CAV starts; grows to 1.0 at the trigger
     splatSeconds: 1.1,       // how long a smooshed nest stays busy before idling
     escapeSeconds: 1.4,      // how long an escape flourish keeps the nest busy
-    messBlobsOwn: 6,         // [T] gunk added to the smooshed nest (item 9: look, still open; Refinement 3 §5: 5 → 6)
-    messBlobsNeighbor: 3,    // [T] gunk added to each direct neighbour (Refinement 3 §5: 2 → 3)
-    messBlobsField: 4,       // [T] Refinement 3 §5: and this many more anywhere on the board, floor included
+    // Refinement 3 rulings (E15): a clear leaves a small splat on its own nest, and the rest of its gunk
+    // lands evenly at random over the whole board; neighbours are no longer targeted.
+    messBlobsOwn: 2,         // [T] the small splat on the cleared nest…
+    messOwnSize: 0.6,        // [T] …at this size of an ordinary blob
+    messBlobsField: 10,      // [T] the rest, evenly across the board (on whichever nest or floor it lands)
+    messBlobPx: [8, 20],     // [T] an ordinary blob's radius on screen, px
     wipeRadius: 22,          // px, click-and-drag eraser
 
     // ── Build questions, ruled 2026-09-17 (Draft 9, packet §11) ─────────────
@@ -104,7 +107,7 @@
 
     // ── Refinement 2 (2026-09-22): pan, ERROR, hose (its switcher is retired by Refinement 3)
     panSeconds: 0.32,        // [T] the frying pan's slam, well under 0.5 s; never holds the keyboard
-    friedSplits: [1 / 3, 2 / 3], // [T] overtime in thirds: sunny-side-up, broken yolk, burnt
+    // (Refinement 2's fried eggs by overtime third are replaced by the egg ladder, Refinement 3 rulings, below.)
     hatchPanDelay: 0.35,     // [T] on a hatch the pan comes down this late, on the empty nest
     thongPitchJitter: 0.06,  // [T] ±6% pitch on each THONG so repeats don't grate
     errorSeconds: 1.0,       // [T] how long the red ERROR shows under the Command Line
@@ -138,6 +141,16 @@
     layDrop: 0.3,                  // [T]
     layPop: 0.3,                   // [T]
     layRetract: 0.45,              // [T]
+
+    // ── Refinement 3 rulings (2026-09-23): the egg ladder ───────────────────
+    // A "fast clear" lands in the first part of the overtime window. Consecutive fast clears climb the
+    // ladder, one dish a rung, and stay at the top while the streak holds. A slow clear, any ERROR or a
+    // hatch drops the streak to the bottom. It carries across waves, resets at game over, and is
+    // cosmetic only: no score effect.
+    fastClearShare: 1 / 3,         // [T] the first third of the overtime window
+    ladder: ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Eggs Benny",
+             "Eggs Benny w/ Avocado", "Steak, Eggs & Brew!"],   // [T] wording and steps
+    dishSeconds: 1.0,              // [T] how long a fast clear's dish and caption show over the nest
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

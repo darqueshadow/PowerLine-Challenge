@@ -24,9 +24,10 @@
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  /* A logical grid for adjacency only (packet §4: up/down/left/right on a grid
-     underneath an organic on-screen layout; the grid's size is Code's call).
-     4 × 3 holds the cap of 12. Refinement 3 §8: all 12 are on screen all game, and
+  /* A logical 4 × 3 grid (packet §4) under an organic on-screen layout; it holds
+     the cap of 12. It used to decide which neighbours a clear dirtied; since the
+     Refinement 3 rulings (E15) a clear's gunk lands evenly over the whole board, so
+     it only places the nests now. Refinement 3 §8: all 12 are on screen all game, and
      they activate in a fixed order spread across the board, not clustered [T]:
      the four corners and a centre nest first, then the other centre, then the
      edges, alternating sides.
@@ -56,6 +57,7 @@
     this.resolved = 0;
     this.spawned = 0;
     this.escapes = 0;
+    this.streak = 0;                       // consecutive fast clears: the egg ladder (cosmetic, carries across waves)
     this.nextSpawnAt = 0;
     this.cleanupEndsAt = 0;
     this.events = [];
@@ -130,19 +132,6 @@
 
   Game.prototype.unlocked = function () {
     return this.nests.filter(function (n) { return n.unlocked; });
-  };
-
-  /* Direct neighbours on the logical grid (packet §8), active or not: since Refinement 3 every nest is
-     on screen, so mess lands on an inactive neighbour too, and stays with it (mess belongs to the nest). */
-  Game.prototype.neighborsOf = function (nest) {
-    var self = this;
-    return [[0, -1], [0, 1], [-1, 0], [1, 0]]
-      .map(function (d) {
-        var c = nest.col + d[0], r = nest.row + d[1];
-        if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return null;
-        return self.nests[r * COLS + c];
-      })
-      .filter(Boolean);
   };
 
   /* A unit not currently on the board, so no two nests ever share a number. */
@@ -301,6 +290,7 @@
     this.escapes++;
     this.resolved++;
     this.stats.hatched++;
+    this.streak = 0;                 // a hatch drops the egg ladder to the bottom
     this.emit("hatch", { nest: n.id, pool: this.pool });
     if (this.pool <= 0) {
       this.phase = "over";           // packet §9: an empty pool is the only game over
@@ -358,17 +348,22 @@
         hit.busyUntil = this.time + ET.CONFIG.splatSeconds;
         this.resolved++;
         this.stats.cleared++;
+        // the egg ladder: a fast clear climbs a rung (and stays at the top); a slow one drops to the bottom
+        var fast = ET.rules.isFastClear(into, span);
+        this.streak = fast ? this.streak + 1 : 0;
         this.emit("cleared", {
           nest: hit.id,
           points: points,
-          third: ET.rules.clearThird(into, span),   // which fried egg: 0 sunny-side-up, 1 broken yolk, 2 burnt
-          neighbors: this.neighborsOf(hit).map(function (x) { return x.id; })
+          fast: fast,
+          rung: fast ? Math.min(this.streak, ET.CONFIG.ladder.length) - 1 : -1,   // which dish, or none
+          streak: this.streak
         });
         return { ok: true, kind: "rcav", nest: hit.id, points: points };
       }
     }
 
     this.stats.rejected++;
+    this.streak = 0;                 // any ERROR drops the egg ladder to the bottom
     this.emit("rejected", { text: text });
     return { ok: false };
   };
@@ -396,6 +391,7 @@
       resolved: this.resolved,
       spawned: this.spawned,
       escapes: this.escapes,
+      streak: this.streak,
       cleanupLeft: this.phase === "cleanup" ? Math.max(0, this.cleanupEndsAt - t) : 0,
       stats: JSON.parse(JSON.stringify(this.stats)),
       nests: this.unlocked().map(function (n) {

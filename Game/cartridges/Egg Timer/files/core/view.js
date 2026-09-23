@@ -83,7 +83,17 @@
     replay(v.pan, "pan", how);
   }
 
-  function flash(v, kind) { replay(v.fx, "fx", kind); }
+  /* The egg ladder (Refinement 3 rulings): a fast clear's dish and caption over the nest for about a second.
+     It lives in the popups layer, which takes no pointer or keyboard, so it never blocks typing. */
+  function dish(nestEl, rung) {
+    var d = ET.art.dishEl(rung, ET.CONFIG.ladder[rung]);
+    var r = nestEl.getBoundingClientRect(), f = field.getBoundingClientRect();
+    d.style.left = (r.left - f.left + r.width / 2) + "px";
+    d.style.top = (r.top - f.top + r.height * 0.3) + "px";
+    d.style.setProperty("--dish", ET.CONFIG.dishSeconds + "s");
+    popups.appendChild(d);
+    setTimeout(function () { d.remove(); }, ET.CONFIG.dishSeconds * 1000);
+  }
 
   /* E5 (ruled): the hose all through cleanup, and mid-wave while a drag is wiping. */
   var inCleanup = false;
@@ -204,6 +214,24 @@
     c.egg.setAttribute("ry", eggRy.toFixed(1));
   }
 
+  /* E15 (Refinement 3 rulings): `count` blobs dropped evenly at random over the whole board. One that
+     lands on a nest goes on that nest's canvas (mess belongs to the nest, and covers its readout, E14);
+     anywhere else it goes on the board-wide floor canvas under the nests. */
+  function fling(count) {
+    var br = board.getBoundingClientRect(), px = ET.CONFIG.messBlobPx;
+    for (var i = 0; i < count; i++) {
+      var x = br.left + Math.random() * br.width, y = br.top + Math.random() * br.height;
+      var r = px[0] + Math.random() * (px[1] - px[0]);
+      var into = floor, cr = floor.getBoundingClientRect();
+      for (var k = 0; k < nests.length; k++) {
+        var mr = nests[k].mess.getBoundingClientRect();
+        if (x >= mr.left && x <= mr.right && y >= mr.top && y <= mr.bottom) { into = nests[k].mess; cr = mr; break; }
+      }
+      var u = into.width / cr.width;
+      ET.mess.blob(into, (x - cr.left) * u, (y - cr.top) * into.height / cr.height, r * u);
+    }
+  }
+
   /* ⏳ placeholder: water from the hose while a drag is wiping. */
   function spray(x, y) {
     var f = field.getBoundingClientRect();
@@ -269,19 +297,16 @@
         bubble.hidden = true;
         n.appendChild(bubble);
 
-        // ⏳ placeholder: the frying pan, and a slot for the sparkle or smoke after it (Refinement 2 §5)
+        // ⏳ placeholder: the frying pan (Refinement 2 §5)
         var pan = ET.art.panEl();
         n.appendChild(pan);
-        var fx = document.createElement("div");
-        fx.className = "fx";
-        n.appendChild(fx);
 
         var mess = ET.mess.create();
         n.appendChild(mess);
 
         board.appendChild(n);
         nests.push({
-          el: n, svg: svg, readout: ro, mess: mess, note: note, bubble: bubble, pan: pan, fx: fx,
+          el: n, svg: svg, readout: ro, mess: mess, note: note, bubble: bubble, pan: pan,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
@@ -298,11 +323,9 @@
         v.el.dataset.state = "idle";
         v.el.classList.remove("bold", "hide-readout", "hide-clock", "hide-egg", "scurry", "lunge");
         ET.mess.clear(v.mess);
-        ET.art.clearSplat(v.svg);
         v.note.hidden = true;
         v.bubble.hidden = true;
         v.pan.className = "pan";
-        v.fx.className = "fx";
       });
       ET.mess.clear(floor);
       inCleanup = false;
@@ -396,12 +419,10 @@
             break;
           case "trigger":
           case "laying":
-            ET.art.clearSplat(v.svg);
             v.el.classList.remove("scurry", "lunge");
             break;
           case "active":
             // the pop: the egg is in and the clock starts (Refinement 3 §7)
-            ET.art.clearSplat(v.svg);
             v.el.classList.remove("scurry", "lunge");
             if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.pop();
             break;
@@ -420,15 +441,13 @@
             popup(v.el, "+" + e.points, "good");
             break;
           case "cleared":
-            // the pan slams, and the egg is fried by how late the clear came (Refinement 2 §5)
+            // the pan slams; a fast clear serves the egg ladder's next dish, a slow one only leaves mess
             slam(v, "hit");
-            ET.art.showSplat(v.svg, ET.art.FRIED[e.third] || "sunny");
-            v.el.dataset.fried = ET.art.FRIED[e.third] || "sunny";
-            flash(v, e.third === 0 ? "sparkle" : e.third === 2 ? "smoke" : "");
-            if (ET.audio) { ET.audio.thong(); if (e.third === 0) ET.audio.ding(); }
-            ET.mess.splatter(v.mess, ET.CONFIG.messBlobsOwn);
-            e.neighbors.forEach(function (id) { ET.mess.splatter(nests[id].mess, ET.CONFIG.messBlobsNeighbor); });
-            ET.mess.splatter(floor, ET.CONFIG.messBlobsField, true);   // Refinement 3 §5: and anywhere on the board
+            if (e.fast) dish(v.el, e.rung);
+            if (ET.audio) { ET.audio.thong(); if (e.fast) ET.audio.ding(); }
+            // E15 (ruled): a small splat on its own nest, the rest evenly across the whole board
+            ET.mess.splatter(v.mess, ET.CONFIG.messBlobsOwn, ET.CONFIG.messOwnSize);
+            fling(ET.CONFIG.messBlobsField);
             popup(v.el, "+" + e.points, "good");
             break;
           case "hatch":
@@ -445,7 +464,6 @@
             break;
           case "idle":
             v.bubble.hidden = true;
-            ET.art.clearSplat(v.svg);
             v.el.classList.remove("scurry", "lunge");
             break;
           case "no-types":
@@ -517,6 +535,9 @@
 
     /* Redraw the hose where the pointer last was (a screen change may have moved the board). */
     hose: function () { drawHose(); return hose && !hose.svg.hidden ? hose.body.getAttribute("d") : null; },
+
+    /* For rigs: drop `count` blobs evenly over the board, as a clear does. */
+    fling: function (count) { fling(count); },
 
     /* For rigs: a nest's cord, if one is showing. */
     cord: function (id) { var c = cords.list[id]; return c.g.style.display === "none" ? null : { d: c.path.getAttribute("d"), egg: c.egg.style.display !== "none" }; },

@@ -281,41 +281,69 @@ section("J. units");
   ok(changed > cavs * 0.9, `D2: a nest's next CAV brings a new unit   [${changed} of ${cavs} changed]`);
 }
 
-section("K. adjacency and the activation order (Refinement 3 §8)");
+section("K. the activation order (Refinement 3 §8)");
 {
   const g = game("clear", [T("VS", 10)]);
-  const ids = (n) => g.neighborsOf(n).map((x) => x.id).sort((a, b) => a - b);
-  eq(ids(g.nests[5]), [1, 4, 6, 9], "nest 5: neighbours 1, 4, 6, 9, active or not (every nest is on screen now)");
-  eq(ids(g.nests[0]), [1, 4], "corner nest 0: neighbours 1 and 4");
+  eq("neighborsOf" in g, false, "E15 (ruled): a clear no longer targets neighbouring nests, so the game has no neighbour lookup");
   eq(g.unlocked().map((n) => n.id).sort((a, b) => a - b), [0, 3, 5, 8, 11], "wave 1 activates the four corners and a centre nest, spread across the board");
   eq(Array.from(ET.Game.UNLOCK_ORDER), [0, 3, 8, 11, 5, 6, 1, 10, 2, 9, 4, 7], "the activation order is fixed");
   eq([...new Set(ET.Game.UNLOCK_ORDER)].length, 12, "…and covers all 12 nests once");
 }
 
-section("N. Refinement 2 (2026-09-22): the fried egg shows the timing");
-eq([0, 0.3, 0.34, 0.6, 0.67, 0.99, 1].map((t) => R.clearThird(t * 6, 6)), [0, 0, 1, 1, 2, 2, 2], "overtime in thirds: sunny-side-up, broken yolk, burnt");
+section("N. Refinement 3 rulings (2026-09-23): the egg ladder");
+eq([0, 0.3, 0.34, 0.6, 1].map((t) => R.isFastClear(t * 6, 6)), [true, true, false, false, false], "a fast clear lands in the first third of the overtime window [T]");
 eq(ET.CONFIG.panSeconds < 0.5, true, "the pan's slam is under 0.5 s");
+eq(ET.CONFIG.ladder, ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Eggs Benny", "Eggs Benny w/ Avocado", "Steak, Eggs & Brew!"], "the ladder's seven dishes, bottom to top");
 {
-  // A clear reports its third, and an early clear is the high-points one.
+  // Clear every CAV right at its bold: the streak climbs a rung a clear, then holds at the top, across waves.
   const g = game("clear", [T("VS", 10)]);
-  advance(g, 0.05 + LAY);
-  const n = inState(g, "active")[0];
-  advance(g, 20);
-  g.drain();
-  const r = g.submit("RCAV " + n.unit);
-  const e = g.drain().find((x) => x.type === "cleared");
-  ok(r.ok && e && e.third === 0 && e.points >= 90, `an RCAV right at the bold is the early third, near 100   [third ${e && e.third}, ${e && e.points} pts]`);
+  const rungs = [], waves = new Set();
+  let scoreGap = 0;
+  advance(g, 400, (x) => {
+    inState(x, "overtime").forEach((n) => {
+      const before = x.score, into = x.time - n.boldAt, span = n.hatchAt - n.boldAt;
+      x.submit("RCAV " + n.unit);
+      scoreGap = Math.max(scoreGap, Math.abs(x.score - before - R.clearPoints(into, span)));
+    });
+    x.drain().forEach((e) => { if (e.type === "cleared") { rungs.push(e.rung); waves.add(x.wave); } });
+  });
+  eq(rungs.slice(0, 9), [0, 1, 2, 3, 4, 5, 6, 6, 6], "consecutive fast clears climb the ladder, one dish a rung, and stay at the top");
+  ok(waves.size >= 2 && rungs.every((r, i) => r === Math.min(i, 6)), `the streak carries across waves   [${rungs.length} fast clears over ${waves.size} waves]`);
+  eq(scoreGap, 0, "the ladder is cosmetic: every clear scores exactly as before");
 }
 {
-  const g = game("clear", [T("VS", 10)]);
-  advance(g, 0.05 + LAY);
-  const n = inState(g, "active")[0];
-  advance(g, 20);
-  advance(g, (n.hatchAt - g.time) - 0.1);
-  g.drain();
-  const r = g.submit("RCAV " + n.unit);
-  const e = g.drain().find((x) => x.type === "cleared");
-  ok(r.ok && e && e.third === 2 && e.points <= 35, `an RCAV just before the hatch is the last third, near 25   [third ${e && e.third}, ${e && e.points} pts]`);
+  // What drops it to the bottom: a slow clear, any ERROR, a hatch. `climb` clears k CAVs fast, then stops.
+  const climb = (g, k) => {
+    let done = 0;
+    for (let i = 0; i < 4000 && done < k; i++) {
+      g.step(0.05);
+      inState(g, "overtime").forEach((n) => { if (done < k && g.submit("RCAV " + n.unit).ok) done++; });
+    }
+    g.drain();
+    return g;
+  };
+  eq(climb(game("clear", [T("VS", 10)]), 3).streak, 3, "three fast clears: the streak is 3");
+  {
+    const g = climb(game("clear", [T("VS", 10)]), 2);
+    let e = null;
+    for (let i = 0; i < 4000 && !e; i++) {
+      g.step(0.05);
+      const late = inState(g, "overtime").find((y) => g.time - y.boldAt > 0.5 * (y.hatchAt - y.boldAt));
+      if (late) { g.drain(); g.submit("RCAV " + late.unit); e = g.drain().find((x) => x.type === "cleared"); }
+    }
+    eq([e && e.fast, e && e.rung, g.streak], [false, -1, 0], "a slow clear shows no dish and drops the streak to the bottom");
+  }
+  {
+    const g = climb(game("clear", [T("VS", 10)]), 2);
+    g.submit("RCAV 0000");
+    eq(g.streak, 0, "any ERROR drops it to the bottom");
+  }
+  {
+    const g = climb(game("clear", [T("VS", 10)]), 2);
+    for (let i = 0; i < 4000 && !g.stats.hatched; i++) g.step(0.05);
+    ok(g.stats.hatched > 0 && g.streak === 0, "a hatch drops it to the bottom");
+  }
+  eq(game("clear", [T("VS", 10)]).streak, 0, "a new game starts at the bottom");
 }
 
 section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock, AD notes");
