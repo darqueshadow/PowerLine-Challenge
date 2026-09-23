@@ -44,9 +44,21 @@
 
   function $(sel) { return document.querySelector(sel); }
 
+  /* How-to panel everywhere (Andrew approved, 2026-09-23): the ONE panel moves to whichever screen shows, on the
+     right as in play. In play it sits in the play row, between the HUD bar and the Command Lines; on the title,
+     mode-selection and game-over screens it hangs down the right edge and the screen's content keeps clear of it. */
+  function placeHowTo(name) {
+    var panel = $("#howto");
+    var host = name === "play" ? $("#screen-play .playrow") : $("#screen-" + name);
+    if (!host) return;
+    if (panel.parentNode !== host) host.appendChild(panel);
+    document.querySelectorAll(".screen").forEach(function (s) { s.classList.toggle("with-howto", s === host); });
+  }
+
   function show(name) {
     app.screen = name;
     document.querySelectorAll(".screen").forEach(function (s) { s.hidden = s.id !== "screen-" + name; });
+    placeHowTo(name);
     if (name === "setup") paintSetup();
     // Refinement 4 §6 and E21 (ruled): the title tune plays on the title AND mode-selection screens, so it's
     // heard once the first key or click has unlocked sound; it stops when a game starts
@@ -57,6 +69,7 @@
 
   /* ---------------------------------------------------------------- setup */
   function paintSetup() {
+    paintHowTo(MODES[app.modeIndex].id);   // the panel on the options screen shows the lines of the mode picked
     document.querySelectorAll("[data-mode]").forEach(function (b) {
       b.classList.toggle("selected", b.dataset.mode === MODES[app.modeIndex].id);
     });

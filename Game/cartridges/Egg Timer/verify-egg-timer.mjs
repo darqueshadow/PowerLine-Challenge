@@ -65,6 +65,39 @@ async function until(fn, maxSeconds = 120, step = 0.25) {
   }
   return { s: await snap(), hit: null };
 }
+/* How-to panel everywhere (2026-09-23): on a menu screen, at every test size, the panel hangs down the right
+   edge, the screen's own content sits inside the window and clear of it and of each other, and the panel's
+   text fits and is never under a doodle. Leaves the window at 1440×900. */
+const SIZES = [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]];
+async function menuFit(name, extra = "") {
+  for (const [w, h] of SIZES) {
+    await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await wait(150);
+    const f = await ev(`(() => {
+      const screen = document.querySelector('#screen-${name}'), panel = document.querySelector('#howto');
+      const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      const P = panel.getBoundingClientRect();
+      const parts = [...screen.children].filter(e => e !== panel && !e.hidden && getComputedStyle(e).display !== 'none').map(e => ({ id: e.id || e.className || e.tagName, r: e.getBoundingClientRect() }));
+      let overlaps = [];
+      for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (hit(parts[i].r, parts[j].r)) overlaps.push(parts[i].id + '/' + parts[j].id);
+      const words = [];
+      panel.querySelectorAll('.title span, li').forEach(e => { const rg = document.createRange(); rg.selectNodeContents(e); words.push(...rg.getClientRects()); });
+      return { here: panel.parentNode === screen && !screen.hidden, right: innerWidth - P.right, tall: P.height / innerHeight,
+               outside: parts.filter(x => x.r.top < 0 || x.r.bottom > innerHeight || x.r.left < 0 || x.r.right > innerWidth).map(x => x.id),
+               underPanel: parts.filter(x => hit(x.r, P)).map(x => x.id), overlaps,
+               fits: panel.scrollHeight <= panel.clientHeight + 1, lines: panel.querySelectorAll('li').length,
+               doodled: [...panel.querySelectorAll('.doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length ${extra} };
+    })()`);
+    const at = `[${name}, ${w}×${h}]`;
+    ok(f.here && f.right < 20 && f.tall > 0.9 && f.lines >= 5, `the how-to panel shows down the right edge   ${at}`);
+    ok(f.outside.length === 0 && f.underPanel.length === 0 && f.overlaps.length === 0, `…with everything else on the screen inside the window, clear of the panel and of each other   ${at} ${JSON.stringify([f.outside, f.underPanel, f.overlaps])}`);
+    ok(f.fits && f.doodled === 0, `…its text fitting, no doodle on a word   ${at}`);
+    if (SHOTS && w === 1024) await shot(`15-panel-${name}-${w}x${h}`);
+  }
+  await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  await wait(100);
+}
+
 async function typeAndEnter(text) {
   await ev("document.querySelector('.box.active input').focus()");
   await c.insert(text);
@@ -92,6 +125,7 @@ try {
     ok(!!t && t.toothy && t.singing === "sing", "…looping, with one baby's slightly too many teeth");
   }
   await shot("01-title");
+  await menuFit("title");
 
   /* ------------------------------------------------------------ B. setup */
   section("B. setup: mode buttons and box count on one screen");
@@ -117,21 +151,8 @@ try {
     };
     const left = await look(0.02), right = await look(0.98);
     ok(left.length === 6 && left.every((x) => x < -0.5) && right.every((x) => x > 0.5), `…and every eye follows the cursor, left and right   [${left.map((x) => x.toFixed(1)).join(",")} / ${right.map((x) => x.toFixed(1)).join(",")}]`);
-    for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
-      await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
-      await wait(100);
-      const fit = await ev(`(() => {
-        const parts = [...document.querySelectorAll('#screen-setup > *:not([hidden])')].map(e => e.getBoundingClientRect());
-        const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-        let overlaps = 0;
-        for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (hit(parts[i], parts[j])) overlaps++;
-        return { inside: parts.every(r => r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth), overlaps,
-                 critter: document.querySelector('#setup-critter').getBoundingClientRect().height };
-      })()`);
-      ok(fit.inside && fit.overlaps === 0 && fit.critter > 80, `…and the setup screen still fits, nothing overlapping   [${w}×${h}, creature ${Math.round(fit.critter)}px tall]`);
-      if (w === 1024) await shot("02b-setup-1024x640");
-    }
-    await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await menuFit("setup");
+    ok((await ev("document.querySelector('#setup-critter').getBoundingClientRect().height")) > 80, "…and the options creature still shows");
   }
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "clear/1", "defaults: Clear CAVs Only, 1 box");
   await press("ArrowRight");
@@ -139,6 +160,7 @@ try {
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "progression/4", "arrows change mode, and boxes stop at 4");
   await c.key("keyDown", "2", "Digit2", 50, 0); await c.key("keyUp", "2", "Digit2", 50, 0); await wait(30);
   eq(await ev("document.querySelector('[data-boxes].selected').dataset.boxes"), "2", "a digit picks the box count");
+  ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>"), "on the options screen the panel follows the mode picked (Follow Progression adds the Place line)");
   ok(!(await ev("getComputedStyle(document.querySelector('[data-mode]')).cursor")).includes("url("), "menus and setup keep the normal pointer");
   eq(await ev("!document.querySelector('#hose') || document.querySelector('#hose').hidden || document.querySelector('#screen-play').hidden"), true, "no hose outside the game");
   await shot("02-setup");
@@ -667,6 +689,7 @@ try {
     ok(cb.top <= 1 && cb.wide && cb.clearOfBoard, "…across the top of the screen, without covering the board");
     ok(cb.flash && cb.times === "3", `…flashing a few times as cleanup starts, then holding steady   [${cb.times}]`);
     ok(cb.centre, "…and nothing is left in the middle of the board");
+    ok(await ev("document.querySelector('#howto').parentNode.classList.contains('playrow') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "the how-to panel shows during cleanup too, in the play row");
     await shot("12a-cleanup-banner");
     eq(await ev("getComputedStyle(document.querySelector('#field')).cursor.includes('url(')"), true, "during cleanup the cursor is the hose nozzle too");
     const drops = await ev(`(() => {
@@ -710,6 +733,7 @@ try {
   eq(await ev("document.querySelector('#over-score').textContent"), String(o.s.score), "it shows the final score");
   ok(/^SKIPPED SPAWNS  W1 \d+/.test(await ev("document.querySelector('#over-skipped').textContent")), `the playtest log lists skipped spawns per wave   [${await ev("document.querySelector('#over-skipped').textContent")}]`);
   await shot("09-over");
+  await menuFit("over");
   await press("Enter");
   eq(await ev("__et.screen()"), "setup", "Enter goes back to setup");
 

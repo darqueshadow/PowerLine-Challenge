@@ -56,6 +56,13 @@ button { font: inherit; }
   text-align: center;
 }
 
+/* How-to panel everywhere (2026-09-23): on the title, mode-selection and game-over screens the panel hangs down
+   the right edge, and the screen's own content centres in the room left of it. The menu screens are size
+   containers, so their type and pictures scale to that room (cqw), not to the whole window. */
+#screen-title, #screen-setup, #screen-over { container-type: inline-size; }
+.screen.with-howto:not(#screen-play) { padding-right: calc(clamp(170px, 15vw, 250px) + 44px); }
+.screen.with-howto:not(#screen-play) > #howto { position: absolute; top: 0; right: 0; bottom: 0; z-index: 4; text-align: center; }
+
 .label { color: var(--dim); font-size: 0.75em; letter-spacing: 0.12em; }
 .blink { animation: blink 1s steps(2, start) infinite; }
 @keyframes blink { to { visibility: hidden; } }
@@ -65,7 +72,7 @@ button { font: inherit; }
   margin: 0;
   font-family: var(--font-ui);
   font-weight: 400;
-  font-size: clamp(48px, 11vw, 132px);
+  font-size: clamp(48px, 11cqw, 132px);
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--ink);
@@ -84,7 +91,7 @@ button { font: inherit; }
 .error { max-width: 640px; color: var(--hot); font-family: var(--font-mono); }
 
 /* Refinement 4 §6: the title scene (⏳ placeholder art). Pure CSS animation, so it never holds anything up. */
-#title-scene { width: min(560px, 82vw, 70vh); }   /* half as tall as wide: fits under the logo at 1024×640 */
+#title-scene { width: min(560px, 82cqw, 70vh); }   /* half as tall as wide: fits under the logo at 1024×640 */
 #title-scene svg { display: block; width: 100%; overflow: visible; }
 #title-scene .alien-skin { fill: #7dff6a; stroke: #14330f; stroke-width: 4; }
 #title-scene .antenna, #title-scene .stalk { fill: none; stroke: #14330f; stroke-width: 4; stroke-linecap: round; }
@@ -112,7 +119,7 @@ button { font: inherit; }
 /* ---------------------------------------------------------------- setup */
 /* Options creature (Andrew approved, 2026-09-23; ⏳ placeholder art): a lilac blob with three singing baby
    heads, over the mode buttons. Sized by the window's height too, so the setup screen still fits 1024×640. */
-#setup-critter { width: min(300px, 40vw, 31vh); flex: none; }
+#setup-critter { width: min(300px, 40cqw, 31vh); flex: none; }
 #setup-critter svg { display: block; width: 100%; overflow: visible; }
 #setup-critter .blob { fill: #c79bff; stroke: #2a0f45; stroke-width: 4; }
 #setup-critter .neck { fill: none; stroke: #2a0f45; stroke-width: 16; stroke-linecap: round; }
@@ -786,7 +793,7 @@ h2 {
 #dev-prompt .msg { min-height: 1.4em; margin-top: 8px; color: var(--hot); font-family: var(--font-display); }
 
 /* ------------------------------------------------------------ game over */
-.over { font-size: clamp(40px, 8vw, 96px); color: var(--hot); text-shadow: 6px 6px 0 var(--shadow); }
+.over { font-size: clamp(40px, 8cqw, 96px); color: var(--hot); text-shadow: 6px 6px 0 var(--shadow); }
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
