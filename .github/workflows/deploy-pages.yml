@@ -68,10 +68,22 @@ jobs:
           .gitattributes
           EXCLUDES
           sed -i 's/^ *//' /tmp/pages-exclude.txt
-          rsync -a --delete --exclude-from=/tmp/pages-exclude.txt Game/ _site/
+          # The one exception to *.txt: a bundled font's licence file (OFL.txt,
+          # *LICENSE*.txt, *LICENCE*.txt) sitting directly in a folder named
+          # fonts/. The OFL asks for the licence to travel with the font. The
+          # includes come first, so they win over *.txt; folders excluded above
+          # (design-system/ etc.) are never entered, so nothing there is reached.
+          rsync -a --delete \
+            --include='**/fonts/OFL*.txt' \
+            --include='**/fonts/*[Ll][Ii][Cc][Ee][Nn][CcSs][Ee]*.txt' \
+            --exclude-from=/tmp/pages-exclude.txt Game/ _site/
+          LICENCE_RE='.*/fonts/(OFL[^/]*|[^/]*[Ll][Ii][Cc][Ee][Nn][CcSs][Ee][^/]*)\.txt$'
           echo "--- staged files: $(find _site -type f | wc -l) ---"
+          echo "--- font licences published (the only .txt allowed) ---"
+          find _site -type f -regextype posix-extended -regex "$LICENCE_RE" -print
           echo "--- leaks (must print nothing) ---"
-          find _site -type f -regextype posix-extended             -regex '.*\.(md|docx|xlsx|txt|bat|cmd|ps1|py|ts|tsx)$' -print
+          find _site -type f -regextype posix-extended             -regex '.*\.(md|docx|xlsx|txt|bat|cmd|ps1|py|ts|tsx)$' \
+            -not -regex "$LICENCE_RE" -print
           echo "--- end leak check ---"
       - name: Upload the staged runtime copy as the site artifact
         uses: actions/upload-pages-artifact@v3
