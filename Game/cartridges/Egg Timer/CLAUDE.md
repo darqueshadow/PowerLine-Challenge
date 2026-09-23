@@ -1,4 +1,4 @@
-# Egg Timer *(formerly Whack A CAV)* — 🟢 LIVE since 2026-09-19; big local refinements unpushed
+# Egg Timer *(formerly Whack A CAV)* — 🟢 LIVE since 2026-09-19; every green build goes live
 
 A whack-a-mole typing game built on the real Niagara EMS **CAV (Conditional Availability)**
 workflow. Each unit has a **nest** with a digital readout below it. The player places a CAV with
@@ -15,14 +15,17 @@ the memory store (below).
 
 ## Status
 - **Live for players since 2026-09-19** (hub entry in `Game/cat/disks.js`; NB's Rec-Bay 4 table fires).
-- **Local commits, UNPUSHED** (`git log origin/main..main` lists them): the write-up, the Timer Refinement, Refinement 2 and its rulings, the Hose and E12
-  rulings (2026-09-22), and Refinement 3, one commit per section group plus the packet (2026-09-23). 🚫 **No push until Andrew
-  has playtested locally and approved.** A push also publishes other sessions' commits: check
-  `git log origin/main..main` first.
+- 🚀 **STANDING RULE (Andrew, 2026-09-23; replaces every earlier "no push until Andrew approves" line):**
+  Andrew playtests Egg Timer through **Nerva Beacon (Rec-Bay 4)**, not localhost. After building anything for
+  Egg Timer: **if BOTH rigs pass, commit and push to the live site right away. Never push with a failing rig.**
+  Keep each change in its own commit(s) so any one can be reverted alone. **After each push, tell Andrew in one
+  line what went live.** A push also publishes other sessions' commits on `main`: check `git log origin/main..main`
+  and say so if anything besides Egg Timer is going out.
 - **Refinement 3 (2026-09-23) replaced every switching ruling:** Tab / Shift+Tab / F12 as in CAD5. The Alt+1–4
   ruling was never built and its hand test is cancelled; the switcher, MRU order, quick-tap flip and Ctrl+Tab
-  are gone, and E9 with them. E14 and E15 are ruled and the **egg ladder** added (*Refinement 3 rulings*). **Open: E13, E16–E18**: the rulings
-  say "as in the previous ruling block", which never reached Code; they stay on their provisional values till it does.
+  are gone, and E9 with them. E14 and E15 are ruled and the **egg ladder** added (*Refinement 3 rulings*); E13, E16 as built, E18 changed
+  (warp waits for the last CAV to start). 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate
+  override of E10** (the Goal line is enough): don't "fix" it.
 - **Open:** the spawn-rate question (does clock speed replace or stack with the spawn-gap shrink?). It waits
   on the skipped-spawn log from Andrew's playtest, shown on the game-over screen and in the console. **D3**, the
   Developer Mode phrase (`devModePasswordHash`, null denies every entry): Andrew gives Code the digest,
@@ -154,6 +157,5 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-23
-Refinement 3 and its rulings (E14, E15, the egg ladder) are built and committed locally; rigs logic 128/0,
-browser 189/0. Waiting on Andrew for: the missing ruling block for E13 and E16–E18, his local playtest (then the
-skipped-spawn log for Chat), push approval, and the D3 digest.
+Everything through the E13–E18 rulings is built and pushed live; rigs logic 131/0, browser 189/0. Waiting on
+Andrew for: his playtest in Nerva Beacon (then the skipped-spawn log for Chat) and the D3 digest.
