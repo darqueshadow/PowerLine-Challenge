@@ -452,8 +452,13 @@ try {
     const eggVis = await ev(`Number(document.querySelector('.nest[data-id="${vf.id}"] .crack').style.strokeDashoffset) < 1`);
     ok(eggVis, "…and the egg appears already cracking");
     await shot("08b-vf-bubble");
-    await wait(2000);
-    eq(await ev(`getComputedStyle(document.querySelector('.nest[data-id="${vf.id}"] .bubble')).opacity`), "0", "the bubble has faded a moment later");
+    // poll rather than wait a fixed time: a busy machine can hold a CSS animation back a little
+    let faded = "";
+    for (let i = 0; i < 50 && faded !== "0"; i++) {
+      await wait(100);
+      faded = await ev(`getComputedStyle(document.querySelector('.nest[data-id="${vf.id}"] .bubble')).opacity`);
+    }
+    eq(faded, "0", "the bubble has faded a moment later");
     eq(await ev("document.querySelectorAll('.bubble.show').length"), 1, "no other nest has a bubble (VF is the only type with a pop-up)");
   }
 
