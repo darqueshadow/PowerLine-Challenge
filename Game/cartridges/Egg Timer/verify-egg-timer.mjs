@@ -879,6 +879,10 @@ try {
                w: innerWidth, h: innerHeight };
     })()`);
     const at = `[${lay.w}×${lay.h}]`;
+    if (w === 1920) {
+      const dim = await ev(`(() => { const n = [...document.querySelectorAll('.nest')].find(x => x.dataset.state === 'idle'); return n ? getComputedStyle(n.querySelector('.readout .unit')).filter : null; })()`);
+      ok(!!dim && /brightness\(0\.[0-4]\d*\)|brightness\(0\.45\)/.test(dim), `a blank nest's display boxes are darkened further, reading "not in play"   [${dim}]`);
+    }
     eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading, and both kinds of AD note (gunk-covered), fit inside their boxes   ${at}`);
     ok(lay.postitsInside, `every post-it stays on the board   ${at}`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
