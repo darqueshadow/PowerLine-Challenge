@@ -220,3 +220,65 @@ like the other three (NB `4f8e940`).
   screenshots — restore them with `git checkout --` rather than committing them.
 - Still open and deliberately untouched: the root cassette menu (`Game/core/submenu.js`) does not list Egg
   Timer, and NB's `EGG-TIMER-WALL` / `EGG-TIMER-HATCH` are Andrew's calls.
+
+## Moved from Egg Timer's CLAUDE.md on parking, 2026-09-23
+
+History lifted out of `Game/cartridges/Egg Timer/CLAUDE.md` so that file stays short. Still true, but not
+needed every session.
+
+- **Build and launch dates.** Andrew authorized and confirmed the build on 2026-09-16 (first playable build in
+  `files/`). He lifted the `coming-soon` hold on 2026-09-17 ("a normal, selectable cartridge in the Arcade for
+  all players"), knowing the art, the screens and audio were placeholders. Players got it on 2026-09-19 (see the
+  resolved entry above).
+- **The launch wiring in the hub rig.** `status: "coming-soon"` is gone from the `eggtimer` entry in
+  `Game/cat/disks.js`. `verify-cat.mjs` has `"eggtimer"` in `CARTRIDGES` (§B), a `?cart=eggtimer` cabinet
+  case (§K), and eggtimer in both "no cartridge in the DOM" selectors (§L cracked mode, §M inside Fang Rock).
+- **`make-dev-hash.mjs` (the D3 tool).** It asks twice with the echo off, prints only the digest, and takes
+  nothing from the command line, so the phrase stays out of shell history; Code never sees it. It calls the
+  game's own `ET.plcDigest` (config.js loaded in a VM, as the logic rig does) rather than a copy, so it can't
+  drift. `--self-test` re-checks four browser-measured vectors and the keystroke handling.
+- **Esc in fullscreen, the old wrinkle.** Pausing on fullscreen exit (as The Aquanaut does outside Chrome/Edge)
+  would have made Esc pause instead of closing an open switcher. That goes away with the switcher, when the
+  Alt+1–4 ruling is built.
+- **2026-09-22 in one line each** (all committed locally, unpushed; the packet has the detail):
+  `46469a4` Timer Refinement (displayed-time clocks, wall clock, AD post-its, VF bubble, new overtime, clock
+  speed) with its E1–E4 rulings; `aa5395b` Refinement 2 (how-to panel, hose, MRU Tab switcher, frying pan,
+  ERROR, placeholder sounds) and `0c0f4b8` its E5–E11 rulings; `311fc3f` the Hose ruling (the nozzle is the
+  in-game cursor); `31a0232` E12 (the hose stays behind the nests). The same day, an Alt+1–4 probe that sent
+  real keystrokes landed keys in Andrew's own Edge window. That's why the no-desktop-input standing rule exists.
+
+## Moved from Egg Timer's CLAUDE.md on parking, 2026-09-23 (evening)
+
+History lifted out of `Game/cartridges/Egg Timer/CLAUDE.md` at the second park of the day. The packet
+(`EGG_TIMER_CONTEXT_PACKET.md`) has the full rulings; this is the trail.
+
+- **The 2026-09-22 commits listed above are now pushed** (with everything below), in `195d35c` (18 commits) and
+  later pushes. The "unpushed, no push until Andrew approves" state ended on 2026-09-23 with Andrew's standing
+  rule: a build that passes both rigs is pushed at once, and he playtests through Nerva Beacon.
+- **Switching, start to finish.** Ctrl+Tab (Addendum) → Tab with a switcher (C7) → a most-recently-used switcher
+  with a quick-tap flip and Ctrl+Tab inside Fang Rock (Refinement 2, E9 left open) → Alt+1–4 (ruled 2026-09-22,
+  never built: a lone Alt tap blurred Chrome, and its hand test was cancelled) → **Refinement 3's CAD5 keys:
+  Tab / Shift+Tab / F12**, with E9 retired. E13 settled that F12 clears the line it lands on.
+- **Mess layering went both ways in one day.** Refinement 3 §5 put splatter under the readouts; the E14 ruling
+  put it back over them, as in the original design (the legibility spiral stands). E15 dropped neighbour
+  targeting for an even spread over the whole board, which made the logical grid's adjacency unused.
+- **The hose moved on top.** E12 (2026-09-22) kept it behind the nests; Refinement 4 §2 put it above the whole
+  board, below the how-to panel, the Command Lines and the HUD bar.
+- **The fried eggs became the egg ladder** (Refinement 3 rulings): sunny/broken/burnt by overtime third, and the
+  sparkle and smoke with them, were replaced by seven cosmetic dishes for consecutive fast clears.
+- **The cord got slower.** Refinement 3 §7 laid eggs in 0.3 + 0.3 s with a 0.45 s retract; Refinement 4 §1 made
+  it 1.0 + 0.4 s with a bulge, a squelch and a 1.5 s retract.
+- **Time Warp** (Refinement 3 §4) first started once the quota had spawned, even with a trigger still waiting;
+  E18 made it wait until the wave's last CAV had actually started.
+- **E17** is logged in the packet as Andrew's deliberate override of E10: no syntax line in the how-to panel.
+- **How the Rec-Bay 4 table reaches the game:** it fires `fangrock://arcade/eggtimer`, and Fang Rock's shell
+  (`The Lantern Room/Morbius/shell/config.json`, room `arcade`, `served`) serves the LOCAL `(PCL)/Game` folder.
+  `Nerva Beacon Main/` isn't deployed anywhere, and NB's local `main` has never been pushed, so nothing about
+  NB needs a push for Egg Timer to reach Andrew there.
+- **The title tune and autoplay (E21).** Measured with a hidden Electron 32.3.3 window, default webPreferences
+  (as the shell runs): the AudioContext starts unprompted, so the tune plays on the title inside Fang Rock. In a
+  browser it starts at the first key, and the ruling keeps it playing through mode selection.
+- **A slip worth remembering:** the shuffle-bag commit (`eb6c06b`) went in on a flaky red browser run because
+  the commit chain tested `grep`'s exit code, not the rig's. Fixed at once (`d016698`), before any push.
+- **Dropped from CLAUDE.md as unused:** Esc in browser fullscreen belongs to the browser; reclaim it with Keyboard
+  Lock as The Aquanaut does (`lockEscapeKey`, Chrome/Edge only), if Egg Timer ever goes fullscreen.
