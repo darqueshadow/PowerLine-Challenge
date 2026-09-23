@@ -34,8 +34,13 @@ a session must not re-derive or break. Decision history lives in the memory stor
   fried eggs by overtime third, ERROR on any rejected Enter, and placeholder sounds (`core/audio.js`).
   **E5–E8, E10, E11 ruled the same day** (hose whenever the player wipes; empty Enter does nothing;
   players see **"Command Line"**, never "Command Box"; a Place line in Both and Follow Progression only;
-  the panel IS the instruction screen; the random cooked eggs are retired). **E9 open with Andrew**:
-  Alt+Tab-style Ctrl+Tab (release Ctrl confirms) or keep as built.
+  the panel IS the instruction screen; the random cooked eggs are retired).
+- **Hose ruling (2026-09-22, replaces E5):** in-game the cursor is always the hose nozzle (a CSS cursor);
+  the hose body (`#hose`, SVG, z-index 1) curves to a spigot on the board's bottom edge, UNDER `.hud`,
+  `.playrow` and `#console` (z-index 2), so it never covers text. It passes behind the nests too (E12, open).
+- **Switching is being replaced by Alt+1–4** (ruling 2026-09-22: no Tab, no Ctrl+Tab, no switcher, auto-pause
+  on blur). NOT built: Chat asked for a real-browser test first, and Andrew is running it by hand.
+  **Alt+#, never Ctrl+#.** A lone Alt BLURS the page in Chrome without a guard.
 - **Still open (packet §11):** **D3**, the Developer Mode phrase (`devModePasswordHash`, ⏳, null
   denies every entry). Andrew gives Code the digest from `ET.plcDigest('PHRASE')`, never the phrase.
   When it arrives, set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
@@ -145,6 +150,10 @@ a session must not re-derive or break. Decision history lives in the memory stor
   and end screens (still required), the switcher's and boxes' look, and the pool's display name.
 
 ## Standing rules
+- 🚫 **Never send real keystrokes or mouse input to the desktop, and never open browser windows outside a
+  sandboxed test harness, without Andrew's explicit go-ahead for that specific test** (Andrew, 2026-09-22).
+  Hand tests go to Andrew as step-by-step instructions instead. The headless rigs (`verify-*.mjs`) are the
+  sandboxed harness. Why: a real-keystroke probe on 2026-09-22 landed keys in his own Edge window.
 - **It is a Standalone Cartridge** (Laws v2.0 amendment A1): **don't** copy `Game/blank/`, and **don't**
   use Target / Challenge / Impact Zone / Resource / TFS vocabulary or the falling-Target lifecycle.
   **Still binding:** Data Sheet integrity, Developer Mode on Ctrl+Shift+B, Demo/Publish modes, modular

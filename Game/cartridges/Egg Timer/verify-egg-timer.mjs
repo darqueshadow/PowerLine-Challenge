@@ -103,6 +103,8 @@ try {
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "progression/4", "arrows change mode, and boxes stop at 4");
   await c.key("keyDown", "2", "Digit2", 50, 0); await c.key("keyUp", "2", "Digit2", 50, 0); await wait(30);
   eq(await ev("document.querySelector('[data-boxes].selected').dataset.boxes"), "2", "a digit picks the box count");
+  ok(!(await ev("getComputedStyle(document.querySelector('[data-mode]')).cursor")).includes("url("), "menus and setup keep the normal pointer");
+  eq(await ev("!document.querySelector('#hose') || document.querySelector('#hose').hidden || document.querySelector('#screen-play').hidden"), true, "no hose outside the game");
   await shot("02-setup");
   await press("Enter");
   eq(await ev("__et.screen() + '/' + __et.snapshot().mode + '/' + __et.boxes().count"), "play/progression/2", "Enter starts Follow Progression with 2 boxes");
@@ -420,19 +422,44 @@ try {
   ok((await ev("ET.audio.state()")) !== "none", `sound is unlocked by the first key press   [${await ev("ET.audio.state()")}]`);
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");
-  eq(await ev("document.querySelector('#field').classList.contains('hose')"), false, "E5: mid-wave, the plain cursor until the player wipes");
   {
+    // Hose ruling (2026-09-22): in-game the cursor is always the nozzle; menus keep the normal pointer
+    const cur = (sel) => ev(`getComputedStyle(document.querySelector('${sel}')).cursor`);
+    ok((await cur("#field")).includes("url(") && (await cur("#howto")).includes("url(") && (await cur(".box.active input")).includes("url("), "in-game the cursor is always the hose nozzle (board, how-to panel, Command Line)");
+    const hosePath = await ev(`(() => {
+      const f = document.querySelector('#field').getBoundingClientRect();
+      document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: f.left + f.width * 0.8, clientY: f.top + 120 }));
+      return __et && ET.view.hose();
+    })()`);
+    ok(!!hosePath && /^M[\d.]+ [\d.]+ C/.test(hosePath), `the hose body runs from a spigot on the bottom edge to the nozzle, as a curve   [${(hosePath || "").slice(0, 40)}…]`);
+    const lay = await ev(`(() => {
+      const z = (sel) => Number(getComputedStyle(document.querySelector(sel)).zIndex) || 0;
+      const f = document.querySelector('#field').getBoundingClientRect();
+      const spig = document.querySelector('#hose .pipe').getBoundingClientRect();
+      return { hose: z('#hose'), text: [z('.hud'), z('.playrow'), z('#console')], spigotOnEdge: Math.abs(spig.bottom - f.bottom) < 2 && spig.left > f.left && spig.right < f.right,
+               width: parseFloat(getComputedStyle(document.querySelector('#hose .hose-body')).strokeWidth) };
+    })()`);
+    ok(lay.text.every((t) => t > lay.hose), `the hose sits under the HUD, the board's nests and panel, and the Command Lines   [hose ${lay.hose} < ${lay.text.join(", ")}]`);
+    ok(lay.spigotOnEdge, "the spigot is fixed on the board's bottom edge");
+    ok(lay.width <= 8, `the hose is thin   [${lay.width}px]`);
+    const moveOnly = await ev(`(() => {
+      const f = document.querySelector('#field').getBoundingClientRect();
+      document.querySelectorAll('#popups .drop').forEach(d => d.remove());
+      document.querySelector('#field').dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: f.left + 100, clientY: f.top + 100 }));
+      return document.querySelectorAll('#popups .drop').length;
+    })()`);
+    eq(moveOnly, 0, "no water without a drag");
     const mid = await ev(`(() => {
       const field = document.querySelector('#field');
       const r = field.getBoundingClientRect();
       const fire = (type, x, y) => field.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 8, buttons: 1 }));
       fire('pointerdown', r.left + 60, r.top + 60);
       fire('pointermove', r.left + 90, r.top + 80);
-      const during = [field.classList.contains('hose'), document.querySelectorAll('#popups .drop').length > 0];
+      const n = document.querySelectorAll('#popups .drop').length;
       fire('pointerup', r.left + 90, r.top + 80);
-      return during.concat(field.classList.contains('hose'));
+      return n;
     })()`);
-    eq(mid, [true, true, false], "E5: mid-wave, the hose (and its water) while dragging, and back to the plain cursor after");
+    ok(mid > 0, `mid-wave, dragging sprays water   [${mid} drops]`);
   }
   eq(await ev("document.querySelector('#howto').innerText.includes('PLACE')"), false, "E8: Clear CAVs Only has no placement line");
   await ev("__et.start('both', 1)");
@@ -452,7 +479,7 @@ try {
       await ev("__et.advance(0.5)");
     }
     ok(cleanup, "play reaches the cleanup between waves");
-    eq(await ev("document.querySelector('#field').classList.contains('hose') && getComputedStyle(document.querySelector('#field')).cursor.includes('url(')"), true, "during cleanup the cursor is a hose nozzle");
+    eq(await ev("getComputedStyle(document.querySelector('#field')).cursor.includes('url(')"), true, "during cleanup the cursor is the hose nozzle too");
     const drops = await ev(`(() => {
       const field = document.querySelector('#field');
       const r = field.getBoundingClientRect();

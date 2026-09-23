@@ -49,6 +49,7 @@
     document.querySelectorAll(".screen").forEach(function (s) { s.hidden = s.id !== "screen-" + name; });
     if (name === "setup") paintSetup();
     if (name === "play") ET.boxes.focus();
+    ET.view.hose();   // the hose shows on the play screen only
   }
 
   /* ---------------------------------------------------------------- setup */

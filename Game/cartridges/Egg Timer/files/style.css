@@ -154,13 +154,22 @@ h2 {
 #wall-ss { font-size: 0.5em; vertical-align: 0.8em; margin-left: 2px; }
 
 .playrow { flex: 1; min-height: 0; display: flex; }
-#field { position: relative; flex: 1; min-width: 0; min-height: 0; cursor: crosshair; touch-action: none; }
-#field.wiping { cursor: grabbing; }
+#field { position: relative; flex: 1; min-width: 0; min-height: 0; touch-action: none; }
 
-/* ⏳ placeholder: during cleanup the cursor is a hose nozzle, and a drag sprays water (Refinement 2 §2) */
-#field.hose, #field.hose.wiping {
+/* ⏳ placeholder: in-game the cursor is ALWAYS the hose nozzle (Hose ruling, 2026-09-22); menus and
+   setup keep the normal pointer. A drag still sprays water and wipes, as before. */
+#screen-play, #screen-play * {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M30 30 L16 16' stroke='%23000' stroke-width='9' stroke-linecap='round'/%3E%3Cpath d='M30 30 L16 16' stroke='%2322a34a' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M17 11 L11 17 L2 6 L6 2 Z' fill='%23ffd23a' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 3 3, crosshair;
 }
+
+/* The hose body sits ABOVE the floor but UNDER everything that carries text: the nests (clocks, unit
+   numbers, post-its, the VF bubble), the HUD, the how-to panel and the Command Lines (with ERROR). */
+#hose { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible; }
+.hud, .playrow, #console { position: relative; z-index: 2; }
+#hose .hose-outline { fill: none; stroke: #06280f; stroke-linecap: round; }
+#hose .hose-body { fill: none; stroke: #2fbf5a; stroke-linecap: round; }
+#hose .pipe { fill: #9aa0a8; stroke: #000; stroke-width: 2; }
+#hose .valve { fill: #d0342c; stroke: #000; stroke-width: 2; }
 .drop {
   position: absolute;
   width: 6px;

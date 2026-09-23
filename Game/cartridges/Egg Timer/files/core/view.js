@@ -93,6 +93,57 @@
     return on;
   }
 
+  /* ⏳ placeholder: the hose body (Hose ruling, 2026-09-22). The nozzle is the cursor itself (CSS);
+     this draws the hose from the back of the nozzle, sagging down to a fixed spigot on the board's
+     bottom edge. It sits in a layer UNDER the nests, the HUD, the how-to panel and the Command Lines,
+     so it can never cover a clock, a unit number, a post-it, the bubble or ERROR. */
+  var NS = "http://www.w3.org/2000/svg";
+  var hose = null, lastPointer = null;
+  function buildHose() {
+    var screen = field.closest(".screen");
+    var svg = document.createElementNS(NS, "svg");
+    svg.id = "hose";
+    svg.setAttribute("aria-hidden", "true");
+    function mk(tag, cls) { var e = document.createElementNS(NS, tag); e.setAttribute("class", cls); svg.appendChild(e); return e; }
+    hose = { svg: svg, outline: mk("path", "hose-outline"), body: mk("path", "hose-body"), spigot: mk("g", "spigot"), screen: screen };
+    var pipe = document.createElementNS(NS, "rect"); pipe.setAttribute("class", "pipe");
+    var valve = document.createElementNS(NS, "rect"); valve.setAttribute("class", "valve");
+    hose.spigot.appendChild(pipe); hose.spigot.appendChild(valve);
+    hose.pipe = pipe; hose.valve = valve;
+    screen.insertBefore(svg, screen.firstChild);
+    svg.hidden = true;
+    document.addEventListener("pointermove", function (ev) {
+      lastPointer = { x: ev.clientX, y: ev.clientY };
+      drawHose();
+    }, true);
+    document.documentElement.addEventListener("pointerleave", function () { svg.hidden = true; });
+    window.addEventListener("resize", drawHose);
+  }
+  function drawHose() {
+    if (!hose || !lastPointer || hose.screen.hidden) { if (hose) hose.svg.hidden = true; return; }
+    var sr = hose.screen.getBoundingClientRect(), f = field.getBoundingClientRect();
+    var w = ET.CONFIG.hoseWidth;
+    // the spigot: fixed on the board's bottom edge, poking up from under the Command Lines
+    var sx = f.left - sr.left + f.width * ET.CONFIG.hoseSpigotX, sy = f.bottom - sr.top;
+    // the back of the nozzle cursor (its tip is the hotspot, the body runs down-right)
+    var ex = lastPointer.x - sr.left + 24, ey = lastPointer.y - sr.top + 24;
+    var d = Math.hypot(ex - sx, ey - sy);
+    var sag = Math.min(0.45 * d, 260);
+    // leave the spigot upward, and come into the nozzle from below-right, drooping between
+    var c1x = sx, c1y = sy - Math.min(0.35 * d, 140);
+    var c2x = ex + 0.18 * d, c2y = Math.min(sy - 8, ey + sag);
+    var path = "M" + sx + " " + (sy - 18) + " C" + c1x + " " + c1y + " " + c2x + " " + c2y + " " + ex + " " + ey;
+    hose.body.setAttribute("d", path);
+    hose.outline.setAttribute("d", path);
+    hose.body.style.strokeWidth = w + "px";
+    hose.outline.style.strokeWidth = (w + 4) + "px";
+    hose.pipe.setAttribute("x", sx - w - 2); hose.pipe.setAttribute("y", sy - 22);
+    hose.pipe.setAttribute("width", 2 * w + 4); hose.pipe.setAttribute("height", 22);
+    hose.valve.setAttribute("x", sx - w - 8); hose.valve.setAttribute("y", sy - 12);
+    hose.valve.setAttribute("width", 2 * w + 16); hose.valve.setAttribute("height", 6);
+    hose.svg.hidden = false;
+  }
+
   /* ⏳ placeholder: water from the hose while a drag is wiping. */
   function spray(x, y) {
     var f = field.getBoundingClientRect();
@@ -171,6 +222,7 @@
         });
       }
       ET.view.bindWipe();
+      buildHose();
     },
 
     reset: function () {
@@ -371,6 +423,9 @@
     },
 
     canWipe: function () { return true; },
+
+    /* Redraw the hose where the pointer last was (a screen change may have moved the board). */
+    hose: function () { drawHose(); return hose && !hose.svg.hidden ? hose.body.getAttribute("d") : null; },
 
     /* For rigs: a nest's view pieces. */
     nest: function (id) { return nests[id]; }

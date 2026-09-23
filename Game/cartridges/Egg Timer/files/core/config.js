@@ -111,8 +111,11 @@
     sound: true,             // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
 
     // ── Refinement 2 gaps, ruled 2026-09-22 (E5–E11) ─────────────────────────
-    // E5: the hose whenever the player wipes: all through cleanup, and mid-wave while dragging.
-    hoseWhen: "wiping",            // "wiping" | "cleanup" (between waves only) | "always"
+    // Hose ruling (2026-09-22, replaces E5): in-game the cursor is ALWAYS the hose nozzle, with a
+    // hose body curving down to a spigot at the bottom edge of the board. Water only while dragging.
+    hoseWhen: "always",            // "always" | "wiping" | "cleanup" (the older rulings, kept as switch values)
+    hoseWidth: 6,                  // [T] px, kept thin: it runs under the nests and every piece of text
+    hoseSpigotX: 0.5,              // [T] where the spigot sits along the board's bottom edge (0 left … 1 right)
     // E6: an Enter on an EMPTY Command Line does nothing (no ERROR, no buzz).
     errorOnEmpty: false,
 
