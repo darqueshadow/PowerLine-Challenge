@@ -110,10 +110,10 @@
     tapSeconds: 0.25,        // [T] Tab released this fast (no other key) flips to the last-used box
     sound: true,             // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
 
-    // ── Refinement 2 gaps — ⏳ PENDING, flagged to Chat ─────────────────────
-    // E5: the hose is the handoff's "during cleanup". Mid-wave wiping (still allowed) keeps the plain cursor.
-    hoseWhen: "cleanup",           // "cleanup" | "always"
-    // E6: an Enter on an EMPTY Command Line does nothing (no ERROR, no buzz), as before.
+    // ── Refinement 2 gaps, ruled 2026-09-22 (E5–E11) ─────────────────────────
+    // E5: the hose whenever the player wipes: all through cleanup, and mid-wave while dragging.
+    hoseWhen: "wiping",            // "wiping" | "cleanup" (between waves only) | "always"
+    // E6: an Enter on an EMPTY Command Line does nothing (no ERROR, no buzz).
     errorOnEmpty: false,
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────

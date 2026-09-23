@@ -420,7 +420,29 @@ try {
   ok((await ev("ET.audio.state()")) !== "none", `sound is unlocked by the first key press   [${await ev("ET.audio.state()")}]`);
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");
-  eq(await ev("document.querySelector('#field').classList.contains('hose')"), false, "⏳ E5: mid-wave, the cursor is not the hose");
+  eq(await ev("document.querySelector('#field').classList.contains('hose')"), false, "E5: mid-wave, the plain cursor until the player wipes");
+  {
+    const mid = await ev(`(() => {
+      const field = document.querySelector('#field');
+      const r = field.getBoundingClientRect();
+      const fire = (type, x, y) => field.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 8, buttons: 1 }));
+      fire('pointerdown', r.left + 60, r.top + 60);
+      fire('pointermove', r.left + 90, r.top + 80);
+      const during = [field.classList.contains('hose'), document.querySelectorAll('#popups .drop').length > 0];
+      fire('pointerup', r.left + 90, r.top + 80);
+      return during.concat(field.classList.contains('hose'));
+    })()`);
+    eq(mid, [true, true, false], "E5: mid-wave, the hose (and its water) while dragging, and back to the plain cursor after");
+  }
+  eq(await ev("document.querySelector('#howto').innerText.includes('PLACE')"), false, "E8: Clear CAVs Only has no placement line");
+  await ev("__et.start('both', 1)");
+  ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>, e.g. CAV 2101 VS"), "E8: Both shows \"Place: CAV <unit> <type>, e.g. CAV 2101 VS\"");
+  await ev("__et.start('progression', 1)");
+  ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>"), "E8: Follow Progression shows it too");
+  eq([await ev("document.querySelector('#screen-setup h2:nth-of-type(2)').textContent"), await ev("document.querySelector('#switcher .title').textContent")], ["COMMAND LINES", "COMMAND LINES"], "E7: players see \"Command Line\" on the setup screen and the switcher");
+  eq(await ev("ET.art.FRIED.join(',')"), "sunny,broken,burnt", "E11: only the three fried eggs remain");
+  await ev("__et.start('clear', 1)");
+  await ev("__et.advance(0.2)");
   {
     let cleanup = false;
     for (let t = 0; t < 400 && !cleanup; t += 0.5) {

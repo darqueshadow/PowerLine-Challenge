@@ -1,5 +1,6 @@
 /* ===========================================================================
-   EGG TIMER — COMMAND BOXES (packet §12)
+   EGG TIMER — COMMAND LINES (packet §12). Players see "Command Line" (E7); the
+   code still calls them boxes.
    1–4 boxes inside the page, one active at a time, each with its own colour.
    Keys, all bound here, in-page:
      Tab / Shift+Tab   open the switcher (does nothing with only 1 box). Refinement 2 §4:
@@ -134,7 +135,7 @@
           '<span class="err" aria-live="assertive">ERROR</span>';
         consoleEl.appendChild(el);
         var input = el.querySelector("input");
-        input.setAttribute("aria-label", "Command Box " + (i + 1));
+        input.setAttribute("aria-label", "Command Line " + (i + 1));
         input.addEventListener("mousedown", function (ev) { ev.preventDefault(); ET.boxes.focus(); });
         boxes.push({ el: el, input: input });
       }

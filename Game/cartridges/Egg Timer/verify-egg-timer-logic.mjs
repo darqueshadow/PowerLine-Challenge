@@ -424,7 +424,7 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
 eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides, "timerDisplay" in ET.CONFIG],
   ["per-spawn", true, false, "timer", false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · C15(b) timer only · D5's switch is gone");
-eq([ET.CONFIG.hoseWhen, ET.CONFIG.errorOnEmpty], ["cleanup", false], "⏳ Refinement 2 gaps: hose during cleanup only, no ERROR on an empty Enter (provisional, flagged to Chat)");
+eq([ET.CONFIG.hoseWhen, ET.CONFIG.errorOnEmpty], ["wiping", false], "E5 the hose whenever the player wipes · E6 no ERROR on an empty Enter (ruled 2026-09-22)");
 eq([ET.CONFIG.adClockTarget, ET.CONFIG.adNoteFrom], ["full-minutes", "start"], "E1 round up · E2 note at the start (ruled 2026-09-22)");
 eq(ET.CONFIG.devModePasswordHash, null, "⏳ D3: no phrase set yet, so Developer Mode denies every entry");
 

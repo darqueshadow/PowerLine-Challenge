@@ -3,11 +3,11 @@
    Boot, screens, the frame loop and the keyboard. The mechanic is in
    core/game.js; this file only wires it to the page.
 
-   Screens: title → setup (mode buttons + Command Box count, one combined step)
+   Screens: title → setup (mode buttons + Command Line count, one combined step)
             → play → over → setup.
    ⏳ The title and end screens here are functional placeholders: their design
-   is deferred (packet §11 items 14–15). Play has a how-to panel down one side
-   (Refinement 2 §1); there is still no instruction screen of its own.
+   is deferred (packet §11 item 15). The how-to panel down one side of play
+   (Refinement 2 §1) IS the instruction screen and command reference (E10).
    ========================================================================= */
 (function () {
   var ET = window.ET;
@@ -98,6 +98,7 @@
     $("#hud-mode").textContent = MODES.filter(function (m) { return m.id === mode; })[0].label;
     ET.view.reset();
     ET.boxes.setup(boxes);
+    paintHowTo(mode);
     show("play");
     app.game.start();
     flush();
@@ -208,17 +209,21 @@
 
   /* ---------------------------------------------------------------- boot */
   /* Refinement 2 §1: the how-to panel. Simple how-to only; it NEVER lists CAV durations. */
-  function paintHowTo() {
+  function paintHowTo(mode) {
     var lines = [
       ["GOAL", "Clear each egg with RCAV once its clock goes bold, before it hatches."],
-      ["SYNTAX", "RCAV <unit>, e.g. RCAV 2101"],
+      ["SYNTAX", "RCAV <unit>, e.g. RCAV 2101"]
+    ];
+    // E8 (ruled): the placement line only in the modes that place; hidden in Clear CAVs Only
+    if (mode === "both" || mode === "progression") lines.push(["PLACE", "CAV <unit> <type>, e.g. CAV 2101 VS"]);
+    lines = lines.concat([
       ["AD", "The post-it tells you when to clear."],
       ["VF", "Clear when “Clear Fueling” pops up."],
       ["SWITCH", "Command Lines: Tab" + (ET.boxes.inFangRock() ? " or Ctrl+Tab" : "")],
       ["F12", "Clear the active Command Line."],
       ["ESC", "Pause."],
       ["CLEANUP", "Drag the hose over messes."]
-    ];
+    ]);
     var ul = $("#howto ul");
     ul.innerHTML = "";
     lines.forEach(function (l) {
@@ -234,7 +239,7 @@
   function wire() {
     ET.view.build();
     ET.boxes.build({ submit: submit });
-    paintHowTo();
+    paintHowTo("clear");
     ET.devmode.build({
       toggled: function (on) {
         $("#setup-dev").hidden = !on;

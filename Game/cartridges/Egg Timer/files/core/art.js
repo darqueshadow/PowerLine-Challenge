@@ -17,26 +17,15 @@
     return e;
   }
 
-  /* The cooked eggs. Refinement 2 §5 picks one by timing (FRIED, below); the
-     older four were the packet's random examples (§7). */
+  /* The fried eggs, picked by timing (Refinement 2 §5). The random pool of
+     poached, deviled and scrambled is retired (E11). */
   var SPLATS = {
     sunny: function (g) {
       el("path", { class: "white", d: "M-30 4 C-34 -14 -14 -22 0 -18 C16 -26 34 -12 30 4 C34 20 12 26 -2 22 C-18 28 -36 18 -30 4Z" }, g);
       el("circle", { class: "yolk", cx: 2, cy: 0, r: 10 }, g);
       el("circle", { class: "shine", cx: -1, cy: -4, r: 3 }, g);
     },
-    scrambled: function (g) {
-      [[-16, -6, 9], [0, -10, 10], [15, -3, 9], [-8, 9, 10], [10, 11, 9], [-22, 8, 6], [24, 10, 6]].forEach(function (b) {
-        el("circle", { class: "yolk", cx: b[0], cy: b[1], r: b[2] }, g);
-      });
-      el("circle", { class: "shine", cx: -2, cy: -12, r: 3 }, g);
-    },
-    poached: function (g) {
-      el("ellipse", { class: "white", cx: 0, cy: 2, rx: 27, ry: 21 }, g);
-      el("ellipse", { class: "yolk pale", cx: 0, cy: 0, rx: 13, ry: 11 }, g);
-      el("ellipse", { class: "shine", cx: -6, cy: -5, rx: 5, ry: 3 }, g);
-    },
-    // early third's miss: the yolk has run
+    // middle third: the yolk has run
     broken: function (g) {
       el("path", { class: "white", d: "M-30 4 C-34 -14 -14 -22 0 -18 C16 -26 34 -12 30 4 C34 20 12 26 -2 22 C-18 28 -36 18 -30 4Z" }, g);
       el("path", { class: "yolk", d: "M-8 -6 C-2 -12 10 -8 10 -1 C16 4 22 8 14 12 C8 14 4 8 0 10 C-6 14 -16 12 -12 4 C-14 0 -12 -4 -8 -6Z" }, g);
@@ -46,14 +35,6 @@
       el("path", { class: "white burnt", d: "M-30 4 C-34 -14 -14 -22 0 -18 C16 -26 34 -12 30 4 C34 20 12 26 -2 22 C-18 28 -36 18 -30 4Z" }, g);
       [[-12, -4, 7], [2, -8, 8], [13, -1, 7], [-5, 8, 7], [9, 9, 6]].forEach(function (b) {
         el("circle", { class: "yolk scorched", cx: b[0], cy: b[1], r: b[2] }, g);
-      });
-    },
-    deviled: function (g) {
-      [-15, 15].forEach(function (x) {
-        el("ellipse", { class: "white", cx: x, cy: 4, rx: 14, ry: 19 }, g);
-        el("ellipse", { class: "yolk", cx: x, cy: 3, rx: 8, ry: 10 }, g);
-        el("circle", { class: "paprika", cx: x - 2, cy: 1, r: 1.8 }, g);
-        el("circle", { class: "paprika", cx: x + 3, cy: 6, r: 1.8 }, g);
       });
     }
   };

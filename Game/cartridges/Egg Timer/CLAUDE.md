@@ -32,7 +32,10 @@ a session must not re-derive or break. Decision history lives in the memory stor
   `46469a4`, so either can be rolled back alone: the how-to panel, the hose, a larger wall clock, the
   most-recently-used switcher (quick Tab tap flips; Ctrl+Tab inside Fang Rock only), the frying pan and
   fried eggs by overtime third, ERROR on any rejected Enter, and placeholder sounds (`core/audio.js`).
-  Open: **E5–E11** (⏳ `hoseWhen`, `errorOnEmpty`; the rest in the packet's §11).
+  **E5–E8, E10, E11 ruled the same day** (hose whenever the player wipes; empty Enter does nothing;
+  players see **"Command Line"**, never "Command Box"; a Place line in Both and Follow Progression only;
+  the panel IS the instruction screen; the random cooked eggs are retired). **E9 open with Andrew**:
+  Alt+Tab-style Ctrl+Tab (release Ctrl confirms) or keep as built.
 - **Still open (packet §11):** **D3**, the Developer Mode phrase (`devModePasswordHash`, ⏳, null
   denies every entry). Andrew gives Code the digest from `ET.plcDigest('PHRASE')`, never the phrase.
   When it arrives, set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
@@ -126,7 +129,7 @@ a session must not re-derive or break. Decision history lives in the memory stor
 - **Clear and hatch look:** a frying pan slams on a clear (under 0.5 s, pure CSS: it must never hold the
   keyboard) and the fried egg shows the overtime third: sunny-side-up, broken yolk, burnt. On a hatch the
   pan comes down late on the empty nest. The how-to panel beside play **never lists CAV durations**.
-- **Command Boxes:** 1–4, picked on the mode-selection screen, in all three modes, inside one page.
+- **Command Lines** (players never see "Command Box", E7; the code says boxes): 1–4, picked on the mode-selection screen, in all three modes, inside one page.
   Each box has its own colour. Staged text in an inactive box clears when a new wave starts. **F12**
   keeps its arcade-wide meaning: clear the active box, no penalty.
 - **Keys:** **Tab** opens the switcher (no-op with 1 box), listed most-recently-used first and open on
@@ -174,5 +177,4 @@ The Timer Refinement (`46469a4`, local) and Refinement 2 (on top, uncommitted) a
 pass, **unpushed**, waiting on Andrew's local playtest. Live for players on the public site since 2026-09-19, and its table in Nerva Beacon's Arcade fires (NB
 `4f8e940`); both are written up in `docs/decisions.md` at the repo root. Waiting on
 Andrew for the D3 digest (until then Developer Mode denies every entry, on the live site too). Next, each a
-design call through Chat: E5–E11, whether the how-to panel is the instruction screen (E10), art
-direction, the title/end screens, and real audio.
+design call: E9 (with Andrew), art direction, the title/end screens, and real audio.

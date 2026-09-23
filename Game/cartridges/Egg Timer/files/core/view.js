@@ -84,6 +84,15 @@
 
   function flash(v, kind) { replay(v.fx, "fx", kind); }
 
+  /* E5 (ruled): the hose all through cleanup, and mid-wave while a drag is wiping. */
+  var inCleanup = false;
+  function paintHose() {
+    var w = ET.CONFIG.hoseWhen;
+    var on = w === "always" || inCleanup || (w === "wiping" && field.classList.contains("wiping"));
+    field.classList.toggle("hose", on);
+    return on;
+  }
+
   /* ⏳ placeholder: water from the hose while a drag is wiping. */
   function spray(x, y) {
     var f = field.getBoundingClientRect();
@@ -118,7 +127,7 @@
         n.dataset.id = i;
         n.dataset.state = "idle";
         n.hidden = true;
-        // padded inside the field, so an edge nest's readout never runs under the HUD or the Command Boxes
+        // padded inside the field, so an edge nest's readout never runs under the HUD or the Command Lines
         n.style.left = (6 + (col + 0.5 + offs[i].dx) / ET.Game.COLS * 88) + "%";
         n.style.top = (7 + (row + 0.5 + offs[i].dy) / ET.Game.ROWS * 84) + "%";
         n.style.setProperty("--tilt", offs[i].tilt + "deg");
@@ -176,6 +185,7 @@
         v.pan.className = "pan";
         v.fx.className = "fx";
       });
+      inCleanup = false;
       field.classList.remove("hose");
       banner.hidden = true;
       popups.innerHTML = "";
@@ -223,8 +233,9 @@
         for (var k = 0; k < v.cracks.length; k++) v.cracks[k].style.strokeDashoffset = off;
       });
 
-      // ⏳ E5: the hose is the cursor during cleanup (the wipe underneath is unchanged)
-      field.classList.toggle("hose", ET.CONFIG.hoseWhen === "always" || snap.phase === "cleanup");
+      // E5: the hose whenever the player wipes (the wipe underneath is unchanged)
+      inCleanup = snap.phase === "cleanup";
+      paintHose();
 
       if (snap.phase === "cleanup") {
         var left = banner.querySelector(".left");
@@ -329,7 +340,7 @@
         return hits;
       }
       function wipe(ev) {
-        if (field.classList.contains("hose")) spray(ev.clientX, ev.clientY);
+        if (paintHose()) spray(ev.clientX, ev.clientY);
         at(ev).forEach(function (h) {
           var from = last && last.id === h.v.el.dataset.id ? last : { x: h.x, y: h.y };
           ET.mess.wipe(h.v.mess, from.x, from.y, h.x, h.y, ET.CONFIG.wipeRadius * h.sx);
@@ -351,6 +362,7 @@
       function end(ev) {
         if (!field.classList.contains("wiping")) return;
         field.classList.remove("wiping");
+        paintHose();
         last = null;
         if (ET.boxes) ET.boxes.focus();
       }
