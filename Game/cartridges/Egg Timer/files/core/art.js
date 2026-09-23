@@ -137,6 +137,31 @@
       return d;
     },
 
+    /* ⏳ placeholder: the scary alien-mom face (Refinement 5 §5): the title's mommy gone wrong. Her three eyes
+       bloodshot with pinprick pupils, the too-wide smile split open into a maw of teeth, drooling. */
+    momFaceSvg: function () {
+      var svg = el("svg", { class: "mom-face", viewBox: "-100 -100 200 200", "aria-hidden": "true" });
+      [[-44, -70], [0, -86], [44, -70]].forEach(function (p) {
+        el("path", { class: "stalk", d: "M" + (p[0] * 0.5) + " -40 Q" + (p[0] * 0.9) + " " + (p[1] + 26) + " " + p[0] + " " + p[1] }, svg);
+      });
+      el("ellipse", { class: "skin", cx: 0, cy: 10, rx: 82, ry: 80 }, svg);
+      el("ellipse", { class: "shade", cx: 0, cy: 44, rx: 70, ry: 40 }, svg);
+      el("path", { class: "maw", d: "M-72 4 Q0 118 72 4 Q0 40 -72 4Z" }, svg);
+      var top = "M-66 10", bot = "M-54 44";
+      for (var i = 0; i < 12; i++) { top += " L" + (-60 + i * 11) + " " + (26 + (i % 2) * 2) + " L" + (-55 + i * 11) + " " + (12 + i % 3); }
+      for (var j = 0; j < 9; j++) { bot += " L" + (-48 + j * 11) + " " + (38 - (j % 2) * 3) + " L" + (-43 + j * 11) + " " + (54 + j % 2 * 2); }
+      el("path", { class: "teeth", d: top }, svg);
+      el("path", { class: "teeth", d: bot }, svg);
+      el("path", { class: "drool", d: "M18 58 C20 72 14 80 18 94 C24 82 26 70 26 56Z" }, svg);
+      [[-44, -70], [0, -86], [44, -70]].forEach(function (p) {
+        el("circle", { class: "eye", cx: p[0], cy: p[1], r: 15 }, svg);
+        el("path", { class: "vein", d: "M" + (p[0] - 13) + " " + (p[1] - 4) + " l7 3 l3 -4 M" + (p[0] + 12) + " " + (p[1] + 6) + " l-6 -1 l-2 4" }, svg);
+        el("circle", { class: "pin", cx: p[0], cy: p[1] + 2, r: 2.6 }, svg);
+      });
+      el("path", { class: "brow", d: "M-40 -22 L-12 -8 M40 -22 L12 -8" }, svg);
+      return svg;
+    },
+
     /* ⏳ placeholder: the frying pan that slams down on a clear (and late, on a hatch). */
     panEl: function () {
       var d = document.createElement("div");

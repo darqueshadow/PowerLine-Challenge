@@ -269,6 +269,59 @@
     }
   }
 
+  /* Refinement 5 §5: the scary mom face. Each wave draws once whether it gets one (momFaceChance) and when
+     (momFaceWindow, the player's seconds after the wave starts, read off the game's own clock so a pause holds
+     it). When it comes it pops in for momFaceSeconds, either down from the top screen edge into the space over
+     the HUD bar and the band above the board, between the TIME WARP panel and the wall clock, or up out of the
+     how-to panel. It is drawn inside a clipping box that IS that zone, so it can't reach a nest, a readout or a
+     Command Line whatever the window size; it takes no pointer or keyboard, and it slides rather than flashes. */
+  var mom = null, momAt = null, momShown = 0;
+  function buildMom() {
+    var screen = field.closest(".screen");
+    var box = document.createElement("div");
+    box.id = "mom";
+    box.hidden = true;
+    box.setAttribute("aria-hidden", "true");
+    var face = document.createElement("div");
+    face.className = "face";
+    face.appendChild(ET.art.momFaceSvg());
+    box.appendChild(face);
+    screen.appendChild(box);
+    mom = { box: box, face: face, timer: null };
+  }
+  function momZone(which) {
+    var sr = mom.box.parentNode.getBoundingClientRect(), br = board.getBoundingClientRect();
+    if (which === "panel") {
+      var h = document.querySelector("#howto").getBoundingClientRect();
+      return { left: h.left - sr.left, top: h.top - sr.top, width: h.width, height: h.height, from: "bottom" };
+    }
+    // the top: from the screen's top edge down to the board, between the TIME WARP panel and the wall clock
+    var w = warp.getBoundingClientRect(), c = wall.hm.closest(".wallclock").getBoundingClientRect();
+    return { left: w.right - sr.left + 8, top: 0, width: Math.max(0, c.left - w.right - 16), height: br.top - sr.top, from: "top" };
+  }
+  function showMom(which) {
+    var C = ET.CONFIG;
+    which = which || (Math.random() < 0.5 ? "top" : "panel");
+    var z = momZone(which);
+    var size = Math.min(z.width * 0.9, which === "panel" ? z.height * 0.45 : z.height * 0.98);
+    if (size < 40) return null;                                   // no room at this window size: skip it
+    var b = mom.box;
+    b.style.left = z.left + "px"; b.style.top = z.top + "px";
+    b.style.width = z.width + "px"; b.style.height = z.height + "px";
+    mom.face.style.width = mom.face.style.height = size + "px";
+    mom.face.style.left = (z.width - size) / 2 + "px";
+    mom.face.style.top = z.from === "top" ? "0" : "";
+    mom.face.style.bottom = z.from === "bottom" ? "0" : "";
+    b.style.setProperty("--mom", C.momFaceSeconds + "s");
+    b.hidden = false;
+    replay(mom.face, "face", "from-" + z.from);
+    momShown++;
+    if (ET.audio) ET.audio.hiss(C.momFaceSeconds, C.momFaceVolume);
+    clearTimeout(mom.timer);
+    mom.timer = setTimeout(function () { b.hidden = true; }, C.momFaceSeconds * 1000 + 50);
+    return which;
+  }
+
   ET.view = {
     build: function () {
       field = $("#field");
@@ -337,6 +390,7 @@
       ET.view.bindWipe();
       buildHose();
       buildCords();
+      buildMom();
     },
 
     reset: function () {
@@ -360,6 +414,10 @@
       cords.list.forEach(function (c) { c.g.style.display = "none"; });
       popups.innerHTML = "";
       noTypesShown = false;
+      momAt = null;
+      momShown = 0;
+      clearTimeout(mom.timer);
+      mom.box.hidden = true;
     },
 
     render: function (snap) {
@@ -406,6 +464,12 @@
         for (var k = 0; k < v.cracks.length; k++) v.cracks[k].style.strokeDashoffset = off;
       });
 
+      // Refinement 5 §5: the scary mom face, when this wave's moment comes (never in cleanup or on pause)
+      if (momAt !== null && snap.phase === "wave" && snap.time >= momAt) {
+        momAt = null;
+        showMom();
+      }
+
       // E5: the hose whenever the player wipes (the wipe underneath is unchanged)
       inCleanup = snap.phase === "cleanup";
       paintHose();
@@ -427,9 +491,13 @@
             break;
           case "wave-start":
             cleanup.el.hidden = true;
+            // Refinement 5 §5: at most one scary mom face this wave, and sometimes none
+            var mw = ET.CONFIG.momFaceWindow;
+            momAt = Math.random() < ET.CONFIG.momFaceChance ? game.time + mw[0] + Math.random() * (mw[1] - mw[0]) : null;
             showBanner([{ text: "WAVE " + e.wave, cls: "big" }, { text: e.quota + " CAVs" }], 1600);
             break;
           case "wave-end":
+            momAt = null;   // a wave that ends before its moment gets none
             // Refinement 3 §3: the whole cleanup prompt, with the wave's result, goes in the banner up top
             var result = ["WAVE " + e.wave + " CLEAR"];
             if (e.perfect) result.push("PERFECT +" + e.bonus);
@@ -563,6 +631,11 @@
 
     /* For rigs: drop `count` blobs evenly over the board, as a clear does. */
     fling: function (count) { fling(count); },
+
+    /* For rigs: the scary mom face. `mom(which)` shows it now ("top" or "panel") and returns where it went;
+       `momState()` gives this game's count so far and the next scheduled time. */
+    mom: function (which) { return showMom(which); },
+    momState: function () { return { shown: momShown, at: momAt, visible: !mom.box.hidden }; },
 
     /* For rigs: a nest's cord, if one is showing. */
     cord: function (id) {

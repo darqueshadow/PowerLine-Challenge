@@ -158,6 +158,13 @@
     // §3: the how-to panel's doodles. Every so often one of them turns to a new angle.
     doodleTurnEvery: 2.5,          // [T] seconds between turns (one doodle at a time)
     doodleTurnMax: 28,             // [T] degrees either way
+    // §5: the scary mom face. At most once a wave, sometimes not at all; under a second; from the top screen
+    // edge (over the HUD bar and the band above the board) or up out of the how-to panel. Never over a nest,
+    // a readout or a Command Line, never takes input, no flashing.
+    momFaceChance: 0.6,            // [T] the chance a wave gets one
+    momFaceWindow: [4, 30],        // [T] when, in the player's seconds after the wave starts (a wave that ends first gets none)
+    momFaceSeconds: 0.85,          // [T] in, a beat, out
+    momFaceVolume: 0.12,           // [T] the hiss and gurgle, low-ish
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

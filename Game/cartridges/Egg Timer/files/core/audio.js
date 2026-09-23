@@ -111,6 +111,35 @@
       tone("triangle", 520, 180, 0.12, 0.1, 0.05);
     },
 
+    /* ⏳ placeholder: the scary mom face's creepy hiss and wet gurgle, not a scream (Refinement 5 §5). */
+    hiss: function (seconds, volume) {
+      var a = ready();
+      if (!a) return;
+      var t = a.currentTime, n = Math.floor(a.sampleRate * seconds);
+      var buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = a.createBufferSource(), bp = a.createBiquadFilter(), hg = a.createGain();
+      src.buffer = buf;
+      bp.type = "bandpass"; bp.frequency.setValueAtTime(2600, t); bp.frequency.linearRampToValueAtTime(4200, t + seconds); bp.Q.value = 1.2;
+      hg.gain.setValueAtTime(0.0001, t);
+      hg.gain.exponentialRampToValueAtTime(volume, t + seconds * 0.3);
+      hg.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+      src.connect(bp).connect(hg).connect(a.destination);
+      src.start(t);
+      // the gurgle: a low tone, its pitch wobbled fast and unevenly
+      var o = a.createOscillator(), lfo = a.createOscillator(), depth = a.createGain(), og = a.createGain();
+      o.type = "sine"; o.frequency.value = 85;
+      lfo.type = "square"; lfo.frequency.setValueAtTime(11, t); lfo.frequency.linearRampToValueAtTime(17, t + seconds);
+      depth.gain.value = 28;
+      lfo.connect(depth).connect(o.frequency);
+      og.gain.setValueAtTime(0.0001, t);
+      og.gain.exponentialRampToValueAtTime(volume * 1.4, t + seconds * 0.25);
+      og.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+      o.connect(og).connect(a.destination);
+      o.start(t); lfo.start(t);
+      o.stop(t + seconds + 0.05); lfo.stop(t + seconds + 0.05);
+    },
+
     buzz: function () { tone("sawtooth", 140, 120, 0.22, 0.18); },
 
     /* The title tune, on or off. Browsers only let a page make sound after a key press or click, so in a

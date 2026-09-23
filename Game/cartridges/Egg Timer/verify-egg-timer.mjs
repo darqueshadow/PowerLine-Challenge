@@ -832,6 +832,52 @@ try {
     await shot("13b-warp-over");
   }
 
+  /* ------------------------------------------------------- Q. the scary mom face */
+  section("Q. the scary mom face (Refinement 5 §5)");
+  await ev("__et.start('both', 4)");
+  await ev("__et.advance(0.1)");
+  {
+    const C0 = await ev("JSON.stringify([ET.CONFIG.momFaceChance, ET.CONFIG.momFaceWindow])");
+    ok((await ev("ET.CONFIG.momFaceSeconds")) < 1, `it lasts under a second   [${await ev("ET.CONFIG.momFaceSeconds")} s]`);
+    await ev("window.__hiss = 0; (function (h) { ET.audio.hiss = function () { window.__hiss++; return h.apply(this, arguments); }; })(ET.audio.hiss)");
+    for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
+      await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+      await ev(`(() => { document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()`);
+      await wait(150);
+      for (const zone of ["top", "panel"]) {
+        const went = await ev(`ET.view.mom('${zone}')`);
+        await wait(Math.round(0.45 * 1000 * (await ev("ET.CONFIG.momFaceSeconds"))));   // mid-way: fully in
+        const m = await ev(`(() => {
+          const box = document.querySelector('#mom'), b = box.getBoundingClientRect(), f = box.querySelector('.face').getBoundingClientRect();
+          const hit = (a, c) => a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom;
+          const seen = { left: Math.max(b.left, f.left), right: Math.min(b.right, f.right), top: Math.max(b.top, f.top), bottom: Math.min(b.bottom, f.bottom) };
+          const keep = [...document.querySelectorAll('.nest .nest-art, .nest .readout')].map(e => e.getBoundingClientRect()).concat([document.querySelector('#console').getBoundingClientRect()]);
+          return { shown: !box.hidden, covers: keep.filter(r => hit(b, r)).length, big: seen.bottom - seen.top, pe: getComputedStyle(box).pointerEvents,
+                   anim: getComputedStyle(box.querySelector('.face')).animationName, focused: __et.boxes().focused };
+        })()`);
+        const at = `[${zone}, ${w}×${h}]`;
+        ok(went === zone && m.shown && m.big > 40, `it pops in ${zone === "top" ? "from the top edge" : "out of the side panel"}   ${at} [${Math.round(m.big)}px showing]`);
+        eq(m.covers, 0, `…never over a nest, a readout or a Command Line   ${at}`);
+        ok(m.pe === "none" && m.focused && /^mom-(top|bottom)$/.test(m.anim), `…takes no input (the Command Line keeps the keyboard) and slides rather than flashes   ${at}`);
+        if (SHOTS && (w === 1440 || w === 1024)) await shot(`14-mom-${zone}-${w}x${h}`);
+        await wait(700);
+      }
+    }
+    await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    ok(await ev("document.querySelector('#mom').hidden"), "…and is gone again within a second");
+    ok((await ev("window.__hiss")) >= 8, `each one comes with the hiss and gurgle   [${await ev("window.__hiss")} of 8]`);
+    // the schedule: at most once a wave, sometimes not at all, held by a pause
+    await ev("ET.CONFIG.momFaceChance = 1; ET.CONFIG.momFaceWindow = [0.5, 1]; __et.start('clear', 1); __et.advance(0.1); 1");
+    await ev("__et.advance(3)");
+    const once = await ev("ET.view.momState()");
+    await ev("__et.advance(12)");
+    const still = await ev("ET.view.momState()");
+    ok(once.shown === 1 && still.shown === 1 && (await snap()).wave === 1, `at most once a wave   [${once.shown}, then ${still.shown} later in wave 1]`);
+    await ev("ET.CONFIG.momFaceChance = 0; __et.start('clear', 1); __et.advance(0.1); __et.advance(20); 1");
+    eq((await ev("ET.view.momState()")).shown, 0, "…and some waves get none");
+    await ev(`(() => { const c0 = ${C0}; ET.CONFIG.momFaceChance = c0[0]; ET.CONFIG.momFaceWindow = c0[1]; return 1; })()`);
+  }
+
   /* ------------------------------------------------------------ K. errors */
   section("K. a clean run");
   const errs = c.errors().filter((e) => !/favicon\.ico/.test(e));
