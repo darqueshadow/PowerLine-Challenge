@@ -233,11 +233,12 @@ try {
   eq(await boxes(), ["900 rgb(11, 93, 30) rgb(255, 255, 255)", "900 rgb(0, 0, 0) rgb(185, 185, 198)", "900 rgb(255, 255, 255) rgb(255, 45, 138)"],
     "Refinement 5 §2: at the limit, all three at once: unit bold dark green on white, type bold black on grey, timer bold white on hot pink");
   const expect = { VS: 10, STR: 10, SS: 15, EOS: 30, MB: 30 }[n.code];
-  // the rig samples every 0.25 s, which is 7.5 displayed seconds at base speed, so the trigger reads N:00 to N:07
+  // the rig samples every 0.25 s, which is 7.5 displayed seconds at base speed, and the live page also keeps
+  // stepping in real time between samples, so the trigger reads N:00 to N:09 (a flake read N:08 against "< 8")
   if (expect) {
     const clk = await ev(`${q(".clock")}.textContent`);
     const [mm, ss] = clk.split(":").map(Number);
-    ok(mm === expect && ss < 8, `the nest clock shows displayed time: ${n.code} goes bold at ${expect}:00   [${clk}]`);
+    ok(mm === expect && ss < 10, `the nest clock shows displayed time: ${n.code} goes bold at ${expect}:00   [${clk}]`);
   }
   ok(Number(await ev(`${q(".crack")}.style.strokeDashoffset`)) <= 1, "the egg starts cracking");
   await shot("03-bold");
@@ -811,6 +812,7 @@ try {
     })()`);
     const G = "rgb(61, 255, 154)";
     const g1 = await glow();
+    eq(await ev("ET.CONFIG.warpGlow"), "unlocked", "⏳ E22: \"active nests\" is built as every nest in play, egg or not");
     ok(g1.active.length === 5 && g1.active.every((x) => x.border === G && x.art.includes("drop-shadow")), `Refinement 5 §1: during the warp every active nest and its boxes' borders glow Time Warp green   [${g1.active.length} active]`);
     ok(g1.inactive.every((x) => x.border !== G && x.art === "none"), "…but not the inactive nests");
     await shot("13-time-warp");
@@ -838,6 +840,7 @@ try {
   await ev("__et.advance(0.1)");
   {
     const C0 = await ev("JSON.stringify([ET.CONFIG.momFaceChance, ET.CONFIG.momFaceWindow])");
+    eq(await ev("ET.CONFIG.momFaceZones"), ["top", "panel"], "⏳ E23: both zones are in use (the top one covers the HUD bar, the panel one some how-to text, for that moment)");
     ok((await ev("ET.CONFIG.momFaceSeconds")) < 1, `it lasts under a second   [${await ev("ET.CONFIG.momFaceSeconds")} s]`);
     await ev("window.__hiss = 0; (function (h) { ET.audio.hiss = function () { window.__hiss++; return h.apply(this, arguments); }; })(ET.audio.hiss)");
     for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {

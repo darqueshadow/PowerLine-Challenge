@@ -155,12 +155,19 @@
     dishSeconds: 1.0,              // [T] how long a fast clear's dish and caption show over the nest
 
     // ── Refinement 5 (2026-09-23) ────────────────────────────────────────────
+    // §1: while Time Warp runs, "all ACTIVE nests" glow Time Warp green.
+    // ⏳ PENDING (E22): built as every nest in play ("unlocked": the 5 → 12 that have opened, egg or not);
+    //   "running" glows only the nests with a CAV on its clock (laying or running).
+    warpGlow: "unlocked",          // "unlocked" | "running"
     // §3: the how-to panel's doodles. Every so often one of them turns to a new angle.
     doodleTurnEvery: 2.5,          // [T] seconds between turns (one doodle at a time)
     doodleTurnMax: 28,             // [T] degrees either way
     // §5: the scary mom face. At most once a wave, sometimes not at all; under a second; from the top screen
     // edge (over the HUD bar and the band above the board) or up out of the how-to panel. Never over a nest,
     // a readout or a Command Line, never takes input, no flashing.
+    // ⏳ PENDING (E23): both zones are built. Each covers something for that moment: "top" the HUD bar
+    //   (wave, pool, score), "panel" part of the how-to text. Dropping one here keeps it to the other.
+    momFaceZones: ["top", "panel"],
     momFaceChance: 0.6,            // [T] the chance a wave gets one
     momFaceWindow: [4, 30],        // [T] when, in the player's seconds after the wave starts (a wave that ends first gets none)
     momFaceSeconds: 0.85,          // [T] in, a beat, out

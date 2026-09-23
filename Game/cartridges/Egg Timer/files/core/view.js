@@ -301,7 +301,8 @@
   }
   function showMom(which) {
     var C = ET.CONFIG;
-    which = which || (Math.random() < 0.5 ? "top" : "panel");
+    var zones = C.momFaceZones;   // E23
+    which = which || zones[Math.floor(Math.random() * zones.length)];
     var z = momZone(which);
     var size = Math.min(z.width * 0.9, which === "panel" ? z.height * 0.45 : z.height * 0.98);
     if (size < 40) return null;                                   // no room at this window size: skip it
@@ -431,7 +432,7 @@
       wall.hm.textContent = hhmm(snap.wall);
       wall.ss.textContent = two(Math.floor(snap.wall) % 60);
       warp.classList.toggle("lit", !!snap.warp);
-      board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the active nests glow while it runs
+      board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the active nests glow while it runs (E22)
 
       snap.nests.forEach(function (s) {
         var v = nests[s.id];
@@ -444,6 +445,7 @@
         v.clock.textContent = s.state === "active" || s.state === "overtime" ? clockText(s.elapsed) : "--:--";
 
         el.classList.toggle("bold", s.state === "overtime");
+        el.classList.toggle("glow", !!snap.warp && (C.warpGlow === "running" ? (s.state === "laying" || s.state === "active") : !el.classList.contains("inactive")));
         // C15(b) (ruled): a running VF hides its egg and its timer until "Clear Fuel"; the unit and "VF" stay
         el.classList.toggle("hide-egg", s.hidden);
         el.classList.toggle("hide-readout", s.hidden && C.vfHides === "readout");
