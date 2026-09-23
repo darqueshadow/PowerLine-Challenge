@@ -9,8 +9,8 @@
      clock  the displayed seconds every clock on screen shows. It runs sped up, at one
             shared rate that steps up on even waves, and a CAV goes bold on it.
    The wall clock is wallStart + clock, wrapped at midnight.
-   Time Warp (Refinement 3 §4): once the wave has spawned its last egg and no egg
-   is bold, `clock` runs warpFactor times as fast, until the next egg goes bold.
+   Time Warp (Refinement 3 §4, E18): once the wave's last CAV has started (none
+   still waiting to be placed) and no egg is bold, `clock` runs warpFactor times as fast, until the next egg goes bold.
    `time` never warps, so the overtime window is never shortened.
 
    A nest's life (packet §6–§7):
@@ -221,11 +221,13 @@
     return (((this.wallStart + this.clock) % 86400) + 86400) % 86400;
   };
 
-  /* Time Warp is on while the wave's last egg has spawned and no egg is bold (checked every step, so
-     it re-checks after each clear and hatch). */
+  /* Time Warp is on once the wave's last CAV has spawned AND started, and no egg is bold (checked every
+     step, so it re-checks after each clear and hatch). */
   Game.prototype.warping = function () {
     if (this.phase !== "wave" || this.spawned < this.quota) return false;
-    return !this.nests.some(function (n) { return n.unlocked && n.state === "overtime"; });
+    // E18 (ruled): not while a placement trigger is still waiting; the last CAV must have started
+    // (placed or auto-opened), and no egg may be bold
+    return !this.nests.some(function (n) { return n.unlocked && (n.state === "overtime" || n.state === "trigger"); });
   };
 
   Game.prototype.step = function (dt) {

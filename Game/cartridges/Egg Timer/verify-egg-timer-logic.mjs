@@ -544,6 +544,24 @@ section("Q. Refinement 3 §7: egg-laying");
   eq(g.snapshot().nests.find((x) => x.id === n.id).hidden, true, "⏳ E16: a VF being laid reports itself hidden (no egg to show until its trigger)");
 }
 
+section("R. E18 (ruled): no Time Warp while a placement trigger is still waiting");
+{
+  // Both: every spawn is a trigger. Place all but the wave's last one and let it wait.
+  const g = game("both", [T("VS", 10)]);
+  let warpedWithTrigger = false, sawLastWaiting = false, warpAfter = false;
+  for (let i = 0; i < 20000 && g.wave === 1; i++) {
+    g.step(0.05);
+    const trig = inState(g, "trigger");
+    trig.forEach((n) => { if (g.spawned < g.quota) g.submit(`CAV ${n.unit} VS`); });
+    if (g.spawned >= g.quota && inState(g, "trigger").length) { sawLastWaiting = true; if (g.warping()) warpedWithTrigger = true; }
+    if (g.spawned >= g.quota && !inState(g, "trigger").length && g.warping()) warpAfter = true;
+    inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
+  }
+  ok(sawLastWaiting, "the wave's last spawn sat waiting to be placed");
+  ok(!warpedWithTrigger, "…and the clocks never warped while it waited");
+  ok(warpAfter, "once it started (here it auto-opened), the warp came on");
+}
+
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
 eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides, "timerDisplay" in ET.CONFIG],
   ["per-spawn", true, false, "timer", false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · C15(b) timer only · D5's switch is gone");
