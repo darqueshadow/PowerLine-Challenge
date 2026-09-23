@@ -173,6 +173,20 @@
     momFaceSeconds: 0.85,          // [T] in, a beat, out
     momFaceVolume: 0.12,           // [T] the hiss and gurgle, low-ish
 
+    // ── Arcade attract lights (Andrew approved, 2026-09-23) ─────────────────
+    // Bulbs along the how-to panel's outline. Lively on the menu screens, a slow dim twinkle in play.
+    // 🚨 SAFETY: no light may flash more than 3 times a second in any mode. Every change is refused within
+    //   lightsMinToggle of that bulb's last, so the most any bulb can do is 1 / (2 × 0.2) = 2.5 flashes a
+    //   second. Never set it below 1/6 s; the browser rig checks the log and the guard itself.
+    lightsMinToggle: 0.2,
+    lightsSpacing: 24,             // [T] px between bulbs
+    lightsAttractRate: 0.9,        // [T] menus: tries per bulb per second at a random change
+    lightsChaseEvery: [2.5, 5],    // [T] menus: seconds between chases round the panel
+    lightsChaseSpeed: 12,          // [T] bulbs a second (a bulb stays lit length / speed = 0.25 s)
+    lightsChaseLength: 3,          // [T]
+    lightsCalmRate: 0.12,          // [T] play and cleanup: tries per bulb per second…
+    lightsCalmMinToggle: 1.5,      // [T] …and never sooner than this after that bulb's last change
+
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.
     devModePasswordHash: null,

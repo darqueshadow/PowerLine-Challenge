@@ -59,6 +59,7 @@
     app.screen = name;
     document.querySelectorAll(".screen").forEach(function (s) { s.hidden = s.id !== "screen-" + name; });
     placeHowTo(name);
+    ET.lights.mode(name === "play" ? "calm" : "attract");   // arcade attract lights: lively on menus, calm in play
     if (name === "setup") paintSetup();
     // Refinement 4 §6 and E21 (ruled): the title tune plays on the title AND mode-selection screens, so it's
     // heard once the first key or click has unlocked sound; it stops when a game starts
@@ -281,6 +282,7 @@
     ET.boxes.build({ submit: submit });
     paintHowTo("clear");
     buildDoodles();
+    ET.lights.build($("#howto"));
     ET.devmode.build({
       toggled: function (on) {
         $("#setup-dev").hidden = !on;

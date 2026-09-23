@@ -332,7 +332,7 @@ h2 {
   width: clamp(170px, 15vw, 250px);
   margin: 10px 12px 12px 8px;
   padding: clamp(6px, 1.4vh, 12px) 12px 8px;
-  overflow: hidden;
+  overflow: visible;                 /* the attract lights sit ON the border; the doodle space clips itself */
   background: #fff3d1;
   color: #1a0d2e;
   border: 4px solid #1a0d2e;
@@ -362,7 +362,7 @@ h2 {
   transform: rotate(-2deg);
 }
 #howto li:nth-child(even) b { background: #b8ff9e; transform: rotate(2deg); }
-#howto .doodles { position: relative; flex: 1; min-height: 0; container-type: size; }
+#howto .doodles { position: relative; flex: 1; min-height: 0; container-type: size; overflow: hidden; }
 /* sized and placed so a doodle turned the full doodleTurnMax still clears the text above it */
 #howto .doodles .doodle { position: absolute; width: min(34cqw, 40cqh, 64px); height: auto; aspect-ratio: 1; }
 #howto .doodle { overflow: visible; transform: rotate(var(--turn, 0deg)); transition: transform 0.45s cubic-bezier(0.3, 1.8, 0.5, 1); }
@@ -373,6 +373,24 @@ h2 {
 #howto .doodle .shell { fill: #7dff6a; stroke: #1a0d2e; stroke-width: 3; }
 #howto .doodle .eye { fill: #fff; stroke: #1a0d2e; stroke-width: 2.5; }
 #howto .doodle .dot { fill: #1a0d2e; }
+
+/* Arcade attract lights (2026-09-23, ⏳ placeholder look): bulbs on the panel's border line, so they're never
+   behind a word. Lit ones pop bright on the menus; in play (.calm) a lit bulb is dim and fades slowly. The
+   blinking is lights.js's, rate-capped there (never more than 2.5 flashes a second a bulb). */
+#howto .bulbs { position: absolute; inset: -4px; pointer-events: none; z-index: 1; }
+#howto .bulb {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: #6b4a12;
+  border: 1.5px solid #1a0d2e;
+  transition: background-color 0.05s, box-shadow 0.05s, opacity 0.05s;
+}
+#howto .bulb.on { background: #ffe25a; box-shadow: 0 0 5px 1px #ffcf3a; }
+#howto.calm .bulb { opacity: 0.55; transition: background-color 0.9s, box-shadow 0.9s, opacity 0.9s; }
+#howto.calm .bulb.on { background: #d9b84a; box-shadow: 0 0 3px #b8962a; }
 
 /* ----------------------------------------------------------------- nest */
 .nest {

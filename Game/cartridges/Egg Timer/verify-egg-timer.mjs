@@ -85,17 +85,41 @@ async function menuFit(name, extra = "") {
       return { here: panel.parentNode === screen && !screen.hidden, right: innerWidth - P.right, tall: P.height / innerHeight,
                outside: parts.filter(x => x.r.top < 0 || x.r.bottom > innerHeight || x.r.left < 0 || x.r.right > innerWidth).map(x => x.id),
                underPanel: parts.filter(x => hit(x.r, P)).map(x => x.id), overlaps,
-               fits: panel.scrollHeight <= panel.clientHeight + 1, lines: panel.querySelectorAll('li').length,
-               doodled: [...panel.querySelectorAll('.doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length ${extra} };
+               fits: Math.max(...[...panel.querySelectorAll('li')].map(l => l.getBoundingClientRect().bottom)) <= P.bottom - 4, lines: panel.querySelectorAll('li').length,
+               doodled: [...panel.querySelectorAll('.doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length,
+               bulbs: panel.querySelectorAll('.bulb').length,
+               bulbOnWord: [...panel.querySelectorAll('.bulb')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length ${extra} };
     })()`);
     const at = `[${name}, ${w}×${h}]`;
     ok(f.here && f.right < 20 && f.tall > 0.9 && f.lines >= 5, `the how-to panel shows down the right edge   ${at}`);
     ok(f.outside.length === 0 && f.underPanel.length === 0 && f.overlaps.length === 0, `…with everything else on the screen inside the window, clear of the panel and of each other   ${at} ${JSON.stringify([f.outside, f.underPanel, f.overlaps])}`);
     ok(f.fits && f.doodled === 0, `…its text fitting, no doodle on a word   ${at}`);
+    ok(f.bulbs > 16 && f.bulbOnWord === 0, `…its attract lights round the edge, none behind a word   ${at} [${f.bulbs} bulbs]`);
     if (SHOTS && w === 1024) await shot(`15-panel-${name}-${w}x${h}`);
   }
   await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await wait(100);
+}
+
+/* Arcade attract lights: watch the bulb log for `seconds` and measure the worst flashing. A flash is an
+   off→on→off pair; the safety limit is 3 a second for any light or group. Groups: the panel as a whole
+   (its lit share swinging from ≤25% to ≥75% counts as one flash of the group). */
+async function watchLights(seconds) {
+  await ev("ET.lights.clearLog()");
+  await wait(seconds * 1000);
+  return ev(`(() => {
+    const log = ET.lights.log(), per = {};
+    log.forEach(e => (per[e.id] = per[e.id] || []).push(e));
+    const worst = (times) => { let m = 0; for (let i = 0; i < times.length; i++) { let n = 0; for (let j = i; j < times.length && times[j] < times[i] + 1; j++) n++; m = Math.max(m, n); } return m; };
+    let onsPerSec = 0, changesPerSec = 0;
+    Object.values(per).forEach(es => { onsPerSec = Math.max(onsPerSec, worst(es.filter(e => e.on).map(e => e.t))); changesPerSec = Math.max(changesPerSec, worst(es.map(e => e.t))); });
+    const n = ET.lights.state().bulbs; let lit = ET.lights.state().lit;
+    // replay the log backwards from now to get the lit count over time
+    const series = []; for (let i = log.length - 1; i >= 0; i--) { series.unshift([log[i].t, lit]); lit += log[i].on ? -1 : 1; }
+    const rises = []; let low = true;
+    series.forEach(([t, k]) => { if (low && k >= 0.75 * n) { rises.push(t); low = false; } else if (!low && k <= 0.25 * n) low = true; });
+    return { changes: log.length, rate: log.length / ${seconds} / n, onsPerSec, changesPerSec, groupPerSec: worst(rises), bulbs: n, mode: ET.lights.state().mode };
+  })()`);
 }
 
 async function typeAndEnter(text) {
@@ -126,6 +150,18 @@ try {
   }
   await shot("01-title");
   await menuFit("title");
+  {
+    // Arcade attract lights (Andrew approved, 2026-09-23)
+    const L = await watchLights(4);
+    eq(L.mode, "attract", "the menu screens run the arcade lights in attract mode");
+    ok(L.rate > 0.5, `…lively: bulbs blinking on and off at random, with a chase now and then   [${L.changes} changes in 4 s over ${L.bulbs} bulbs]`);
+    ok(L.onsPerSec <= 3 && L.changesPerSec <= 6, `SAFETY: no light flashes more than 3 times a second in attract mode   [worst ${L.onsPerSec} flashes, ${L.changesPerSec} changes in any 1 s]`);
+    ok(L.groupPerSec <= 3, `SAFETY: …nor the panel's lights as a group   [worst ${L.groupPerSec} in any 1 s]`);
+    const tries = await ev("(() => { let n = 0; for (let i = 0; i < 40; i++) n += ET.lights.tryToggle(0) ? 1 : 0; return n; })()");
+    ok(tries <= 1, `SAFETY: the guard refuses a bulb changing again inside 0.2 s   [${tries} of 40 rapid tries went through]`);
+    ok((await ev("ET.CONFIG.lightsMinToggle")) >= 1 / 6, "SAFETY: the guard's minimum gap is never below 1/6 s (3 flashes a second)");
+    await shot("16-lights-attract");
+  }
 
   /* ------------------------------------------------------------ B. setup */
   section("B. setup: mode buttons and box count on one screen");
@@ -690,6 +726,15 @@ try {
     ok(cb.flash && cb.times === "3", `…flashing a few times as cleanup starts, then holding steady   [${cb.times}]`);
     ok(cb.centre, "…and nothing is left in the middle of the board");
     ok(await ev("document.querySelector('#howto').parentNode.classList.contains('playrow') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "the how-to panel shows during cleanup too, in the play row");
+    {
+      await press("Escape");                     // hold the cleanup still while the lights are watched in real time
+      const L = await watchLights(4);
+      await press("Escape");
+      const dim = await ev("(() => { const b = document.querySelector('#howto .bulb'); return Number(getComputedStyle(b).opacity); })()");
+      eq(L.mode, "calm", "in play and cleanup the lights are calm");
+      ok(L.rate < 0.2 && dim <= 0.6, `…a slow, dim twinkle   [${L.changes} changes in 4 s over ${L.bulbs} bulbs, opacity ${dim}]`);
+      ok(L.onsPerSec <= 1 && L.changesPerSec <= 2 && L.groupPerSec === 0, `SAFETY: calm lights never flash fast   [worst ${L.onsPerSec} flashes, ${L.changesPerSec} changes, group ${L.groupPerSec} in any 1 s]`);
+    }
     await shot("12a-cleanup-banner");
     eq(await ev("getComputedStyle(document.querySelector('#field')).cursor.includes('url(')"), true, "during cleanup the cursor is the hose nozzle too");
     const drops = await ev(`(() => {
@@ -777,6 +822,7 @@ try {
       // Refinement 5 §3: no doodle sits on a word of the panel's text (each text line's own box, not the block's)
       const words = [];
       document.querySelectorAll('#howto .title span, #howto li').forEach(e => { const rg = document.createRange(); rg.selectNodeContents(e); words.push(...rg.getClientRects()); });
+      const bulbOnWord = [...document.querySelectorAll('#howto .bulb')].filter(d => { const r = d.getBoundingClientRect(); return words.some(w => w.width > 0 && hit(r, w)); }).length;
       const tag = document.querySelector('#hose-tag').getBoundingClientRect();
       const tagged = nests.filter(x => hit(tag, x.r) || hit(tag, x.art)).length;
       // …measured at the full turn both ways, not just wherever the doodles happen to be pointing
@@ -790,9 +836,9 @@ try {
       const clock = document.querySelector('.wallclock').getBoundingClientRect();
       const field = document.querySelector('#field').getBoundingClientRect();
       document.querySelectorAll('.nest .postit').forEach(p => { p.hidden = true; });
-      return { tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
+      return { bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
                clockCorner: clock.right > field.right - 40 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
-               howtoFits: document.querySelector('#howto').scrollHeight <= document.querySelector('#howto').clientHeight + 1,
+               howtoFits: Math.max(...[...document.querySelectorAll('#howto li')].map(l => l.getBoundingClientRect().bottom)) <= howto.bottom - 4,
                w: innerWidth, h: innerHeight };
     })()`);
     const at = `[${lay.w}×${lay.h}]`;
@@ -806,6 +852,7 @@ try {
     ok(lay.clockCorner, `the wall clock is in the board's top-right corner, left of the how-to panel   ${at}`);
     ok(lay.howtoFits, `the how-to panel fits without scrolling   ${at}`);
     eq(lay.doodled, 0, `Refinement 5 §3: no doodle covers any of the panel's text   ${at}`);
+    eq(lay.bulbOnWord, 0, `no attract light sits behind a word of the panel   ${at}`);
     ok(lay.tagged === 0 && lay.tagIn, `Refinement 5 §6: the hose tag stays on the board and touches no nest or readout   ${at}`);
     if (SHOTS) {
       await ev(`(() => { document.querySelectorAll('.mess').forEach((m, i) => i % 3 === 0 && ET.mess.splatter(m, 6)); return 1; })()`);
