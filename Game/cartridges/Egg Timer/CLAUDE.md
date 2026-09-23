@@ -21,14 +21,14 @@ the memory store (below).
   Keep each change in its own commit(s) so any one can be reverted alone. **After each push, tell Andrew in one
   line what went live.** A push also publishes other sessions' commits on `main`: check `git log origin/main..main`
   and say so if anything besides Egg Timer is going out.
-- **Open, all Andrew's:** his Nerva Beacon playtest, then the skipped-spawn log (game-over screen and console)
-  goes to Chat for the spawn-rate question (does clock speed replace or stack with the spawn-gap shrink?).
-  **D3**, the Developer Mode phrase (`devModePasswordHash`, null denies every entry): Andrew gives Code the
+- **Open with Chat:** **E22** (which nests glow in a warp, `warpGlow`) and **E23** (the mom face covering the HUD
+  bar or how-to text for its moment, `momFaceZones`), both in the packet's §11 ready to paste.
+- **Open, all Andrew's:** **D3**, the Developer Mode phrase (`devModePasswordHash`, null denies every entry): Andrew gives Code the
   digest, never the phrase; then set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
   **The shared transport sheet lists 2133–2136 and 2139 twice** (59 rows, 54 units): his call; the game dedupes.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E22**);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E24**);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it.
@@ -85,6 +85,7 @@ the memory store (below).
 - **Timer:** counts **up** in displayed time, MM:SS, through overtime. A larger 24-hour **wall clock** sits in
   the band above the board with the **Time Warp** panel: once the wave's last CAV has *started* and no egg is
   bold, every clock runs 5× [T] until an egg goes bold (the step splits there; E18). Overtime never warps.
+  While it runs the nests in play glow Time Warp green (Refinement 5; which nests is ⏳ E22).
 - **Placement:** 10 points, no penalty for waiting, but **an ignored trigger auto-opens** after 20 s (−1 s a
   wave, floor 8 s). **Any rejected Enter** clears the Command Line, shows a red ERROR under it for ~1 s and
   buzzes, with no score or pool penalty. An empty Enter does nothing (E6).
@@ -99,15 +100,20 @@ the memory store (below).
   it must never hold the keyboard), and late on the empty nest after a hatch. The **egg ladder** is cosmetic: a fast clear (first third
   of overtime [T]) serves the next dish, Scrambled → … → Steak, Eggs & Brew!; a slow clear, any ERROR or a
   hatch resets it; it carries across waves.
+- **Spawn rate (closed 2026-09-23):** the spawn-gap shrink stays **stacked** with the clock-speed escalation.
+  The skipped-spawns line on the game-over screen stays as a debug aid.
 - **Mess and hose:** a clear leaves a small splat on its own nest and drops the rest evenly over the whole board
   (on whichever nest or floor it lands); no neighbour targeting (E15), no cap; mess belongs to the nest and
   **covers its readout and post-it** (E14). Wiping is click-and-drag. **In-game the cursor is always the hose
   nozzle** (menus keep the pointer). The hose and its water draw **above the whole board** and below the how-to
   panel, the Command Lines and the HUD bar (Refinement 4, superseding E12). Water only while dragging.
-- **Readouts:** three cartoon boxes: unit white/blue, type grey/black, timer yellow/purple, hot pink/white at
-  bold. Each sized for its widest reading; a readout may run wider than its nest. Keep rig section L passing.
+  A tag on the tap: "CLEANING HOSE: click & drag to spray" (Refinement 5).
+- **Readouts:** three cartoon boxes: unit white/blue, type grey/black, timer yellow/purple; at the limit all
+  three go bold on the same instant, the unit's type dark green and the timer hot pink/white (Refinement 5). Each sized for its widest reading; a readout may run wider than its nest. Keep rig section L passing.
 - **How-to panel** beside play **is** the instruction screen (E10). It **never lists CAV durations**. Lines:
-  Goal, Switch, F12, Esc, Cleanup, plus Place in Both and Follow Progression (E8); no syntax line (E17, 🔒).
+  Goal, Switch, F12, Esc, Cleanup ("Click & drag the hose to clean up the mess."), plus Place in Both and
+  Follow Progression (E8); no syntax line (E17, 🔒). Cartoon card with turning alien doodles that never touch
+  a word (Refinement 5; the rig checks at the full turn).
 - **Command Lines** (players never see "Command Box", E7; the code says boxes): 1–4, picked on the
   mode-selection screen, each its own colour; staged text in an inactive line clears when a wave starts.
   **Tab / Shift+Tab** next / previous line, text kept; **F12** next line and clears the line it lands on (E13);
@@ -115,7 +121,11 @@ the memory store (below).
   **Esc, and only Esc, pauses.** (The switcher, Ctrl+Tab and Alt+1–4 are retired.)
 - **Title screen:** a singing mommy alien and babies (too-wide smile, too many teeth), CSS only, and an
   ORIGINAL chiptune (`audio.js` `titleTune`) on the title and mode-selection screens (E21). Fang Rock's
-  Electron starts it unprompted (measured); a browser tab at the first key.
+  Electron starts it unprompted (measured); a browser tab at the first key. The **mode-selection screen** has
+  its own creature: a three-headed singing blob whose eyes follow the cursor (never listens for keys).
+- **Horror beats (Refinement 5):** the hatchling is horrific; a **scary mom face** pops in at most once a wave,
+  under 1 s, only inside a clipping box over the HUD bar or the how-to panel, so it can never reach a nest,
+  readout or Command Line (rig section Q). Never let it take input or flash.
 - **Platform:** a plain browser tab, and Fang Rock (`fangrock://arcade/eggtimer`, in the hub's frame), which
   serves the arcade from the **local** `(PCL)/Game` folder, not GitHub Pages.
 - **Deferred:** creature, splat, dish and escape art, and every final look and sound (Gemini); the end screen
@@ -151,6 +161,6 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 `MEMORY.md` (and any ⏸ one-shot handoff it lists), then `et-track.md`, and write Egg Timer memories **there**.
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
-## State 2026-09-23 (parked)
-Everything through the E19–E21 rulings is live at `4b38103` (rigs logic 141/0, browser 206/0); no Chat question
-open. Waiting on Andrew only (Status → Open); the ⏸ handoff `handoff-et-2026-09-23b.md` has the details.
+## State 2026-09-23 (end)
+The options creature, the spawn ruling and Refinement 5 are live (rigs logic 141/0, browser 262/0). Open with
+Chat: E22–E23. Waiting on Andrew: D3 and the doubled units (Status → Open).

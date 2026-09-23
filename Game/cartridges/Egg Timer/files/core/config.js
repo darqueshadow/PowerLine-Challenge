@@ -41,7 +41,7 @@
     quotaStart: 8,
     quotaPerWave: 2,
     spawnGapStart: [5, 7],   // random range, wave 1 (seconds)
-    spawnGapShrink: 0.5,     // both ends, per wave
+    spawnGapShrink: 0.5,     // both ends, per wave; stacks with the clock-speed escalation (Spawn ruling, 2026-09-23)
     spawnGapFloor: 1,
     cleanupStart: [5, 10],   // between-wave cleanup window (seconds)
     cleanupShrink: 0.5,
