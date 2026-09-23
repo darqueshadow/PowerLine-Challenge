@@ -6,6 +6,7 @@
    Pure inline SVG with CSS animation: it is built once at boot, draws nothing
    per frame from script, and never holds up the keyboard or the game's start.
    The tune is audio.js's titleTune(), an original melody.
+   The mode-selection screen gets its own creature (buildCritter, below).
    ========================================================================= */
 (function (root) {
   var ET = (root.ET = root.ET || {});
@@ -73,6 +74,83 @@
       baby(svg, 335, 162, 0.7, false);
 
       host.appendChild(svg);
+      return svg;
+    },
+
+    /* Options creature (Andrew approved, 2026-09-23): on the mode-selection screen, a different picture from
+       the title family. ⏳ Placeholder until Gemini's: one cuddly blob with three baby heads, each singing a
+       little out of tune (mouths out of step, notes drifting crooked, one of them flat). Juxtaposition:
+       adorable, slightly wrong, so one head has a single big eye and another has three.
+       The eyes follow the cursor. It is CSS animation plus one transform per eye on a pointer move, throttled
+       to a frame; it never listens for keys and never cancels an event, so it can't block or delay menu input. */
+    buildCritter: function (host) {
+      var svg = el("svg", { viewBox: "0 0 300 200", role: "img", "aria-label": "A cuddly alien blob with three singing baby heads" });
+      var eyes = [];
+
+      [["♪", 70, 44, 0], ["♫", 232, 40, 0.7], ["♭", 150, 12, 1.3]].forEach(function (n) {
+        var t = el("text", { class: "note", x: n[1], y: n[2], style: "animation-delay:" + n[3] + "s" }, svg);
+        t.textContent = n[0];
+      });
+
+      var body = el("g", { class: "breathe" }, svg);
+      // three necks, drawn first so the heads and the blob sit over their ends
+      [[-62, 98, 84], [0, 150, 58], [62, 204, 86]].forEach(function (p) {
+        var d = "M" + (150 + p[0] * 0.45) + " 150 Q" + (150 + p[0] * 0.8) + " 118 " + p[1] + " " + (p[2] + 14);
+        el("path", { class: "neck", d: d }, body);
+        el("path", { class: "neck-fill", d: d }, body);
+      });
+      el("path", { class: "blob", d: "M60 178 C44 136 82 112 118 118 C140 104 168 104 186 118 C224 110 258 136 240 178 C226 196 74 196 60 178Z" }, body);
+      [[104, 150, 7], [182, 142, 5], [150, 172, 6], [214, 166, 4], [88, 172, 4]].forEach(function (s) {
+        el("circle", { class: "spot", cx: s[0], cy: s[1], r: s[2] }, body);
+      });
+      el("path", { class: "arm", d: "M84 158 Q106 172 122 160" }, body);   // stubby arms, hugging itself
+      el("path", { class: "arm", d: "M216 158 Q194 172 178 160" }, body);
+      el("ellipse", { class: "cheek", cx: 128, cy: 160, rx: 8, ry: 4 }, body);
+      el("ellipse", { class: "cheek", cx: 172, cy: 160, rx: 8, ry: 4 }, body);
+
+      /* One head at (x, y): `eyeAt` lists its eyes as [dx, dy, r]. The mouths sing at slightly different
+         speeds (`beat`), so the three never quite land together. */
+      function head(x, y, r, eyeAt, beat, delay, tilt) {
+        var g = el("g", { transform: "translate(" + x + " " + y + ") rotate(" + tilt + ") scale(1.2)" }, body);
+        var bob = el("g", { class: "bob", style: "animation-delay:" + delay + "s" }, g);
+        el("circle", { class: "head", cx: 0, cy: 0, r: r }, bob);
+        el("path", { class: "tuft", d: "M-3 " + (-r + 1) + " Q0 " + (-r - 12) + " 6 " + (-r - 8) }, bob);
+        eyeAt.forEach(function (e) {
+          var white = el("circle", { class: "eye", cx: e[0], cy: e[1], r: e[2] }, bob);
+          var pupil = el("circle", { class: "pupil", cx: e[0], cy: e[1], r: e[2] * 0.48 }, bob);
+          eyes.push({ white: white, pupil: pupil, r: e[2], max: e[2] * 0.46 });
+        });
+        var mouth = el("g", { class: "mouth", style: "animation-duration:" + beat + "s;animation-delay:" + delay + "s" }, bob);
+        el("ellipse", { class: "mouth-hole", cx: 0, cy: r * 0.45, rx: r * 0.28, ry: r * 0.24 }, mouth);
+        return g;
+      }
+      head(98, 84, 24, [[-9, -4, 6.5], [9, -4, 6.5]], 0.26, 0, -8);
+      head(150, 58, 27, [[0, -6, 11]], 0.31, 0.2, 2);                      // one big eye
+      head(204, 86, 23, [[-11, -3, 5], [0, -10, 5], [11, -3, 5]], 0.37, 0.45, 9);   // one eye too many
+
+      host.appendChild(svg);
+
+      // the eyes follow the pointer, at most one update a frame
+      var pending = null;
+      function look() {
+        var p = pending;
+        pending = null;
+        if (!p || host.closest(".screen").hidden) return;
+        eyes.forEach(function (e) {
+          var b = e.white.getBoundingClientRect();
+          if (!b.width) return;
+          var px = b.width / (2 * e.r);                                   // screen px per SVG unit
+          var dx = p.x - (b.left + b.width / 2), dy = p.y - (b.top + b.height / 2);
+          var d = Math.hypot(dx, dy) || 1;
+          var k = Math.min(e.max, d / px / 6) / d;                          // eases in as the pointer nears
+          e.pupil.setAttribute("transform", "translate(" + (dx * k).toFixed(2) + " " + (dy * k).toFixed(2) + ")");
+        });
+      }
+      document.addEventListener("pointermove", function (ev) {
+        if (!pending) requestAnimationFrame(look);
+        pending = { x: ev.clientX, y: ev.clientY };
+      }, { passive: true });
+
       return svg;
     }
   };

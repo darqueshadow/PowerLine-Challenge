@@ -109,6 +109,35 @@ button { font: inherit; }
 @keyframes blink-eye { 94% { transform: scaleY(0.15); } }
 
 /* ---------------------------------------------------------------- setup */
+/* Options creature (Andrew approved, 2026-09-23; ⏳ placeholder art): a lilac blob with three singing baby
+   heads, over the mode buttons. Sized by the window's height too, so the setup screen still fits 1024×640. */
+#setup-critter { width: min(300px, 40vw, 31vh); flex: none; }
+#setup-critter svg { display: block; width: 100%; overflow: visible; }
+#setup-critter .blob { fill: #c79bff; stroke: #2a0f45; stroke-width: 4; }
+#setup-critter .neck { fill: none; stroke: #2a0f45; stroke-width: 16; stroke-linecap: round; }
+#setup-critter .neck-fill { fill: none; stroke: #c79bff; stroke-width: 9; stroke-linecap: round; }
+#setup-critter .head { fill: #c79bff; stroke: #2a0f45; stroke-width: 4; }
+#setup-critter .spot { fill: #7dff6a; stroke: #2a0f45; stroke-width: 1.5; }
+#setup-critter .arm, #setup-critter .tuft { fill: none; stroke: #2a0f45; stroke-width: 4; stroke-linecap: round; }
+#setup-critter .cheek { fill: #ff8fc7; opacity: 0.85; }
+#setup-critter .eye { fill: #fff; stroke: #2a0f45; stroke-width: 2.5; }
+#setup-critter .pupil { fill: #2a0f45; }
+#setup-critter .mouth-hole { fill: #3b0a2a; stroke: #2a0f45; stroke-width: 2; }
+#setup-critter .note { font-size: 24px; fill: var(--gold); stroke: var(--shadow); stroke-width: 1.5; paint-order: stroke; opacity: 0; animation: sour-note 2.4s linear infinite; }
+/* out of tune: the notes wobble off-line as they drift up */
+@keyframes sour-note {
+  0% { transform: translate(0, 18px) rotate(0); opacity: 0; }
+  20% { opacity: 1; }
+  45% { transform: translate(-6px, -4px) rotate(-18deg); }
+  70% { transform: translate(8px, -22px) rotate(14deg); opacity: 1; }
+  100% { transform: translate(-4px, -40px) rotate(-10deg); opacity: 0; }
+}
+#setup-critter .note { transform-box: fill-box; transform-origin: center; }
+#setup-critter .breathe { animation: breathe 2.8s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes breathe { 50% { transform: scale(1.035, 0.97); } }
+#setup-critter .bob { animation: bob 0.6s ease-in-out infinite alternate; }
+#setup-critter .mouth { animation: sing 0.3s steps(2) infinite; transform-box: fill-box; transform-origin: 50% 20%; }
+@media (max-height: 700px) { #screen-setup { gap: 12px; } }
 h2 {
   margin: 8px 0 0;
   font-family: var(--font-display);
@@ -652,6 +681,6 @@ h2 {
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene * { animation: none; }
-  #title-scene .note { opacity: 1; }
+  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter * { animation: none; }
+  #title-scene .note, #setup-critter .note { opacity: 1; }
 }

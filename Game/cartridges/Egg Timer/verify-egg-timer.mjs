@@ -103,6 +103,36 @@ try {
     for (let i = 0; i < 20 && !on; i++) { await wait(100); on = await ev("__et.tune()"); }
     ok(on, "E21: the title tune plays on the mode-selection screen once the first key has unlocked sound");
   }
+  {
+    // Options creature (Andrew approved, 2026-09-23): a different picture from the title family, eyes on the cursor
+    const cr = await ev(`(() => { const s = document.querySelector('#setup-critter svg'); return s ? { heads: s.querySelectorAll('.head').length, eyes: s.querySelectorAll('.pupil').length,
+      singing: getComputedStyle(s.querySelector('.mouth')).animationName, beats: [...s.querySelectorAll('.mouth')].map(m => m.style.animationDuration), idle: getComputedStyle(s.querySelector('.breathe')).animationName,
+      titleKin: !!s.closest('#title-scene') || s.querySelectorAll('.mommy, .baby').length > 0 } : null; })()`);
+    ok(!!cr && cr.heads === 3 && !cr.titleKin, `options creature: one blob with three baby heads, not the title family   [${cr && cr.heads} heads]`);
+    ok(!!cr && cr.singing === "sing" && new Set(cr.beats).size === 3 && cr.idle === "breathe", `…each head singing a little out of step with the others, with a gentle idle   [${cr && cr.beats.join(" ")}]`);
+    const look = async (fx) => {
+      await ev(`document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: innerWidth * ${fx}, clientY: innerHeight * 0.5 }))`);
+      await wait(80);
+      return ev(`[...document.querySelectorAll('#setup-critter .pupil')].map(p => { const t = p.getAttribute('transform') || ''; const m = /translate\\(([-\\d.]+) ([-\\d.]+)\\)/.exec(t); return m ? Number(m[1]) : 0; })`);
+    };
+    const left = await look(0.02), right = await look(0.98);
+    ok(left.length === 6 && left.every((x) => x < -0.5) && right.every((x) => x > 0.5), `…and every eye follows the cursor, left and right   [${left.map((x) => x.toFixed(1)).join(",")} / ${right.map((x) => x.toFixed(1)).join(",")}]`);
+    for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
+      await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+      await wait(100);
+      const fit = await ev(`(() => {
+        const parts = [...document.querySelectorAll('#screen-setup > *:not([hidden])')].map(e => e.getBoundingClientRect());
+        const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        let overlaps = 0;
+        for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (hit(parts[i], parts[j])) overlaps++;
+        return { inside: parts.every(r => r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth), overlaps,
+                 critter: document.querySelector('#setup-critter').getBoundingClientRect().height };
+      })()`);
+      ok(fit.inside && fit.overlaps === 0 && fit.critter > 80, `…and the setup screen still fits, nothing overlapping   [${w}×${h}, creature ${Math.round(fit.critter)}px tall]`);
+      if (w === 1024) await shot("02b-setup-1024x640");
+    }
+    await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  }
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "clear/1", "defaults: Clear CAVs Only, 1 box");
   await press("ArrowRight");
   await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp");

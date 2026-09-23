@@ -242,6 +242,7 @@
   function wire() {
     ET.view.build();
     ET.title.build($("#title-scene"));
+    ET.title.buildCritter($("#setup-critter"));
     ET.boxes.build({ submit: submit });
     paintHowTo("clear");
     ET.devmode.build({
