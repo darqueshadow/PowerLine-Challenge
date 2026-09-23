@@ -83,12 +83,21 @@ try {
   eq(await ev("JSON.stringify(__et.data().blankTypes) === JSON.stringify(__et.data().types) && __et.data().blankTypes.map(t => t.code).join(',')"), "VS,STR,SS,EOS,MB,AD,VF", "D1: the Blank Dataset Module loads the seven real types, every value the same");
   eq(await ev("__et.screen()"), "title", "it opens on the title screen");
   eq(await ev("[...document.querySelectorAll('.logo .et')].map(e => e.textContent).join('')"), "ET", "the styled letters in the title spell ET");
+  {
+    // Refinement 4 §6: the title scene
+    const t = await ev(`(() => { const sc = document.querySelector('#title-scene svg'); return sc ? { mommy: sc.querySelectorAll('.mommy').length, babies: sc.querySelectorAll('.baby').length,
+      toothy: sc.querySelectorAll('.baby .teeth').length > 0, singing: getComputedStyle(sc.querySelector('.baby .mouth')).animationName, notes: sc.querySelectorAll('.note').length,
+      width: sc.getBoundingClientRect().width } : null; })()`);
+    ok(!!t && t.mommy === 1 && t.babies === 3 && t.notes > 0, `Refinement 4 §6: the title shows a mommy alien and her baby aliens, singing   [${t && t.babies} babies]`);
+    ok(!!t && t.toothy && t.singing === "sing", "…looping, with one baby's slightly too many teeth");
+  }
   await shot("01-title");
 
   /* ------------------------------------------------------------ B. setup */
   section("B. setup: mode buttons and box count on one screen");
   await press("Enter");
   eq(await ev("__et.screen()"), "setup", "Enter goes to setup");
+  eq(await ev("__et.tune()"), false, "the title tune stops once the title screen is left");
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "clear/1", "defaults: Clear CAVs Only, 1 box");
   await press("ArrowRight");
   await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp");

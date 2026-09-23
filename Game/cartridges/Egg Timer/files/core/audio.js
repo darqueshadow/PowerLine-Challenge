@@ -49,6 +49,41 @@
     src.start(t);
   }
 
+  /* Refinement 4 §6: the title tune. An ORIGINAL melody, written for Egg Timer (a lullaby-ish
+     chiptune in C major, 3/4), not borrowed from any existing song. The twist: its last bar hides one
+     sour, low note under the sweet ending. MIDI note numbers; 0 is a rest. */
+  var MELODY = [76, 79, 81, 79, 76, 74, 72, 74, 76, 79, 84, 83, 81, 79, 76, 0,
+                77, 81, 83, 81, 79, 76, 74, 76, 77, 76, 74, 71, 72, 0, 72, 0];
+  var BASS = [48, 43, 45, 40, 41, 43, 41, 48];      // one per four melody notes
+  var BEAT = 0.26;                                  // [T] seconds per melody note
+  var tune = { on: false, timer: null, bus: null };
+  function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function note(type, m, at, len, gain) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(hz(m), at);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(gain, at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+    o.connect(g).connect(tune.bus);
+    o.start(at);
+    o.stop(at + len + 0.02);
+  }
+  function phrase() {
+    if (!tune.on) return;
+    if (!ctx || ctx.state !== "running") {           // not allowed to sound yet: keep asking, quietly
+      if (ctx) ctx.resume();
+      tune.timer = setTimeout(phrase, 300);
+      return;
+    }
+    if (!tune.bus) { tune.bus = ctx.createGain(); tune.bus.gain.value = 1; tune.bus.connect(ctx.destination); }
+    var t0 = ctx.currentTime + 0.05;
+    MELODY.forEach(function (m, i) { if (m) note("square", m, t0 + i * BEAT, BEAT * 0.9, 0.045); });
+    BASS.forEach(function (m, i) { note("triangle", m, t0 + i * 4 * BEAT, BEAT * 3.6, 0.07); });
+    note("sawtooth", 49, t0 + 28 * BEAT, BEAT * 2.5, 0.018);   // the sour note, under the sweet ending
+    tune.timer = setTimeout(phrase, MELODY.length * BEAT * 1000);
+  }
+
   ET.audio = {
     unlock: function () {
       if (ctx || !ET.CONFIG.sound) return;
@@ -77,6 +112,23 @@
     },
 
     buzz: function () { tone("sawtooth", 140, 120, 0.22, 0.18); },
+
+    /* The title tune, on or off. Browsers only let a page make sound after a key press or click, so in a
+       plain tab it waits until then (⏳ E21); where sound is allowed straight away it starts at once. */
+    titleTune: function (on) {
+      if (!ET.CONFIG.sound) return;
+      if (!on) {
+        tune.on = false;
+        clearTimeout(tune.timer);
+        if (tune.bus) { tune.bus.gain.setValueAtTime(0, ctx.currentTime); tune.bus.disconnect(); tune.bus = null; }
+        return;
+      }
+      if (tune.on) return;
+      tune.on = true;
+      if (!ctx) ET.audio.unlock();
+      phrase();
+    },
+    tunePlaying: function () { return tune.on && !!tune.bus; },
 
     /* For rigs: whether a context exists, and its state. */
     state: function () { return ctx ? ctx.state : "none"; }

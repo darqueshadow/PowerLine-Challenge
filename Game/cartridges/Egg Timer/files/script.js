@@ -48,6 +48,7 @@
     app.screen = name;
     document.querySelectorAll(".screen").forEach(function (s) { s.hidden = s.id !== "screen-" + name; });
     if (name === "setup") paintSetup();
+    ET.audio.titleTune(name === "title");   // Refinement 4 §6: the title tune plays only on the title screen
     if (name === "play") ET.boxes.focus();
     ET.view.hose();   // the hose shows on the play screen only
   }
@@ -238,6 +239,7 @@
 
   function wire() {
     ET.view.build();
+    ET.title.build($("#title-scene"));
     ET.boxes.build({ submit: submit });
     paintHowTo("clear");
     ET.devmode.build({
@@ -289,6 +291,7 @@
     paused: function () { return app.paused; },
     mess: function (id) { return ET.mess.coverage(ET.view.nest(id).mess); },
     floor: function () { return ET.mess.coverage(ET.view.floor()); },
+    tune: function () { return ET.audio.tunePlaying(); },
     nestClass: function (id) { var v = ET.view.nest(id); return v.el.className + " state=" + v.el.dataset.state; }
   };
 })();

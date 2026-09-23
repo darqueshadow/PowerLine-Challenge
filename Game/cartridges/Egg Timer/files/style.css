@@ -82,6 +82,32 @@ button { font: inherit; }
 #title-prompt { font-family: var(--font-display); font-size: 24px; color: var(--cyan); }
 .error { max-width: 640px; color: var(--hot); font-family: var(--font-mono); }
 
+/* Refinement 4 §6: the title scene (⏳ placeholder art). Pure CSS animation, so it never holds anything up. */
+#title-scene { width: min(560px, 82vw, 70vh); }   /* half as tall as wide: fits under the logo at 1024×640 */
+#title-scene svg { display: block; width: 100%; overflow: visible; }
+#title-scene .alien-skin { fill: #7dff6a; stroke: #14330f; stroke-width: 4; }
+#title-scene .antenna, #title-scene .stalk { fill: none; stroke: #14330f; stroke-width: 4; stroke-linecap: round; }
+#title-scene .antenna-tip { fill: var(--hot); stroke: #14330f; stroke-width: 2; }
+#title-scene .eye { fill: #fff; stroke: #14330f; stroke-width: 3; }
+#title-scene .pupil { fill: #14330f; }
+#title-scene .apron { fill: #ff8fc7; stroke: #14330f; stroke-width: 3; }
+#title-scene .apron-heart { fill: var(--hot); }
+#title-scene .smile { fill: #3b0a2a; stroke: #14330f; stroke-width: 3; }
+#title-scene .smile-line { fill: #ff5c8a; }
+#title-scene .cheek { fill: #ff8fc7; opacity: 0.8; }
+#title-scene .mouth-hole { fill: #3b0a2a; stroke: #14330f; stroke-width: 2; }
+#title-scene .teeth { fill: #fffbe8; stroke: #14330f; stroke-width: 0.8; }
+#title-scene .note { font-size: 26px; fill: var(--gold); stroke: var(--shadow); stroke-width: 1.5; paint-order: stroke; animation: note 2.2s linear infinite; opacity: 0; }
+@keyframes note { 0% { transform: translate(0, 20px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(14px, -60px); opacity: 0; } }
+#title-scene .sway { animation: sway 1.56s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes sway { 50% { transform: rotate(-4deg); } }
+#title-scene .bob { animation: bob 0.52s ease-in-out infinite alternate; }
+@keyframes bob { to { transform: translateY(-8px); } }
+#title-scene .mouth { animation: sing 0.26s steps(2) infinite; transform-box: fill-box; transform-origin: 50% 20%; }
+@keyframes sing { 50% { transform: scaleY(0.45); } }
+#title-scene .wink { animation: blink-eye 3.1s steps(1) infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes blink-eye { 94% { transform: scaleY(0.15); } }
+
 /* ---------------------------------------------------------------- setup */
 h2 {
   margin: 8px 0 0;
@@ -626,5 +652,6 @@ h2 {
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched, #cleanup.flash, #warp.lit { animation: none; }
+  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene * { animation: none; }
+  #title-scene .note { opacity: 1; }
 }
