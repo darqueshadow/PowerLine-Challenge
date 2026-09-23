@@ -63,8 +63,62 @@
     }
   ];
 
+  /* ⏳ placeholder doodles for the how-to panel (Refinement 5 §3): goofy alien-family scribbles, each in a
+     60 × 60 box, drawn in dark ink with one flat colour, like a kid's drawing on the fridge. */
+  var DOODLES = [
+    function (g) {   // a baby, grinning, antennae up
+      el("path", { class: "ink", d: "M22 16 L16 4 M38 16 L44 4" }, g);
+      el("circle", { class: "dot", cx: 16, cy: 4, r: 3 }, g);
+      el("circle", { class: "dot", cx: 44, cy: 4, r: 3 }, g);
+      el("circle", { class: "green", cx: 30, cy: 32, r: 18 }, g);
+      el("circle", { class: "eye", cx: 23, cy: 28, r: 4 }, g);
+      el("circle", { class: "eye", cx: 37, cy: 28, r: 4 }, g);
+      el("path", { class: "ink", d: "M21 38 Q30 47 39 38" }, g);
+    },
+    function (g) {   // mommy: three eyes on stalks, a smile a touch too wide
+      el("path", { class: "ink", d: "M22 22 Q18 10 14 8 M30 20 L30 4 M38 22 Q42 10 46 8" }, g);
+      [[14, 8], [30, 4], [46, 8]].forEach(function (p) { el("circle", { class: "eye", cx: p[0], cy: p[1], r: 4 }, g); });
+      el("ellipse", { class: "green", cx: 30, cy: 40, rx: 17, ry: 19 }, g);
+      el("path", { class: "ink", d: "M14 38 Q30 54 46 38" }, g);
+      el("path", { class: "pink", d: "M22 50 Q30 44 38 50 L36 58 L24 58Z" }, g);
+    },
+    function (g) {   // the three-headed blob
+      el("path", { class: "lilac", d: "M8 54 C4 40 16 34 30 36 C44 34 56 40 52 54 Z" }, g);
+      [[15, 20], [30, 12], [45, 20]].forEach(function (p) {
+        el("path", { class: "ink", d: "M" + p[0] + " " + (p[1] + 7) + " L" + (30 + (p[0] - 30) * 0.5) + " 38" }, g);
+        el("circle", { class: "lilac", cx: p[0], cy: p[1], r: 7 }, g);
+        el("circle", { class: "dot", cx: p[0], cy: p[1] - 1, r: 1.8 }, g);
+      });
+    },
+    function (g) {   // an egg, peeking out through its own crack
+      el("ellipse", { class: "shell", cx: 30, cy: 32, rx: 16, ry: 22 }, g);
+      el("path", { class: "ink", d: "M15 30 L21 25 L26 31 L32 24 L38 31 L45 26" }, g);
+      el("circle", { class: "eye", cx: 26, cy: 36, r: 3.5 }, g);
+      el("circle", { class: "eye", cx: 35, cy: 36, r: 3.5 }, g);
+    },
+    function (g) {   // a baby waving a tentacle, upside down
+      el("circle", { class: "green", cx: 30, cy: 26, r: 15 }, g);
+      el("path", { class: "ink", d: "M42 32 Q54 36 52 48 Q50 54 56 56" }, g);
+      el("path", { class: "ink", d: "M24 40 L20 54 M34 40 L38 54" }, g);
+      el("circle", { class: "eye", cx: 30, cy: 22, r: 6 }, g);
+      el("path", { class: "ink", d: "M24 32 Q30 28 36 32" }, g);
+    }
+  ];
+
   ET.art = {
     DISHES: DISHES.length,
+    DOODLES: DOODLES.length,
+
+    /* One how-to panel doodle (Refinement 5 §3). */
+    doodleEl: function (i) {
+      var svg = el("svg", { class: "doodle", viewBox: "0 0 60 60", "aria-hidden": "true" });
+      var g = el("g", {}, svg);
+      DOODLES[i % DOODLES.length](g);
+      [].forEach.call(g.querySelectorAll(".eye"), function (e) {   // every eye gets a pupil
+        el("circle", { class: "dot", cx: Number(e.getAttribute("cx")) + 0.6, cy: Number(e.getAttribute("cy")) + 0.6, r: Number(e.getAttribute("r")) * 0.45 }, g);
+      });
+      return svg;
+    },
 
     /* The egg ladder's dish for rung `i` (0 = bottom), with its caption (Refinement 3 rulings). */
     dishEl: function (i, caption) {

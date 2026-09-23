@@ -554,6 +554,15 @@ try {
       return [...document.querySelectorAll('.nest:not([hidden])')].filter(n => { const r = n.getBoundingClientRect(); return r.right > h.left && r.left < h.right && r.bottom > h.top && r.top < h.bottom; }).length;
     })()`);
     eq(overlap, 0, "…without covering a nest");
+    // Refinement 5 §3: the cartoon look, with doodles that turn now and then
+    const look = await ev(`(() => { const cs = getComputedStyle(document.querySelector('#howto')); return { bg: cs.backgroundColor, ink: getComputedStyle(document.querySelector('#howto li')).color, round: parseFloat(cs.borderTopLeftRadius) > 8, doodles: document.querySelectorAll('#howto .doodle').length }; })()`);
+    ok(look.bg === "rgb(255, 243, 209)" && look.ink === "rgb(26, 13, 46)" && look.round, `Refinement 5 §3: the panel is a cartoon card, dark ink on cream, rounded   [${look.bg} / ${look.ink}]`);
+    ok(look.doodles >= 4, `…with alien-family doodles around the text   [${look.doodles}]`);
+    const turns = () => ev("[...document.querySelectorAll('#howto .doodle')].map(d => d.style.getPropertyValue('--turn')).join(',')");
+    const t0 = await turns();
+    await wait(5600);
+    const t1 = await turns();
+    ok(t0 !== t1, `…turning to a new angle now and then   [${t0} → ${t1}]`);
   }
   eq(await ev("parseFloat(getComputedStyle(document.querySelector('.wallclock')).fontSize) > 2 * parseFloat(getComputedStyle(document.querySelector('#hud-score')).fontSize)"), true, "the wall clock is larger again: over twice the HUD's type");
   ok((await ev("ET.audio.state()")) !== "none", `sound is unlocked by the first key press   [${await ev("ET.audio.state()")}]`);
@@ -725,10 +734,14 @@ try {
       const howto = document.querySelector('#howto').getBoundingClientRect();
       const top = [...document.querySelectorAll('#fieldtop > *')].map(e => e.getBoundingClientRect());
       const clearOfTop = nests.filter(x => top.some(t => hit(t, x.n))).length;
+      // Refinement 5 §3: no doodle sits on a word of the panel's text (each text line's own box, not the block's)
+      const words = [];
+      document.querySelectorAll('#howto .title span, #howto li').forEach(e => { const rg = document.createRange(); rg.selectNodeContents(e); words.push(...rg.getClientRects()); });
+      const doodled = [...document.querySelectorAll('#howto .doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(w => w.width > 0 && hit(r, w)); }).length;
       const clock = document.querySelector('.wallclock').getBoundingClientRect();
       const field = document.querySelector('#field').getBoundingClientRect();
       document.querySelectorAll('.nest .postit').forEach(p => { p.hidden = true; });
-      return { spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
+      return { doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
                clockCorner: clock.right > field.right - 40 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
                howtoFits: document.querySelector('#howto').scrollHeight <= document.querySelector('#howto').clientHeight + 1,
                w: innerWidth, h: innerHeight };
@@ -743,6 +756,7 @@ try {
     eq(lay.clearOfTop, 0, `the wall clock and TIME WARP panel sit clear of every nest   ${at}`);
     ok(lay.clockCorner, `the wall clock is in the board's top-right corner, left of the how-to panel   ${at}`);
     ok(lay.howtoFits, `the how-to panel fits without scrolling   ${at}`);
+    eq(lay.doodled, 0, `Refinement 5 §3: no doodle covers any of the panel's text   ${at}`);
     if (SHOTS) {
       await ev(`(() => { document.querySelectorAll('.mess').forEach((m, i) => i % 3 === 0 && ET.mess.splatter(m, 6)); return 1; })()`);
       await shot(`10-full-board-${w}x${h}`);

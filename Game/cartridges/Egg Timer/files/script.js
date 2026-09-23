@@ -239,12 +239,35 @@
     });
   }
 
+  /* Refinement 5 §3: the how-to panel's alien-family doodles. One sits beside the title and the rest in the
+     space under the text, so they never cover a word; every doodleTurnEvery [T] one of them turns to a new
+     angle (a CSS transition, so nothing here runs per frame), and only while the play screen shows. */
+  function buildDoodles() {
+    var title = $("#howto .title"), meadow = $("#howto .doodles");
+    var list = [ET.art.doodleEl(0)];
+    title.appendChild(list[0]);
+    [[4, 4], [54, 0], [26, 50], [64, 52]].forEach(function (p, i) {
+      var d = ET.art.doodleEl(i + 1);
+      d.style.left = p[0] + "%";
+      d.style.top = p[1] + "%";
+      meadow.appendChild(d);
+      list.push(d);
+    });
+    list.forEach(function (d) { d.style.setProperty("--turn", ((Math.random() * 2 - 1) * C.doodleTurnMax).toFixed(0) + "deg"); });
+    setInterval(function () {
+      if (app.screen !== "play" || app.paused) return;
+      var d = list[Math.floor(Math.random() * list.length)];
+      d.style.setProperty("--turn", ((Math.random() * 2 - 1) * C.doodleTurnMax).toFixed(0) + "deg");
+    }, C.doodleTurnEvery * 1000);
+  }
+
   function wire() {
     ET.view.build();
     ET.title.build($("#title-scene"));
     ET.title.buildCritter($("#setup-critter"));
     ET.boxes.build({ submit: submit });
     paintHowTo("clear");
+    buildDoodles();
     ET.devmode.build({
       toggled: function (on) {
         $("#setup-dev").hidden = !on;

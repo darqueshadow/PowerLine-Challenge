@@ -154,6 +154,11 @@
              "Eggs Benny w/ Avocado", "Steak, Eggs & Brew!"],   // [T] wording and steps
     dishSeconds: 1.0,              // [T] how long a fast clear's dish and caption show over the nest
 
+    // ── Refinement 5 (2026-09-23) ────────────────────────────────────────────
+    // §3: the how-to panel's doodles. Every so often one of them turns to a new angle.
+    doodleTurnEvery: 2.5,          // [T] seconds between turns (one doodle at a time)
+    doodleTurnMax: 28,             // [T] degrees either way
+
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.
     devModePasswordHash: null,

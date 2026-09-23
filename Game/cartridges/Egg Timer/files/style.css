@@ -281,22 +281,56 @@ h2 {
 }
 @keyframes drop { to { transform: translate(var(--dx), 26px); opacity: 0; } }
 
-/* Refinement 2 §1: how to play, down one side (⏳ placeholder look) */
+/* Refinement 2 §1: how to play, down one side. Refinement 5 §3: a cartoon look (⏳ placeholder): a cream card
+   with a thick wobbly outline and a hard offset shadow, dark ink type, the labels as tilted chips, and goofy
+   alien-family doodles beside the title and in the space under the text, never over a word. */
 #howto {
   flex: none;
+  display: flex;
+  flex-direction: column;
   width: clamp(170px, 15vw, 250px);
-  padding: clamp(6px, 1.4vh, 12px) 14px;
-  overflow-y: auto;
-  background: var(--shadow);
-  border-left: 4px solid var(--hot);
+  margin: 10px 12px 12px 8px;
+  padding: clamp(6px, 1.4vh, 12px) 12px 8px;
+  overflow: hidden;
+  background: #fff3d1;
+  color: #1a0d2e;
+  border: 4px solid #1a0d2e;
+  border-radius: 22px 12px 26px 14px / 14px 24px 12px 22px;
+  box-shadow: 6px 6px 0 var(--hot);
   font-size: clamp(12px, 0.95vw, 15px);
   line-height: 1.35;
 }
 @media (max-height: 700px) { #howto { font-size: 11px; line-height: 1.22; } }
-#howto .title { font-family: var(--font-display); color: var(--gold); letter-spacing: 0.08em; margin-bottom: 8px; }
-#howto ul { list-style: none; margin: 0; padding: 0; }
-#howto li { margin: 0 0 clamp(4px, 1.1vh, 9px); color: var(--ink); }
-#howto b { display: block; color: var(--cyan); font-family: var(--font-display); font-weight: 400; letter-spacing: 0.08em; font-size: 0.85em; }
+#howto .title { display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-display); font-size: 1.1em; color: #2a0f45; letter-spacing: 0.06em; text-shadow: 2px 2px 0 var(--hot); margin-bottom: 8px; }
+#howto .title .doodle { flex: none; width: 2.2em; height: 2.2em; }
+#howto ul { flex: none; list-style: none; margin: 0; padding: 0; }
+#howto li { margin: 0 0 clamp(4px, 1.1vh, 9px); color: #1a0d2e; }
+#howto b {
+  display: table;
+  margin: 0 auto 2px;
+  padding: 0 7px;
+  background: var(--cyan);
+  color: #1a0d2e;
+  border: 2px solid #1a0d2e;
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 #1a0d2e;
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  font-size: 0.85em;
+  transform: rotate(-2deg);
+}
+#howto li:nth-child(even) b { background: #b8ff9e; transform: rotate(2deg); }
+#howto .doodles { position: relative; flex: 1; min-height: 0; container-type: size; }
+#howto .doodles .doodle { position: absolute; width: min(36cqw, 46cqh, 64px); height: auto; aspect-ratio: 1; }
+#howto .doodle { overflow: visible; transform: rotate(var(--turn, 0deg)); transition: transform 0.45s cubic-bezier(0.3, 1.8, 0.5, 1); }
+#howto .doodle .ink { fill: none; stroke: #1a0d2e; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+#howto .doodle .green { fill: #7dff6a; stroke: #1a0d2e; stroke-width: 3; }
+#howto .doodle .lilac { fill: #c79bff; stroke: #1a0d2e; stroke-width: 3; }
+#howto .doodle .pink { fill: #ff8fc7; stroke: #1a0d2e; stroke-width: 2.5; }
+#howto .doodle .shell { fill: #7dff6a; stroke: #1a0d2e; stroke-width: 3; }
+#howto .doodle .eye { fill: #fff; stroke: #1a0d2e; stroke-width: 2.5; }
+#howto .doodle .dot { fill: #1a0d2e; }
 
 /* ----------------------------------------------------------------- nest */
 .nest {
