@@ -28,6 +28,9 @@
     return out;
   }
 
+  /* Refinement 6 §3: where the middle row's four nests sit across the board (%), clear of the centre. */
+  var MIDDLE_ROW = [12, 31, 69, 88];
+
   function two(x) { return (x < 10 ? "0" : "") + x; }
 
   /* A nest clock: displayed time, MM:SS since the CAV started (Timer Refinement §2). */
@@ -276,7 +279,7 @@
   /* Refinement 5 §5: the scary mom face. Each wave draws once whether it gets one (momFaceChance) and when
      (momFaceWindow, the player's seconds after the wave starts, read off the game's own clock so a pause holds
      it). When it comes it pops in for momFaceSeconds, either down from the top screen edge into the space over
-     the HUD bar and the band above the board, between the TIME WARP panel and the wall clock, or up out of the
+     the HUD bar and the band above the board, left of the wall clock (Refinement 6 §3), or up out of the
      how-to panel. It is drawn inside a clipping box that IS that zone, so it can't reach a nest, a readout or a
      Command Line whatever the window size; it takes no pointer or keyboard, and it slides rather than flashes. */
   var mom = null, momAt = null, momShown = 0;
@@ -299,9 +302,9 @@
       var h = document.querySelector("#howto").getBoundingClientRect();
       return { left: h.left - sr.left, top: h.top - sr.top, width: h.width, height: h.height, from: "bottom" };
     }
-    // the top: from the screen's top edge down to the board, between the TIME WARP panel and the wall clock
-    var w = warp.getBoundingClientRect(), c = wall.hm.closest(".wallclock").getBoundingClientRect();
-    return { left: w.right - sr.left + 8, top: 0, width: Math.max(0, c.left - w.right - 16), height: br.top - sr.top, from: "top" };
+    // the top: from the screen's top edge down to the board, left of the wall clock (top centre, Refinement 6 §3)
+    var f = field.getBoundingClientRect(), c = wall.hm.closest(".wallclock").getBoundingClientRect();
+    return { left: f.left - sr.left + 8, top: 0, width: Math.max(0, c.left - f.left - 16), height: br.top - sr.top, from: "top" };
   }
   function showMom(which) {
     var C = ET.CONFIG;
@@ -332,7 +335,7 @@
       field = $("#field");
       board = $("#board");
       floor = ET.mess.createFloor();   // Refinement 3 §5: the board-wide mess, under every nest
-      board.appendChild(floor);
+      board.insertBefore(floor, board.firstChild);   // first, so it is under everything on the board
       hud = {
         wave: $("#hud-wave"), cavs: $("#hud-cavs"), pool: $("#hud-pool"),
         poolLabel: $("#hud-pool-label"), score: $("#hud-score"), mode: $("#hud-mode")
@@ -353,7 +356,9 @@
         n.dataset.state = "idle";
         n.classList.add("inactive");   // Refinement 3 §8: every nest is on screen; not yet active, it's plain
         // padded inside the board, so an edge nest's readout never runs under the HUD or the Command Lines
-        n.style.left = (6 + (col + 0.5 + offs[i].dx) / ET.Game.COLS * 88) + "%";
+        // Refinement 6 §3: the middle row moves out to the sides, leaving the centre of the board to the Time
+        // Warp panel: two nests each side, less jitter so they keep their spacing
+        n.style.left = (row === 1 ? MIDDLE_ROW[col] + offs[i].dx * 8 : 6 + (col + 0.5 + offs[i].dx) / ET.Game.COLS * 88) + "%";
         n.style.top = (7 + (row + 0.5 + offs[i].dy) / ET.Game.ROWS * 84) + "%";
         n.style.setProperty("--tilt", offs[i].tilt + "deg");
 

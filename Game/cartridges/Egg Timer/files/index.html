@@ -63,13 +63,15 @@
       <div id="field">
         <!-- a band across the top of the board, kept clear of every nest (Refinement 3 §4, §6) -->
         <div id="fieldtop">
-          <!-- ⏳ placeholder look: the backlit alien panel that lights up while the clocks warp (Refinement 3 §4) -->
-          <div id="warp" aria-live="polite"><span>TIME WARP</span></div>
           <!-- ⏳ placeholder look: the wall clock (Timer Refinement §3), 24-hour, same speed as the nest clocks;
-               Refinement 3 §6 puts it in the board's top-right corner, larger again -->
+               larger again (Refinement 3 §6), at the top centre of the playing field (Refinement 6 §3) -->
           <div class="wallclock" aria-label="Wall clock"><span id="wall-hm">00:00</span><span id="wall-ss">00</span></div>
         </div>
-        <div id="board"></div>
+        <div id="board">
+          <!-- ⏳ placeholder look: the backlit alien panel that lights up while the clocks warp (Refinement 3 §4);
+               Refinement 6 §2 puts it in the centre of the board -->
+          <div id="warp" aria-live="polite"><span>TIME WARP</span></div>
+        </div>
         <div id="popups"></div>
         <div id="banner" hidden></div>
         <!-- Refinement 5 §6: the label on the hose tap (⏳ placeholder look) -->

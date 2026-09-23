@@ -831,7 +831,10 @@ try {
         if (hit(nests[i].r, nests[j].art)) covered++;
       }
       const howto = document.querySelector('#howto').getBoundingClientRect();
-      const top = [...document.querySelectorAll('#fieldtop > *')].map(e => e.getBoundingClientRect());
+      const top = [...document.querySelectorAll('#fieldtop > *, #warp')].map(e => e.getBoundingClientRect());
+      const W = document.querySelector('#warp').getBoundingClientRect(), B = document.querySelector('#board').getBoundingClientRect();
+      const warpClear = nests.filter(x => hit(W, x.n) || hit(W, x.r)).length;
+      const warpCentre = Math.abs((W.left + W.right) / 2 - (B.left + B.right) / 2) < 2 && Math.abs((W.top + W.bottom) / 2 - (B.top + B.bottom) / 2) < 2;
       const clearOfTop = nests.filter(x => top.some(t => hit(t, x.n))).length;
       // Refinement 5 §3: no doodle sits on a word of the panel's text (each text line's own box, not the block's)
       const words = [];
@@ -851,7 +854,8 @@ try {
       const field = document.querySelector('#field').getBoundingClientRect();
       document.querySelectorAll('.nest .postit').forEach(p => { p.hidden = true; });
       return { bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
-               clockCorner: clock.right > field.right - 40 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
+               warpClear, warpCentre,
+               clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
                howtoFits: Math.max(...[...document.querySelectorAll('#howto li')].map(l => l.getBoundingClientRect().bottom)) <= howto.bottom - 4,
                w: innerWidth, h: innerHeight };
     })()`);
@@ -863,7 +867,8 @@ try {
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);
     ok(lay.besideHowto, `every nest sits beside the how-to panel, none under it   ${at}`);
     eq(lay.clearOfTop, 0, `the wall clock and TIME WARP panel sit clear of every nest   ${at}`);
-    ok(lay.clockCorner, `the wall clock is in the board's top-right corner, left of the how-to panel   ${at}`);
+    ok(lay.clockCentre, `Refinement 6 §3: the wall clock is at the top centre of the playing field   ${at}`);
+    ok(lay.warpCentre && lay.warpClear === 0, `Refinement 6 §2: the Time Warp panel sits in the centre of the board, clear of every nest and readout   ${at}`);
     ok(lay.howtoFits, `the how-to panel fits without scrolling   ${at}`);
     eq(lay.doodled, 0, `Refinement 5 §3: no doodle covers any of the panel's text   ${at}`);
     eq(lay.bulbOnWord, 0, `no attract light sits behind a word of the panel   ${at}`);
