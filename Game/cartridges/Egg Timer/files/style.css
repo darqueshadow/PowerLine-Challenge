@@ -3,7 +3,7 @@
    Inside a cartridge the era is the 1980s arcade: bold, saturated, high
    contrast, hard edges and hard offset shadows, no soft glows. Legibility beats
    palette — the readouts are the thing the player reads under pressure.
-   ⏳ Colours, the switcher's look and all creature/splat art are placeholders
+   ⏳ Colours, the Command Lines' look and all creature/splat art are placeholders
    until art direction; the rules they express are not.
    ========================================================================= */
 :root {
@@ -411,7 +411,6 @@ h2 {
   min-width: 0;
   padding: 8px 10px;
   border: 3px solid var(--box);
-  opacity: 0.5;
 }
 .box .num {
   flex: none;
@@ -454,11 +453,23 @@ h2 {
 .box.rejected { border-color: #e8102a; }
 @keyframes err { 0%, 99% { opacity: 1; } 100% { opacity: 0; } }
 
+/* Refinement 3 §1: the inactive lines dim a little; the active one breathes a slow neon pulse in its own
+   colour (subtle at rest [T]), and flashes bright once when the player switches to it */
+.box { opacity: 0.55; }
 .box.active {
   opacity: 1;
   border-width: 4px;
   background: color-mix(in srgb, var(--box) 16%, var(--shadow));
   box-shadow: 6px 6px 0 var(--box);
+  animation: neon var(--pulse, 2.4s) ease-in-out infinite;
+}
+@keyframes neon {
+  0%, 100% { box-shadow: 6px 6px 0 var(--box), 0 0 0 0 transparent; }
+  50% { box-shadow: 6px 6px 0 var(--box), 0 0 14px 2px color-mix(in srgb, var(--box) 55%, transparent); }
+}
+.box.active.switched { animation: switched var(--flash, 0.18s) steps(2) 1, neon var(--pulse, 2.4s) ease-in-out var(--flash, 0.18s) infinite; }
+@keyframes switched {
+  0%, 100% { background: var(--box); box-shadow: 6px 6px 0 var(--ink), 0 0 22px 6px var(--box); }
 }
 
 /* ------------------------------------------------------------- overlays */
@@ -471,7 +482,6 @@ h2 {
   justify-content: center;
   background: rgba(0, 0, 0, 0.55);
 }
-#switcher { background: rgba(0, 0, 0, 0.35); }
 .panel {
   min-width: min(520px, 90vw);
   padding: 18px 24px;
@@ -482,22 +492,6 @@ h2 {
 }
 .panel .title { font-family: var(--font-display); font-size: 28px; color: var(--gold); margin-bottom: 10px; }
 .panel .hint { margin-top: 12px; }
-#switcher ol { list-style: none; margin: 0; padding: 0; text-align: left; }
-#switcher li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 8px 0;
-  padding: 6px 10px;
-  border: 3px solid var(--box);
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 20px;
-}
-#switcher li .num { width: 30px; text-align: center; background: var(--box); color: var(--shadow); font-family: var(--font-display); }
-#switcher li .preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#switcher li.hl { background: var(--box); color: var(--shadow); box-shadow: 5px 5px 0 var(--ink); }
-#switcher li.hl .num { background: var(--shadow); color: var(--box); }
 
 #dev-prompt input {
   width: 100%;
@@ -518,5 +512,5 @@ h2 {
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout { animation: none; }
+  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched { animation: none; }
 }

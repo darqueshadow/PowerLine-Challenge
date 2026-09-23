@@ -113,7 +113,6 @@
       // playtest log (Timer Refinement §9): spawns that came due with every nest busy
       if (e.type === "wave-end") console.info("[Egg Timer] wave " + e.wave + ": " + e.skipped + " skipped spawn(s)");
       if (e.type === "game-over") {
-        ET.boxes.close();
         app.overTimer = setTimeout(gameOver, (C.escapeSeconds + 0.5) * 1000);
       }
     });
@@ -191,10 +190,13 @@
     }
   }, true);
 
-  /* A quick Tab tap flips Command Lines on release (Refinement 2 §4). */
-  document.addEventListener("keyup", function (ev) {
-    if (app.screen === "play" && !app.paused && !ET.devmode.isOpen() && ET.boxes.keyUp(ev)) ev.preventDefault();
-  }, true);
+  /* Refinement 3 §1: the game pauses itself when the window loses focus (a reflex Alt+Tab, a click
+     elsewhere, another tab); Esc resumes it as from any pause. */
+  function pauseOnFocusLoss() {
+    if (app.screen === "play" && app.game && app.game.phase !== "over" && !app.paused) setPaused(true);
+  }
+  window.addEventListener("blur", pauseOnFocusLoss);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) pauseOnFocusLoss(); });
 
   /* Browsers hold audio until the player presses or clicks something. */
   ["keydown", "pointerdown"].forEach(function (t) {
@@ -211,19 +213,16 @@
   /* ---------------------------------------------------------------- boot */
   /* Refinement 2 §1: the how-to panel. Simple how-to only; it NEVER lists CAV durations. */
   function paintHowTo(mode) {
-    var lines = [
-      ["GOAL", "Clear each egg with RCAV once its clock goes bold, before it hatches."],
-      ["SYNTAX", "RCAV <unit>, e.g. RCAV 2101"]
-    ];
-    // E8 (ruled): the placement line only in the modes that place; hidden in Clear CAVs Only
+    // Refinement 3 §2: these lines, in this order; no RCAV syntax, AD or VF lines
+    var lines = [["GOAL", "Clear the CAVs as soon as they're done, as quick as you can."]];
+    // E8 (ruled, kept as is by Refinement 3 until Andrew rewords it): the placement line only in the
+    // modes that place, hidden in Clear CAVs Only
     if (mode === "both" || mode === "progression") lines.push(["PLACE", "CAV <unit> <type>, e.g. CAV 2101 VS"]);
     lines = lines.concat([
-      ["AD", "The post-it tells you when to clear."],
-      ["VF", "Clear when “Clear Fueling” pops up."],
-      ["SWITCH", "Command Lines: Tab" + (ET.boxes.inFangRock() ? " or Ctrl+Tab" : "")],
-      ["F12", "Clear the active Command Line."],
+      ["SWITCH", "Tab / Shift+Tab: next / previous Command Line (keeps what you typed)."],
+      ["F12", "Next Command Line, cleared."],
       ["ESC", "Pause."],
-      ["CLEANUP", "Drag the hose over messes."]
+      ["CLEANUP", "Hose off the mess between waves."]
     ]);
     var ul = $("#howto ul");
     ul.innerHTML = "";

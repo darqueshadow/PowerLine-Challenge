@@ -51,14 +51,6 @@ async function press(name, mods = 0) {
   await c.key("keyUp", name, code, kc, mods);
   await wait(30);
 }
-/* Hold a key past the quick-tap window, so Tab opens the switcher and leaves it open. */
-async function hold(name, mods = 0, ms = 400) {
-  const [code, kc] = KEYS[name] || [name, name.toUpperCase().charCodeAt(0)];
-  await c.key("rawKeyDown", name, code, kc, mods);
-  await wait(ms);
-  await c.key("keyUp", name, code, kc, mods);
-  await wait(30);
-}
 const ev = (s) => c.ev(s);
 const snap = () => ev("__et.snapshot()");
 async function shot(name) { if (SHOTS) await c.shot(`${SHOTS}\\${name}.png`); }
@@ -241,62 +233,52 @@ try {
   await shot("05-escape");
 
   /* ------------------------------------------------------ F. command boxes */
-  section("F. Command Boxes and the switcher (most-recently-used, Refinement 2 §4)");
+  section("F. Command Lines: Tab / Shift+Tab / F12, as in CAD5 (Refinement 3 §1)");
   await ev("__et.start('clear', 3)");
   let b = await ev("__et.boxes()");
-  eq([b.count, b.active, b.focused], [3, 0, true], "3 boxes, box 1 active and focused");
+  eq([b.count, b.active, b.focused], [3, 0, true], "3 lines, line 1 active and focused");
+  eq(await ev("!!document.querySelector('#switcher')"), false, "the switcher pop-up is gone");
   await ev("document.querySelector('.box.active input').focus()");
   await c.insert("RCAV 2041");
-  await hold("Tab");
+  await press("Tab");
   b = await ev("__et.boxes()");
-  eq([b.open, b.highlighted], [true, 1], "a held Tab opens the switcher on the last-used box");
-  eq(await ev("[...document.querySelectorAll('#switcher li .num')].map(e => e.textContent).join('')"), "123", "a fresh game lists the boxes in order");
-  eq(await ev("document.querySelector('#switcher li .preview').textContent"), "RCAV 2041", "staged text shows as a preview");
-  eq(await ev("document.querySelectorAll('#switcher li').length"), 3, "Command Lines only, no other entries");
-  const t0 = (await snap()).time;
-  await wait(500);
-  ok((await snap()).time > t0 + 0.2, "the game keeps running while the switcher is open");
-  await shot("06-switcher");
-  await press("Tab"); await press("Tab", SHIFT);
-  eq((await ev("__et.boxes()")).highlighted, 1, "Tab and Shift+Tab move the highlight");
-  await press("ArrowDown");
-  eq((await ev("__et.boxes()")).highlighted, 2, "arrows move it too");
-  await c.insert("X");
-  eq((await ev("__et.boxes()")).values, ["RCAV 2041", "", ""], "typing is ignored while the switcher is open");
-  await press("Escape");
-  b = await ev("__et.boxes()");
-  eq([b.open, b.active, b.focused, (await ev("__et.paused()"))], [false, 0, true, false], "Esc closes the switcher without switching (and doesn't pause)");
-  await hold("Tab"); await press("Enter");
-  b = await ev("__et.boxes()");
-  eq([b.open, b.active, b.focused, b.values[0]], [false, 1, true, "RCAV 2041"], "Enter switches to the highlighted box; box 1 keeps its text");
+  eq([b.active, b.focused, b.values], [1, true, ["RCAV 2041", "", ""]], "Tab moves to the next line, and line 1 keeps its text");
+  ok(await ev("document.querySelectorAll('.box')[1].classList.contains('switched')"), "…with one quick flash on the line switched to");
+  ok(await ev("getComputedStyle(document.querySelector('.box.active')).animationName.includes('neon')"), "the active line pulses (neon)");
+  ok(await ev("parseFloat(getComputedStyle(document.querySelectorAll('.box')[0]).opacity) < 1"), "the inactive lines are dimmed");
   await c.insert("CAV 2042 MB");
-  await press("F12");
-  eq((await ev("__et.boxes()")).values, ["RCAV 2041", "", ""], "F12 clears only the active box");
-
-  await press("Tab");
+  await press("Tab"); await press("Tab");
+  eq((await ev("__et.boxes()")).active, 0, "Tab wraps from the last line to the first");
+  await press("Tab", SHIFT);
+  eq((await ev("__et.boxes()")).active, 2, "Shift+Tab goes to the previous line, wrapping at the start");
+  await press("Tab", SHIFT);
   b = await ev("__et.boxes()");
-  eq([b.open, b.active, b.focused], [false, 0, true], "a quick tap of Tab flips straight back to the last-used box");
-  await press("Tab");
-  eq((await ev("__et.boxes()")).active, 1, "…and again flips between the two most recent");
-  await hold("Tab"); await press("ArrowDown"); await press("Enter");
-  eq((await ev("__et.boxes()")).active, 2, "picking box 3 from the list");
-  await hold("Tab");
-  eq(await ev("[...document.querySelectorAll('#switcher li .num')].map(e => e.textContent).join('')"), "321", "the list is in most-recently-used order");
-  await press("Escape");
-
+  eq([b.active, b.values], [1, ["RCAV 2041", "CAV 2042 MB", ""]], "…and every line keeps what was typed in it");
+  await ev("document.querySelector('.box.active input').setSelectionRange(3, 3)");
+  await press("ArrowLeft");
+  eq([(await ev("__et.boxes()")).active, await ev("document.querySelector('.box.active input').selectionStart")], [1, 2], "Left/Right move the text cursor, not the line");
+  await press("Tab", SHIFT);
+  await press("F12");
+  b = await ev("__et.boxes()");
+  eq([b.active, b.values], [1, ["RCAV 2041", "", ""]], "⏳ E13: F12 moves to the next line and clears the line it lands on");
+  await press("F12", SHIFT);
+  eq((await ev("__et.boxes()")).active, 1, "Shift+F12 does nothing");
+  const t0 = (await snap()).time;
+  await wait(400);
+  ok((await snap()).time > t0 + 0.2, "switching never pauses the game");
   // A real browser keeps Ctrl+Tab before the page sees it (so a CDP key never arrives); send it in-page instead.
   const ctrlTab = `(() => {
     const opts = { key: 'Tab', code: 'Tab', ctrlKey: true, bubbles: true, cancelable: true };
     const down = new KeyboardEvent('keydown', opts);
     document.activeElement.dispatchEvent(down);
-    document.activeElement.dispatchEvent(new KeyboardEvent('keyup', opts));
     return down.defaultPrevented;
   })()`;
-  eq([await ev(ctrlTab), (await ev("__et.boxes()")).active], [false, 2], "in a plain browser the game leaves Ctrl+Tab alone (not even preventDefault)");
+  eq([await ev(ctrlTab), (await ev("__et.boxes()")).active], [false, 1], "Ctrl+Tab is retired: the game leaves it alone");
   await ev("window.fangRockShell = true");
-  eq([await ev(ctrlTab), (await ev("__et.boxes()")).active], [true, 1], "inside Fang Rock, a quick Ctrl+Tab flips like Tab (⚠ the shell's flag, simulated here)");
+  eq([await ev(ctrlTab), (await ev("__et.boxes()")).active], [false, 1], "…inside Fang Rock too (the shell's flag, simulated)");
   await ev("delete window.fangRockShell");
-  // box 2 is active now, so box 1's staged text sits in an inactive box for the wave check below
+  await shot("06-lines");
+  // line 2 is active, so line 1's staged text sits in an inactive line for the wave check below
 
   let reached = false;
   for (let t = 0; t < 400 && !reached; t += 0.5) {
@@ -309,8 +291,12 @@ try {
   eq((await ev("__et.boxes()")).values[0], "", "a new wave clears the text staged in an inactive box");
 
   await ev("__et.start('clear', 1)");
+  await ev("document.querySelector('.box.active input').focus()");
+  await c.insert("RCAV 2");
   await press("Tab");
-  eq((await ev("__et.boxes()")).open, false, "with 1 box, Tab does nothing");
+  eq([(await ev("__et.boxes()")).active, (await ev("__et.boxes()")).values], [0, ["RCAV 2"]], "with 1 line, Tab does nothing");
+  await press("F12");
+  eq((await ev("__et.boxes()")).values, [""], "…and F12 just clears it");
 
   /* ------------------------------------------------------------- G. pause */
   section("G. pause");
@@ -327,6 +313,10 @@ try {
   await shot("07-paused");
   await press("Escape");
   ok(await ev("!__et.paused() && __et.boxes().focused"), "Esc resumes, keyboard back in the box");
+  await ev("window.dispatchEvent(new Event('blur'))");
+  ok(await ev("__et.paused() && !document.querySelector('#pause').hidden"), "losing window focus pauses the game (a reflex Alt+Tab)");
+  await press("Escape");
+  ok(await ev("!__et.paused()"), "…and Esc resumes it like any pause");
 
   /* ------------------------------------------------ H. placement and VF */
   section("H. placement (Both) and VF");
@@ -410,7 +400,10 @@ try {
   {
     const txt = await ev("document.querySelector('#howto').innerText");
     ok(await ev("!!document.querySelector('#howto') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "a how-to panel sits down one side during play");
-    for (const want of ["RCAV <unit>", "post-it", "Clear Fueling", "Tab", "F12", "Pause", "hose"]) ok(txt.includes(want), `…it covers "${want}"`);
+    const lines = await ev("[...document.querySelectorAll('#howto li')].map(l => l.textContent)");
+    eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", "SWITCH Tab / Shift+Tab: next / previous Command Line (keeps what you typed).",
+      "F12 Next Command Line, cleared.", "ESC Pause.", "CLEANUP Hose off the mess between waves."], "Refinement 3 §2: the panel's lines, in order");
+    for (const gone of ["RCAV", "post-it", "Clear Fueling", "Ctrl"]) ok(!txt.includes(gone), `…with no "${gone}" line any more`);
     ok(!/\d+:\d\d|\b\d+\s*min/i.test(txt), "…and never lists a CAV duration");
     const overlap = await ev(`(() => {
       const h = document.querySelector('#howto').getBoundingClientRect();
@@ -466,7 +459,7 @@ try {
   ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>, e.g. CAV 2101 VS"), "E8: Both shows \"Place: CAV <unit> <type>, e.g. CAV 2101 VS\"");
   await ev("__et.start('progression', 1)");
   ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>"), "E8: Follow Progression shows it too");
-  eq([await ev("document.querySelector('#screen-setup h2:nth-of-type(2)').textContent"), await ev("document.querySelector('#switcher .title').textContent")], ["COMMAND LINES", "COMMAND LINES"], "E7: players see \"Command Line\" on the setup screen and the switcher");
+  eq(await ev("document.querySelector('#screen-setup h2:nth-of-type(2)').textContent"), "COMMAND LINES", "E7: players see \"Command Line\" on the setup screen");
   eq(await ev("ET.art.FRIED.join(',')"), "sunny,broken,burnt", "E11: only the three fried eggs remain");
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");

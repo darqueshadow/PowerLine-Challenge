@@ -101,14 +101,13 @@
     //   Only "start" is built.
     adNoteFrom: "start",
 
-    // ── Refinement 2 (2026-09-22): pan, ERROR, switcher, hose ───────────────
+    // ── Refinement 2 (2026-09-22): pan, ERROR, hose (its switcher is retired by Refinement 3)
     panSeconds: 0.32,        // [T] the frying pan's slam, well under 0.5 s; never holds the keyboard
     friedSplits: [1 / 3, 2 / 3], // [T] overtime in thirds: sunny-side-up, broken yolk, burnt
     hatchPanDelay: 0.35,     // [T] on a hatch the pan comes down this late, on the empty nest
     thongPitchJitter: 0.06,  // [T] ±6% pitch on each THONG so repeats don't grate
     errorSeconds: 1.0,       // [T] how long the red ERROR shows under the Command Line
-    tapSeconds: 0.25,        // [T] Tab released this fast (no other key) flips to the last-used box
-    sound: true,             // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
+    sound: true,            // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
 
     // ── Refinement 2 gaps, ruled 2026-09-22 (E5–E11) ─────────────────────────
     // Hose ruling (2026-09-22, replaces E5): in-game the cursor is ALWAYS the hose nozzle, with a
@@ -118,6 +117,14 @@
     hoseSpigotX: 0.5,              // [T] where the spigot sits along the board's bottom edge (0 left … 1 right)
     // E6: an Enter on an EMPTY Command Line does nothing (no ERROR, no buzz).
     errorOnEmpty: false,
+
+    // ── Refinement 3 (2026-09-23) ────────────────────────────────────────────
+    // §1: Tab / Shift+Tab next / previous Command Line, F12 next and cleared.
+    // ⏳ PENDING (E13): "F12: move to the NEXT Command Line and CLEAR that line." Built as the line
+    //   it lands on ("next"); "left" clears the line being left instead. With 1 line F12 just clears it.
+    f12Clears: "next",             // "next" | "left"
+    switchFlashSeconds: 0.18,      // [T] the one quick bright flash on the line switched to
+    pulseSeconds: 2.4,             // [T] the active line's slow neon pulse, one breath
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.
