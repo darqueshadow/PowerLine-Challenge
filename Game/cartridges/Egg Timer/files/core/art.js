@@ -181,15 +181,24 @@
       el("path", { class: "shell half", d: "M-22 6 C-24 -8 -16 -18 -6 -18 L-10 -10 L-4 -4 L-12 4 Z" }, shells);
       el("path", { class: "shell half", d: "M22 6 C24 -8 16 -18 6 -18 L10 -10 L4 -4 L12 4 Z" }, shells);
 
+      /* ⏳ placeholder hatchling (Refinement 5 §4): the thing that escapes is HORRIFIC, the dark side of the
+         cute family. Eight jointed legs, a gaunt ribbed body, a cluster of odd-sized red eyes and a split maw of
+         needle teeth, drooling. Final art is Gemini's. */
       var bug = el("g", { class: "creature" }, svg);
       var legs = el("g", { class: "legs" }, bug);
-      [-8, 0, 8].forEach(function (y) {
-        el("path", { d: "M-10 " + y + " L-22 " + (y - 6) + " M10 " + y + " L22 " + (y - 6) }, legs);
+      [-10, -3, 4, 11].forEach(function (y, i) {
+        var k = i % 2 ? 1 : -1;
+        el("path", { d: "M-8 " + y + " L-20 " + (y - 11 + 3 * k) + " L-29 " + (y + 5) + " M8 " + y + " L20 " + (y - 11 - 3 * k) + " L29 " + (y + 5) }, legs);
       });
-      el("ellipse", { class: "body", cx: 0, cy: 0, rx: 12, ry: 16 }, bug);
-      el("circle", { class: "eye", cx: -5, cy: -9, r: 3.4 }, bug);
-      el("circle", { class: "eye", cx: 5, cy: -9, r: 3.4 }, bug);
-      el("path", { class: "antenna", d: "M-4 -15 L-10 -26 M4 -15 L10 -26" }, bug);
+      el("path", { class: "body", d: "M0 -22 C12 -22 14 -8 11 4 C9 14 5 20 0 22 C-5 20 -9 14 -11 4 C-14 -8 -12 -22 0 -22Z" }, bug);
+      el("path", { class: "ribs", d: "M-9 2 Q0 6 9 2 M-8 8 Q0 12 8 8 M-6 14 Q0 17 6 14" }, bug);
+      el("path", { class: "maw", d: "M-8 -7 Q0 8 8 -7 Q0 -3 -8 -7Z" }, bug);
+      el("path", { class: "fangs", d: "M-6 -6 L-5 -1 L-3.5 -5 L-2 1 L0 -4 L2 1 L3.5 -5 L5 -1 L6 -6" }, bug);
+      el("path", { class: "drool", d: "M2 3 C2.5 8 1 10 2 14 C3 10 4 8 3 3Z" }, bug);
+      [[-5, -14, 3.6], [4, -16, 2.6], [8, -11, 1.8], [-1, -19, 1.6], [-9, -10, 1.5]].forEach(function (e) {
+        el("circle", { class: "eye", cx: e[0], cy: e[1], r: e[2] }, bug);
+        el("circle", { class: "slit", cx: e[0], cy: e[1], r: e[2] * 0.35 }, bug);
+      });
 
       return svg;
     }

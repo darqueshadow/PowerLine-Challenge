@@ -246,7 +246,7 @@
     var title = $("#howto .title"), meadow = $("#howto .doodles");
     var list = [ET.art.doodleEl(0)];
     title.appendChild(list[0]);
-    [[4, 4], [54, 0], [26, 50], [64, 52]].forEach(function (p, i) {
+    [[4, 12], [54, 9], [26, 56], [64, 58]].forEach(function (p, i) {
       var d = ET.art.doodleEl(i + 1);
       d.style.left = p[0] + "%";
       d.style.top = p[1] + "%";

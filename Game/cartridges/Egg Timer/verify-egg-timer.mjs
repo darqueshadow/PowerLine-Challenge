@@ -370,6 +370,17 @@ try {
   ok(await ev("!!document.querySelector('.nest.scurry, .nest.lunge')"), "the creature does an escape flourish (scurry or lunge)");
   ok(await ev("!!document.querySelector('.nest.scurry .pan.late, .nest.lunge .pan.late')"), "the pan comes down late on the empty nest");
   await shot("05-escape");
+  {
+    // Refinement 5 §4: the hatchling is horrific (⏳ placeholder): many red eyes, fangs, eight legs
+    const hx = await ev(`(() => { const c = document.querySelector('.nest.scurry .creature, .nest.lunge .creature'); return c ? { eyes: c.querySelectorAll('.eye').length, fangs: !!c.querySelector('.fangs'), legs: c.querySelectorAll('.legs path').length, red: getComputedStyle(c.querySelector('.eye')).fill } : null; })()`);
+    ok(!!hx && hx.eyes >= 4 && hx.fangs && hx.legs >= 4 && hx.red === "rgb(255, 26, 46)", `Refinement 5 §4: the hatchling is horrific: a cluster of red eyes, fangs and jointed legs   [${hx && hx.eyes} eyes]`);
+    if (SHOTS) {
+      // a still of the hatchling at full size, in its nest, for a look (the flourish itself is too quick to catch)
+      await ev(`(() => { const n = document.querySelector('.nest.scurry, .nest.lunge'); n.classList.remove('scurry', 'lunge'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);
+      await shot("05b-hatchling");
+      await ev(`(() => { const n = document.querySelector('.nest[style*="scale(2.2)"]'); n.style.transform = ''; n.style.zIndex = ''; return 1; })()`);
+    }
+  }
 
   /* ------------------------------------------------------ F. command boxes */
   section("F. Command Lines: Tab / Shift+Tab / F12, as in CAD5 (Refinement 3 §1)");
@@ -743,7 +754,14 @@ try {
       document.querySelectorAll('#howto .title span, #howto li').forEach(e => { const rg = document.createRange(); rg.selectNodeContents(e); words.push(...rg.getClientRects()); });
       const tag = document.querySelector('#hose-tag').getBoundingClientRect();
       const tagged = nests.filter(x => hit(tag, x.r) || hit(tag, x.art)).length;
-      const doodled = [...document.querySelectorAll('#howto .doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(w => w.width > 0 && hit(r, w)); }).length;
+      // …measured at the full turn both ways, not just wherever the doodles happen to be pointing
+      let doodled = 0;
+      const ds = [...document.querySelectorAll('#howto .doodle')], was = ds.map(d => d.style.getPropertyValue('--turn'));
+      for (const sign of [1, -1]) {
+        ds.forEach(d => { d.style.transition = 'none'; d.style.setProperty('--turn', sign * ET.CONFIG.doodleTurnMax + 'deg'); });
+        doodled += ds.filter(d => { const r = d.getBoundingClientRect(); return words.some(w => w.width > 0 && hit(r, w)); }).length;
+      }
+      ds.forEach((d, i) => { d.style.setProperty('--turn', was[i]); d.style.transition = ''; });
       const clock = document.querySelector('.wallclock').getBoundingClientRect();
       const field = document.querySelector('#field').getBoundingClientRect();
       document.querySelectorAll('.nest .postit').forEach(p => { p.hidden = true; });
