@@ -607,6 +607,40 @@ section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");
   ok(drawn.length >= 8 && !dup, `then it refills, still never doubling a unit on the board   [${drawn.join(" ")}]`);
 }
 
+section("U. Refinement 4 §4: an even CAV-type mix from a shuffle bag");
+{
+  const real = types;   // the seven real types, from the CSV
+  const run = (mode, seed, waves) => {
+    const g = new ET.Game({ mode, types: real, units, rng: ET.seededRandom(seed) });
+    g.start();
+    const byWave = {};
+    for (let i = 0; i < 60000 && g.phase !== "over" && g.wave <= waves; i++) {
+      g.step(0.05);
+      g.drain().forEach((e) => {
+        if (e.type !== "trigger" && !(e.type === "laying" && e.how === "auto")) return;
+        (byWave[g.wave] = byWave[g.wave] || []).push({ code: g.nests[e.nest].type.code, placing: e.type === "trigger" });
+      });
+      inState(g, "trigger").forEach((n) => g.submit(`CAV ${n.unit} ${n.type.code}`));
+      inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
+    }
+    return byWave;
+  };
+  const chunks = (list, k) => { const out = []; for (let i = 0; i + k <= list.length; i += k) out.push(list.slice(i, i + k)); return out; };
+  const both = run("both", 4, 4);
+  const bothOk = Object.values(both).every((w) => chunks(w.map((x) => x.code), 7).every((c) => new Set(c).size === 7));
+  ok(bothOk && Object.keys(both).length >= 4, `Both: each wave's spawns come seven at a time, every type once per seven   [waves ${Object.keys(both).join(",")}]`);
+  const clear = run("clear", 5, 4);
+  const clearCodes = Object.values(clear).flat().map((x) => x.code);
+  ok(!clearCodes.includes("VF") && Object.values(clear).every((w) => chunks(w.map((x) => x.code), 6).every((c) => new Set(c).size === 6)),
+    "Clear CAVs Only: the bag holds the six types it can use, each once per six, never VF");
+  const prog = run("progression", 6, 9);
+  const vfAuto = Object.values(prog).flat().filter((x) => x.code === "VF" && !x.placing).length;
+  const vfAny = Object.values(prog).flat().filter((x) => x.code === "VF").length;
+  ok(vfAuto === 0 && vfAny > 0, `⏳ E19: Follow Progression gives VF only to a spawn that needs placing   [${vfAny} VF, all placed]`);
+  const w1 = both[1].map((x) => x.code);
+  ok(new Set(w1.slice(0, 7)).size === 7, `⏳ E20: each wave starts a fresh bag   [wave 1 opens ${w1.slice(0, 7).join(" ")}]`);
+}
+
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
 eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides, "timerDisplay" in ET.CONFIG],
   ["per-spawn", true, false, "timer", false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · C15(b) timer only · D5's switch is gone");

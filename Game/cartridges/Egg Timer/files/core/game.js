@@ -60,6 +60,7 @@
     this.escapes = 0;
     this.streak = 0;                       // consecutive fast clears: the egg ladder (cosmetic, carries across waves)
     this.unitsUsed = {};                   // units drawn this wave (Refinement 4 §3)
+    this.typeBag = [];                     // the wave's shuffle bag of CAV types (Refinement 4 §4)
     this.nextSpawnAt = 0;
     this.cleanupEndsAt = 0;
     this.events = [];
@@ -115,6 +116,7 @@
     this.rate = ET.rules.clockRate(wave);
     this.stats.skippedByWave[wave] = 0;
     this.unitsUsed = {};                   // a fresh unit pool each wave
+    this.typeBag = [];                     // …and a fresh bag of CAV types (⏳ E20)
     this.phase = "wave";
     this.nextSpawnAt = this.time;
     this.emit("wave-start", { wave: wave, quota: this.quota, speed: this.speed });
@@ -158,9 +160,28 @@
     return unit;
   };
 
+  /* Refinement 4 §4: CAV types come out of a shuffle bag holding each type once; when it empties it is
+     refilled and reshuffled, so the mix stays even (the old draw was uniform at random, with no weights).
+     A two-phase-only type (VF) can only be drawn for a spawn that needs placing: where none can (Clear CAVs
+     Only, and Follow Progression's waves with a 0% placement chance) the bag leaves it out; otherwise a VF
+     the spawn can't take waits in the bag for the next placement spawn, and isn't added again while it
+     waits (⏳ E19). */
   Game.prototype.pickType = function (placement) {
-    var pool = placement ? this.types : this.types.filter(function (t) { return !t.twoPhaseOnly; });
-    return pool.length ? pool[Math.floor(this.rng() * pool.length)] : null;
+    var self = this;
+    var noPlacing = this.mode === "clear" || (this.mode === "progression" && ET.rules.placementChance(this.wave) <= 0);
+    var fits = function (t) { return placement || !t.twoPhaseOnly; };
+    var i = this.typeBag.findIndex(fits);
+    if (i < 0) {
+      var fresh = this.types.filter(function (t) { return !(noPlacing && t.twoPhaseOnly) && self.typeBag.indexOf(t) < 0; });
+      for (var k = fresh.length - 1; k > 0; k--) {        // Fisher–Yates, on the game's own random source
+        var j = Math.floor(this.rng() * (k + 1)), tmp = fresh[k];
+        fresh[k] = fresh[j];
+        fresh[j] = tmp;
+      }
+      this.typeBag = this.typeBag.concat(fresh);
+      i = this.typeBag.findIndex(fits);
+    }
+    return i < 0 ? null : this.typeBag.splice(i, 1)[0];
   };
 
   Game.prototype.spawn = function () {
