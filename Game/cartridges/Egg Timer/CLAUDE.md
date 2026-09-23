@@ -79,7 +79,8 @@ the memory store (below).
   so don't loosen it. Then bold, `RCAV` valid and the crack are one event. Overtime is in **the player's
   seconds**: 6 s, −0.25 s every 2 waves, floor 4.5 s, fixed ±10%. Then the hatch, final. **VF** shows no egg
   and no timer until the trigger, when a "Clear Fueling" bubble pops. **Every AD shows a post-it**: "20 min", or
-  "Clear @ HH:MM" against the wall clock, the next whole minute after start + draw (E1).
+  "Clear @ HH:MM" against the wall clock, the next whole minute after start + draw (E1). The clock note looks
+  like the wall clock; the "N min" note is a post-it in Patrick Hand (bundled in `files/fonts/`, OFL).
 - **Timer:** counts **up** in displayed time, MM:SS, through overtime. A larger 24-hour **wall clock** sits at
   the top centre of the playing field; the **Time Warp** panel sits in the **centre of the board** (Refinement 6;
   the middle row of nests sits two a side to leave it room): once the wave's last CAV has *started* and no egg is
@@ -110,7 +111,8 @@ the memory store (below).
   panel, the Command Lines and the HUD bar (Refinement 4, superseding E12). Water only while dragging.
   A tag on the tap: "CLEANING HOSE: click & drag to spray" (Refinement 5).
 - **Readouts:** three cartoon boxes: unit white/blue, type grey/black, timer yellow/purple; at the limit all
-  three go bold on the same instant, the unit's type dark green and the timer hot pink/white (Refinement 5). Each sized for its widest reading; a readout may run wider than its nest. Keep rig section L passing.
+  three go bold on the same instant, the unit's type dark green and the timer hot pink/white (Refinement 5). Each sized for its widest reading; a readout may run wider than its nest. Keep rig section L passing. A nest
+  in play with no CAV has its boxes darkened further ("not in play").
 - **How-to panel** beside play **is** the instruction screen (E10). It **never lists CAV durations**. Lines:
   Goal, Switch, F12, Esc, Cleanup ("Click & drag the hose to clean up the mess."), plus Place in Both and
   Follow Progression (E8); no syntax line (E17, 🔒). Cartoon card with turning alien doodles that never touch
@@ -169,4 +171,5 @@ Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-23 (end)
 The options creature, the spawn ruling, Refinement 5, the E22–E23 rulings and the panel-everywhere + attract
-lights handoff and Refinement 6 are live (rigs logic 141/0, browser 337/0). No Chat question open. Waiting on Andrew: D3 and the doubled units (Status → Open).
+lights handoff, Refinement 6, the lightning cap and the AD notes & blank boxes are live (rigs logic 141/0,
+browser 341/0). No Chat question open. Waiting on Andrew: D3 and the doubled units (Status → Open).
