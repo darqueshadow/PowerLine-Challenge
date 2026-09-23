@@ -223,6 +223,10 @@ try {
     eq(await ev(`[document.querySelector('.nest[data-id="${lay.id}"] .clock').textContent, getComputedStyle(document.querySelector('.nest[data-id="${lay.id}"] .egg')).display]`), ["--:--", "none"], "…with no clock running and no egg in the nest yet");
     const z = await ev("[Number(getComputedStyle(document.querySelector('#cords')).zIndex), Number(getComputedStyle(document.querySelector('#field')).zIndex), Number(getComputedStyle(document.querySelector('.hud')).zIndex)]");
     ok(z[0] < z[1] && z[0] < z[2], `…drawn under the nests, the HUD and every readout   [cord ${z[0]} < ${z[1]}, ${z[2]}]`);
+    const look = await ev(`(() => { const g = document.querySelectorAll('#cords .cord')[${lay.id}], cs = (s) => getComputedStyle(g.querySelector(s));
+      return { w: parseFloat(cs('.cord-line').strokeWidth), red: cs('.cord-line').stroke, purple: cs('.cord-stripes').stroke, stripes: cs('.cord-stripes').strokeDasharray, ribs: cs('.cord-ribs').strokeDasharray }; })()`);
+    ok(look.w >= 8 && look.red === "rgb(158, 10, 30)" && look.purple === "rgb(122, 44, 196)" && look.stripes !== "none" && look.ribs !== "none",
+      `Refinement 6 §4: the cord is thick, striped blood red and purple, and ribbed   [${look.w}px, ${look.red} / ${look.purple}]`);
     await ev("__et.advance(0.5)");
     const mid = await ev(`ET.view.cord(${lay.id})`);
     ok(!!mid && mid.bulge && !mid.egg, "Refinement 4 §1: then a bulge, the egg, travels down inside the cord");

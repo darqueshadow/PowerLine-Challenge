@@ -270,8 +270,14 @@ h2 {
 #hose .hose-body { fill: none; stroke: #2fbf5a; stroke-linecap: round; }
 /* Refinement 3 §7: the egg-laying cord, in the hose's layer, under every piece of text (⏳ placeholder) */
 #cords { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible; }
-#cords .cord-line { fill: none; stroke: #b04dff; stroke-width: 4px; stroke-linejoin: round; stroke-linecap: round; animation: cord-pulse 0.7s ease-in-out infinite; }
-@keyframes cord-pulse { 50% { stroke-width: 6px; stroke: #c973ff; } }
+/* Refinement 6 §4 (⏳ placeholder): thick [T], striped blood red and purple, deeply ribbed. The stripes creep
+   slowly down the cord (movement, not a flash); timing and layering are unchanged. */
+#cords path[class^="cord-"] { fill: none; stroke-linejoin: round; }
+#cords .cord-outline { stroke: #1a0008; stroke-width: calc(var(--cord, 10px) + 4px); stroke-linecap: round; }
+#cords .cord-line { stroke: #9e0a1e; stroke-width: var(--cord, 10px); stroke-linecap: round; }
+#cords .cord-stripes { stroke: #7a2cc4; stroke-width: var(--cord, 10px); stroke-dasharray: 9 9; animation: cord-creep 1.4s linear infinite; }
+#cords .cord-ribs { stroke: #2a0010; stroke-width: calc(var(--cord, 10px) + 3px); stroke-dasharray: 2 5; opacity: 0.8; }
+@keyframes cord-creep { to { stroke-dashoffset: -18; } }
 #cords .cord-bulge { fill: #8a2fd6; stroke: #3b1060; stroke-width: 2px; }
 #cords .cord-egg { fill: var(--shell); stroke: var(--crack); stroke-width: 2px; }
 #hose .pipe { fill: #9aa0a8; stroke: #000; stroke-width: 2; }
@@ -815,6 +821,6 @@ h2 {
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter * { animation: none; }
+  .blink, .nest[data-state="trigger"] .readout, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter * { animation: none; }
   #title-scene .note, #setup-critter .note { opacity: 1; }
 }

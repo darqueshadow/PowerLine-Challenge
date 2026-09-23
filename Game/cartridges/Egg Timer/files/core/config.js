@@ -143,6 +143,7 @@
     layPop: 0.4,                   // [T] (was 0.3)
     layRetract: 1.5,               // [T] a slow snaking retract (was 0.45)
     cordDropShare: 0.45,           // [T] of the drop, the empty cord coming down; the rest, the bulge travelling down it
+    cordWidth: 10,                 // [T] Refinement 6 §4: thicker (was 4 px), striped blood red and purple, deeply ribbed
 
     // ── Refinement 3 rulings (2026-09-23): the egg ladder ───────────────────
     // A "fast clear" lands in the first part of the overtime window. Consecutive fast clears climb the

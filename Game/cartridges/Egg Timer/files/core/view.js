@@ -167,11 +167,15 @@
     svg.setAttribute("aria-hidden", "true");
     screen.insertBefore(svg, screen.firstChild);
     cords = { svg: svg, screen: screen, list: [] };
+    svg.style.setProperty("--cord", ET.CONFIG.cordWidth + "px");
     function mk(g, tag, cls) { var e = document.createElementNS(NS, tag); e.setAttribute("class", cls); g.appendChild(e); return e; }
     for (var i = 0; i < nests.length; i++) {
       var g = document.createElementNS(NS, "g");
       g.setAttribute("class", "cord");
-      var c = { g: g, path: mk(g, "path", "cord-line"), bulge: mk(g, "ellipse", "cord-bulge"), egg: mk(g, "ellipse", "cord-egg") };
+      // Refinement 6 §4: a thick cord, striped blood red and purple and deeply ribbed: four strokes on one line
+      // (a dark outline, the red, purple stripes, dark rib bands across it)
+      var lines = [mk(g, "path", "cord-outline"), mk(g, "path", "cord-line"), mk(g, "path", "cord-stripes"), mk(g, "path", "cord-ribs")];
+      var c = { g: g, path: lines[1], lines: lines, bulge: mk(g, "ellipse", "cord-bulge"), egg: mk(g, "ellipse", "cord-egg") };
       svg.appendChild(g);
       g.style.display = "none";
       cords.list.push(c);
@@ -225,8 +229,8 @@
       d += " L" + (x + sway).toFixed(1) + " " + y;
     }
     d += " L" + (x + twitch).toFixed(1) + " " + Math.max(0, tip).toFixed(1);
-    c.path.setAttribute("d", d);
-    ell(c.bulge, x + twitch * (bulgeY || 0) / Math.max(1, end), bulgeY || 0, eggRx * 1.4, eggRy * 1.3, bulgeY !== null);
+    c.lines.forEach(function (l) { l.setAttribute("d", d); });
+    ell(c.bulge, x + twitch * (bulgeY || 0) / Math.max(1, end), bulgeY || 0, Math.max(eggRx * 1.4, C.cordWidth * 0.85), eggRy * 1.3, bulgeY !== null);   // still a bulge on the thicker cord
     ell(c.egg, x, eggY === null ? 0 : eggY, eggRx * eggK, eggRy * eggK, eggY !== null);
   }
 
