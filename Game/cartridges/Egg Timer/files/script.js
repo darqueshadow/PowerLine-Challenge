@@ -255,7 +255,7 @@
 
   /* Refinement 5 §3: the how-to panel's alien-family doodles. One sits beside the title and the rest in the
      space under the text, so they never cover a word; every doodleTurnEvery [T] one of them turns to a new
-     angle (a CSS transition, so nothing here runs per frame), and only while the play screen shows. */
+     angle (a CSS transition, so nothing here runs per frame), on every screen. */
   function buildDoodles() {
     var title = $("#howto .title"), meadow = $("#howto .doodles");
     var list = [ET.art.doodleEl(0)];
@@ -269,7 +269,7 @@
     });
     list.forEach(function (d) { d.style.setProperty("--turn", ((Math.random() * 2 - 1) * C.doodleTurnMax).toFixed(0) + "deg"); });
     setInterval(function () {
-      if (app.screen !== "play" || app.paused) return;
+      if (app.paused) return;   // on every screen now the panel is (a paused game holds them)
       var d = list[Math.floor(Math.random() * list.length)];
       d.style.setProperty("--turn", ((Math.random() * 2 - 1) * C.doodleTurnMax).toFixed(0) + "deg");
     }, C.doodleTurnEvery * 1000);
