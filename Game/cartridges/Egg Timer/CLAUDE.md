@@ -80,10 +80,13 @@ the memory store (below).
   seconds**: 6 s, −0.25 s every 2 waves, floor 4.5 s, fixed ±10%. Then the hatch, final. **VF** shows no egg
   and no timer until the trigger, when a "Clear Fueling" bubble pops. **Every AD shows a post-it**: "20 min", or
   "Clear @ HH:MM" against the wall clock, the next whole minute after start + draw (E1).
-- **Timer:** counts **up** in displayed time, MM:SS, through overtime. A larger 24-hour **wall clock** sits in
-  the band above the board with the **Time Warp** panel: once the wave's last CAV has *started* and no egg is
+- **Timer:** counts **up** in displayed time, MM:SS, through overtime. A larger 24-hour **wall clock** sits at
+  the top centre of the playing field; the **Time Warp** panel sits in the **centre of the board** (Refinement 6;
+  the middle row of nests sits two a side to leave it room): once the wave's last CAV has *started* and no egg is
   bold, every clock runs 5× [T] until an egg goes bold (the step splits there; E18). Overtime never warps.
-  While it runs, only nests whose clock is running glow Time Warp green (Refinement 5, E22).
+  While it runs, only nests whose clock is running glow Time Warp green (E22), and green **lightning** chains
+  from the panel to them, under every readout. 🚨 Lightning re-jags ≤ 3 a second (guard in `rejag()`), still
+  under reduced motion; keep rig section P's flicker checks passing.
 - **Placement:** 10 points, no penalty for waiting, but **an ignored trigger auto-opens** after 20 s (−1 s a
   wave, floor 8 s). **Any rejected Enter** clears the Command Line, shows a red ERROR under it for ~1 s and
   buzzes, with no score or pool penalty. An empty Enter does nothing (E6).
@@ -121,7 +124,8 @@ the memory store (below).
   **Tab / Shift+Tab** next / previous line, text kept; **F12** next line and clears the line it lands on (E13);
   with 1 line, F12 just clears it. The active line pulses; the game pauses itself when the window loses focus.
   **Esc, and only Esc, pauses.** (The switcher, Ctrl+Tab and Alt+1–4 are retired.)
-- **Title screen:** a singing mommy alien and babies (too-wide smile, too many teeth), CSS only, and an
+- **Title screen:** its own **How To Play card** (four numbered steps, `TITLE_STEPS`; Andrew may reword) where
+  the other screens have the panel. A singing mommy alien and babies (too-wide smile, too many teeth), CSS only, and an
   ORIGINAL chiptune (`audio.js` `titleTune`) on the title and mode-selection screens (E21). Fang Rock's
   Electron starts it unprompted (measured); a browser tab at the first key. The **mode-selection screen** has
   its own creature: a three-headed singing blob whose eyes follow the cursor (never listens for keys).
@@ -165,4 +169,4 @@ Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-23 (end)
 The options creature, the spawn ruling, Refinement 5, the E22–E23 rulings and the panel-everywhere + attract
-lights handoff are live (rigs logic 141/0, browser 323/0). No Chat question open. Waiting on Andrew: D3 and the doubled units (Status → Open).
+lights handoff and Refinement 6 are live (rigs logic 141/0, browser 337/0). No Chat question open. Waiting on Andrew: D3 and the doubled units (Status → Open).
