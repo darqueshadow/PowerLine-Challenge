@@ -21,8 +21,6 @@ the memory store (below).
   Keep each change in its own commit(s) so any one can be reverted alone. **After each push, tell Andrew in one
   line what went live.** A push also publishes other sessions' commits on `main`: check `git log origin/main..main`
   and say so if anything besides Egg Timer is going out.
-- **Open with Chat:** **E22** (which nests glow in a warp, `warpGlow`) and **E23** (the mom face covering the HUD
-  bar or how-to text for its moment, `momFaceZones`), both in the packet's §11 ready to paste.
 - **Open, all Andrew's:** **D3**, the Developer Mode phrase (`devModePasswordHash`, null denies every entry): Andrew gives Code the
   digest, never the phrase; then set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
   **The shared transport sheet lists 2133–2136 and 2139 twice** (59 rows, 54 units): his call; the game dedupes.
@@ -85,7 +83,7 @@ the memory store (below).
 - **Timer:** counts **up** in displayed time, MM:SS, through overtime. A larger 24-hour **wall clock** sits in
   the band above the board with the **Time Warp** panel: once the wave's last CAV has *started* and no egg is
   bold, every clock runs 5× [T] until an egg goes bold (the step splits there; E18). Overtime never warps.
-  While it runs the nests in play glow Time Warp green (Refinement 5; which nests is ⏳ E22).
+  While it runs, only nests whose clock is running glow Time Warp green (Refinement 5, E22).
 - **Placement:** 10 points, no penalty for waiting, but **an ignored trigger auto-opens** after 20 s (−1 s a
   wave, floor 8 s). **Any rejected Enter** clears the Command Line, shows a red ERROR under it for ~1 s and
   buzzes, with no score or pool penalty. An empty Enter does nothing (E6).
@@ -124,8 +122,8 @@ the memory store (below).
   Electron starts it unprompted (measured); a browser tab at the first key. The **mode-selection screen** has
   its own creature: a three-headed singing blob whose eyes follow the cursor (never listens for keys).
 - **Horror beats (Refinement 5):** the hatchling is horrific; a **scary mom face** pops in at most once a wave,
-  under 1 s, only inside a clipping box over the HUD bar or the how-to panel, so it can never reach a nest,
-  readout or Command Line (rig section Q). Never let it take input or flash.
+  under 1 s, only inside a clipping box over the HUD bar or the how-to panel (covering either briefly is fine,
+  E23), so it can never reach a nest, readout or Command Line (rig section Q). Never let it take input or flash.
 - **Platform:** a plain browser tab, and Fang Rock (`fangrock://arcade/eggtimer`, in the hub's frame), which
   serves the arcade from the **local** `(PCL)/Game` folder, not GitHub Pages.
 - **Deferred:** creature, splat, dish and escape art, and every final look and sound (Gemini); the end screen
@@ -162,5 +160,5 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-23 (end)
-The options creature, the spawn ruling and Refinement 5 are live (rigs logic 141/0, browser 262/0). Open with
-Chat: E22–E23. Waiting on Andrew: D3 and the doubled units (Status → Open).
+The options creature, the spawn ruling, Refinement 5 and the E22–E23 rulings are live (rigs logic 141/0, browser
+263/0). No Chat question open. Waiting on Andrew: D3 and the doubled units (Status → Open).
