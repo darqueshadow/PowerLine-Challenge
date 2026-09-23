@@ -42,7 +42,8 @@
     this.mode = opts.mode;                 // "clear" | "progression" | "both"
     this.boxes = opts.boxes || 1;
     this.types = opts.types || [];
-    this.units = opts.units || [];
+    // the pool is the distinct unit numbers: the shared Data Sheet lists five of them twice (Refinement 4 §3)
+    this.units = (opts.units || []).filter(function (u, i, all) { return all.indexOf(u) === i; });
     this.rng = opts.rng || Math.random;
     this.time = 0;
     this.clock = 0;
@@ -58,6 +59,7 @@
     this.spawned = 0;
     this.escapes = 0;
     this.streak = 0;                       // consecutive fast clears: the egg ladder (cosmetic, carries across waves)
+    this.unitsUsed = {};                   // units drawn this wave (Refinement 4 §3)
     this.nextSpawnAt = 0;
     this.cleanupEndsAt = 0;
     this.events = [];
@@ -112,6 +114,7 @@
     this.speed = ET.rules.clockSpeed(wave);   // every clock shares one speed (a wave starts on an empty board, D4)
     this.rate = ET.rules.clockRate(wave);
     this.stats.skippedByWave[wave] = 0;
+    this.unitsUsed = {};                   // a fresh unit pool each wave
     this.phase = "wave";
     this.nextSpawnAt = this.time;
     this.emit("wave-start", { wave: wave, quota: this.quota, speed: this.speed });
@@ -134,16 +137,25 @@
     return this.nests.filter(function (n) { return n.unlocked; });
   };
 
-  /* A unit not currently on the board, so no two nests ever share a number. */
+  /* A unit not currently on the board, so no two nests ever share a number (a trigger waiting to be
+     placed counts as on the board). Refinement 4 §3: within a wave no unit repeats until the whole unit
+     pool has been used; then the pool refills, still never giving out one that's on the board. */
   Game.prototype.freeUnit = function () {
     var perNest = ET.CONFIG.unitAssignment === "per-nest";
-    var used = {};
+    var onBoard = {}, usedThisWave = this.unitsUsed;
     this.nests.forEach(function (n) {
-      if (perNest ? n.fixedUnit : n.state !== "idle" && n.unit) used[perNest ? n.fixedUnit : n.unit] = true;
+      if (perNest ? n.fixedUnit : n.state !== "idle" && n.unit) onBoard[perNest ? n.fixedUnit : n.unit] = true;
     });
-    var free = this.units.filter(function (u) { return !used[u]; });
-    var pool = free.length ? free : this.units;
-    return pool.length ? pool[Math.floor(this.rng() * pool.length)] : "0000";
+    var free = this.units.filter(function (u) { return !onBoard[u]; });
+    var fresh = perNest ? free : free.filter(function (u) { return !usedThisWave[u]; });
+    if (!fresh.length && !perNest) {
+      this.unitsUsed = {};                   // the whole pool has been used this wave: refill it
+      fresh = free;
+    }
+    var pool = fresh.length ? fresh : this.units;
+    var unit = pool.length ? pool[Math.floor(this.rng() * pool.length)] : "0000";
+    if (!perNest) this.unitsUsed[unit] = true;
+    return unit;
   };
 
   Game.prototype.pickType = function (placement) {

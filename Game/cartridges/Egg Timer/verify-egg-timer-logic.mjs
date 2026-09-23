@@ -562,6 +562,51 @@ section("R. E18 (ruled): no Time Warp while a placement trigger is still waiting
   ok(warpAfter, "once it started (here it auto-opened), the warp came on");
 }
 
+section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");
+{
+  // A long game of short CAVs in Both (triggers wait on the board too), watching every spawn.
+  const g = game("both", [T("VS", 10)], 33);
+  const distinct = new Set(units).size;
+  eq([units.length, distinct, g.units.length], [59, 54, 54], "the Data Sheet's 59 rows hold 54 distinct units (five listed twice); the pool is the 54");
+  let dupOnBoard = false, repeatBeforeRefill = 0, spawnsChecked = 0;
+  let seen = new Set(), wave = 1;
+  for (let i = 0; i < 40000 && g.phase !== "over"; i++) {
+    g.step(0.05);
+    if (g.wave !== wave) { wave = g.wave; seen = new Set(); }
+    g.drain().forEach((e) => {
+      if (e.type !== "trigger") return;
+      const u = g.nests[e.nest].unit;
+      spawnsChecked++;
+      if (seen.has(u) && seen.size < distinct) repeatBeforeRefill++;
+      if (seen.size >= distinct) seen = new Set();
+      seen.add(u);
+    });
+    const showing = g.unlocked().filter((n) => n.state !== "idle").map((n) => n.unit);
+    if (new Set(showing).size !== showing.length) dupOnBoard = true;
+    inState(g, "trigger").forEach((n) => { if (i % 3 === 0) g.submit(`CAV ${n.unit} VS`); });
+    inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
+  }
+  ok(spawnsChecked > 300, `a long game   [${spawnsChecked} CAVs over ${g.wave} waves]`);
+  ok(!dupOnBoard, "a unit is never on two nests at once, waiting triggers included");
+  eq(repeatBeforeRefill, 0, "within a wave, no unit repeats until all 54 have been used");
+}
+{
+  // Force the refill: a wave's quota bigger than the pool (5 units, quota 8).
+  const g = new ET.Game({ mode: "clear", types: [T("XX", 1)], units: ["1001", "1002", "1003", "1004", "1005"], rng: ET.seededRandom(3) });
+  g.start();
+  const drawn = [];
+  let dup = false;
+  for (let i = 0; i < 4000 && g.wave === 1; i++) {
+    g.step(0.05);
+    g.drain().forEach((e) => { if (e.type === "laying") drawn.push(g.nests[e.nest].unit); });
+    const showing = g.unlocked().filter((n) => n.state !== "idle").map((n) => n.unit);
+    if (new Set(showing).size !== showing.length) dup = true;
+    inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
+  }
+  eq(new Set(drawn.slice(0, 5)).size, 5, "the first five draws use the whole (five-unit) pool before any repeats");
+  ok(drawn.length >= 8 && !dup, `then it refills, still never doubling a unit on the board   [${drawn.join(" ")}]`);
+}
+
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
 eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides, "timerDisplay" in ET.CONFIG],
   ["per-spawn", true, false, "timer", false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · C15(b) timer only · D5's switch is gone");
