@@ -475,6 +475,18 @@ try {
       await ev("__et.advance(0.5)");
     }
     ok(cleanup, "play reaches the cleanup between waves");
+    await ev("__et.advance(0.3)");
+    const cb = await ev(`(() => {
+      const el = document.querySelector('#cleanup'), r = el.getBoundingClientRect(), f = document.querySelector('#field').getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return { shown: !el.hidden, text: el.textContent, top: r.top, clearOfBoard: r.bottom <= f.top + 1, wide: r.width > 0.9 * innerWidth,
+               flash: el.classList.contains('flash'), times: cs.animationIterationCount, centre: document.querySelector('#banner').hidden };
+    })()`);
+    ok(cb.shown && /^WAVE 1 CLEAR.*CLEAN UP \d+$/.test(cb.text), `Refinement 3 §3: a cleanup banner shows   [${cb.text}]`);
+    ok(cb.top <= 1 && cb.wide && cb.clearOfBoard, "…across the top of the screen, without covering the board");
+    ok(cb.flash && cb.times === "3", `…flashing a few times as cleanup starts, then holding steady   [${cb.times}]`);
+    ok(cb.centre, "…and nothing is left in the middle of the board");
+    await shot("12a-cleanup-banner");
     eq(await ev("getComputedStyle(document.querySelector('#field')).cursor.includes('url(')"), true, "during cleanup the cursor is the hose nozzle too");
     const drops = await ev(`(() => {
       const field = document.querySelector('#field');

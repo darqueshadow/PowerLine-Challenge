@@ -129,6 +129,7 @@ h2 {
   font-family: var(--font-display);
   font-size: clamp(16px, 2.2vw, 26px);
 }
+.hud { position: relative; }
 .hud .mode { margin-left: auto; color: var(--dim); font-size: 0.6em; letter-spacing: 0.1em; }
 .pool { color: var(--hot); letter-spacing: 0.15em; }
 .pool.hit { animation: hit 0.5s steps(4); }
@@ -156,7 +157,7 @@ h2 {
 #field { position: relative; flex: 1; min-width: 0; min-height: 0; touch-action: none; display: flex; flex-direction: column; }
 /* Refinement 3: a band across the top of the board for the wall clock (right) and the TIME WARP panel,
    so neither ever sits on a nest; the nests fill the board below it */
-#fieldtop { flex: none; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 10px 16px 4px; }
+#fieldtop { position: relative; z-index: 25; flex: none; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 10px 16px 4px; }
 #board { position: relative; flex: 1; min-height: 0; container-type: size; }
 
 /* ⏳ placeholder: in-game the cursor is ALWAYS the hose nozzle (Hose ruling, 2026-09-22); menus and
@@ -404,6 +405,30 @@ h2 {
 #banner .good { color: var(--shell); }
 #banner .left { color: var(--cyan); }
 
+/* Refinement 3 §3: the cleanup banner lies over the HUD bar, across the top of the screen, so the board
+   stays clear for the hose; it flashes a few times [T] as cleanup starts, then holds steady */
+#cleanup {
+  position: absolute;
+  inset: 0 0 -4px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 3vw, 48px);
+  padding: 0 18px;
+  background: var(--cyan);
+  color: var(--shadow);
+  border-bottom: 4px solid var(--shadow);
+  font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+}
+#cleanup .call { font-size: clamp(26px, 3.6vw, 46px); letter-spacing: 0.08em; line-height: 1; text-shadow: 3px 3px 0 var(--ink); }
+#cleanup .left { display: inline-block; min-width: 1.4ch; text-align: right; }
+#cleanup .result { font-size: clamp(12px, 1.2vw, 18px); letter-spacing: 0.06em; }
+#cleanup.flash { animation: cleanup-flash var(--flash-each, 0.3s) steps(1) var(--flashes, 3); }
+@keyframes cleanup-flash { 50% { background: var(--shadow); color: var(--cyan); } }
+
 /* ---------------------------------------------------------- command boxes */
 #console {
   display: flex;
@@ -522,5 +547,5 @@ h2 {
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched { animation: none; }
+  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched, #cleanup.flash { animation: none; }
 }

@@ -11,7 +11,7 @@
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  var field, board, hud, banner, popups, wall;
+  var field, board, hud, banner, popups, wall, cleanup;
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
@@ -168,6 +168,7 @@
         poolLabel: $("#hud-pool-label"), score: $("#hud-score"), mode: $("#hud-mode")
       };
       banner = $("#banner");
+      cleanup = { el: $("#cleanup"), result: $("#cleanup .result"), left: $("#cleanup .left") };
       popups = $("#popups");
       hud.poolLabel.textContent = ET.CONFIG.poolKey;
       wall = { hm: $("#wall-hm"), ss: $("#wall-ss") };
@@ -243,6 +244,7 @@
       inCleanup = false;
       field.classList.remove("hose");
       banner.hidden = true;
+      cleanup.el.hidden = true;
       popups.innerHTML = "";
       noTypesShown = false;
     },
@@ -292,8 +294,8 @@
       paintHose();
 
       if (snap.phase === "cleanup") {
-        var left = banner.querySelector(".left");
-        if (left) left.textContent = "CLEAN UP  " + Math.ceil(snap.cleanupLeft);
+        var left = String(Math.ceil(snap.cleanupLeft));
+        if (cleanup.left.textContent !== left) cleanup.left.textContent = left;
       }
     },
 
@@ -307,14 +309,21 @@
             v.el.classList.add("unlock");
             break;
           case "wave-start":
+            cleanup.el.hidden = true;
             showBanner([{ text: "WAVE " + e.wave, cls: "big" }, { text: e.quota + " CAVs" }], 1600);
             break;
           case "wave-end":
-            var lines = [{ text: "WAVE " + e.wave + " CLEAR", cls: "big" }];
-            if (e.perfect) lines.push({ text: "PERFECT WAVE +" + e.bonus, cls: "good" });
-            if (e.poolGained) lines.push({ text: ET.CONFIG.poolKey + " +1", cls: "good" });
-            lines.push({ text: "CLEAN UP", cls: "left" });
-            showBanner(lines, 0);
+            // Refinement 3 §3: the whole cleanup prompt, with the wave's result, goes in the banner up top
+            var result = ["WAVE " + e.wave + " CLEAR"];
+            if (e.perfect) result.push("PERFECT +" + e.bonus);
+            if (e.poolGained) result.push(ET.CONFIG.poolKey + " +1");
+            banner.hidden = true;
+            cleanup.result.textContent = result.join(" · ");
+            cleanup.left.textContent = "";
+            cleanup.el.style.setProperty("--flashes", ET.CONFIG.cleanupFlashes);
+            cleanup.el.style.setProperty("--flash-each", ET.CONFIG.cleanupFlashSeconds + "s");
+            replay(cleanup.el, "", "flash");
+            cleanup.el.hidden = false;
             break;
           case "trigger":
           case "active":
@@ -371,6 +380,7 @@
             break;
           case "game-over":
             banner.hidden = true;
+            cleanup.el.hidden = true;
             break;
         }
       });
