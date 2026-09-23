@@ -111,7 +111,11 @@ the memory store (below).
 - **How-to panel** beside play **is** the instruction screen (E10). It **never lists CAV durations**. Lines:
   Goal, Switch, F12, Esc, Cleanup ("Click & drag the hose to clean up the mess."), plus Place in Both and
   Follow Progression (E8); no syntax line (E17, 🔒). Cartoon card with turning alien doodles that never touch
-  a word (Refinement 5; the rig checks at the full turn).
+  a word (Refinement 5; the rig checks at the full turn). **It shows on EVERY screen** (one element that
+  `placeHowTo()` moves; menu screens keep their content left of it, sized in `cqw`), ringed by **arcade
+  attract lights** (`core/lights.js`): lively on the menus, a dim slow twinkle in play and cleanup.
+  🚨 **Safety: no light or group over 3 flashes a second.** Every bulb change goes through `set()`'s 0.2 s
+  guard (`lightsMinToggle`, never below 1/6 s); keep the rig's flash checks passing. Bulbs never behind a word.
 - **Command Lines** (players never see "Command Box", E7; the code says boxes): 1–4, picked on the
   mode-selection screen, each its own colour; staged text in an inactive line clears when a wave starts.
   **Tab / Shift+Tab** next / previous line, text kept; **F12** next line and clears the line it lands on (E13);
@@ -160,5 +164,5 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-23 (end)
-The options creature, the spawn ruling, Refinement 5 and the E22–E23 rulings are live (rigs logic 141/0, browser
-263/0). No Chat question open. Waiting on Andrew: D3 and the doubled units (Status → Open).
+The options creature, the spawn ruling, Refinement 5, the E22–E23 rulings and the panel-everywhere + attract
+lights handoff are live (rigs logic 141/0, browser 323/0). No Chat question open. Waiting on Andrew: D3 and the doubled units (Status → Open).
