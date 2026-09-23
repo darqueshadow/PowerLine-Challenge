@@ -132,6 +132,12 @@
     // §4 "Time Warp": once the wave has spawned its last egg and no egg is bold, every clock (nests and the
     // wall clock) runs this many times the wave's speed, until an egg goes bold. Overtime is untouched.
     warpFactor: 5,                 // [T]
+    // §7 egg-laying: when a CAV starts, a cord drops from the top of the screen (layDrop), lowers the egg
+    // in and pops off (layPop). The CAV's clock starts at the pop; the cord snakes back up (layRetract)
+    // while the clock runs. All in the player's seconds.
+    layDrop: 0.3,                  // [T]
+    layPop: 0.3,                   // [T]
+    layRetract: 0.45,              // [T]
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

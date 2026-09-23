@@ -145,6 +145,65 @@
     hose.svg.hidden = false;
   }
 
+  /* ⏳ placeholder: the egg-laying cord (Refinement 3 §7). It drops from the top of the screen straight
+     down to the nest with the egg on its tip, lowers the egg in, pops off, and snakes back up out of view
+     while the clock runs. It lives in the hose's layer, UNDER the HUD, the nests and every piece of text,
+     so it never hides another nest's readout; it's drawn from the snapshot, so it freezes on pause. */
+  var cords = null;
+  function buildCords() {
+    var screen = field.closest(".screen");
+    var svg = document.createElementNS(NS, "svg");
+    svg.id = "cords";
+    svg.setAttribute("aria-hidden", "true");
+    screen.insertBefore(svg, screen.firstChild);
+    cords = { svg: svg, screen: screen, list: [] };
+    for (var i = 0; i < nests.length; i++) {
+      var g = document.createElementNS(NS, "g");
+      g.setAttribute("class", "cord");
+      var path = document.createElementNS(NS, "path");
+      path.setAttribute("class", "cord-line");
+      var egg = document.createElementNS(NS, "ellipse");
+      egg.setAttribute("class", "cord-egg");
+      g.appendChild(path);
+      g.appendChild(egg);
+      svg.appendChild(g);
+      g.style.display = "none";
+      cords.list.push({ g: g, path: path, egg: egg });
+    }
+  }
+  function drawCord(i, s) {
+    var c = cords.list[i];
+    var show = !s.hidden && (s.lay !== null || s.retract !== null);   // ⏳ E16: VF has no egg to lay
+    c.g.style.display = show ? "" : "none";
+    if (!show) return;
+    var C = ET.CONFIG;
+    // from the layout, not the drawn box: a nest popping in (its unlock animation) mustn't shrink the egg
+    var sr = cords.screen.getBoundingClientRect(), br = board.getBoundingClientRect(), el = nests[i].el;
+    var w = el.offsetWidth, artH = w * 110 / 120;                  // the nest art's viewBox is 120 × 110
+    var x = br.left - sr.left + el.offsetLeft;                     // nests are centred on their left/top
+    var nestY = br.top - sr.top + el.offsetTop - el.offsetHeight / 2 + artH * (54 / 110);   // the egg's centre
+    var eggRy = 28 * C.eggMinScale * w / 120, eggRx = 22 * C.eggMinScale * w / 120;
+    var tip, wiggle = 0, egg = false;
+    if (s.lay !== null) {
+      var t = s.lay * (C.layDrop + C.layPop);
+      if (t < C.layDrop) tip = (nestY - eggRy) * (t / C.layDrop);           // dropping, the egg on its tip
+      else tip = nestY - eggRy + Math.sin((t - C.layDrop) / C.layPop * Math.PI) * 4;   // settling, then the pop
+      egg = true;
+    } else {
+      tip = (nestY - eggRy) * (1 - s.retract);                              // snaking back up
+      wiggle = 14 * Math.sin(s.retract * Math.PI);
+    }
+    var d = "M" + x.toFixed(1) + " 0";
+    for (var y = 24; y < tip; y += 24) d += " L" + (x + wiggle * Math.sin(y / 30 + s.retract * 12)).toFixed(1) + " " + y;
+    d += " L" + x.toFixed(1) + " " + Math.max(0, tip).toFixed(1);
+    c.path.setAttribute("d", d);
+    c.egg.style.display = egg ? "" : "none";
+    c.egg.setAttribute("cx", x.toFixed(1));
+    c.egg.setAttribute("cy", (tip + eggRy).toFixed(1));
+    c.egg.setAttribute("rx", eggRx.toFixed(1));
+    c.egg.setAttribute("ry", eggRy.toFixed(1));
+  }
+
   /* ⏳ placeholder: water from the hose while a drag is wiping. */
   function spray(x, y) {
     var f = field.getBoundingClientRect();
@@ -229,6 +288,7 @@
       }
       ET.view.bindWipe();
       buildHose();
+      buildCords();
     },
 
     reset: function () {
@@ -250,6 +310,7 @@
       banner.hidden = true;
       cleanup.el.hidden = true;
       warp.classList.remove("lit");
+      cords.list.forEach(function (c) { c.g.style.display = "none"; });
       popups.innerHTML = "";
       noTypesShown = false;
     },
@@ -271,7 +332,7 @@
         var el = v.el;
         if (el.dataset.state !== s.state) el.dataset.state = s.state;
 
-        var shows = s.state === "trigger" || s.state === "active" || s.state === "overtime";
+        var shows = s.state === "trigger" || s.state === "laying" || s.state === "active" || s.state === "overtime";
         v.unit.textContent = shows ? s.unit : (C.unitAssignment === "per-nest" && s.unit ? s.unit : "----");
         v.code.textContent = shows ? s.code : "";
         v.clock.textContent = s.state === "active" || s.state === "overtime" ? clockText(s.elapsed) : "--:--";
@@ -287,6 +348,8 @@
           var nt = noteText(s.note);
           if (v.note.textContent !== nt) v.note.textContent = nt;
         }
+
+        drawCord(s.id, s);
 
         var scale = C.eggMinScale + (1 - C.eggMinScale) * s.grow;
         var wobble = s.state === "overtime" ? Math.sin(snap.time * 38) * (3 + 6 * s.crack) : 0;
@@ -332,9 +395,15 @@
             cleanup.el.hidden = false;
             break;
           case "trigger":
-          case "active":
+          case "laying":
             ET.art.clearSplat(v.svg);
             v.el.classList.remove("scurry", "lunge");
+            break;
+          case "active":
+            // the pop: the egg is in and the clock starts (Refinement 3 §7)
+            ET.art.clearSplat(v.svg);
+            v.el.classList.remove("scurry", "lunge");
+            if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.pop();
             break;
           case "bold":
             // VF is the only type with a pop-up: "Clear Fueling" as its clock and cracking egg appear
@@ -448,6 +517,9 @@
 
     /* Redraw the hose where the pointer last was (a screen change may have moved the board). */
     hose: function () { drawHose(); return hose && !hose.svg.hidden ? hose.body.getAttribute("d") : null; },
+
+    /* For rigs: a nest's cord, if one is showing. */
+    cord: function (id) { var c = cords.list[id]; return c.g.style.display === "none" ? null : { d: c.path.getAttribute("d"), egg: c.egg.style.display !== "none" }; },
 
     /* For rigs: a nest's view pieces, and the board-wide floor mess. */
     nest: function (id) { return nests[id]; },

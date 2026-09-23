@@ -109,6 +109,31 @@ try {
   eq(await ev("[...document.querySelectorAll('.nest:not(.inactive)')].map(n => n.dataset.id).sort((a, b) => a - b).join(',')"), "0,3,5,8,11", "wave 1 activates 5 of them, spread out");
   eq(await ev("[getComputedStyle(document.querySelector('.nest.inactive .readout')).visibility, getComputedStyle(document.querySelector('.nest.inactive .ooze')).display, getComputedStyle(document.querySelector('.nest:not(.inactive) .ooze')).display]"), ["hidden", "none", "inline"], "an inactive nest is plain and blank; an active one has the alien-nest look");
   let s = await snap();
+  {
+    // Refinement 3 §7: the egg is laid first, on a cord from the top of the screen
+    const lay = s.nests.find((x) => x.state === "laying");
+    ok(!!lay, "a new CAV starts by laying its egg");
+    await press("Escape");   // hold the live clock still: only __et.advance moves it through the lay
+    await ev("__et.advance(0.15)");
+    const cord = await ev(`ET.view.cord(${lay.id})`);
+    ok(!!cord && cord.egg && /^M[\d.]+ 0 /.test(cord.d), `…on a cord that drops from the top of the screen with the egg on its tip   [${cord && cord.d.slice(0, 30)}…]`);
+    eq(await ev(`[document.querySelector('.nest[data-id="${lay.id}"] .clock').textContent, getComputedStyle(document.querySelector('.nest[data-id="${lay.id}"] .egg')).display]`), ["--:--", "none"], "…with no clock running and no egg in the nest yet");
+    const z = await ev("[Number(getComputedStyle(document.querySelector('#cords')).zIndex), Number(getComputedStyle(document.querySelector('.playrow')).zIndex), Number(getComputedStyle(document.querySelector('.hud')).zIndex)]");
+    ok(z[0] < z[1] && z[0] < z[2], `…drawn under the nests, the HUD and every readout   [cord ${z[0]} < ${z[1]}, ${z[2]}]`);
+    await ev("document.querySelector('#pause').hidden = true");
+    await shot("03-laying");
+    await ev("document.querySelector('#pause').hidden = false");
+    await ev("__et.advance(0.45)");
+    const after = (await snap()).nests.find((x) => x.id === lay.id);
+    ok(after.state === "active" && after.elapsed < 30, `the egg pops off and the clock starts from 00:00   [${after.state}, ${after.elapsed.toFixed(1)} displayed s]`);
+    const back = await ev(`ET.view.cord(${lay.id})`);
+    ok(!!back && !back.egg, "…while the cord snakes back up, empty");
+    await ev("__et.advance(0.6)");
+    eq(await ev(`ET.view.cord(${lay.id})`), null, "…and out of view");
+    await press("Escape");
+    ok(await ev("__et.boxes().focused && !__et.paused()"), "the keyboard is in the Command Line after the lay");
+  }
+  s = await snap();
   let n = s.nests.find((x) => x.state === "active");
   ok(!!n, `a CAV is running   [${n && n.unit} ${n && n.code}]`);
   const q = (sel) => `document.querySelector('.nest[data-id="${n.id}"] ${sel}')`;
@@ -367,7 +392,7 @@ try {
   const sc = (await snap()).score;
   await typeAndEnter(`CAV ${trig.unit} ${trig.code}, on scene late`);
   s = await snap();
-  eq([s.nests.find((x) => x.id === trig.id).state, s.score - sc], ["active", 10], "the right code (with a comment) places it for 10 points");
+  eq([s.nests.find((x) => x.id === trig.id).state, s.score - sc], ["laying", 10], "the right code (with a comment) places it for 10 points, and its egg is laid");
 
   let vf = null;
   for (let i = 0; i < 400 && !vf; i++) {

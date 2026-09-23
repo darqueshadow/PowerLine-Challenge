@@ -30,6 +30,7 @@ function ok(cond, label) {
 const eq = (got, want, label) => ok(JSON.stringify(got) === JSON.stringify(want), `${label}   [got ${JSON.stringify(got)}]`);
 const section = (s) => console.log(`\n${s}`);
 const R = ET.rules;
+const LAY = ET.CONFIG.layDrop + ET.CONFIG.layPop;   // Refinement 3 §7: a CAV's clock starts when the egg is laid
 
 /* ---------------------------------------------------------------- A. curves */
 section("A. curves match the packet's numbers");
@@ -101,7 +102,7 @@ const inState = (g, s) => g.unlocked().filter((n) => n.state === s);
 section("D. one CAV, one clear (Clear CAVs Only)");
 {
   const g = game("clear", [T("VS", 10)]);
-  advance(g, 0.05);
+  advance(g, 0.05 + LAY);
   const n = inState(g, "active")[0];
   ok(!!n, "a CAV opens on its own at the start of wave 1");
   eq(g.unlocked().length, 5, "wave 1 has 5 nests");
@@ -207,7 +208,7 @@ section("H. placement (Both)");
   eq(g.pool, 3, "rejections never touch the pool");
   const s0 = g.score;
   const r = g.submit(`CAV ${n.unit} ${n.type.code}, running late`);
-  ok(r.ok && n.state === "active", "the matching CAV (with a comment) places it");
+  ok(r.ok && n.state === "laying", "the matching CAV (with a comment) places it (the egg is laid first)");
   eq(g.score - s0, 10, "placement is worth 10 points");
 }
 {
@@ -217,7 +218,7 @@ section("H. placement (Both)");
   advance(g, 19.9);
   eq(n.state, "trigger", "an ignored trigger is still waiting at 19.95 s");
   advance(g, 0.1);
-  eq([n.state, g.stats.autoOpened], ["active", 1], "…and opens itself at 20 s (wave 1 timeout)");
+  eq([n.state, g.stats.autoOpened], ["laying", 1], "…and opens itself at 20 s (wave 1 timeout)");
 }
 
 section("I. modes and VF");
@@ -260,7 +261,7 @@ section("J. units");
   // D2 (ruled 2026-09-17): a new random unit per CAV, never one already showing on the board.
   // Short CAVs, every one placed and cleared, over many waves: units keep turning over as nests reach 12.
   const g = game("both", [T("VS", 10)], 21);
-  const SHOWING = ["trigger", "active", "overtime"];
+  const SHOWING = ["trigger", "laying", "active", "overtime"];
   const lastUnit = {};
   let clash = false, cavs = 0, changed = 0;
   advance(g, 1500, (x) => {
@@ -297,7 +298,7 @@ eq(ET.CONFIG.panSeconds < 0.5, true, "the pan's slam is under 0.5 s");
 {
   // A clear reports its third, and an early clear is the high-points one.
   const g = game("clear", [T("VS", 10)]);
-  advance(g, 0.05);
+  advance(g, 0.05 + LAY);
   const n = inState(g, "active")[0];
   advance(g, 20);
   g.drain();
@@ -307,7 +308,7 @@ eq(ET.CONFIG.panSeconds < 0.5, true, "the pan's slam is under 0.5 s");
 }
 {
   const g = game("clear", [T("VS", 10)]);
-  advance(g, 0.05);
+  advance(g, 0.05 + LAY);
   const n = inState(g, "active")[0];
   advance(g, 20);
   advance(g, (n.hatchAt - g.time) - 0.1);
@@ -338,7 +339,7 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
   // Every clock shares one speed: at wave 20 a VS bolds in 10 s, and its overtime is still player seconds.
   const g = game("clear", [T("VS", 10)]);
   g.startWave(20);
-  advance(g, 0.05);
+  advance(g, 0.05 + LAY);
   const n = inState(g, "active")[0];
   const t0 = n.startedAt;
   advance(g, 9.9);
@@ -352,7 +353,7 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
 {
   // The nest clock keeps counting through overtime.
   const g = game("clear", [T("VS", 10)]);
-  advance(g, 0.05);
+  advance(g, 0.05 + LAY);
   const n = inState(g, "active")[0];
   advance(g, 22);
   const e = g.snapshot().nests.find((x) => x.id === n.id);
@@ -388,7 +389,7 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
       if (n.state === "overtime" && pending.has(n)) {
         const p = pending.get(n);
         const boldNest = n.boldClock - p.startClock;
-        if (p.note.kind === "duration" && boldNest !== p.note.minutes * 60) wrongBold.push("dur " + boldNest);
+        if (p.note.kind === "duration" && Math.abs(boldNest - p.note.minutes * 60) > 1e-6) wrongBold.push("dur " + boldNest);
         if (p.note.kind === "clock") {
           const at = (x.wallStart + n.boldClock) % 86400;
           const run = boldNest / 60;
@@ -414,6 +415,7 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
   const n = g.nests[5];
   n.type = AD;
   g.activate(n, "auto");
+  g.pop(n);
   eq([n.note.kind, n.note.minutes, n.note.at, n.boldClock - n.startedClock], ["clock", 20, 14 * 3600 + 36 * 60, 20 * 60 + 20], "E1: 14:15:40 + 20 min reads \"Clear @ 14:36\" and bolds 20:20 later, never before the draw");
 }
 {
@@ -463,6 +465,55 @@ section("O. Refinement 3 §4: Time Warp");
   eq([g.warping(), Math.round((g.clock - c0) / (g.time - t0)), Math.round((g.wall() - w0) / (g.time - t0))], [true, 150, 150], "under Time Warp every clock runs 5× the wave's speed (150 displayed s a second in wave 1)");
   eq(g.snapshot().warp, true, "the snapshot says so, for the panel");
   eq(ET.CONFIG.warpFactor, 5, "the warp factor is 5 [T]");
+}
+
+section("Q. Refinement 3 §7: egg-laying");
+{
+  const g = game("clear", [T("VS", 10)]);
+  const ev = [];
+  advance(g, 0.05, (x) => ev.push(...x.drain()));
+  const n = inState(g, "laying")[0];
+  ok(!!n && ev.some((e) => e.type === "laying" && e.nest === n.id && e.how === "auto"), "a new CAV starts with its egg being laid (auto-spawn)");
+  advance(g, 0.2);
+  const sn = g.snapshot().nests.find((x) => x.id === n.id);
+  ok(sn.lay > 0 && sn.lay < 1 && sn.elapsed === 0, `…with no clock running yet   [lay ${sn.lay.toFixed(2)}]`);
+  ok(!g.submit("RCAV " + n.unit).ok, "RCAV does nothing while the egg is being laid");
+  advance(g, n.layAt + LAY - g.time - 0.05, (x) => ev.push(...x.drain()));
+  eq(n.state, "laying", `…still laying just before ${LAY.toFixed(1)} s (drop ${ET.CONFIG.layDrop} s + pop ${ET.CONFIG.layPop} s)`);
+  advance(g, 0.1, (x) => ev.push(...x.drain()));
+  eq(n.state, "active", "…and the pop starts the CAV");
+  ok(Math.abs(n.startedAt - (n.layAt + LAY)) < 1e-9, `the clock starts exactly at the pop, ${LAY.toFixed(1)} s after the lay began   [${(n.startedAt - n.layAt).toFixed(4)} s]`);
+  const r0 = g.snapshot().nests.find((x) => x.id === n.id).retract;
+  ok(r0 !== null && r0 < 1, "the cord snakes back up while the clock runs");
+  advance(g, ET.CONFIG.layRetract);
+  eq(g.snapshot().nests.find((x) => x.id === n.id).retract, null, "…and is gone once it's up");
+  advance(g, n.startedAt + 20 - g.time - 0.05);
+  eq(n.state, "active", "the CAV's full duration still counts from the pop");
+  advance(g, 0.1);
+  eq(n.state, "overtime", "…bold 20 s after the pop");
+}
+{
+  const g = game("both", [T("VS", 10)]);
+  advance(g, 0.05);
+  const n = inState(g, "trigger")[0];
+  g.drain();
+  g.submit(`CAV ${n.unit} VS`);
+  ok(n.state === "laying" && g.drain().some((e) => e.type === "laying" && e.how === "placed"), "a placed CAV lays its egg too");
+  const m = inState(g, "trigger")[0] || null;
+  const b = game("both", [T("VS", 10)]);
+  advance(b, 0.05);
+  const t = inState(b, "trigger")[0];
+  b.drain();
+  advance(b, 20);
+  ok(["laying", "active"].includes(t.state) && b.drain().some((e) => e.type === "laying" && e.how === "auto-open"), "…and so does an auto-opened one");
+}
+{
+  const VF = T("VF", 10, { max: 30, twoPhaseOnly: true, hiddenUntilTrigger: true });
+  const g = game("both", [VF]);
+  advance(g, 0.05);
+  const n = inState(g, "trigger")[0];
+  g.submit(`CAV ${n.unit} VF`);
+  eq(g.snapshot().nests.find((x) => x.id === n.id).hidden, true, "⏳ E16: a VF being laid reports itself hidden (no egg to show until its trigger)");
 }
 
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");

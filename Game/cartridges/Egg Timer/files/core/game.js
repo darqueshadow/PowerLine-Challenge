@@ -15,7 +15,8 @@
 
    A nest's life (packet §6–§7):
      idle ─spawn─▶ trigger (two-phase: waits for CAV #### TYPE, auto-opens on timeout)
-          └───────▶ active  (timer counts up, egg grows; RCAV does nothing yet)
+          └───────▶ laying  (Refinement 3 §7: the cord lowers the egg in; no clock yet)
+                    ─the pop─▶ active  (timer counts up from here, egg grows; RCAV does nothing yet)
                     ─real duration on the clock─▶ overtime (bold + RCAV valid + egg cracks, one event)
                     ─RCAV─▶ splat ─▶ idle          (cleared: points, mess on nest + neighbours)
                     ─overtime runs out─▶ escape ─▶ idle   (hatched: pool −1)
@@ -90,6 +91,9 @@
     n.boldAt = 0;
     n.hatchAt = 0;
     n.busyUntil = 0;
+    n.layAt = 0;
+    n.layUntil = 0;
+    n.how = null;
   };
 
   Game.prototype.start = function () {
@@ -187,18 +191,32 @@
     return true;
   };
 
+  /* A CAV starts (spawned, placed or auto-opened): Refinement 3 §7's cord lays the egg first, and its
+     clock starts at the pop (step()). */
   Game.prototype.activate = function (n, how) {
     var C = ET.CONFIG;
+    n.state = "laying";
+    n.how = how;
+    n.layAt = this.time;
+    n.layUntil = this.time + C.layDrop + C.layPop;
+    this.emit("laying", { nest: n.id, how: how });
+  };
+
+  /* The pop: the egg is in and the CAV's clock starts. `late` is how far past the pop this step ran, in
+     player seconds, at `rate`, so the clock starts on the exact instant. */
+  Game.prototype.pop = function (n, late, rate) {
+    var C = ET.CONFIG;
+    late = late || 0;
     var minutes = ET.rules.minutesFor(n.type, this.rng);
     n.state = "active";
-    n.startedAt = this.time;
-    n.startedClock = this.clock;
-    n.boldClock = this.clock + minutes * 60;
+    n.startedAt = this.time - late;
+    n.startedClock = this.clock - late * (rate === undefined ? this.rate : rate);
+    n.boldClock = n.startedClock + minutes * 60;
     n.note = null;
     if (C.postItCodes.indexOf(n.type.code) >= 0) {
       if (this.rng() < C.postItClockChance) {
         // "Clear @ 14:35": bold when the WALL clock reads it, whatever the nest clock says (E1: the next whole minute after start + draw)
-        var wall = this.wallStart + this.clock;
+        var wall = this.wallStart + n.startedClock;
         var minute = C.adClockTarget === "full-minutes" ? Math.ceil(wall / 60) : Math.floor(wall / 60);
         var target = (minute + minutes) * 60;
         n.boldClock = target - this.wallStart;
@@ -207,7 +225,7 @@
         n.note = { kind: "duration", minutes: minutes };   // "20 min": bold at 20:00 on the nest clock
       }
     }
-    this.emit("active", { nest: n.id, how: how });
+    this.emit("active", { nest: n.id, how: n.how });
   };
 
   Game.prototype.wall = function () {
@@ -246,6 +264,7 @@
         this.stats.autoOpened++;
         this.activate(n, "auto-open");
       }
+      if (n.state === "laying" && this.time >= n.layUntil) this.pop(n, this.time - n.layUntil, rate);
       if (n.state === "active" && this.clock >= n.boldClock) {
         // overtime is player seconds from the moment the clock crossed the mark, not from this step
         n.boldAt = this.time - (this.clock - n.boldClock) / rate;
@@ -381,10 +400,14 @@
       stats: JSON.parse(JSON.stringify(this.stats)),
       nests: this.unlocked().map(function (n) {
         var running = n.state === "active" || n.state === "overtime";
+        var C = ET.CONFIG;
         return {
           id: n.id, col: n.col, row: n.row, state: n.state, unit: n.unit,
           code: n.type ? n.type.code : null,
-          hidden: !!(n.type && n.type.hiddenUntilTrigger && n.state === "active"),
+          hidden: !!(n.type && n.type.hiddenUntilTrigger && (n.state === "active" || n.state === "laying")),
+          // the cord (Refinement 3 §7): 0–1 through the lay, then 0–1 through the retract after the pop
+          lay: n.state === "laying" ? Math.min(1, (t - n.layAt) / Math.max(0.001, C.layDrop + C.layPop)) : null,
+          retract: running && t - n.startedAt < C.layRetract ? (t - n.startedAt) / C.layRetract : null,
           elapsed: running ? self.clock - n.startedClock : 0,   // displayed seconds, still counting through overtime
           grow: running ? Math.min(1, (self.clock - n.startedClock) / Math.max(0.001, n.boldClock - n.startedClock)) : 0,
           note: running && n.note ? { kind: n.note.kind, minutes: n.note.minutes, at: n.note.at } : null,

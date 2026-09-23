@@ -197,6 +197,10 @@ h2 {
 .hud, .playrow, #console { position: relative; z-index: 2; }
 #hose .hose-outline { fill: none; stroke: #06280f; stroke-linecap: round; }
 #hose .hose-body { fill: none; stroke: #2fbf5a; stroke-linecap: round; }
+/* Refinement 3 §7: the egg-laying cord, in the hose's layer, under every piece of text (⏳ placeholder) */
+#cords { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible; }
+#cords .cord-line { fill: none; stroke: #b04dff; stroke-width: 3px; stroke-linejoin: round; stroke-linecap: round; }
+#cords .cord-egg { fill: var(--shell); stroke: var(--crack); stroke-width: 2px; }
 #hose .pipe { fill: #9aa0a8; stroke: #000; stroke-width: 2; }
 #hose .valve { fill: #d0342c; stroke: #000; stroke-width: 2; }
 .drop {
