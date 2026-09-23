@@ -118,7 +118,7 @@ try {
     const cord = await ev(`ET.view.cord(${lay.id})`);
     ok(!!cord && !cord.egg && !cord.bulge && /^M[\d.]+ 0 /.test(cord.d), `…on a cord that drops, empty at first, from the top of the screen   [${cord && cord.d.slice(0, 30)}…]`);
     eq(await ev(`[document.querySelector('.nest[data-id="${lay.id}"] .clock').textContent, getComputedStyle(document.querySelector('.nest[data-id="${lay.id}"] .egg')).display]`), ["--:--", "none"], "…with no clock running and no egg in the nest yet");
-    const z = await ev("[Number(getComputedStyle(document.querySelector('#cords')).zIndex), Number(getComputedStyle(document.querySelector('.playrow')).zIndex), Number(getComputedStyle(document.querySelector('.hud')).zIndex)]");
+    const z = await ev("[Number(getComputedStyle(document.querySelector('#cords')).zIndex), Number(getComputedStyle(document.querySelector('#field')).zIndex), Number(getComputedStyle(document.querySelector('.hud')).zIndex)]");
     ok(z[0] < z[1] && z[0] < z[2], `…drawn under the nests, the HUD and every readout   [cord ${z[0]} < ${z[1]}, ${z[2]}]`);
     await ev("__et.advance(0.5)");
     const mid = await ev(`ET.view.cord(${lay.id})`);
@@ -245,11 +245,11 @@ try {
       const zi = (e) => Number(getComputedStyle(e).zIndex) || 0;
       const board = document.querySelector('#board');
       return { mess: zi(nest.querySelector('.mess')), readout: zi(nest.querySelector('.readout')), postit: zi(nest.querySelector('.postit')),
-               cords: zi(document.querySelector('#cords')), hose: zi(document.querySelector('#hose')), playrow: zi(document.querySelector('.playrow')),
+               cords: zi(document.querySelector('#cords')), hose: zi(document.querySelector('#hose')), field: zi(document.querySelector('#field')),
                floorFirst: board.firstElementChild.classList.contains('floor-mess') && zi(board.firstElementChild) === 0 };
     })()`);
     ok(z.mess > z.readout && z.mess > z.postit, `E14 (ruled): a nest's gunk covers its readout and post-it again   [mess ${z.mess} > ${z.readout}, ${z.postit}]`);
-    ok(z.hose < z.playrow && z.cords < z.playrow, "…while the hose and the egg-laying cord still draw under all text");
+    ok(z.cords < z.field, "…while the egg-laying cord still draws under all text");
     ok(z.floorFirst, "the floor gunk sits under every nest");
   }
   await shot("04-splat");
@@ -519,17 +519,32 @@ try {
       const z = (sel) => Number(getComputedStyle(document.querySelector(sel)).zIndex) || 0;
       const f = document.querySelector('#field').getBoundingClientRect();
       const spig = document.querySelector('#hose .pipe').getBoundingClientRect();
-      return { hose: z('#hose'), text: [z('.hud'), z('.playrow'), z('#console')], spigotOnEdge: Math.abs(spig.bottom - f.bottom) < 2 && spig.left > f.left && spig.right < f.right,
+      return { hose: z('#hose'), board: z('#field'), text: [z('.hud'), z('#howto'), z('#console')], spigotOnEdge: Math.abs(spig.bottom - f.bottom) < 2 && spig.left > f.left && spig.right < f.right,
                width: parseFloat(getComputedStyle(document.querySelector('#hose .hose-body')).strokeWidth) };
     })()`);
-    ok(lay.text.every((t) => t > lay.hose), `the hose sits under the HUD, the board's nests and panel, and the Command Lines   [hose ${lay.hose} < ${lay.text.join(", ")}]`);
+    ok(lay.hose > lay.board, `Refinement 4 §2: the hose draws above the whole board (nests, gunk, readouts)   [hose ${lay.hose} > board ${lay.board}]`);
+    ok(lay.text.every((t) => t > lay.hose), `…and below the HUD (cleanup banner), the how-to panel and the Command Lines   [hose ${lay.hose} < ${lay.text.join(", ")}]`);
+    {
+      // what's actually on top where the hose crosses a readout: nothing on the board should cover it
+      const hit = await ev(`(() => {
+        const r = document.querySelector('.nest:not(.inactive) .readout').getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: cx - 24, clientY: cy - 24 }));
+        const hose = document.querySelector('#hose');
+        hose.style.pointerEvents = 'auto';
+        const top = document.elementsFromPoint(cx, cy).find(e => e.closest && (e.closest('#hose') || e.closest('.readout')));
+        hose.style.pointerEvents = '';
+        return top ? (top.closest('#hose') ? 'hose' : 'readout') : 'none';
+      })()`);
+      eq(hit, "hose", "…so where the hose crosses a readout, the hose is on top");
+    }
     ok(lay.spigotOnEdge, "the spigot is fixed on the board's bottom edge");
     ok(lay.width <= 8, `the hose is thin   [${lay.width}px]`);
     const moveOnly = await ev(`(() => {
       const f = document.querySelector('#field').getBoundingClientRect();
-      document.querySelectorAll('#popups .drop').forEach(d => d.remove());
+      document.querySelectorAll('#water .drop').forEach(d => d.remove());
       document.querySelector('#field').dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: f.left + 100, clientY: f.top + 100 }));
-      return document.querySelectorAll('#popups .drop').length;
+      return document.querySelectorAll('#water .drop').length;
     })()`);
     eq(moveOnly, 0, "no water without a drag");
     const mid = await ev(`(() => {
@@ -538,7 +553,7 @@ try {
       const fire = (type, x, y) => field.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 8, buttons: 1 }));
       fire('pointerdown', r.left + 60, r.top + 60);
       fire('pointermove', r.left + 90, r.top + 80);
-      const n = document.querySelectorAll('#popups .drop').length;
+      const n = document.querySelectorAll('#water .drop').length;
       fire('pointerup', r.left + 90, r.top + 80);
       return n;
     })()`);
@@ -581,7 +596,7 @@ try {
       const fire = (type, x, y) => field.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 9, buttons: 1 }));
       fire('pointerdown', r.left + 200, r.top + 200);
       fire('pointermove', r.left + 240, r.top + 220);
-      const n = document.querySelectorAll('#popups .drop').length;
+      const n = document.querySelectorAll('#water .drop').length;
       fire('pointerup', r.left + 240, r.top + 220);
       return n;
     })()`);

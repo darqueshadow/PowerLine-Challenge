@@ -106,8 +106,8 @@
 
   /* ⏳ placeholder: the hose body (Hose ruling, 2026-09-22). The nozzle is the cursor itself (CSS);
      this draws the hose from the back of the nozzle, sagging down to a fixed spigot on the board's
-     bottom edge. It sits in a layer UNDER the nests, the HUD, the how-to panel and the Command Lines,
-     so it can never cover a clock, a unit number, a post-it, the bubble or ERROR. */
+     bottom edge. Refinement 4 §2: it sits ABOVE the whole board (nests, gunk, readouts) and below the
+     how-to panel, the Command Lines and the HUD bar with its cleanup banner. */
   var NS = "http://www.w3.org/2000/svg";
   var hose = null, lastPointer = null;
   function buildHose() {
@@ -249,15 +249,22 @@
   }
 
   /* ⏳ placeholder: water from the hose while a drag is wiping. */
+  var water = null;
   function spray(x, y) {
-    var f = field.getBoundingClientRect();
+    if (!water) {   // Refinement 4 §2: the water draws with the hose, above the board
+      var screen = field.closest(".screen");
+      water = document.createElement("div");
+      water.id = "water";
+      screen.appendChild(water);
+    }
+    var f = water.getBoundingClientRect();
     for (var i = 0; i < 3; i++) {
       var d = document.createElement("i");
       d.className = "drop";
       d.style.left = (x - f.left + (Math.random() * 16 - 8)) + "px";
       d.style.top = (y - f.top + (Math.random() * 10 - 5)) + "px";
       d.style.setProperty("--dx", (Math.random() * 30 - 15) + "px");
-      popups.appendChild(d);
+      water.appendChild(d);
       setTimeout(function (el) { el.remove(); }.bind(null, d), 450);
     }
   }
