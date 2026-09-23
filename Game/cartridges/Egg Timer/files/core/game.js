@@ -22,10 +22,15 @@
 
   /* A logical grid for adjacency only (packet §4: up/down/left/right on a grid
      underneath an organic on-screen layout; the grid's size is Code's call).
-     4 × 3 holds the cap of 12. Nests unlock centre-out so every count from 5 to
-     12 stays one compact cluster. */
+     4 × 3 holds the cap of 12. Refinement 3 §8: all 12 are on screen all game, and
+     they activate in a fixed order spread across the board, not clustered [T]:
+     the four corners and a centre nest first, then the other centre, then the
+     edges, alternating sides.
+         0  1  2  3
+         4  5  6  7
+         8  9 10 11                                                          */
   var COLS = 4, ROWS = 3;
-  var UNLOCK_ORDER = [5, 6, 1, 2, 9, 10, 4, 7, 0, 3, 8, 11];
+  var UNLOCK_ORDER = [0, 3, 8, 11, 5, 6, 1, 10, 2, 9, 4, 7];
 
   function Game(opts) {
     var C = ET.CONFIG;
@@ -120,6 +125,8 @@
     return this.nests.filter(function (n) { return n.unlocked; });
   };
 
+  /* Direct neighbours on the logical grid (packet §8), active or not: since Refinement 3 every nest is
+     on screen, so mess lands on an inactive neighbour too, and stays with it (mess belongs to the nest). */
   Game.prototype.neighborsOf = function (nest) {
     var self = this;
     return [[0, -1], [0, 1], [-1, 0], [1, 0]]
@@ -128,7 +135,7 @@
         if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return null;
         return self.nests[r * COLS + c];
       })
-      .filter(function (n) { return n && n.unlocked; });
+      .filter(Boolean);
   };
 
   /* A unit not currently on the board, so no two nests ever share a number. */

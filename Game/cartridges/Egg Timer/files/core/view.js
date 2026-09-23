@@ -5,12 +5,13 @@
 
    Layout (packet §4): nests sit on a LOGICAL 4 × 3 grid, which is what decides
    neighbours, but they are drawn scattered — each cell gets a fixed, organic
-   offset, so the board never reads as a visible checkerboard.
+   offset, so the board never reads as a visible checkerboard. All 12 are on
+   screen all game (Refinement 3 §8); the ones not yet active are plain.
    ========================================================================= */
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  var field, hud, banner, popups, wall;
+  var field, board, hud, banner, popups, wall;
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
@@ -161,6 +162,7 @@
   ET.view = {
     build: function () {
       field = $("#field");
+      board = $("#board");
       hud = {
         wave: $("#hud-wave"), cavs: $("#hud-cavs"), pool: $("#hud-pool"),
         poolLabel: $("#hud-pool-label"), score: $("#hud-score"), mode: $("#hud-mode")
@@ -177,8 +179,8 @@
         n.className = "nest";
         n.dataset.id = i;
         n.dataset.state = "idle";
-        n.hidden = true;
-        // padded inside the field, so an edge nest's readout never runs under the HUD or the Command Lines
+        n.classList.add("inactive");   // Refinement 3 §8: every nest is on screen; not yet active, it's plain
+        // padded inside the board, so an edge nest's readout never runs under the HUD or the Command Lines
         n.style.left = (6 + (col + 0.5 + offs[i].dx) / ET.Game.COLS * 88) + "%";
         n.style.top = (7 + (row + 0.5 + offs[i].dy) / ET.Game.ROWS * 84) + "%";
         n.style.setProperty("--tilt", offs[i].tilt + "deg");
@@ -214,7 +216,7 @@
         var mess = ET.mess.create();
         n.appendChild(mess);
 
-        field.appendChild(n);
+        board.appendChild(n);
         nests.push({
           el: n, svg: svg, readout: ro, mess: mess, note: note, bubble: bubble, pan: pan, fx: fx,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
@@ -227,7 +229,8 @@
 
     reset: function () {
       nests.forEach(function (v) {
-        v.el.hidden = true;
+        v.el.classList.add("inactive");
+        v.el.classList.remove("unlock");
         v.el.dataset.state = "idle";
         v.el.classList.remove("bold", "hide-readout", "hide-clock", "hide-egg", "scurry", "lunge");
         ET.mess.clear(v.mess);
@@ -258,7 +261,6 @@
       snap.nests.forEach(function (s) {
         var v = nests[s.id];
         var el = v.el;
-        el.hidden = false;
         if (el.dataset.state !== s.state) el.dataset.state = s.state;
 
         var shows = s.state === "trigger" || s.state === "active" || s.state === "overtime";
@@ -300,8 +302,7 @@
         var v = e.nest !== undefined ? nests[e.nest] : null;
         switch (e.type) {
           case "nest-unlocked":
-            v.el.hidden = false;
-            v.el.classList.remove("unlock");
+            v.el.classList.remove("inactive", "unlock");
             void v.el.offsetWidth;
             v.el.classList.add("unlock");
             break;
@@ -383,7 +384,6 @@
       function at(ev) {
         var hits = [];
         nests.forEach(function (v) {
-          if (v.el.hidden) return;
           var r = v.mess.getBoundingClientRect();
           if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
             hits.push({ v: v, x: (ev.clientX - r.left) / r.width * ET.mess.W, y: (ev.clientY - r.top) / r.height * ET.mess.H, sx: ET.mess.W / r.width });

@@ -61,6 +61,12 @@
     nestSvg: function () {
       var svg = el("svg", { class: "nest-art", viewBox: "-60 -62 120 110", "aria-hidden": "true" });
 
+      // ⏳ placeholder: the "alien nest" touch an ACTIVE nest gets (Refinement 3 §8): a glowing ooze pool
+      // and a few tendrils. An inactive nest shows plain twigs only.
+      var ooze = el("g", { class: "ooze" }, svg);
+      el("ellipse", { class: "pool", cx: 0, cy: 20, rx: 50, ry: 13 }, ooze);
+      el("path", { class: "tendril", d: "M-46 16 C-56 6 -52 -8 -60 -14 M46 16 C58 8 52 -6 60 -12 M-30 28 C-34 38 -26 42 -32 48" }, ooze);
+
       var twigsBack = el("g", { class: "twigs back" }, svg);
       el("path", { d: "M-46 18 C-40 4 -20 -2 0 -2 C20 -2 40 4 46 18" }, twigsBack);
 

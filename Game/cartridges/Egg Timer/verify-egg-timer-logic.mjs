@@ -280,13 +280,15 @@ section("J. units");
   ok(changed > cavs * 0.9, `D2: a nest's next CAV brings a new unit   [${changed} of ${cavs} changed]`);
 }
 
-section("K. adjacency");
+section("K. adjacency and the activation order (Refinement 3 §8)");
 {
   const g = game("clear", [T("VS", 10)]);
   const ids = (n) => g.neighborsOf(n).map((x) => x.id).sort((a, b) => a - b);
-  eq(ids(g.nests[5]), [1, 6, 9], "wave 1 centre nest 5: neighbours 1, 6, 9 (4 is still locked)");
-  eq(ids(g.nests[2]), [1, 6], "nest 2: neighbours 1 and 6 (3 locked)");
-  eq(g.unlocked().map((n) => n.id).sort((a, b) => a - b), [1, 2, 5, 6, 9], "wave 1 unlocks one compact cluster");
+  eq(ids(g.nests[5]), [1, 4, 6, 9], "nest 5: neighbours 1, 4, 6, 9, active or not (every nest is on screen now)");
+  eq(ids(g.nests[0]), [1, 4], "corner nest 0: neighbours 1 and 4");
+  eq(g.unlocked().map((n) => n.id).sort((a, b) => a - b), [0, 3, 5, 8, 11], "wave 1 activates the four corners and a centre nest, spread across the board");
+  eq(Array.from(ET.Game.UNLOCK_ORDER), [0, 3, 8, 11, 5, 6, 1, 10, 2, 9, 4, 7], "the activation order is fixed");
+  eq([...new Set(ET.Game.UNLOCK_ORDER)].length, 12, "…and covers all 12 nests once");
 }
 
 section("N. Refinement 2 (2026-09-22): the fried egg shows the timing");

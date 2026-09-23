@@ -135,16 +135,15 @@ h2 {
 @keyframes hit { 0%, 50% { color: var(--ink); background: var(--hot); } }
 
 /* ⏳ placeholder look: a digital wall clock, seconds small and raised; Refinement 2 §3 makes it
-   larger and more pronounced */
+   larger and more pronounced, and Refinement 3 §6 larger again, in the board's top-right corner */
 .wallclock {
-  align-self: center;
-  padding: 2px 12px;
+  padding: 2px 14px;
   background: var(--led-bg);
   border: 4px solid var(--led);
   box-shadow: 5px 5px 0 var(--hot);
   font-family: var(--font-mono);
   font-weight: 900;
-  font-size: 1.6em;
+  font-size: clamp(30px, 4vw, 62px);
   letter-spacing: 0.04em;
   color: var(--led);
   text-shadow: 0 0 0 var(--led), 2px 2px 0 #5a2a00;
@@ -154,7 +153,11 @@ h2 {
 #wall-ss { font-size: 0.5em; vertical-align: 0.8em; margin-left: 2px; }
 
 .playrow { flex: 1; min-height: 0; display: flex; }
-#field { position: relative; flex: 1; min-width: 0; min-height: 0; touch-action: none; }
+#field { position: relative; flex: 1; min-width: 0; min-height: 0; touch-action: none; display: flex; flex-direction: column; }
+/* Refinement 3: a band across the top of the board for the wall clock (right) and the TIME WARP panel,
+   so neither ever sits on a nest; the nests fill the board below it */
+#fieldtop { flex: none; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 10px 16px 4px; }
+#board { position: relative; flex: 1; min-height: 0; container-type: size; }
 
 /* ⏳ placeholder: in-game the cursor is ALWAYS the hose nozzle (Hose ruling, 2026-09-22); menus and
    setup keep the normal pointer. A drag still sprays water and wipes, as before. */
@@ -200,7 +203,6 @@ h2 {
 #howto b { display: block; color: var(--cyan); font-family: var(--font-display); font-weight: 400; letter-spacing: 0.08em; font-size: 0.85em; }
 
 /* ----------------------------------------------------------------- nest */
-#field { container-type: size; }
 .nest {
   position: absolute;
   width: clamp(84px, min(15.5cqw, 23cqh), 200px);   /* a nest + readout must fit between rows (sized to the field) */
@@ -211,6 +213,14 @@ h2 {
   from { transform: translate(-50%, -50%) scale(0.2); }
   to { transform: translate(-50%, -50%) scale(1); }
 }
+
+/* Refinement 3 §8: an inactive nest is plain and blank (flat twigs, no readout); an active one gets the
+   alien-nest look (⏳ placeholder: an ooze pool and tendrils) */
+.ooze .pool { fill: #3dff9a; opacity: 0.28; stroke: #1a8f55; stroke-width: 2; }
+.ooze .tendril { fill: none; stroke: #b04dff; stroke-width: 4; stroke-linecap: round; }
+.nest.inactive .ooze { display: none; }
+.nest.inactive .twigs path, .nest.inactive .twigs.back path { stroke: #3a3150; }
+.nest.inactive .readout { visibility: hidden; }
 
 /* only the nest art tilts: the readout stays level, because it's what gets read */
 .nest-art { display: block; width: 100%; overflow: visible; transform: rotate(var(--tilt)); }

@@ -105,7 +105,9 @@ try {
   section("C. one CAV: grow, bold, clear (Clear CAVs Only)");
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.1)");
-  eq(await ev("[...document.querySelectorAll('.nest:not([hidden])')].map(n => n.dataset.id).sort().join(',')"), "1,2,5,6,9", "wave 1 shows 5 nests");
+  eq(await ev("document.querySelectorAll('.nest').length + '/' + document.querySelectorAll('.nest[hidden]').length"), "12/0", "Refinement 3 §8: all 12 nests are on screen");
+  eq(await ev("[...document.querySelectorAll('.nest:not(.inactive)')].map(n => n.dataset.id).sort((a, b) => a - b).join(',')"), "0,3,5,8,11", "wave 1 activates 5 of them, spread out");
+  eq(await ev("[getComputedStyle(document.querySelector('.nest.inactive .readout')).visibility, getComputedStyle(document.querySelector('.nest.inactive .ooze')).display, getComputedStyle(document.querySelector('.nest:not(.inactive) .ooze')).display]"), ["hidden", "none", "inline"], "an inactive nest is plain and blank; an active one has the alien-nest look");
   let s = await snap();
   let n = s.nests.find((x) => x.state === "active");
   ok(!!n, `a CAV is running   [${n && n.unit} ${n && n.code}]`);
@@ -176,10 +178,11 @@ try {
 
   const cov = await ev(`__et.mess(${n.id})`);
   ok(cov > 0.02, `the smooshed nest gets mess   [${(cov * 100).toFixed(1)}%]`);
-  const nb = { 1: [2, 5], 2: [1, 6], 5: [1, 6, 9], 6: [2, 5], 9: [5] }[n.id];
+  // direct neighbours on the 4 × 3 grid, active or not (every nest is on screen)
+  const nb = [n.id - 4, n.id + 4, n.id % 4 ? n.id - 1 : -1, n.id % 4 < 3 ? n.id + 1 : -1].filter((i) => i >= 0 && i < 12);
   const nbCov = await ev(`[${nb}].map(i => __et.mess(i))`);
   ok(nbCov.every((x) => x > 0), `its direct neighbours get mess too   [${nb.join(",")}]`);
-  const far = [1, 2, 5, 6, 9].filter((i) => i !== n.id && !nb.includes(i));
+  const far = [...Array(12).keys()].filter((i) => i !== n.id && !nb.includes(i));
   if (far.length) eq(await ev(`[${far}].map(i => __et.mess(i))`), far.map(() => 0), `non-neighbours stay clean   [${far.join(",")}]`);
   await shot("04-splat");
 
@@ -411,7 +414,7 @@ try {
     })()`);
     eq(overlap, 0, "…without covering a nest");
   }
-  eq(await ev("parseFloat(getComputedStyle(document.querySelector('.wallclock')).fontSize) > 1.4 * parseFloat(getComputedStyle(document.querySelector('#hud-score')).fontSize)"), true, "the wall clock is larger than the rest of the HUD");
+  eq(await ev("parseFloat(getComputedStyle(document.querySelector('.wallclock')).fontSize) > 2 * parseFloat(getComputedStyle(document.querySelector('#hud-score')).fontSize)"), true, "the wall clock is larger again: over twice the HUD's type");
   ok((await ev("ET.audio.state()")) !== "none", `sound is unlocked by the first key press   [${await ev("ET.audio.state()")}]`);
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");
@@ -518,14 +521,15 @@ try {
   eq(await ev("__et.screen()"), "setup", "Enter goes back to setup");
 
   /* ------------------------------------------------------ L. full-board layout */
-  section("L. layout with all 12 nests showing");
-  await ev("__et.start('clear', 4)");
+  section("L. layout: all 12 nests beside the how-to panel, at every measured size");
+  await ev("__et.start('both', 4)");
   await ev("__et.advance(0.1)");
-  for (const [w, h] of [[1440, 900], [1024, 640]]) {
-    await ev(`(() => { document.querySelectorAll('.nest').forEach(n => { n.hidden = false; n.classList.remove('unlock'); }); return 1; })()`);
-    await wait(100);   // measure settled boxes, not nests mid pop-in (the unlock animation scales them)
+  for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
+    await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await ev(`(() => { document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()`);
+    await wait(150);   // measure settled boxes, not nests mid pop-in (the unlock animation scales them)
     const lay = await ev(`(() => {
-      const f = document.querySelector('#field').getBoundingClientRect();
+      const f = document.querySelector('#board').getBoundingClientRect();
       const nests = [...document.querySelectorAll('.nest')].map(n => {
         const s = n.querySelector('.nest-art').getBoundingClientRect();
         // the egg-and-twigs part of the art (the viewBox has empty margins at the sides and top)
@@ -540,17 +544,30 @@ try {
         if (j > i && hit(nests[i].r, nests[j].r)) overlaps++;
         if (hit(nests[i].r, nests[j].art)) covered++;
       }
-      return { inside, overlaps, covered, w: innerWidth, h: innerHeight };
+      const howto = document.querySelector('#howto').getBoundingClientRect();
+      const top = [...document.querySelectorAll('#fieldtop > *')].map(e => e.getBoundingClientRect());
+      const clearOfTop = nests.filter(x => top.some(t => hit(t, x.n))).length;
+      const clock = document.querySelector('.wallclock').getBoundingClientRect();
+      const field = document.querySelector('#field').getBoundingClientRect();
+      return { inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
+               clockCorner: clock.right > field.right - 40 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
+               howtoFits: document.querySelector('#howto').scrollHeight <= document.querySelector('#howto').clientHeight + 1,
+               w: innerWidth, h: innerHeight };
     })()`);
-    ok(lay.inside, `every nest and readout stays inside the field   [${lay.w}×${lay.h}]`);
-    eq(lay.overlaps, 0, `no two readouts overlap   [${lay.w}×${lay.h}]`);
-    eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   [${lay.w}×${lay.h}]`);
-    if (w === 1440) {
+    const at = `[${lay.w}×${lay.h}]`;
+    ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
+    eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
+    eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);
+    ok(lay.besideHowto, `every nest sits beside the how-to panel, none under it   ${at}`);
+    eq(lay.clearOfTop, 0, `the wall clock and TIME WARP panel sit clear of every nest   ${at}`);
+    ok(lay.clockCorner, `the wall clock is in the board's top-right corner, left of the how-to panel   ${at}`);
+    ok(lay.howtoFits, `the how-to panel fits without scrolling   ${at}`);
+    if (SHOTS) {
       await ev(`(() => { document.querySelectorAll('.mess').forEach((m, i) => i % 3 === 0 && ET.mess.splatter(m, 6)); return 1; })()`);
-      await shot("10-full-board");
+      await shot(`10-full-board-${w}x${h}`);
     }
-    break;   // the viewport is fixed by the driver; one size is what this rig can measure honestly
   }
+  await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
   /* ------------------------------------------------------------ K. errors */
   section("K. a clean run");
