@@ -765,6 +765,15 @@ try {
     }
     ok(!!lit && lit.spawned === lit.quota, "the clocks warp once the wave's last egg has spawned");
     eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp').textContent")], [true, "TIME WARP"], "…and the panel lights up \"TIME WARP\"");
+    await ev("__et.advance(0)");
+    const glow = () => ev(`(() => {
+      const one = (n) => ({ border: getComputedStyle(n.querySelector('.readout .unit')).borderTopColor, art: getComputedStyle(n.querySelector('.nest-art')).filter });
+      return { active: [...document.querySelectorAll('.nest:not(.inactive)')].map(one), inactive: [...document.querySelectorAll('.nest.inactive')].map(one) };
+    })()`);
+    const G = "rgb(61, 255, 154)";
+    const g1 = await glow();
+    ok(g1.active.length === 5 && g1.active.every((x) => x.border === G && x.art.includes("drop-shadow")), `Refinement 5 §1: during the warp every active nest and its boxes' borders glow Time Warp green   [${g1.active.length} active]`);
+    ok(g1.inactive.every((x) => x.border !== G && x.art === "none"), "…but not the inactive nests");
     await shot("13-time-warp");
     // measured over a short step that stays inside the warp (an egg going bold part-way would end it)
     // (the live page keeps stepping in real time too, so try until a step starts and ends inside a warp)
@@ -779,6 +788,9 @@ try {
     ok(w !== null && Math.abs(w - 150) < 1, `the wall clock warps too, 5× (150 displayed s per second in wave 1)   [${w && w.toFixed(1)}]`);
     const b = await until((x) => x.nests.some((y) => y.state === "overtime"), 120, 0.1);
     eq([!!b.hit, b.s.warp, await ev("document.querySelector('#warp').classList.contains('lit')")], [true, false, false], "an egg going bold ends the warp, and the panel goes dark");
+    const g2 = await glow();
+    ok(g2.active.every((x) => x.border !== G && x.art === "none"), "…and the green glow is off the same instant, bold nest included");
+    await shot("13b-warp-over");
   }
 
   /* ------------------------------------------------------------ K. errors */

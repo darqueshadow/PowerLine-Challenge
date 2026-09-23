@@ -22,6 +22,7 @@
   --speckle: #7a2cff;
   --crack: #1a0d2e;
   --shadow: #000;
+  --warp: #3dff9a;          /* Time Warp green: the panel, and the glow on the active nests while it runs */
   --font-display: "Arial Black", Impact, "Haettenschweiler", sans-serif;
   --font-ui: "Trebuchet MS", Verdana, sans-serif;
   --font-mono: "Courier New", Courier, monospace;
@@ -206,7 +207,7 @@ h2 {
   white-space: nowrap;
 }
 #warp.lit {
-  background: radial-gradient(ellipse at 50% 50%, #3dff9a, #0e8f4c 80%);
+  background: radial-gradient(ellipse at 50% 50%, var(--warp), #0e8f4c 80%);
   border-color: #b04dff;
   color: #04170c;
   text-shadow: 0 0 6px #d6ffe8;
@@ -354,6 +355,12 @@ h2 {
   60% { transform: translateY(-40%) scale(6); opacity: 1; }
   100% { transform: translateY(-40%) scale(9); opacity: 0; }
 }
+
+/* Refinement 5 §1: while Time Warp runs, every ACTIVE nest and its display boxes' borders glow Time Warp green,
+   off the instant it ends (render() toggles #board.warp every frame from the snapshot). No egg is ever bold
+   during a warp, and the bold look is a fill and weight change, not a glow; :not(.bold) keeps them apart anyway. */
+#board.warp .nest:not(.inactive):not(.bold) .nest-art { filter: drop-shadow(0 0 3px var(--warp)) drop-shadow(0 0 7px var(--warp)); }
+#board.warp .nest:not(.inactive):not(.bold) .readout > span { border-color: var(--warp); box-shadow: 2px 2px 0 var(--shadow), 0 0 8px 2px var(--warp); }
 
 /* the digital readout, deliberately NOT on the egg (packet §4) */
 .readout {

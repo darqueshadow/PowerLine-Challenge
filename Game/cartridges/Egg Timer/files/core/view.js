@@ -356,6 +356,7 @@
       banner.hidden = true;
       cleanup.el.hidden = true;
       warp.classList.remove("lit");
+      board.classList.remove("warp");
       cords.list.forEach(function (c) { c.g.style.display = "none"; });
       popups.innerHTML = "";
       noTypesShown = false;
@@ -372,6 +373,7 @@
       wall.hm.textContent = hhmm(snap.wall);
       wall.ss.textContent = two(Math.floor(snap.wall) % 60);
       warp.classList.toggle("lit", !!snap.warp);
+      board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the active nests glow while it runs
 
       snap.nests.forEach(function (s) {
         var v = nests[s.id];
