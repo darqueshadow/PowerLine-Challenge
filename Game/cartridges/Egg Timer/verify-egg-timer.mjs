@@ -192,7 +192,9 @@ try {
   const q = (sel) => `document.querySelector('.nest[data-id="${n.id}"] ${sel}')`;
   eq(await ev(`${q(".unit")}.textContent + ' ' + ${q(".code")}.textContent`), `${n.unit} ${n.code}`, "the readout shows the unit and the literal type code");
   eq(await ev(`getComputedStyle(${q(".egg")}).display`), "inline", "the egg is showing from the start");
-  eq(await ev(`getComputedStyle(${q(".readout")}).fontWeight`), "400", "the readout is regular weight before the trigger");
+  const boxes = () => ev(`[".unit", ".code", ".clock"].map(s => { const cs = getComputedStyle(${q("")}.querySelector(s)); return [cs.fontWeight, cs.color, cs.backgroundColor].join(" "); })`);
+  eq(await boxes(), ["400 rgb(28, 79, 216) rgb(255, 255, 255)", "400 rgb(0, 0, 0) rgb(185, 185, 198)", "400 rgb(59, 10, 92) rgb(255, 210, 58)"],
+    "Refinement 5 §2: before the limit, regular type: unit blue on white, type black on grey, timer purple on yellow");
 
   await typeAndEnter(`RCAV ${n.unit}`);
   eq((await snap()).nests.find((x) => x.id === n.id).state, "active", "RCAV before the trigger does nothing");
@@ -228,6 +230,8 @@ try {
   }
   ok(!!r.hit, "the nest reaches its trigger");
   eq(await ev(`getComputedStyle(${q(".readout")}).fontWeight`), "900", "at the trigger the readout goes bold");
+  eq(await boxes(), ["900 rgb(11, 93, 30) rgb(255, 255, 255)", "900 rgb(0, 0, 0) rgb(185, 185, 198)", "900 rgb(255, 255, 255) rgb(255, 45, 138)"],
+    "Refinement 5 §2: at the limit, all three at once: unit bold dark green on white, type bold black on grey, timer bold white on hot pink");
   const expect = { VS: 10, STR: 10, SS: 15, EOS: 30, MB: 30 }[n.code];
   // the rig samples every 0.25 s, which is 7.5 displayed seconds at base speed, so the trigger reads N:00 to N:07
   if (expect) {

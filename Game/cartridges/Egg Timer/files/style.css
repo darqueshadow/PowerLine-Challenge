@@ -382,8 +382,12 @@ h2 {
 .readout .unit  { min-width: 4ch; background: #fff; color: #1c4fd8; }
 .readout .code  { min-width: 3ch; background: #b9b9c6; color: #000; }
 .readout .clock { min-width: 5ch; background: #ffd23a; color: #3b0a5c; }
-.nest.bold .readout { font-weight: 900; }                   /* the bold trigger… */
-.nest.bold .readout .clock { background: #ff2d8a; color: #fff; }   /* …and the timer turns hot pink */
+/* Refinement 5 §2: at the limit all three boxes change on the same instant (one class, .bold): every box goes
+   bold, the unit's type turns dark green (on white, [T]), the type box keeps its colours, and the timer turns
+   hot pink with white type (unchanged, approved) */
+.nest.bold .readout { font-weight: 900; }
+.nest.bold .readout .unit { color: #0b5d1e; }
+.nest.bold .readout .clock { background: #ff2d8a; color: #fff; }
 .nest[data-state="idle"] .readout,
 .nest[data-state="splat"] .readout,
 .nest[data-state="escape"] .readout { opacity: 0.55; }
