@@ -303,27 +303,38 @@ h2 {
 /* the digital readout, deliberately NOT on the egg (packet §4) */
 .readout {
   display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  margin-top: -2px;
-  padding: 3px 6px;
-  background: var(--led-bg);
-  border: 3px solid var(--shadow);
-  box-shadow: 3px 3px 0 var(--shadow);
+  gap: 3px;
+  width: max-content;                 /* Refinement 4 §5: may run wider than the nest; the layout rig checks it */
+  margin: -2px 0 0 50%;
+  transform: translateX(-50%);
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: clamp(12px, 1.35vw, 19px);
-  color: var(--led);
+  font-size: clamp(11px, 1.3vw, 19px);
   white-space: nowrap;
 }
-.readout .code { color: var(--ink); }
-.nest.bold .readout { font-weight: 900; }                   /* the bold trigger */
+/* Refinement 4 §5: three cartoon boxes, rounded with a thick dark outline [T]. Each is sized for its widest
+   reading (4-digit unit, 3-letter code, MM:SS right through overtime), so nothing ever spills out. */
+.readout > span {
+  box-sizing: content-box;
+  padding: 0.1em 0.3em;
+  border: 3px solid #1a0d2e;          /* [T] */
+  border-radius: 0.5em;               /* [T] */
+  box-shadow: 2px 2px 0 var(--shadow);
+  text-align: center;
+  line-height: 1.25;
+  overflow: hidden;
+}
+.readout .unit  { min-width: 4ch; background: #fff; color: #1c4fd8; }
+.readout .code  { min-width: 3ch; background: #b9b9c6; color: #000; }
+.readout .clock { min-width: 5ch; background: #ffd23a; color: #3b0a5c; }
+.nest.bold .readout { font-weight: 900; }                   /* the bold trigger… */
+.nest.bold .readout .clock { background: #ff2d8a; color: #fff; }   /* …and the timer turns hot pink */
 .nest[data-state="idle"] .readout,
 .nest[data-state="splat"] .readout,
-.nest[data-state="escape"] .readout { color: #5a4222; }
+.nest[data-state="escape"] .readout { opacity: 0.55; }
 /* ⏳ placeholder cue: a nest asking for a CAV to be placed */
-.nest[data-state="trigger"] .readout { border-color: var(--cyan); animation: cue 0.6s steps(2) infinite; }
-@keyframes cue { 50% { border-color: var(--shadow); } }
+.nest[data-state="trigger"] .readout > span { animation: cue 0.6s steps(2) infinite; }
+@keyframes cue { 50% { border-color: var(--cyan); } }
 .nest.hide-readout .readout > span { visibility: hidden; }
 .nest.hide-clock .readout .clock { visibility: hidden; }
 

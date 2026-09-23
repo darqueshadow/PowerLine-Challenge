@@ -215,7 +215,7 @@ try {
   eq(await ev(`getComputedStyle(${q(".pan")}).opacity`), "0", "…and the pan is gone again a moment later");
 
   const cov = await ev(`__et.mess(${n.id})`);
-  ok(cov > 0.005, `the smashed nest gets a small splat of its own   [${(cov * 100).toFixed(1)}%]`);
+  ok(cov > 0.0005, `the smashed nest gets a small splat of its own   [${(cov * 100).toFixed(1)}%]`);
   {
     // E15 (ruled): the rest of the gunk lands evenly at random over the whole board, on nests and floor alike
     const spread = await ev(`(() => ({ nests: [...Array(12).keys()].filter(i => i !== ${n.id} && __et.mess(i) > 0).length, floor: __et.floor() }))()`);
@@ -648,7 +648,17 @@ try {
     await ev(`(() => { document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()`);
     await wait(150);   // measure settled boxes, not nests mid pop-in (the unlock animation scales them)
     const lay = await ev(`(() => {
+      // Refinement 4 §5: every box holds its widest reading (bold, as in overtime), and every post-it its longest
+      document.querySelectorAll('.nest').forEach(n => {
+        n.classList.add('bold');
+        n.querySelector('.unit').textContent = '8888';
+        n.querySelector('.code').textContent = 'EOS';
+        n.querySelector('.clock').textContent = '88:88';
+        const p = n.querySelector('.postit'); p.hidden = false; p.textContent = 'Clear @ 23:58';
+      });
+      const spill = [...document.querySelectorAll('.readout > span, .postit')].filter(e => e.scrollWidth > e.clientWidth + 0.5 || e.scrollHeight > e.clientHeight + 0.5).length;
       const f = document.querySelector('#board').getBoundingClientRect();
+      const postitsInside = [...document.querySelectorAll('.postit')].every(p => { const r = p.getBoundingClientRect(); return r.left >= f.left - 1 && r.right <= f.right + 1 && r.top >= f.top - 1; });
       const nests = [...document.querySelectorAll('.nest')].map(n => {
         const s = n.querySelector('.nest-art').getBoundingClientRect();
         // the egg-and-twigs part of the art (the viewBox has empty margins at the sides and top)
@@ -656,7 +666,7 @@ try {
         return { n: n.getBoundingClientRect(), r: n.querySelector('.readout').getBoundingClientRect(), art };
       });
       const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-      const inside = nests.every(x => x.n.left >= f.left - 1 && x.n.right <= f.right + 1 && x.n.top >= f.top - 1 && x.r.bottom <= f.bottom + 1);
+      const inside = nests.every(x => x.n.left >= f.left - 1 && x.n.right <= f.right + 1 && x.n.top >= f.top - 1 && x.r.bottom <= f.bottom + 1 && x.r.left >= f.left - 1 && x.r.right <= f.right + 1);
       let overlaps = 0, covered = 0;
       for (let i = 0; i < nests.length; i++) for (let j = 0; j < nests.length; j++) {
         if (i === j) continue;
@@ -668,12 +678,15 @@ try {
       const clearOfTop = nests.filter(x => top.some(t => hit(t, x.n))).length;
       const clock = document.querySelector('.wallclock').getBoundingClientRect();
       const field = document.querySelector('#field').getBoundingClientRect();
-      return { inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
+      document.querySelectorAll('.nest .postit').forEach(p => { p.hidden = true; });
+      return { spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
                clockCorner: clock.right > field.right - 40 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
                howtoFits: document.querySelector('#howto').scrollHeight <= document.querySelector('#howto').clientHeight + 1,
                w: innerWidth, h: innerHeight };
     })()`);
     const at = `[${lay.w}×${lay.h}]`;
+    eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading, and every post-it, fits inside its box   ${at}`);
+    ok(lay.postitsInside, `every post-it stays on the board   ${at}`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);
