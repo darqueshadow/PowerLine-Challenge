@@ -344,6 +344,11 @@ h2 {
 #cords .cord-stripes { stroke: #7a2cc4; stroke-width: var(--cord, 10px); stroke-dasharray: 9 9; animation: cord-creep 1.4s linear infinite; }
 #cords .cord-ribs { stroke: #2a0010; stroke-width: calc(var(--cord, 10px) + 3px); stroke-dasharray: 2 5; opacity: 0.8; }
 @keyframes cord-creep { to { stroke-dashoffset: -18; } }
+/* Refinement 6 §2 (⏳ placeholder look): the Time Warp lightning, in the cord's layer under every readout. Its
+   kinks re-jag in view.js (never over 3 a second); nothing here animates. */
+#cords .lightning path { fill: none; stroke-linejoin: miter; stroke-linecap: round; }
+#cords .bolt-glow { stroke: var(--warp); stroke-width: 7px; opacity: 0.35; }
+#cords .bolt-core { stroke: #c8ffe2; stroke-width: 2.5px; }
 #cords .cord-bulge { fill: #8a2fd6; stroke: #3b1060; stroke-width: 2px; }
 #cords .cord-egg { fill: var(--shell); stroke: var(--crack); stroke-width: 2px; }
 #hose .pipe { fill: #9aa0a8; stroke: #000; stroke-width: 2; }

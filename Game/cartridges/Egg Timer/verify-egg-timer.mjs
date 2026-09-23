@@ -383,11 +383,13 @@ try {
   eq(await ev("parseFloat(getComputedStyle(document.querySelector('#wall-ss')).fontSize) < parseFloat(getComputedStyle(document.querySelector('#wall-hm')).fontSize)"), true, "the seconds are smaller than HH:MM");
   eq(await ev("getComputedStyle(document.querySelector('#wall-ss')).verticalAlign !== 'baseline'"), true, "…and raised");
   {
+    await press("Escape");   // hold the live page still (advance still steps), so no real time slips in between reads
     const s0 = await snap();
     const wallNow = (x) => ((x.wall % 86400) + 86400) % 86400;
     const nestNow = s0.nests.find((y) => y.state === "active" || y.state === "overtime");
     await ev("__et.advance(2)");
     const s1 = await snap();
+    await press("Escape");
     const dWall = (wallNow(s1) - wallNow(s0) + 86400) % 86400;
     // the page's own frames keep running between the two reads, so allow a frame or two of drift
     ok(Math.abs(dWall - 60) < 2, `2 s moves the wall clock one minute, like the nest clocks   [+${dWall.toFixed(2)}]`);
@@ -915,6 +917,33 @@ try {
       ok(gu.active.length === 5 && gu.active.every((x) => x.border === G), "…(the \"unlocked\" switch value glows every nest in play instead)");
     }
     await shot("13-time-warp");
+    {
+      // Refinement 6 §2: lightning from the panel, daisy-chained to every nest whose clock is running
+      const lt = await ev(`(() => { const L = ET.view.lightning(), sr = document.querySelector('#screen-play').getBoundingClientRect(), W = document.querySelector('#warp').getBoundingClientRect();
+        const m = (L.d || '').slice(1).split(' ').map(Number);
+        return { on: L.on, links: L.links, running: [...document.querySelectorAll('.nest')].filter(n => n.dataset.state === 'active').length,
+                 fromWarp: m[0] + sr.left > W.left && m[0] + sr.left < W.right && m[1] + sr.top > W.top && m[1] + sr.top < W.bottom,
+                 moves: (L.d.match(/M/g) || []).length, jagged: (L.d.match(/L/g) || []).length > L.links * 3, layer: !!document.querySelector('#cords .lightning'),
+                 stroke: getComputedStyle(document.querySelector('#cords .bolt-glow')).stroke }; })()`);
+      ok(lt.on && lt.links === lt.running && lt.running > 0 && lt.moves === lt.links, `Refinement 6 §2: jagged lightning reaches every nest whose clock is running, one link each   [${lt.links} links, ${lt.running} running]`);
+      ok(lt.fromWarp && lt.jagged && lt.stroke === "rgb(61, 255, 154)", "…starting from the central panel, in the Time Warp green, kinked");
+      ok(lt.layer && (await ev("Number(getComputedStyle(document.querySelector('#cords')).zIndex) < Number(getComputedStyle(document.querySelector('#field')).zIndex)")), "…drawn in the cord's layer, under every readout, taking no input");
+      // flicker: hold the game (Esc) so the warp stays on, and watch in real time
+      await press("Escape");
+      const t0 = await ev("performance.now() / 1000");
+      await wait(3000);
+      const fl = await ev(`(() => { const log = ET.view.lightning().log.filter(t => t >= ${t0}); let m = 0;
+        for (let i = 0; i < log.length; i++) { let n = 0; for (let j = i; j < log.length && log[j] < log[i] + 1; j++) n++; m = Math.max(m, n); } return { n: log.length, worst: m }; })()`);
+      ok(fl.n > 0 && fl.worst <= 3, `SAFETY: the lightning flickers, but never more than 3 times a second   [${fl.n} re-jags in 3 s, worst ${fl.worst} in any 1 s]`);
+      await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+      await wait(500);
+      const still0 = await ev("ET.view.lightning().d");
+      await wait(1500);
+      const still1 = await ev("ET.view.lightning().d");
+      ok(still0 === still1 && !!still0, "SAFETY: with reduced motion the lightning holds still");
+      await c.send("Emulation.setEmulatedMedia", { features: [] });
+      await press("Escape");
+    }
     // measured over a short step that stays inside the warp (an egg going bold part-way would end it)
     // (the live page keeps stepping in real time too, so try until a step starts and ends inside a warp)
     let w = null;
@@ -929,6 +958,7 @@ try {
     const b = await until((x) => x.nests.some((y) => y.state === "overtime"), 120, 0.1);
     eq([!!b.hit, b.s.warp, await ev("document.querySelector('#warp').classList.contains('lit')")], [true, false, false], "an egg going bold ends the warp, and the panel goes dark");
     const g2 = await glow();
+    eq((await ev("ET.view.lightning()")).on, false, "Refinement 6 §2: …and the lightning is off the same instant");
     ok(g2.active.every((x) => x.border !== G && x.art === "none"), "…and the green glow is off the same instant, bold nest included");
     await shot("13b-warp-over");
   }

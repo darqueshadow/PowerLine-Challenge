@@ -273,7 +273,9 @@
     list.forEach(function (d) { d.style.setProperty("--turn", ((Math.random() * 2 - 1) * C.doodleTurnMax).toFixed(0) + "deg"); });
     setInterval(function () {
       if (app.paused) return;   // on every screen now the panel is (a paused game holds them)
-      var d = list[Math.floor(Math.random() * list.length)];
+      var seen = list.filter(function (x) { return x.getBoundingClientRect().width > 0; });   // only doodles on screen
+      if (!seen.length) return;
+      var d = seen[Math.floor(Math.random() * seen.length)];
       d.style.setProperty("--turn", ((Math.random() * 2 - 1) * C.doodleTurnMax).toFixed(0) + "deg");
     }, C.doodleTurnEvery * 1000);
   }

@@ -237,6 +237,71 @@
     ell(c.egg, x, eggY === null ? 0 : eggY, eggRx * eggK, eggRy * eggK, eggY !== null);
   }
 
+  /* Refinement 6 §2: the Time Warp lightning. While the warp runs, a jagged bolt runs from the centre panel to
+     the nearest nest whose clock is running, then on from that nest to the nearest one not yet reached, and so
+     on (a nearest-neighbour daisy chain [T]). It lives in the cord's layer, under the board, so it is under every
+     readout and takes no input; it's drawn from the snapshot every frame, so it is off the instant the warp ends.
+     🚨 Flicker: the kinks are re-drawn at most lightningFlickerHz and never more than 3 times a second (the one
+     guard, in rejag()); with reduced motion they hold still. The kinks are kept per link, so a nest joining or
+     leaving the chain moves the bolts without an extra flicker. */
+  var bolt = null;
+  function buildLightning() {
+    var g = document.createElementNS(NS, "g");
+    g.setAttribute("class", "lightning");
+    g.style.display = "none";
+    function mk(cls) { var p = document.createElementNS(NS, "path"); p.setAttribute("class", cls); g.appendChild(p); return p; }
+    bolt = { g: g, glow: mk("bolt-glow"), core: mk("bolt-core"), kinks: [], lastJag: -1, log: [], links: 0 };
+    cords.svg.appendChild(g);
+  }
+  function reducedMotion() { return !!(root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+  function rejag(t) {
+    var gap = Math.max(1 / 3, 1 / ET.CONFIG.lightningFlickerHz);   // 🚨 never more than 3 a second
+    if (bolt.lastJag >= 0 && (t - bolt.lastJag < gap || reducedMotion())) return;
+    bolt.lastJag = t;
+    bolt.kinks = [];
+    bolt.log.push(t);
+    if (bolt.log.length > 400) bolt.log.splice(0, 200);
+  }
+  function kinksFor(k) {
+    while (bolt.kinks.length <= k) {
+      var ks = [];
+      for (var i = 0; i < ET.CONFIG.lightningKinks; i++) ks.push(Math.random() * 2 - 1);
+      bolt.kinks.push(ks);
+    }
+    return bolt.kinks[k];
+  }
+  function drawLightning(snap) {
+    var on = !!snap.warp;
+    bolt.g.style.display = on ? "" : "none";
+    if (!on) { bolt.links = 0; bolt.lastJag = -1; return; }
+    var sr = cords.screen.getBoundingClientRect(), br = board.getBoundingClientRect(), wr = warp.getBoundingClientRect();
+    var from = { x: wr.left + wr.width / 2 - sr.left, y: wr.top + wr.height / 2 - sr.top };
+    var left = snap.nests.filter(function (s) { return s.state === "active" || s.state === "overtime"; }).map(function (s) {
+      var el = nests[s.id].el;
+      return { x: br.left - sr.left + el.offsetLeft, y: br.top - sr.top + el.offsetTop - el.offsetHeight * 0.18 };
+    });
+    rejag(performance.now() / 1000);
+    var d = "", k = 0, J = ET.CONFIG.lightningJag;
+    while (left.length) {
+      var best = 0;
+      for (var i = 1; i < left.length; i++) {
+        if (Math.hypot(left[i].x - from.x, left[i].y - from.y) < Math.hypot(left[best].x - from.x, left[best].y - from.y)) best = i;
+      }
+      var to = left.splice(best, 1)[0], ks = kinksFor(k++);
+      var dx = to.x - from.x, dy = to.y - from.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+      d += "M" + from.x.toFixed(1) + " " + from.y.toFixed(1);
+      for (var j = 0; j < ks.length; j++) {
+        var u = (j + 1) / (ks.length + 1), off = ks[j] * J;
+        d += " L" + (from.x + dx * u + nx * off).toFixed(1) + " " + (from.y + dy * u + ny * off).toFixed(1);
+      }
+      d += " L" + to.x.toFixed(1) + " " + to.y.toFixed(1) + " ";
+      from = to;
+    }
+    bolt.links = k;
+    bolt.glow.setAttribute("d", d);
+    bolt.core.setAttribute("d", d);
+  }
+
   /* E15 (Refinement 3 rulings): `count` blobs dropped evenly at random over the whole board. One that
      lands on a nest goes on that nest's canvas (mess belongs to the nest, and covers its readout, E14);
      anywhere else it goes on the board-wide floor canvas under the nests. */
@@ -400,6 +465,7 @@
       ET.view.bindWipe();
       buildHose();
       buildCords();
+      buildLightning();
       buildMom();
     },
 
@@ -474,6 +540,8 @@
         var off = String(1 - s.crack);
         for (var k = 0; k < v.cracks.length; k++) v.cracks[k].style.strokeDashoffset = off;
       });
+
+      drawLightning(snap);   // Refinement 6 §2
 
       // Refinement 5 §5: the scary mom face, when this wave's moment comes (never in cleanup or on pause)
       if (momAt !== null && snap.phase === "wave" && snap.time >= momAt) {
@@ -647,6 +715,9 @@
        `momState()` gives this game's count so far and the next scheduled time. */
     mom: function (which) { return showMom(which); },
     momState: function () { return { shown: momShown, at: momAt, visible: !mom.box.hidden }; },
+
+    /* For rigs: the Time Warp lightning: shown, how many links, its path, and when it last re-jagged (seconds). */
+    lightning: function () { return { on: bolt.g.style.display !== "none", links: bolt.links, d: bolt.core.getAttribute("d"), log: bolt.log.slice() }; },
 
     /* For rigs: a nest's cord, if one is showing. */
     cord: function (id) {

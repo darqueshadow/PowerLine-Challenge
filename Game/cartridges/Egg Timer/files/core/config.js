@@ -160,6 +160,15 @@
     // E22 (ruled 2026-09-23): ONLY the nests whose clock is running glow, not empty nests in play (and not
     //   an egg still being laid: its clock starts at the pop). "unlocked" (every nest in play) still works.
     warpGlow: "running",           // "running" | "unlocked"
+    // Refinement 6 §2: while Time Warp runs, jagged lightning in the Time Warp green reaches out from the panel
+    // to every nest whose clock is running, daisy-chained nest to nest (each link to the nearest nest not yet
+    // reached, starting from the panel). It draws under every readout, like the cord.
+    // 🚨 SAFETY: the bolts re-jag (flicker) at most lightningFlickerHz, and never more than 3 times a second
+    //   whatever that is set to (a guard in view.js); with reduced motion they hold still.
+    lightningChain: "nearest",     // [T] the only chain built
+    lightningFlickerHz: 2.5,       // [T] re-jags a second, capped at 3
+    lightningJag: 12,              // [T] px, how far a bolt's kinks stray from the straight line
+    lightningKinks: 7,             // [T] kinks per link
     // §3: the how-to panel's doodles. Every so often one of them turns to a new angle.
     doodleTurnEvery: 2.5,          // [T] seconds between turns (one doodle at a time)
     doodleTurnMax: 28,             // [T] degrees either way
