@@ -14,7 +14,7 @@
    (the driver has no mouse helper). That proves the wipe logic and hit-testing,
    not that a physical mouse reaches it.
    ========================================================================= */
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const DRIVER = new URL("../../../../+Nerva Beacon/Nerva Beacon Main/tools/cdp.mjs", import.meta.url);
@@ -24,7 +24,11 @@ if (!existsSync(fileURLToPath(DRIVER))) {
 }
 const { open } = await import(DRIVER);
 
-const SHOTS = process.argv[2] || null;
+const SHOTS = process.argv.slice(2).find((a) => !a.startsWith("--")) || null;
+// `--write-theme-baseline` records section T's baseline instead of checking against it: run it ONLY when a colour
+// (or any other style) is changed on purpose, and commit the new baseline in the same commit as that change.
+const WRITE_THEME = process.argv.includes("--write-theme-baseline");
+const THEME_BASELINE = new URL("./verify-egg-timer-theme-baseline.mjs", import.meta.url);
 const URL_GAME = "http://localhost:8898/Game/cartridges/Egg%20Timer/files/index.html?seed=42&clock=23:58&cb=" + process.pid;
 
 let pass = 0, fail = 0;
@@ -122,6 +126,49 @@ async function watchLights(seconds) {
     return { changes: log.length, rate: log.length / ${seconds} / n, onsPerSec, changesPerSec, groupPerSec: worst(rises), bulbs: n, mode: ET.lights.state().mode };
   })()`);
 }
+
+/* Section T: every rule of the game's own stylesheets (theme.css, style.css), resolved to final values: each var()
+   substituted from :root (unknown ones, set at runtime on an element, kept as a marker), then run through a probe
+   element so the browser writes every value in one canonical form, shorthands split into longhands. Custom
+   properties themselves are left out: only what they produce counts. Two snapshots are equal only if every
+   rule gives every property the same value, so moving a colour into a variable changes nothing here. */
+const STYLE_SNAPSHOT = `(() => {
+  const root = getComputedStyle(document.documentElement);
+  const sheets = [...document.styleSheets].filter(s => s.href && /\\/files\\/(theme|style)\\.css(\\?|$)/.test(s.href));
+  const probe = document.createElement('div'); document.body.appendChild(probe);
+  const SH = ['background','border','border-top','border-right','border-bottom','border-left','border-color','border-style','border-width',
+    'border-radius','border-image','outline','font','margin','padding','inset','flex','flex-flow','gap','grid','grid-area','grid-template',
+    'list-style','text-decoration','transition','animation','overflow','place-items','place-content','place-self','columns','mask',
+    'text-emphasis','border-block','border-inline','container','offset','white-space','text-wrap','font-variant'];
+  const VAR = /var\\(\\s*(--[\\w-]+)\\s*(?:,((?:[^()]|\\([^()]*\\))*))?\\)/;
+  const resolve = (v) => { for (let i = 0; i < 60 && VAR.test(v); i++) v = v.replace(VAR, (m, n, fb) => root.getPropertyValue(n).trim() || (fb !== undefined ? fb.trim() : '<' + n + '>')); return v; };
+  const canon = (prop, val, imp) => {
+    probe.style.cssText = ''; probe.style.setProperty(prop, val);
+    const out = {};
+    if (!probe.style.length) out[prop] = 'RAW ' + val.replace(/\\s+/g, ' ').trim() + imp;
+    for (let i = 0; i < probe.style.length; i++) out[probe.style[i]] = probe.style.getPropertyValue(probe.style[i]) + imp;
+    return out;
+  };
+  const snap = {}, seen = {};
+  const walk = (rules, prefix) => { for (const r of rules) {
+    if (r.cssRules && !r.style) { walk(r.cssRules, prefix + (r.cssText.split('{')[0].trim()) + ' » '); continue; }
+    if (!r.style) continue;
+    const decls = {};
+    for (let i = 0; i < r.style.length; i++) {
+      const n = r.style[i]; if (n.startsWith('--')) continue;
+      const v = r.style.getPropertyValue(n); if (v === '') continue;
+      Object.assign(decls, canon(n, resolve(v), r.style.getPropertyPriority(n) ? ' !important' : ''));
+    }
+    for (const S of SH) { const v = r.style.getPropertyValue(S); if (v && v.includes('var(')) Object.assign(decls, canon(S, resolve(v), r.style.getPropertyPriority(S) ? ' !important' : '')); }
+    if (!Object.keys(decls).length) continue;
+    let key = prefix + (r.selectorText || r.keyText || r.cssText.split('{')[0].trim());
+    seen[key] = (seen[key] || 0) + 1; if (seen[key] > 1) key += ' #' + seen[key];
+    snap[key] = Object.fromEntries(Object.keys(decls).sort().map(k => [k, decls[k]]));
+  } };
+  sheets.forEach(s => walk(s.cssRules, ''));
+  probe.remove();
+  return snap;
+})()`;
 
 async function typeAndEnter(text) {
   await ev("document.querySelector('.box.active input').focus()");
@@ -1039,6 +1086,34 @@ try {
   }
 
   /* ------------------------------------------------------------ K. errors */
+  section("T. the theme file: the palette in its own file, the game looking exactly as before");
+  {
+    const links = await ev("[...document.querySelectorAll('link[rel=stylesheet]')].map(l => l.getAttribute('href'))");
+    eq(links, ["theme.css", "style.css"], "the page reads theme.css, then style.css");
+    const lit = await ev(`fetch('style.css').then(r => r.text()).then(t => {
+      const bare = t.replace(/\\/\\*[\\s\\S]*?\\*\\//g, '').replace(/url\\((["'])[\\s\\S]*?\\1\\)/g, 'url()');
+      return bare.match(/#[0-9a-f]{3,8}\\b|\\b(rgba?|hsla?)\\(/gi) || [];
+    })`);
+    eq(lit, [], "style.css holds no colour of its own: every colour comes from theme.css (the hose cursor's data-URI image aside)");
+    const now = await ev(STYLE_SNAPSHOT);
+    const rules = Object.keys(now).length;
+    if (WRITE_THEME) {
+      writeFileSync(THEME_BASELINE, "/* verify-egg-timer-theme-baseline.mjs: section T's record of every rule of the game's stylesheets, resolved\n" +
+        "   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on " + new Date().toISOString().slice(0, 10) + ".\n" +
+        "   Rewrite it ONLY when a style is changed on purpose, in the same commit. Never published (verify-*.mjs). */\n" +
+        "export default " + JSON.stringify(now, null, 1) + ";\n");
+      console.log(`  (wrote the theme baseline: ${rules} rules)`);
+    }
+    const base = existsSync(fileURLToPath(THEME_BASELINE)) ? (await import(THEME_BASELINE + "?" + Date.now())).default : null;
+    const diffs = [];
+    if (base) for (const k of new Set([...Object.keys(base), ...Object.keys(now)])) {
+      if (!base[k]) { diffs.push(`new rule ${k}`); continue; }
+      if (!now[k]) { diffs.push(`rule gone ${k}`); continue; }
+      for (const p of new Set([...Object.keys(base[k]), ...Object.keys(now[k])])) if (base[k][p] !== now[k][p]) diffs.push(`${k} { ${p}: ${base[k][p]} → ${now[k][p]} }`);
+    }
+    ok(!!base && diffs.length === 0, `every rule resolves exactly as in the baseline: the game looks identical   [${rules} rules, ${diffs.length} differences]` + (diffs.length ? "\n        " + diffs.slice(0, 8).join("\n        ") : ""));
+  }
+
   section("K. a clean run");
   const errs = c.errors().filter((e) => !/favicon\.ico/.test(e));
   eq(errs, [], "no page errors, failed requests or 404s");

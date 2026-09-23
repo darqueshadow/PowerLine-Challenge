@@ -1,0 +1,175 @@
+/* ===========================================================================
+   EGG TIMER — THEME: the palette, the font stacks and the bundled fonts.
+   style.css takes every colour from here (the browser rig fails on a colour written anywhere in style.css)
+   and loads after this file. One token a colour, named for where it shows, its plain-English name beside it.
+   ⏳ Every value is placeholder until the final art (Gemini): change a colour HERE, not in style.css.
+   Nerva Beacon's Egg Timer cabinet may read these tokens too, so renaming or removing one can break it.
+   Not in here: the hose cursor (an SVG data-URI image in style.css, its colours baked in), the Command
+   Lines' --box colours (set per line by boxes.js) and colours drawn from JavaScript.
+   ========================================================================= */
+:root {
+  /* Page and type */
+  --bg: #0b0716;                          /* deep space purple-black (page background, outer) */
+  --bg-2: #1b0f33;                        /* dark grape (page background, centre) */
+  --ink: #fff7e8;                         /* warm cream (text on dark) */
+  --dim: #9a8fb8;                         /* dusty lavender (quiet labels) */
+  --hot: #ff3d7f;                         /* hot pink (the ET letters, pool, card shadow, title banner) */
+  --gold: #ffd23a;                        /* arcade gold (headings, selected buttons) */
+  --cyan: #22e3ff;                        /* electric cyan (prompts, label chips) */
+  --speckle: #7a2cff;                     /* electric violet (egg speckles, title-card shadow) */
+  --white: #fff;                          /* white */
+  --black: #000;                          /* black */
+  --outline: #1a0d2e;                     /* near-black aubergine (the cartoon outline everywhere) */
+  --shadow: #000;                         /* black (every hard offset shadow) */
+  --overlay: rgba(0, 0, 0, 0.55);         /* 55% black (pause veil) */
+  --error-red: #e8102a;                   /* alarm red (ERROR under a Command Line) */
+
+  /* Display boxes (the three readouts under each nest) */
+  --readout-unit-bg: #fff;                /* white */
+  --readout-unit-ink: #1c4fd8;            /* royal blue */
+  --readout-bold-unit-ink: #0b5d1e;       /* dark forest green (at the limit) */
+  --readout-type-bg: #b9b9c6;             /* cool grey */
+  --readout-type-ink: #000;               /* black */
+  --readout-timer-bg: #ffd23a;            /* egg-yolk yellow */
+  --readout-timer-ink: #3b0a5c;           /* deep purple */
+  --readout-bold-timer-bg: #ff2d8a;       /* hot pink (at the limit) */
+  --readout-bold-timer-ink: #fff;         /* white (at the limit) */
+
+  /* Wall clock and the AD notes */
+  --led: #ffb000;                         /* LED amber */
+  --led-bg: #140900;                      /* near-black brown (LED glass) */
+  --led-shadow: #5a2a00;                  /* burnt brown (LED digit shadow) */
+  --postit: #ffe95c;                      /* post-it yellow */
+  --postit-ink: #2a1a00;                  /* dark brown pencil */
+
+  /* How-to card, title card and arcade bulbs */
+  --card: #fff3d1;                        /* cream (how-to card, title card, hose tag) */
+  --mint: #b8ff9e;                        /* mint green (alternate label chips) */
+  --pink: #ff8fc7;                        /* bubblegum pink */
+  --bulb-off: #6b4a12;                    /* unlit bulb brown */
+  --bulb-on: #ffe25a;                     /* lit bulb yellow */
+  --bulb-glow: #ffcf3a;                   /* lit bulb glow */
+  --bulb-calm: #d9b84a;                   /* lit bulb, dimmed in play */
+  --bulb-calm-glow: #b8962a;              /* dimmed bulb glow */
+
+  /* Time Warp */
+  --warp: #3dff9a;                        /* Time Warp green */
+  --warp-edge: #0e8f4c;                   /* deep warp green (panel edge) */
+  --warp-lit-ink: #04170c;                /* near-black green (lit panel lettering) */
+  --warp-halo: #d6ffe8;                   /* pale mint (lettering halo) */
+  --warp-glow: rgba(61, 255, 154, 0.55);  /* 55% Time Warp green (panel glow) */
+  --violet: #b04dff;                      /* bright violet (lit panel border, nest tendrils) */
+  --warp-off-bg: #07140d;                 /* dark glass green (panel off) */
+  --warp-off-border: #1f3a2a;             /* dark moss (panel off, border) */
+  --warp-off-ink: #1c3526;                /* dim moss (panel off, lettering) */
+
+  /* Egg-laying cord and Time Warp lightning */
+  --cord-red: #9e0a1e;                    /* blood red */
+  --cord-purple: #7a2cc4;                 /* cord purple (creeping stripes) */
+  --cord-ribs: #2a0010;                   /* dark maroon (ribs) */
+  --cord-outline: #1a0008;                /* near-black red (outline) */
+  --cord-bulge: #8a2fd6;                  /* purple (the egg travelling down) */
+  --cord-bulge-edge: #3b1060;             /* dark purple */
+  --bolt-core: #c8ffe2;                   /* pale mint (lightning core) */
+
+  /* Nests and eggs */
+  --twig: #9b6532;                        /* twig brown */
+  --twig-dark: #4a2b12;                   /* dark twig brown */
+  --twig-inactive: #3a3150;               /* slate (an inactive nest) */
+  --shell: #7dff6a;                       /* alien egg green */
+  --crack: #1a0d2e;                       /* dark aubergine (egg crack) */
+  --ooze: #3dff9a;                        /* ooze green */
+  --ooze-edge: #1a8f55;                   /* dark ooze green */
+
+  /* Creatures (title mommy alien, lilac creature, doodles) */
+  --alien-green: #7dff6a;                 /* alien green */
+  --alien-outline: #14330f;               /* dark alien green (outline) */
+  --lilac: #c79bff;                       /* lilac (the three-headed creature, doodles) */
+  --plum: #2a0f45;                        /* dark plum (lilac creature outline) */
+  --mouth: #3b0a2a;                       /* dark maroon (mouths) */
+  --smile-pink: #ff5c8a;                  /* gum pink */
+  --tooth: #fffbe8;                       /* tooth cream */
+
+  /* The hatchling */
+  --hatchling-body: #2a0d14;              /* near-black maroon */
+  --hatchling-ribs: #6b1f2e;              /* dried-blood red */
+  --hatchling-maw: #7a0010;               /* deep red */
+  --hatchling-fangs: #f4f0d8;             /* bone */
+  --hatchling-eye: #ff1a2e;               /* red */
+  --hatchling-slit: #ffe14d;              /* yellow (pupil slit) */
+  --hatchling-legs: #8a2a3e;              /* dark rose */
+  --drool: #b8ff5e;                       /* acid green drool */
+
+  /* Scary mom face */
+  --mom-skin: #3f7a2c;                    /* swamp green */
+  --mom-shade: #24501a;                   /* dark swamp green */
+  --mom-outline: #0c1a08;                 /* near-black green */
+  --mom-eye: #fff2d6;                     /* yellowed white */
+  --mom-pupil: #0c0000;                   /* near-black */
+  --mom-vein: #d0102a;                    /* bloodshot red */
+  --mom-maw: #2a0008;                     /* near-black red */
+  --mom-teeth: #f4eccc;                   /* yellowed bone */
+
+  /* Hose and water */
+  --hose: #2fbf5a;                        /* garden-hose green */
+  --hose-outline: #06280f;                /* near-black green */
+  --tap-pipe: #9aa0a8;                    /* steel grey */
+  --tap-valve: #d0342c;                   /* tap red */
+  --water: #6fd3ff;                       /* water blue */
+  --water-edge: #0a4a7a;                  /* deep water blue */
+
+  /* Frying pan and the egg ladder dishes */
+  --pan-rim: #2b2b33;                     /* charcoal */
+  --pan-base: #43434f;                    /* dark iron */
+  --pan-glint: #8c8ca0;                   /* iron glint */
+  --pan-handle: #5a3418;                  /* wood brown */
+  --plate: #f4f4f8;                       /* plate white */
+  --plate-rim: #c9c9d6;                   /* plate grey */
+  --egg-white: #fff6e0;                   /* egg white */
+  --yolk: #ffc21a;                        /* yolk */
+  --yolk-pale: #ffe08a;                   /* pale yolk */
+  --muffin: #c98a4b;                      /* muffin brown */
+  --sauce: #ffd84d;                       /* hollandaise yellow */
+  --sauce-edge: #8a5a00;                  /* dark mustard */
+  --avocado: #8ccf4d;                     /* avocado green */
+  --avocado-edge: #2e5a12;                /* dark avocado */
+  --steak: #7a3a1c;                       /* steak brown */
+  --grill: #3a1507;                       /* grill-mark brown */
+  --mug: #e0a018;                         /* brew amber */
+  --foam: #fffbe8;                        /* foam cream */
+
+  /* Fonts. Arial Black, Trebuchet MS and Courier New are system fonts, named only (never bundled). */
+  --font-display: "Arial Black", Impact, "Haettenschweiler", sans-serif;
+  --font-ui: "Trebuchet MS", Verdana, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
+  --font-led: "DSEG7 Classic", "Courier New", Courier, monospace;
+  --font-led-text: "DSEG14 Classic", "Courier New", Courier, monospace;
+}
+
+/* DSEG: 7- and 14-segment LED digits for the wall clock and the AD "Clear @ HH:MM" note (2026-09-23), bundled in
+   fonts/ unmodified. Copyright (c) 2017-2018 keshikan, Reserved Font Name "DSEG". Licensed under the SIL Open Font
+   License 1.1 (fonts/DSEG-LICENSE.txt). */
+@font-face {
+  font-family: "DSEG7 Classic";
+  src: url("fonts/DSEG7Classic-Bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DSEG14 Classic";
+  src: url("fonts/DSEG14Classic-Bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Patrick Hand: neat hand-lettering for the AD "N min" post-it, bundled in fonts/ so it works offline in Fang Rock.
+   Copyright (c) 2010-2012 Patrick Wagesreiter. Licensed under the SIL Open Font License 1.1 (fonts/OFL.txt). */
+@font-face {
+  font-family: "Patrick Hand";
+  src: url("fonts/PatrickHand-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

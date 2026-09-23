@@ -6,57 +6,7 @@
    ⏳ Colours, the Command Lines' look and all creature/splat art are placeholders
    until art direction; the rules they express are not.
    ========================================================================= */
-:root {
-  --bg: #0b0716;
-  --bg-2: #1b0f33;
-  --ink: #fff7e8;
-  --dim: #9a8fb8;
-  --hot: #ff3d7f;
-  --gold: #ffd23a;
-  --cyan: #22e3ff;
-  --led: #ffb000;
-  --led-bg: #140900;
-  --twig: #9b6532;
-  --twig-dark: #4a2b12;
-  --shell: #7dff6a;
-  --speckle: #7a2cff;
-  --crack: #1a0d2e;
-  --shadow: #000;
-  --warp: #3dff9a;          /* Time Warp green: the panel, and the glow on the active nests while it runs */
-  --font-display: "Arial Black", Impact, "Haettenschweiler", sans-serif;
-  --font-ui: "Trebuchet MS", Verdana, sans-serif;
-  --font-mono: "Courier New", Courier, monospace;
-  --font-led: "DSEG7 Classic", "Courier New", Courier, monospace;      /* the wall clock and the AD note's HH:MM */
-  --font-led-text: "DSEG14 Classic", "Courier New", Courier, monospace; /* letters on an LED ("Clear @"): DSEG7 has no "@" */
-}
-
-/* DSEG: 7- and 14-segment LED digits for the wall clock and the AD "Clear @ HH:MM" note (2026-09-23), bundled in
-   fonts/ unmodified. Copyright (c) 2017-2018 keshikan, Reserved Font Name "DSEG". Licensed under the SIL Open Font
-   License 1.1 (fonts/DSEG-LICENSE.txt). */
-@font-face {
-  font-family: "DSEG7 Classic";
-  src: url("fonts/DSEG7Classic-Bold.woff2") format("woff2");
-  font-weight: 700 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "DSEG14 Classic";
-  src: url("fonts/DSEG14Classic-Bold.woff2") format("woff2");
-  font-weight: 700 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Patrick Hand: neat hand-lettering for the AD "N min" post-it, bundled in fonts/ so it works offline in Fang Rock.
-   Copyright (c) 2010-2012 Patrick Wagesreiter. Licensed under the SIL Open Font License 1.1 (fonts/OFL.txt). */
-@font-face {
-  font-family: "Patrick Hand";
-  src: url("fonts/PatrickHand-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* The palette, the font stacks and the bundled fonts live in theme.css, loaded first (2026-09-23). */
 
 [hidden] { display: none !important; }
 
@@ -105,9 +55,9 @@ button { font: inherit; }
   flex-direction: column;
   justify-content: center;
   gap: clamp(8px, 2.6vh, 26px);
-  background: #fff3d1;
-  color: #1a0d2e;
-  border: 5px solid #1a0d2e;
+  background: var(--card);
+  color: var(--outline);
+  border: 5px solid var(--outline);
   border-radius: 30px 18px 34px 20px / 20px 32px 18px 30px;
   box-shadow: 8px 8px 0 var(--speckle);
   text-align: left;
@@ -118,15 +68,15 @@ button { font: inherit; }
   max-width: 100%;
   padding: 4px 10px;
   background: var(--hot);
-  color: #fff;
-  border: 3px solid #1a0d2e;
+  color: var(--white);
+  border: 3px solid var(--outline);
   border-radius: 10px;
-  box-shadow: 3px 3px 0 #1a0d2e;
+  box-shadow: 3px 3px 0 var(--outline);
   transform: rotate(-3deg);
   font-family: var(--font-display);
   font-size: clamp(15px, 1.75vw, 32px);
   letter-spacing: 0.05em;
-  text-shadow: 2px 2px 0 #1a0d2e;
+  text-shadow: 2px 2px 0 var(--outline);
   white-space: nowrap;
 }
 #howto-title ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: clamp(8px, 2.2vh, 22px); }
@@ -138,16 +88,16 @@ button { font: inherit; }
   width: 1.9em;
   height: 1.9em;
   border-radius: 50%;
-  border: 3px solid #1a0d2e;
-  box-shadow: 2px 2px 0 #1a0d2e;
+  border: 3px solid var(--outline);
+  box-shadow: 2px 2px 0 var(--outline);
   font-family: var(--font-display);
   font-size: clamp(18px, 2vw, 30px);
-  color: #1a0d2e;
+  color: var(--outline);
 }
 #howto-title li:nth-child(1) .num { background: var(--cyan); }
-#howto-title li:nth-child(2) .num { background: #b8ff9e; }
+#howto-title li:nth-child(2) .num { background: var(--mint); }
 #howto-title li:nth-child(3) .num { background: var(--gold); }
-#howto-title li:nth-child(4) .num { background: #ff8fc7; }
+#howto-title li:nth-child(4) .num { background: var(--pink); }
 #howto-title .step { font-family: var(--font-ui); font-weight: 700; font-size: clamp(14px, 1.45vw, 22px); line-height: 1.3; }
 #howto-title .doodle-row { display: flex; justify-content: space-around; margin-top: 10px; }
 #howto-title .doodle { width: clamp(34px, 4.2vw, 64px); height: auto; aspect-ratio: 1; overflow: visible; transform: rotate(var(--turn, 0deg)); transition: transform 0.45s cubic-bezier(0.3, 1.8, 0.5, 1); }
@@ -182,18 +132,18 @@ button { font: inherit; }
 /* Refinement 4 §6: the title scene (⏳ placeholder art). Pure CSS animation, so it never holds anything up. */
 #title-scene { width: min(560px, 82cqw, 70vh); }   /* half as tall as wide: fits under the logo at 1024×640 */
 #title-scene svg { display: block; width: 100%; overflow: visible; }
-#title-scene .alien-skin { fill: #7dff6a; stroke: #14330f; stroke-width: 4; }
-#title-scene .antenna, #title-scene .stalk { fill: none; stroke: #14330f; stroke-width: 4; stroke-linecap: round; }
-#title-scene .antenna-tip { fill: var(--hot); stroke: #14330f; stroke-width: 2; }
-#title-scene .eye { fill: #fff; stroke: #14330f; stroke-width: 3; }
-#title-scene .pupil { fill: #14330f; }
-#title-scene .apron { fill: #ff8fc7; stroke: #14330f; stroke-width: 3; }
+#title-scene .alien-skin { fill: var(--alien-green); stroke: var(--alien-outline); stroke-width: 4; }
+#title-scene .antenna, #title-scene .stalk { fill: none; stroke: var(--alien-outline); stroke-width: 4; stroke-linecap: round; }
+#title-scene .antenna-tip { fill: var(--hot); stroke: var(--alien-outline); stroke-width: 2; }
+#title-scene .eye { fill: var(--white); stroke: var(--alien-outline); stroke-width: 3; }
+#title-scene .pupil { fill: var(--alien-outline); }
+#title-scene .apron { fill: var(--pink); stroke: var(--alien-outline); stroke-width: 3; }
 #title-scene .apron-heart { fill: var(--hot); }
-#title-scene .smile { fill: #3b0a2a; stroke: #14330f; stroke-width: 3; }
-#title-scene .smile-line { fill: #ff5c8a; }
-#title-scene .cheek { fill: #ff8fc7; opacity: 0.8; }
-#title-scene .mouth-hole { fill: #3b0a2a; stroke: #14330f; stroke-width: 2; }
-#title-scene .teeth { fill: #fffbe8; stroke: #14330f; stroke-width: 0.8; }
+#title-scene .smile { fill: var(--mouth); stroke: var(--alien-outline); stroke-width: 3; }
+#title-scene .smile-line { fill: var(--smile-pink); }
+#title-scene .cheek { fill: var(--pink); opacity: 0.8; }
+#title-scene .mouth-hole { fill: var(--mouth); stroke: var(--alien-outline); stroke-width: 2; }
+#title-scene .teeth { fill: var(--tooth); stroke: var(--alien-outline); stroke-width: 0.8; }
 #title-scene .note { font-size: 26px; fill: var(--gold); stroke: var(--shadow); stroke-width: 1.5; paint-order: stroke; animation: note 2.2s linear infinite; opacity: 0; }
 @keyframes note { 0% { transform: translate(0, 20px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(14px, -60px); opacity: 0; } }
 #title-scene .sway { animation: sway 1.56s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
@@ -210,16 +160,16 @@ button { font: inherit; }
    heads, over the mode buttons. Sized by the window's height too, so the setup screen still fits 1024×640. */
 #setup-critter { width: min(300px, 40cqw, 31vh); flex: none; }
 #setup-critter svg { display: block; width: 100%; overflow: visible; }
-#setup-critter .blob { fill: #c79bff; stroke: #2a0f45; stroke-width: 4; }
-#setup-critter .neck { fill: none; stroke: #2a0f45; stroke-width: 16; stroke-linecap: round; }
-#setup-critter .neck-fill { fill: none; stroke: #c79bff; stroke-width: 9; stroke-linecap: round; }
-#setup-critter .head { fill: #c79bff; stroke: #2a0f45; stroke-width: 4; }
-#setup-critter .spot { fill: #7dff6a; stroke: #2a0f45; stroke-width: 1.5; }
-#setup-critter .arm, #setup-critter .tuft { fill: none; stroke: #2a0f45; stroke-width: 4; stroke-linecap: round; }
-#setup-critter .cheek { fill: #ff8fc7; opacity: 0.85; }
-#setup-critter .eye { fill: #fff; stroke: #2a0f45; stroke-width: 2.5; }
-#setup-critter .pupil { fill: #2a0f45; }
-#setup-critter .mouth-hole { fill: #3b0a2a; stroke: #2a0f45; stroke-width: 2; }
+#setup-critter .blob { fill: var(--lilac); stroke: var(--plum); stroke-width: 4; }
+#setup-critter .neck { fill: none; stroke: var(--plum); stroke-width: 16; stroke-linecap: round; }
+#setup-critter .neck-fill { fill: none; stroke: var(--lilac); stroke-width: 9; stroke-linecap: round; }
+#setup-critter .head { fill: var(--lilac); stroke: var(--plum); stroke-width: 4; }
+#setup-critter .spot { fill: var(--alien-green); stroke: var(--plum); stroke-width: 1.5; }
+#setup-critter .arm, #setup-critter .tuft { fill: none; stroke: var(--plum); stroke-width: 4; stroke-linecap: round; }
+#setup-critter .cheek { fill: var(--pink); opacity: 0.85; }
+#setup-critter .eye { fill: var(--white); stroke: var(--plum); stroke-width: 2.5; }
+#setup-critter .pupil { fill: var(--plum); }
+#setup-critter .mouth-hole { fill: var(--mouth); stroke: var(--plum); stroke-width: 2; }
 #setup-critter .note { font-size: 24px; fill: var(--gold); stroke: var(--shadow); stroke-width: 1.5; paint-order: stroke; opacity: 0; animation: sour-note 2.4s linear infinite; }
 /* out of tune: the notes wobble off-line as they drift up */
 @keyframes sour-note {
@@ -300,21 +250,21 @@ h2 {
   text-align: center;
   line-height: 1.1;
   padding: 6px 12px;
-  background: #07140d;
-  border: 4px solid #1f3a2a;
+  background: var(--warp-off-bg);
+  border: 4px solid var(--warp-off-border);
   border-radius: 14px 4px 14px 4px;
   box-shadow: 5px 5px 0 var(--shadow);
   font-family: var(--font-display);
   font-size: clamp(14px, 1.6vw, 26px);
   letter-spacing: 0.2em;
-  color: #1c3526;
+  color: var(--warp-off-ink);
 }
 #warp.lit {
-  background: radial-gradient(ellipse at 50% 50%, var(--warp), #0e8f4c 80%);
-  border-color: #b04dff;
-  color: #04170c;
-  text-shadow: 0 0 6px #d6ffe8;
-  box-shadow: 5px 5px 0 var(--shadow), 0 0 22px 4px rgba(61, 255, 154, 0.55);
+  background: radial-gradient(ellipse at 50% 50%, var(--warp), var(--warp-edge) 80%);
+  border-color: var(--violet);
+  color: var(--warp-lit-ink);
+  text-shadow: 0 0 6px var(--warp-halo);
+  box-shadow: 5px 5px 0 var(--shadow), 0 0 22px 4px var(--warp-glow);
   animation: warp 0.9s steps(3) infinite;
 }
 @keyframes warp { 33% { filter: brightness(1.25); } 66% { filter: brightness(0.9); } }
@@ -331,7 +281,7 @@ h2 {
   font-size: clamp(30px, 4vw, 62px);
   letter-spacing: 0.04em;
   color: var(--led);
-  text-shadow: 0 0 0 var(--led), 2px 2px 0 #5a2a00;
+  text-shadow: 0 0 0 var(--led), 2px 2px 0 var(--led-shadow);
   line-height: 1;
   white-space: nowrap;
 }
@@ -362,34 +312,34 @@ h2 {
 .playrow { position: relative; }
 #field { z-index: 2; }
 .hud, #console, #howto { position: relative; z-index: 4; }
-#hose .hose-outline { fill: none; stroke: #06280f; stroke-linecap: round; }
-#hose .hose-body { fill: none; stroke: #2fbf5a; stroke-linecap: round; }
+#hose .hose-outline { fill: none; stroke: var(--hose-outline); stroke-linecap: round; }
+#hose .hose-body { fill: none; stroke: var(--hose); stroke-linecap: round; }
 /* Refinement 3 §7: the egg-laying cord, in the hose's layer, under every piece of text (⏳ placeholder) */
 #cords { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible; }
 /* Refinement 6 §4 (⏳ placeholder): thick [T], striped blood red and purple, deeply ribbed. The stripes creep
    slowly down the cord (movement, not a flash); timing and layering are unchanged. */
 #cords path[class^="cord-"] { fill: none; stroke-linejoin: round; }
-#cords .cord-outline { stroke: #1a0008; stroke-width: calc(var(--cord, 10px) + 4px); stroke-linecap: round; }
-#cords .cord-line { stroke: #9e0a1e; stroke-width: var(--cord, 10px); stroke-linecap: round; }
-#cords .cord-stripes { stroke: #7a2cc4; stroke-width: var(--cord, 10px); stroke-dasharray: 9 9; animation: cord-creep 1.4s linear infinite; }
-#cords .cord-ribs { stroke: #2a0010; stroke-width: calc(var(--cord, 10px) + 3px); stroke-dasharray: 2 5; opacity: 0.8; }
+#cords .cord-outline { stroke: var(--cord-outline); stroke-width: calc(var(--cord, 10px) + 4px); stroke-linecap: round; }
+#cords .cord-line { stroke: var(--cord-red); stroke-width: var(--cord, 10px); stroke-linecap: round; }
+#cords .cord-stripes { stroke: var(--cord-purple); stroke-width: var(--cord, 10px); stroke-dasharray: 9 9; animation: cord-creep 1.4s linear infinite; }
+#cords .cord-ribs { stroke: var(--cord-ribs); stroke-width: calc(var(--cord, 10px) + 3px); stroke-dasharray: 2 5; opacity: 0.8; }
 @keyframes cord-creep { to { stroke-dashoffset: -18; } }
 /* Refinement 6 §2 (⏳ placeholder look): the Time Warp lightning, in the cord's layer under every readout. Its
    kinks re-jag in view.js (never over 3 a second); nothing here animates. */
 #cords .lightning path { fill: none; stroke-linejoin: miter; stroke-linecap: round; }
 #cords .bolt-glow { stroke: var(--warp); stroke-width: 7px; opacity: 0.35; }
-#cords .bolt-core { stroke: #c8ffe2; stroke-width: 2.5px; }
-#cords .cord-bulge { fill: #8a2fd6; stroke: #3b1060; stroke-width: 2px; }
+#cords .bolt-core { stroke: var(--bolt-core); stroke-width: 2.5px; }
+#cords .cord-bulge { fill: var(--cord-bulge); stroke: var(--cord-bulge-edge); stroke-width: 2px; }
 #cords .cord-egg { fill: var(--shell); stroke: var(--crack); stroke-width: 2px; }
-#hose .pipe { fill: #9aa0a8; stroke: #000; stroke-width: 2; }
-#hose .valve { fill: #d0342c; stroke: #000; stroke-width: 2; }
+#hose .pipe { fill: var(--tap-pipe); stroke: var(--black); stroke-width: 2; }
+#hose .valve { fill: var(--tap-valve); stroke: var(--black); stroke-width: 2; }
 .drop {
   position: absolute;
   width: 6px;
   height: 9px;
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  background: #6fd3ff;
-  border: 1px solid #0a4a7a;
+  background: var(--water);
+  border: 1px solid var(--water-edge);
   pointer-events: none;
   animation: drop 0.45s linear forwards;
 }
@@ -406,9 +356,9 @@ h2 {
   align-items: center;
   gap: 5px;
   padding: 2px 7px 2px 4px;
-  background: #fff3d1;
-  color: #1a0d2e;
-  border: 2px solid #1a0d2e;
+  background: var(--card);
+  color: var(--outline);
+  border: 2px solid var(--outline);
   border-radius: 7px;
   box-shadow: 2px 2px 0 var(--shadow);
   font-size: clamp(10px, 0.8vw, 13px);
@@ -422,11 +372,11 @@ h2 {
   left: -14px;
   top: 50%;
   width: 14px;
-  border-top: 2px solid #1a0d2e;
+  border-top: 2px solid var(--outline);
 }
 #hose-tag b { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.04em; }
 #hose-tag .mouse { width: 1.2em; height: 1.7em; flex: none; }
-#hose-tag .mouse rect, #hose-tag .mouse path { fill: #fff; stroke: #1a0d2e; stroke-width: 2; }
+#hose-tag .mouse rect, #hose-tag .mouse path { fill: var(--white); stroke: var(--outline); stroke-width: 2; }
 #hose-tag .mouse .btn { fill: var(--hot); }
 
 /* Refinement 2 §1: how to play, down one side. Refinement 5 §3: a cartoon look (⏳ placeholder): a cream card
@@ -440,46 +390,46 @@ h2 {
   margin: 10px 12px 12px 8px;
   padding: clamp(6px, 1.4vh, 12px) 12px 8px;
   overflow: visible;                 /* the attract lights sit ON the border; the doodle space clips itself */
-  background: #fff3d1;
-  color: #1a0d2e;
-  border: 4px solid #1a0d2e;
+  background: var(--card);
+  color: var(--outline);
+  border: 4px solid var(--outline);
   border-radius: 22px 12px 26px 14px / 14px 24px 12px 22px;
   box-shadow: 6px 6px 0 var(--hot);
   font-size: clamp(12px, 0.95vw, 15px);
   line-height: 1.35;
 }
 @media (max-height: 700px) { #howto { font-size: 11px; line-height: 1.22; } }
-#howto .title { display: flex; align-items: center; justify-content: center; gap: 12px; font-family: var(--font-display); font-size: 1.1em; color: #2a0f45; letter-spacing: 0.06em; text-shadow: 2px 2px 0 var(--hot); margin-bottom: 8px; }
+#howto .title { display: flex; align-items: center; justify-content: center; gap: 12px; font-family: var(--font-display); font-size: 1.1em; color: var(--plum); letter-spacing: 0.06em; text-shadow: 2px 2px 0 var(--hot); margin-bottom: 8px; }
 #howto .title .doodle { flex: none; width: 2.2em; height: 2.2em; }
 #howto ul { flex: none; list-style: none; margin: 0; padding: 0; }
-#howto li { margin: 0 0 clamp(4px, 1.1vh, 9px); color: #1a0d2e; }
+#howto li { margin: 0 0 clamp(4px, 1.1vh, 9px); color: var(--outline); }
 #howto b {
   display: table;
   margin: 0 auto 2px;
   padding: 0 7px;
   background: var(--cyan);
-  color: #1a0d2e;
-  border: 2px solid #1a0d2e;
+  color: var(--outline);
+  border: 2px solid var(--outline);
   border-radius: 8px;
-  box-shadow: 2px 2px 0 #1a0d2e;
+  box-shadow: 2px 2px 0 var(--outline);
   font-family: var(--font-display);
   font-weight: 400;
   letter-spacing: 0.08em;
   font-size: 0.85em;
   transform: rotate(-2deg);
 }
-#howto li:nth-child(even) b { background: #b8ff9e; transform: rotate(2deg); }
+#howto li:nth-child(even) b { background: var(--mint); transform: rotate(2deg); }
 #howto .doodles { position: relative; flex: 1; min-height: 0; container-type: size; overflow: hidden; }
 /* sized and placed so a doodle turned the full doodleTurnMax still clears the text above it */
 #howto .doodles .doodle { position: absolute; width: min(34cqw, 40cqh, 64px); height: auto; aspect-ratio: 1; }
 #howto .doodle { overflow: visible; transform: rotate(var(--turn, 0deg)); transition: transform 0.45s cubic-bezier(0.3, 1.8, 0.5, 1); }
-.howto-panel .doodle .ink { fill: none; stroke: #1a0d2e; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.howto-panel .doodle .green { fill: #7dff6a; stroke: #1a0d2e; stroke-width: 3; }
-.howto-panel .doodle .lilac { fill: #c79bff; stroke: #1a0d2e; stroke-width: 3; }
-.howto-panel .doodle .pink { fill: #ff8fc7; stroke: #1a0d2e; stroke-width: 2.5; }
-.howto-panel .doodle .shell { fill: #7dff6a; stroke: #1a0d2e; stroke-width: 3; }
-.howto-panel .doodle .eye { fill: #fff; stroke: #1a0d2e; stroke-width: 2.5; }
-.howto-panel .doodle .dot { fill: #1a0d2e; }
+.howto-panel .doodle .ink { fill: none; stroke: var(--outline); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.howto-panel .doodle .green { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
+.howto-panel .doodle .lilac { fill: var(--lilac); stroke: var(--outline); stroke-width: 3; }
+.howto-panel .doodle .pink { fill: var(--pink); stroke: var(--outline); stroke-width: 2.5; }
+.howto-panel .doodle .shell { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
+.howto-panel .doodle .eye { fill: var(--white); stroke: var(--outline); stroke-width: 2.5; }
+.howto-panel .doodle .dot { fill: var(--outline); }
 
 /* Arcade attract lights (2026-09-23, ⏳ placeholder look): bulbs on the panel's border line, so they're never
    behind a word. Lit ones pop bright on the menus; in play (.calm) a lit bulb is dim and fades slowly. The
@@ -493,13 +443,13 @@ h2 {
   height: 9px;
   margin: -4.5px 0 0 -4.5px;
   border-radius: 50%;
-  background: #6b4a12;
-  border: 1.5px solid #1a0d2e;
+  background: var(--bulb-off);
+  border: 1.5px solid var(--outline);
   transition: background-color 0.05s, box-shadow 0.05s, opacity 0.05s;
 }
-.howto-panel .bulb.on { background: #ffe25a; box-shadow: 0 0 5px 1px #ffcf3a; }
+.howto-panel .bulb.on { background: var(--bulb-on); box-shadow: 0 0 5px 1px var(--bulb-glow); }
 #howto.calm .bulb { opacity: 0.55; transition: background-color 0.9s, box-shadow 0.9s, opacity 0.9s; }
-#howto.calm .bulb.on { background: #d9b84a; box-shadow: 0 0 3px #b8962a; }
+#howto.calm .bulb.on { background: var(--bulb-calm); box-shadow: 0 0 3px var(--bulb-calm-glow); }
 
 /* ----------------------------------------------------------------- nest */
 .nest {
@@ -515,10 +465,10 @@ h2 {
 
 /* Refinement 3 §8: an inactive nest is plain and blank (flat twigs, no readout); an active one gets the
    alien-nest look (⏳ placeholder: an ooze pool and tendrils) */
-.ooze .pool { fill: #3dff9a; opacity: 0.28; stroke: #1a8f55; stroke-width: 2; }
-.ooze .tendril { fill: none; stroke: #b04dff; stroke-width: 4; stroke-linecap: round; }
+.ooze .pool { fill: var(--ooze); opacity: 0.28; stroke: var(--ooze-edge); stroke-width: 2; }
+.ooze .tendril { fill: none; stroke: var(--violet); stroke-width: 4; stroke-linecap: round; }
 .nest.inactive .ooze { display: none; }
-.nest.inactive .twigs path, .nest.inactive .twigs.back path { stroke: #3a3150; }
+.nest.inactive .twigs path, .nest.inactive .twigs.back path { stroke: var(--twig-inactive); }
 .nest.inactive .readout { visibility: hidden; }
 
 /* only the nest art tilts: the readout stays level, because it's what gets read */
@@ -542,14 +492,14 @@ h2 {
 .shells .half { fill: var(--shell); stroke: var(--crack); stroke-width: 3; }
 .creature { transform-box: fill-box; transform-origin: center; }
 /* Refinement 5 §4: the hatchling is horrific, against the cute family (⏳ placeholder colours) */
-.creature .body { fill: #2a0d14; stroke: var(--shadow); stroke-width: 3; }
-.creature .ribs { fill: none; stroke: #6b1f2e; stroke-width: 1.6; }
-.creature .maw { fill: #7a0010; stroke: var(--shadow); stroke-width: 1.5; }
-.creature .fangs { fill: none; stroke: #f4f0d8; stroke-width: 1.3; stroke-linejoin: miter; }
-.creature .drool { fill: #b8ff5e; opacity: 0.9; }
-.creature .eye { fill: #ff1a2e; stroke: var(--shadow); stroke-width: 1.2; }
-.creature .slit { fill: #ffe14d; }
-.creature .legs path { fill: none; stroke: #8a2a3e; stroke-width: 3; stroke-linecap: square; stroke-linejoin: miter; }
+.creature .body { fill: var(--hatchling-body); stroke: var(--shadow); stroke-width: 3; }
+.creature .ribs { fill: none; stroke: var(--hatchling-ribs); stroke-width: 1.6; }
+.creature .maw { fill: var(--hatchling-maw); stroke: var(--shadow); stroke-width: 1.5; }
+.creature .fangs { fill: none; stroke: var(--hatchling-fangs); stroke-width: 1.3; stroke-linejoin: miter; }
+.creature .drool { fill: var(--drool); opacity: 0.9; }
+.creature .eye { fill: var(--hatchling-eye); stroke: var(--shadow); stroke-width: 1.2; }
+.creature .slit { fill: var(--hatchling-slit); }
+.creature .legs path { fill: none; stroke: var(--hatchling-legs); stroke-width: 3; stroke-linecap: square; stroke-linejoin: miter; }
 .nest.scurry .creature { animation: scurry 1.3s steps(10) forwards; }
 .nest.scurry .legs { animation: legs 0.12s steps(2) infinite; }
 @keyframes scurry {
@@ -589,22 +539,22 @@ h2 {
 .readout > span {
   box-sizing: content-box;
   padding: 0.1em 0.3em;
-  border: 3px solid #1a0d2e;          /* [T] */
+  border: 3px solid var(--outline);          /* [T] */
   border-radius: 0.5em;               /* [T] */
   box-shadow: 2px 2px 0 var(--shadow);
   text-align: center;
   line-height: 1.25;
   overflow: hidden;
 }
-.readout .unit  { min-width: 4ch; background: #fff; color: #1c4fd8; }
-.readout .code  { min-width: 3ch; background: #b9b9c6; color: #000; }
-.readout .clock { min-width: 5ch; background: #ffd23a; color: #3b0a5c; }
+.readout .unit  { min-width: 4ch; background: var(--readout-unit-bg); color: var(--readout-unit-ink); }
+.readout .code  { min-width: 3ch; background: var(--readout-type-bg); color: var(--readout-type-ink); }
+.readout .clock { min-width: 5ch; background: var(--readout-timer-bg); color: var(--readout-timer-ink); }
 /* Refinement 5 §2: at the limit all three boxes change on the same instant (one class, .bold): every box goes
    bold, the unit's type turns dark green (on white, [T]), the type box keeps its colours, and the timer turns
    hot pink with white type (unchanged, approved) */
 .nest.bold .readout { font-weight: 900; }
-.nest.bold .readout .unit { color: #0b5d1e; }
-.nest.bold .readout .clock { background: #ff2d8a; color: #fff; }
+.nest.bold .readout .unit { color: var(--readout-bold-unit-ink); }
+.nest.bold .readout .clock { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
 .nest[data-state="idle"] .readout,
 .nest[data-state="splat"] .readout,
 .nest[data-state="escape"] .readout { opacity: 0.55; }
@@ -622,10 +572,10 @@ h2 {
    so it can never hold up the keyboard. */
 .pan { position: absolute; left: 50%; top: 34%; width: 118%; opacity: 0; pointer-events: none; z-index: 24; transform: translate(-45%, -60%); }
 .pan svg { display: block; width: 100%; }
-.pan .rim { fill: #2b2b33; stroke: #000; stroke-width: 3; }
-.pan .base { fill: #43434f; }
-.pan .glint { fill: #8c8ca0; }
-.pan .handle { fill: #5a3418; stroke: #000; stroke-width: 3; }
+.pan .rim { fill: var(--pan-rim); stroke: var(--black); stroke-width: 3; }
+.pan .base { fill: var(--pan-base); }
+.pan .glint { fill: var(--pan-glint); }
+.pan .handle { fill: var(--pan-handle); stroke: var(--black); stroke-width: 3; }
 .pan.hit, .pan.late { animation: slam var(--pan, 0.32s) steps(6) var(--pan-delay, 0s) forwards; }
 @keyframes slam {
   0% { opacity: 1; transform: translate(-45%, -190%) rotate(-24deg) scale(1.15); }
@@ -661,18 +611,18 @@ h2 {
   font-size: clamp(11px, 1.1vw, 16px);
   white-space: nowrap;
 }
-.dish .plate { fill: #f4f4f8; stroke: var(--shadow); stroke-width: 3; }
-.dish .plate-rim { fill: none; stroke: #c9c9d6; stroke-width: 2; }
-.dish .white { fill: #fff6e0; stroke: var(--shadow); stroke-width: 2; }
-.dish .yolk { fill: #ffc21a; stroke: var(--shadow); stroke-width: 2; }
-.dish .yolk.pale { fill: #ffe08a; }
-.dish .muffin { fill: #c98a4b; stroke: var(--shadow); stroke-width: 2; }
-.dish .sauce { fill: #ffd84d; stroke: #8a5a00; stroke-width: 1.5; }
-.dish .avocado { fill: #8ccf4d; stroke: #2e5a12; stroke-width: 2; }
-.dish .steak { fill: #7a3a1c; stroke: var(--shadow); stroke-width: 2.5; }
-.dish .grill { fill: none; stroke: #3a1507; stroke-width: 3; }
-.dish .mug { fill: #e0a018; stroke: var(--shadow); stroke-width: 2; }
-.dish .foam { fill: #fffbe8; stroke: var(--shadow); stroke-width: 1.5; }
+.dish .plate { fill: var(--plate); stroke: var(--shadow); stroke-width: 3; }
+.dish .plate-rim { fill: none; stroke: var(--plate-rim); stroke-width: 2; }
+.dish .white { fill: var(--egg-white); stroke: var(--shadow); stroke-width: 2; }
+.dish .yolk { fill: var(--yolk); stroke: var(--shadow); stroke-width: 2; }
+.dish .yolk.pale { fill: var(--yolk-pale); }
+.dish .muffin { fill: var(--muffin); stroke: var(--shadow); stroke-width: 2; }
+.dish .sauce { fill: var(--sauce); stroke: var(--sauce-edge); stroke-width: 1.5; }
+.dish .avocado { fill: var(--avocado); stroke: var(--avocado-edge); stroke-width: 2; }
+.dish .steak { fill: var(--steak); stroke: var(--shadow); stroke-width: 2.5; }
+.dish .grill { fill: none; stroke: var(--grill); stroke-width: 3; }
+.dish .mug { fill: var(--mug); stroke: var(--shadow); stroke-width: 2; }
+.dish .foam { fill: var(--foam); stroke: var(--shadow); stroke-width: 1.5; }
 .dish .handle { fill: none; stroke: var(--shadow); stroke-width: 3; }
 
 /* ⏳ placeholder look: the AD post-it, on the nest's shoulder (Timer Refinement §4) */
@@ -681,8 +631,8 @@ h2 {
   right: -16%;
   top: 2%;
   padding: 3px 5px;
-  background: #ffe95c;
-  color: #2a1a00;
+  background: var(--postit);
+  color: var(--postit-ink);
   border: 2px solid var(--shadow);
   box-shadow: 3px 3px 0 var(--shadow);
   transform: rotate(6deg);
@@ -705,7 +655,7 @@ h2 {
   transform: none;
   font-family: var(--font-led);
   font-weight: 900;
-  text-shadow: 1px 1px 0 #5a2a00;
+  text-shadow: 1px 1px 0 var(--led-shadow);
   line-height: 1.1;
 }
 /* the LED digits (2026-09-23): HH:MM in the wall clock's own DSEG7; "Clear @" in DSEG14, its 14-segment sibling */
@@ -762,16 +712,16 @@ h2 {
 #mom .face.from-bottom { animation: mom-bottom var(--mom, 0.85s) cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
 @keyframes mom-top { 0% { transform: translateY(-105%); } 30%, 68% { transform: translateY(0); } 100% { transform: translateY(-105%); } }
 @keyframes mom-bottom { 0% { transform: translateY(105%); } 30%, 68% { transform: translateY(0); } 100% { transform: translateY(105%); } }
-.mom-face .skin { fill: #3f7a2c; stroke: #0c1a08; stroke-width: 5; }
-.mom-face .shade { fill: #24501a; opacity: 0.7; }
-.mom-face .stalk { fill: none; stroke: #0c1a08; stroke-width: 7; stroke-linecap: round; }
-.mom-face .eye { fill: #fff2d6; stroke: #0c1a08; stroke-width: 4; }
-.mom-face .vein { fill: none; stroke: #d0102a; stroke-width: 2; }
-.mom-face .pin { fill: #0c0000; }
-.mom-face .brow { fill: none; stroke: #0c1a08; stroke-width: 6; stroke-linecap: round; }
-.mom-face .maw { fill: #2a0008; stroke: #0c1a08; stroke-width: 4; }
-.mom-face .teeth { fill: none; stroke: #f4eccc; stroke-width: 3.5; stroke-linejoin: miter; }
-.mom-face .drool { fill: #b8ff5e; opacity: 0.85; }
+.mom-face .skin { fill: var(--mom-skin); stroke: var(--mom-outline); stroke-width: 5; }
+.mom-face .shade { fill: var(--mom-shade); opacity: 0.7; }
+.mom-face .stalk { fill: none; stroke: var(--mom-outline); stroke-width: 7; stroke-linecap: round; }
+.mom-face .eye { fill: var(--mom-eye); stroke: var(--mom-outline); stroke-width: 4; }
+.mom-face .vein { fill: none; stroke: var(--mom-vein); stroke-width: 2; }
+.mom-face .pin { fill: var(--mom-pupil); }
+.mom-face .brow { fill: none; stroke: var(--mom-outline); stroke-width: 6; stroke-linecap: round; }
+.mom-face .maw { fill: var(--mom-maw); stroke: var(--mom-outline); stroke-width: 4; }
+.mom-face .teeth { fill: none; stroke: var(--mom-teeth); stroke-width: 3.5; stroke-linejoin: miter; }
+.mom-face .drool { fill: var(--drool); opacity: 0.85; }
 
 /* ------------------------------------------------------- popups, banner */
 #popups { position: absolute; inset: 0; pointer-events: none; z-index: 30; }
@@ -875,8 +825,8 @@ h2 {
   left: -3px;
   top: calc(100% + 7px);   /* clear of the active box's 4px border */
   padding: 0 6px;
-  background: #e8102a;
-  color: #fff;
+  background: var(--error-red);
+  color: var(--white);
   font-family: var(--font-display);
   font-size: 14px;
   letter-spacing: 0.12em;
@@ -884,7 +834,7 @@ h2 {
   visibility: hidden;
 }
 .box.rejected .err { visibility: visible; animation: err var(--error, 1s) steps(1) forwards; }
-.box.rejected { border-color: #e8102a; }
+.box.rejected { border-color: var(--error-red); }
 @keyframes err { 0%, 99% { opacity: 1; } 100% { opacity: 0; } }
 
 /* Refinement 3 §1: the inactive lines dim a little; the active one breathes a slow neon pulse in its own
@@ -914,7 +864,7 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--overlay);
 }
 .panel {
   min-width: min(520px, 90vw);
