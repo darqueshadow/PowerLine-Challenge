@@ -48,7 +48,9 @@
     app.screen = name;
     document.querySelectorAll(".screen").forEach(function (s) { s.hidden = s.id !== "screen-" + name; });
     if (name === "setup") paintSetup();
-    ET.audio.titleTune(name === "title");   // Refinement 4 §6: the title tune plays only on the title screen
+    // Refinement 4 §6 and E21 (ruled): the title tune plays on the title AND mode-selection screens, so it's
+    // heard once the first key or click has unlocked sound; it stops when a game starts
+    ET.audio.titleTune(name === "title" || name === "setup");
     if (name === "play") ET.boxes.focus();
     ET.view.hose();   // the hose shows on the play screen only
   }

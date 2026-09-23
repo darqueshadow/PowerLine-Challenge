@@ -114,7 +114,8 @@
     buzz: function () { tone("sawtooth", 140, 120, 0.22, 0.18); },
 
     /* The title tune, on or off. Browsers only let a page make sound after a key press or click, so in a
-       plain tab it waits until then (⏳ E21); where sound is allowed straight away it starts at once. */
+       plain tab it waits until then; where sound is allowed straight away it starts at once. E21 (ruled):
+       it keeps playing through the mode-selection screen, so the first key press still gets it heard. */
     titleTune: function (on) {
       if (!ET.CONFIG.sound) return;
       if (!on) {

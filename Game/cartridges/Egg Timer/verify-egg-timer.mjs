@@ -97,7 +97,12 @@ try {
   section("B. setup: mode buttons and box count on one screen");
   await press("Enter");
   eq(await ev("__et.screen()"), "setup", "Enter goes to setup");
-  eq(await ev("__et.tune()"), false, "the title tune stops once the title screen is left");
+  {
+    // E21 (ruled): the first key unlocks sound, and the tune plays on through the mode-selection screen
+    let on = false;
+    for (let i = 0; i < 20 && !on; i++) { await wait(100); on = await ev("__et.tune()"); }
+    ok(on, "E21: the title tune plays on the mode-selection screen once the first key has unlocked sound");
+  }
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "clear/1", "defaults: Clear CAVs Only, 1 box");
   await press("ArrowRight");
   await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp");
@@ -109,6 +114,7 @@ try {
   await shot("02-setup");
   await press("Enter");
   eq(await ev("__et.screen() + '/' + __et.snapshot().mode + '/' + __et.boxes().count"), "play/progression/2", "Enter starts Follow Progression with 2 boxes");
+  eq(await ev("__et.tune()"), false, "…and the title tune stops when the game starts");
 
   /* ------------------------------------------------------- C. one CAV */
   section("C. one CAV: grow, bold, clear (Clear CAVs Only)");
