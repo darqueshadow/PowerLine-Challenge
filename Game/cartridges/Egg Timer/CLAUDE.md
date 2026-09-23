@@ -15,8 +15,8 @@ the memory store (below).
 
 ## Status
 - **Live for players since 2026-09-19** (hub entry in `Game/cat/disks.js`; NB's Rec-Bay 4 table fires).
-- **Twelve local commits, UNPUSHED:** the Timer Refinement, Refinement 2 and its rulings, the Hose and E12
-  rulings (2026-09-22), and Refinement 3, one commit per section group (2026-09-23). 🚫 **No push until Andrew
+- **Local commits, UNPUSHED** (`git log origin/main..main` lists them): the write-up, the Timer Refinement, Refinement 2 and its rulings, the Hose and E12
+  rulings (2026-09-22), and Refinement 3, one commit per section group plus the packet (2026-09-23). 🚫 **No push until Andrew
   has playtested locally and approved.** A push also publishes other sessions' commits: check
   `git log origin/main..main` first.
 - **Refinement 3 (2026-09-23) replaced every switching ruling:** Tab / Shift+Tab / F12 as in CAD5. The Alt+1–4
@@ -151,6 +151,6 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-23
-Refinement 3 is built and committed locally as six commits on top of the E12 ruling; rigs logic 122/0, browser
+Refinement 3 is built and committed locally as seven commits (six builds, then the packet) on top of the E12 ruling; rigs logic 122/0, browser
 190/0. Waiting on Andrew for: E13–E18 through Chat, his local playtest (then the skipped-spawn log for Chat),
 push approval, and the D3 digest.
