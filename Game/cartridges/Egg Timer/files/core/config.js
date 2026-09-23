@@ -163,10 +163,10 @@
     // Refinement 6 §2: while Time Warp runs, jagged lightning in the Time Warp green reaches out from the panel
     // to every nest whose clock is running, daisy-chained nest to nest (each link to the nearest nest not yet
     // reached, starting from the panel). It draws under every readout, like the cord.
-    // 🚨 SAFETY: the bolts re-jag (flicker) at most lightningFlickerHz, and never more than 3 times a second
+    // 🚨 SAFETY: the bolts re-jag (flicker) at most lightningFlickerHz, and never more than 2.5 times a second
     //   whatever that is set to (a guard in view.js); with reduced motion they hold still.
     lightningChain: "nearest",     // [T] the only chain built
-    lightningFlickerHz: 2.5,       // [T] re-jags a second, capped at 3
+    lightningFlickerHz: 2,         // [T] re-jags a second (tweak 2026-09-23: 2, the arcade lights' headroom under the 3 limit); capped at 2.5
     lightningJag: 12,              // [T] px, how far a bolt's kinks stray from the straight line
     lightningKinks: 7,             // [T] kinks per link
     // §3: the how-to panel's doodles. Every so often one of them turns to a new angle.

@@ -241,7 +241,7 @@
      the nearest nest whose clock is running, then on from that nest to the nearest one not yet reached, and so
      on (a nearest-neighbour daisy chain [T]). It lives in the cord's layer, under the board, so it is under every
      readout and takes no input; it's drawn from the snapshot every frame, so it is off the instant the warp ends.
-     🚨 Flicker: the kinks are re-drawn at most lightningFlickerHz and never more than 3 times a second (the one
+     🚨 Flicker: the kinks are re-drawn at most lightningFlickerHz (2 [T]) and never more than 2.5 times a second (the one
      guard, in rejag()); with reduced motion they hold still. The kinks are kept per link, so a nest joining or
      leaving the chain moves the bolts without an extra flicker. */
   var bolt = null;
@@ -255,7 +255,7 @@
   }
   function reducedMotion() { return !!(root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches); }
   function rejag(t) {
-    var gap = Math.max(1 / 3, 1 / ET.CONFIG.lightningFlickerHz);   // 🚨 never more than 3 a second
+    var gap = Math.max(1 / 2.5, 1 / ET.CONFIG.lightningFlickerHz);   // 🚨 never more than 2.5 a second, whatever the tunable says
     if (bolt.lastJag >= 0 && (t - bolt.lastJag < gap || reducedMotion())) return;
     bolt.lastJag = t;
     bolt.kinks = [];

@@ -85,7 +85,7 @@ the memory store (below).
   the middle row of nests sits two a side to leave it room): once the wave's last CAV has *started* and no egg is
   bold, every clock runs 5× [T] until an egg goes bold (the step splits there; E18). Overtime never warps.
   While it runs, only nests whose clock is running glow Time Warp green (E22), and green **lightning** chains
-  from the panel to them, under every readout. 🚨 Lightning re-jags ≤ 3 a second (guard in `rejag()`), still
+  from the panel to them, under every readout. 🚨 Lightning re-jags 2 a second [T], guard-capped at 2.5 (`rejag()`; rig fails above 2.5), still
   under reduced motion; keep rig section P's flicker checks passing.
 - **Placement:** 10 points, no penalty for waiting, but **an ignored trigger auto-opens** after 20 s (−1 s a
   wave, floor 8 s). **Any rejected Enter** clears the Command Line, shows a red ERROR under it for ~1 s and

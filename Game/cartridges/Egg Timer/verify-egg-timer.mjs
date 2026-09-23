@@ -934,7 +934,7 @@ try {
       await wait(3000);
       const fl = await ev(`(() => { const log = ET.view.lightning().log.filter(t => t >= ${t0}); let m = 0;
         for (let i = 0; i < log.length; i++) { let n = 0; for (let j = i; j < log.length && log[j] < log[i] + 1; j++) n++; m = Math.max(m, n); } return { n: log.length, worst: m }; })()`);
-      ok(fl.n > 0 && fl.worst <= 3, `SAFETY: the lightning flickers, but never more than 3 times a second   [${fl.n} re-jags in 3 s, worst ${fl.worst} in any 1 s]`);
+      ok(fl.n > 0 && fl.worst <= 2.5, `SAFETY: the lightning flickers, but never more than 2.5 times a second (2 a second [T], headroom under the 3 limit)   [${fl.n} re-jags in 3 s, worst ${fl.worst} in any 1 s]`);
       await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
       await wait(500);
       const still0 = await ev("ET.view.lightning().d");
