@@ -75,8 +75,9 @@
     eggMinScale: 0.35,       // egg size when a CAV starts; grows to 1.0 at the trigger
     splatSeconds: 1.1,       // how long a smooshed nest stays busy before idling
     escapeSeconds: 1.4,      // how long an escape flourish keeps the nest busy
-    messBlobsOwn: 5,         // gunk added to the smooshed nest (item 9: look, still open)
-    messBlobsNeighbor: 2,    // gunk added to each direct neighbour
+    messBlobsOwn: 6,         // [T] gunk added to the smooshed nest (item 9: look, still open; Refinement 3 §5: 5 → 6)
+    messBlobsNeighbor: 3,    // [T] gunk added to each direct neighbour (Refinement 3 §5: 2 → 3)
+    messBlobsField: 4,       // [T] Refinement 3 §5: and this many more anywhere on the board, floor included
     wipeRadius: 22,          // px, click-and-drag eraser
 
     // ── Build questions, ruled 2026-09-17 (Draft 9, packet §11) ─────────────

@@ -11,7 +11,7 @@
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  var field, board, hud, banner, popups, wall, cleanup, warp;
+  var field, board, floor, hud, banner, popups, wall, cleanup, warp;
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
@@ -163,6 +163,8 @@
     build: function () {
       field = $("#field");
       board = $("#board");
+      floor = ET.mess.createFloor();   // Refinement 3 §5: the board-wide mess, under every nest
+      board.appendChild(floor);
       hud = {
         wave: $("#hud-wave"), cavs: $("#hud-cavs"), pool: $("#hud-pool"),
         poolLabel: $("#hud-pool-label"), score: $("#hud-score"), mode: $("#hud-mode")
@@ -242,6 +244,7 @@
         v.pan.className = "pan";
         v.fx.className = "fx";
       });
+      ET.mess.clear(floor);
       inCleanup = false;
       field.classList.remove("hose");
       banner.hidden = true;
@@ -356,6 +359,7 @@
             if (ET.audio) { ET.audio.thong(); if (e.third === 0) ET.audio.ding(); }
             ET.mess.splatter(v.mess, ET.CONFIG.messBlobsOwn);
             e.neighbors.forEach(function (id) { ET.mess.splatter(nests[id].mess, ET.CONFIG.messBlobsNeighbor); });
+            ET.mess.splatter(floor, ET.CONFIG.messBlobsField, true);   // Refinement 3 §5: and anywhere on the board
             popup(v.el, "+" + e.points, "good");
             break;
           case "hatch":
@@ -393,30 +397,35 @@
 
     /* Click-and-drag wiping, across any nests the drag passes over. */
     bindWipe: function () {
-      var last = null;
+      var last = {};   // where the drag last was on each canvas, so a stroke stays joined on every one it crosses
       function at(ev) {
         var hits = [];
         nests.forEach(function (v) {
           var r = v.mess.getBoundingClientRect();
           if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
-            hits.push({ v: v, x: (ev.clientX - r.left) / r.width * ET.mess.W, y: (ev.clientY - r.top) / r.height * ET.mess.H, sx: ET.mess.W / r.width });
+            hits.push({ id: v.el.dataset.id, mess: v.mess, x: (ev.clientX - r.left) / r.width * ET.mess.W, y: (ev.clientY - r.top) / r.height * ET.mess.H, sx: ET.mess.W / r.width });
           }
         });
+        // the board-wide floor mess, under the nests
+        var fr = floor.getBoundingClientRect();
+        if (ev.clientX >= fr.left && ev.clientX <= fr.right && ev.clientY >= fr.top && ev.clientY <= fr.bottom) {
+          hits.push({ id: "floor", mess: floor, x: (ev.clientX - fr.left) / fr.width * floor.width, y: (ev.clientY - fr.top) / fr.height * floor.height, sx: floor.width / fr.width });
+        }
         return hits;
       }
       function wipe(ev) {
         if (paintHose()) spray(ev.clientX, ev.clientY);
         at(ev).forEach(function (h) {
-          var from = last && last.id === h.v.el.dataset.id ? last : { x: h.x, y: h.y };
-          ET.mess.wipe(h.v.mess, from.x, from.y, h.x, h.y, ET.CONFIG.wipeRadius * h.sx);
-          last = { id: h.v.el.dataset.id, x: h.x, y: h.y };
+          var from = last[h.id] || h;
+          ET.mess.wipe(h.mess, from.x, from.y, h.x, h.y, ET.CONFIG.wipeRadius * h.sx);
+          last[h.id] = { x: h.x, y: h.y };
         });
       }
       field.addEventListener("pointerdown", function (ev) {
         if (!ET.view.canWipe()) return;
         try { field.setPointerCapture(ev.pointerId); } catch (e) { /* synthetic pointers have no capture */ }
         field.classList.add("wiping");
-        last = null;
+        last = {};
         wipe(ev);
         ev.preventDefault();
       });
@@ -428,7 +437,7 @@
         if (!field.classList.contains("wiping")) return;
         field.classList.remove("wiping");
         paintHose();
-        last = null;
+        last = {};
         if (ET.boxes) ET.boxes.focus();
       }
       field.addEventListener("pointerup", end);
@@ -440,7 +449,8 @@
     /* Redraw the hose where the pointer last was (a screen change may have moved the board). */
     hose: function () { drawHose(); return hose && !hose.svg.hidden ? hose.body.getAttribute("d") : null; },
 
-    /* For rigs: a nest's view pieces. */
-    nest: function (id) { return nests[id]; }
+    /* For rigs: a nest's view pieces, and the board-wide floor mess. */
+    nest: function (id) { return nests[id]; },
+    floor: function () { return floor; }
   };
 })(window);

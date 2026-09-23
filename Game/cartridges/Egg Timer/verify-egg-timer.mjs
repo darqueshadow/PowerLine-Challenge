@@ -161,7 +161,7 @@ try {
   await shot("03-bold");
 
   // the clears on the way left mess of their own: start the mess checks below from a clean board
-  await ev("(() => { document.querySelectorAll('.nest .mess').forEach(m => ET.mess.clear(m)); return 1; })()");
+  await ev("(() => { document.querySelectorAll('.nest .mess, .floor-mess').forEach(m => ET.mess.clear(m)); return 1; })()");
   const before = await ev("__et.snapshot().score");
   await typeAndEnter(`RCAV ${n.unit}`);
   s = await snap();
@@ -182,6 +182,18 @@ try {
   const nb = [n.id - 4, n.id + 4, n.id % 4 ? n.id - 1 : -1, n.id % 4 < 3 ? n.id + 1 : -1].filter((i) => i >= 0 && i < 12);
   const nbCov = await ev(`[${nb}].map(i => __et.mess(i))`);
   ok(nbCov.every((x) => x > 0), `its direct neighbours get mess too   [${nb.join(",")}]`);
+  ok((await ev("__et.floor()")) > 0.002, `Refinement 3 §5: the clear also flings gunk anywhere on the board   [${((await ev("__et.floor()")) * 100).toFixed(2)}% of the floor]`);
+  {
+    const z = await ev(`(() => {
+      const nest = document.querySelector('.nest[data-id="${n.id}"]');
+      const zi = (e) => Number(getComputedStyle(e).zIndex) || 0;
+      const board = document.querySelector('#board');
+      return { mess: zi(nest.querySelector('.mess')), readout: zi(nest.querySelector('.readout')), postit: zi(nest.querySelector('.postit')), bubble: zi(nest.querySelector('.bubble')),
+               floorFirst: board.firstElementChild.classList.contains('floor-mess') && zi(board.firstElementChild) === 0 };
+    })()`);
+    ok(z.readout > z.mess && z.postit > z.mess && z.bubble > z.mess, `…and all mess draws under the readout, post-it and bubble, which stay readable   [mess ${z.mess} < ${z.readout}, ${z.postit}, ${z.bubble}]`);
+    ok(z.floorFirst, "…the board-wide gunk under every nest");
+  }
   const far = [...Array(12).keys()].filter((i) => i !== n.id && !nb.includes(i));
   if (far.length) eq(await ev(`[${far}].map(i => __et.mess(i))`), far.map(() => 0), `non-neighbours stay clean   [${far.join(",")}]`);
   await shot("04-splat");
@@ -222,6 +234,25 @@ try {
     return __et.mess(${n.id});
   })()`);
   ok(wipeCov < cov * 0.25, `a drag across the nest wipes most of it away   [${(cov * 100).toFixed(1)}% → ${(wipeCov * 100).toFixed(1)}%]`);
+  {
+    const fl = await ev(`(() => {
+      const fcv = document.querySelector('.floor-mess');
+      ET.mess.clear(fcv);
+      const g = fcv.getContext('2d'); g.fillStyle = '#ffc21a'; g.fillRect(0, 0, fcv.width, fcv.height);
+      const before = __et.floor();
+      const r = fcv.getBoundingClientRect(), field = document.querySelector('#field');
+      const fire = (type, x, y) => field.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 6, buttons: 1 }));
+      fire('pointerdown', r.left + 10, r.top + 10);
+      fire('pointermove', r.right - 10, r.top + 10);
+      fire('pointerup', r.right - 10, r.top + 10);
+      const mid = g.getImageData(800, 14, 1, 1).data[3];
+      const after = __et.floor();
+      ET.mess.clear(fcv);
+      return [before, after, mid];
+    })()`);
+    ok(fl[1] < fl[0] - 0.02, `the hose wipes the board-wide gunk too   [${(fl[0] * 100).toFixed(1)}% → ${(fl[1] * 100).toFixed(1)}%]`);
+    eq(fl[2], 0, "…one pass wipes it clean, not half-way (a clear's splatter used to leave the eraser half-transparent)");
+  }
   ok(await ev("__et.boxes().focused"), "the command box gets the keyboard back after wiping");
 
   /* ------------------------------------------------------ E. hatch, pool */
@@ -598,7 +629,15 @@ try {
     eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp').textContent")], [true, "TIME WARP"], "…and the panel lights up \"TIME WARP\"");
     await shot("13-time-warp");
     // measured over a short step that stays inside the warp (an egg going bold part-way would end it)
-    const w = await ev(`(() => { const a = __et.snapshot(); __et.advance(0.05); const b = __et.snapshot(); return b.warp ? ((b.wall - a.wall + 86400) % 86400) / (b.time - a.time) : null; })()`);
+    // (the live page keeps stepping in real time too, so try until a step starts and ends inside a warp)
+    let w = null;
+    for (let i = 0; i < 200 && w === null; i++) {
+      w = await ev(`(() => { const a = __et.snapshot(); if (!a.warp) return null; __et.advance(0.05); const b = __et.snapshot(); return b.warp ? ((b.wall - a.wall + 86400) % 86400) / (b.time - a.time) : null; })()`);
+      if (w === null) {
+        for (const y of (await snap()).nests.filter((z) => z.state === "overtime")) await ev(`__et.submit('RCAV ${y.unit}')`);
+        await ev("__et.advance(0.1)");
+      }
+    }
     ok(w !== null && Math.abs(w - 150) < 1, `the wall clock warps too, 5× (150 displayed s per second in wave 1)   [${w && w.toFixed(1)}]`);
     const b = await until((x) => x.nests.some((y) => y.state === "overtime"), 120, 0.1);
     eq([!!b.hit, b.s.warp, await ev("document.querySelector('#warp').classList.contains('lit')")], [true, false, false], "an egg going bold ends the warp, and the panel goes dark");

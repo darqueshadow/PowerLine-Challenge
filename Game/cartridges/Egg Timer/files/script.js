@@ -288,6 +288,7 @@
     boxes: function () { return ET.boxes.state(); },
     paused: function () { return app.paused; },
     mess: function (id) { return ET.mess.coverage(ET.view.nest(id).mess); },
+    floor: function () { return ET.mess.coverage(ET.view.floor()); },
     nestClass: function (id) { var v = ET.view.nest(id); return v.el.className + " state=" + v.el.dataset.state; }
   };
 })();

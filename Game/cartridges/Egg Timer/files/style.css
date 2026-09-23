@@ -360,7 +360,7 @@ h2 {
   font-weight: 400;
   font-size: clamp(10px, 1.05vw, 15px);
   white-space: nowrap;
-  z-index: 2;
+  z-index: 4;
 }
 .nest.bold .postit { font-weight: 900; }
 
@@ -396,8 +396,11 @@ h2 {
 
 .skip-log { color: var(--dim); font-family: var(--font-mono); font-size: 13px; max-width: 80vw; }
 
-/* gunk sits over the egg AND the readout, so it really hides them */
-.mess { position: absolute; left: -6%; top: 6%; width: 112%; height: 100%; pointer-events: none; }
+/* Refinement 3 §5: gunk sits over the egg but UNDER the readout, post-it and bubble, which always stay
+   readable; the board-wide floor mess sits under every nest */
+.mess { position: absolute; left: -6%; top: 6%; width: 112%; height: 100%; pointer-events: none; z-index: 1; }
+.readout { position: relative; z-index: 3; }
+.floor-mess { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
 /* ------------------------------------------------------- popups, banner */
 #popups { position: absolute; inset: 0; pointer-events: none; z-index: 30; }

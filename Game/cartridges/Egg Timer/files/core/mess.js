@@ -7,11 +7,17 @@
 
    The canvas has a fixed internal size and is scaled by CSS, so resizing the
    window never erases the mess.
+
+   Refinement 3 §5: a clear also flings gunk anywhere on the board (the floor,
+   inactive nests, anywhere), onto one board-wide "floor" canvas under the nests.
+   All mess now draws UNDER the text: a nest's own canvas sits over its egg but
+   under its readout, post-it and bubble, so the readouts always stay readable.
    ========================================================================= */
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
   var W = 240, H = 280;
+  var FW = 1600, FH = 1000;   // the floor canvas, stretched over the whole board
   var COLORS = ["#ffd43a", "#ffc21a", "#fff4d6", "#f2e6c4", "#c98a2b"];
 
   ET.mess = {
@@ -26,14 +32,24 @@
       return c;
     },
 
-    /* Drop `count` blobs of gunk, biased toward the readout at the bottom so
-       the thing that matters is the thing that gets covered. */
-    splatter: function (canvas, count) {
+    /* The board-wide floor canvas (Refinement 3 §5). */
+    createFloor: function () {
+      var c = document.createElement("canvas");
+      c.className = "floor-mess";
+      c.width = FW;
+      c.height = FH;
+      return c;
+    },
+
+    /* Drop `count` blobs of gunk on a nest, biased toward the bottom where the readout is (the
+       readout now draws on top of it). With `anywhere`, spread evenly over the whole canvas. */
+    splatter: function (canvas, count, anywhere) {
       var g = canvas.getContext("2d");
+      var cw = canvas.width, ch = canvas.height;
       g.lineJoin = "round";
       for (var i = 0; i < count; i++) {
-        var x = 24 + Math.random() * (W - 48);
-        var y = H * (0.3 + Math.random() * 0.62);
+        var x = anywhere ? Math.random() * cw : 24 + Math.random() * (cw - 48);
+        var y = anywhere ? Math.random() * ch : ch * (0.3 + Math.random() * 0.62);
         var r = 12 + Math.random() * 18;
         var color = COLORS[Math.floor(Math.random() * COLORS.length)];
 
@@ -79,6 +95,9 @@
       var g = canvas.getContext("2d");
       g.save();
       g.globalCompositeOperation = "destination-out";
+      // an opaque stroke erases fully: splatter leaves a half-clear outline colour on the context
+      g.strokeStyle = "#000";
+      g.globalAlpha = 1;
       g.lineCap = "round";
       g.lineWidth = radius * 2;
       g.beginPath();
@@ -90,19 +109,20 @@
 
     /* Share of the canvas covered, 0–1, sampled on a coarse grid (for rigs). */
     coverage: function (canvas) {
-      var d = canvas.getContext("2d").getImageData(0, 0, W, H).data;
+      var cw = canvas.width, ch = canvas.height;
+      var d = canvas.getContext("2d").getImageData(0, 0, cw, ch).data;
       var hit = 0, n = 0;
-      for (var y = 2; y < H; y += 8) {
-        for (var x = 2; x < W; x += 8) {
+      for (var y = 2; y < ch; y += 8) {
+        for (var x = 2; x < cw; x += 8) {
           n++;
-          if (d[(y * W + x) * 4 + 3] > 40) hit++;
+          if (d[(y * cw + x) * 4 + 3] > 40) hit++;
         }
       }
       return hit / n;
     },
 
     clear: function (canvas) {
-      canvas.getContext("2d").clearRect(0, 0, W, H);
+      canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
     }
   };
 })(window);
