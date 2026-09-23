@@ -75,7 +75,9 @@ the memory store (below).
   displayed time and run sped up: 1 displayed minute = 2 of the player's seconds at base speed, **one speed
   shared by every clock**, +10% on even waves, cap 2×. The real (Data Sheet) duration sets the bold mark
   exactly, in displayed time; never jitter it. Transport units only; readouts show the literal type code;
-  the optional `, comment` is accepted; every new CAV draws a **new random unit** not already showing (D2).
+  the optional `, comment` is accepted; every new CAV draws a **new random unit** not already showing (D2), and
+  no unit repeats within a wave until the whole (distinct, 54) pool is used (Refinement 4). CAV types come from a
+  **shuffle bag**, each type once, fresh each wave (E19, E20 open).
 - **Egg lifecycle:** the egg appears when a CAV starts and grows, for information only. **`RCAV` does nothing
   until the CAV's real duration has passed.** That floor stops place-then-instantly-clear: don't loosen it.
   At that moment the readout goes bold, `RCAV` becomes valid and the egg cracks, as one event. Overtime is
@@ -85,8 +87,9 @@ the memory store (below).
   wall clock, the next whole minute after start + draw (E1).
 - **Timer:** counts **up** in displayed time, MM:SS (VS and STR bold at 10:00, SS 15:00, EOS and MB 30:00),
   and keeps counting through overtime. A larger 24-hour **wall clock** runs at the same speed.
-- **Egg-laying (Refinement 3):** a CAV starts in a `laying` state: a cord drops from the top of the screen, lowers
-  the egg in and pops off (0.3 + 0.3 s [T]); **the clock starts at the pop**. The cord draws under all text. A VF
+- **Egg-laying (Refinement 3, slowed in 4):** a CAV starts in a `laying` state: a cord drops from the top of the
+  screen (1.0 s), a bulge (the egg) travels down it, and it pops out into the nest with a squelch (0.4 s);
+  **the clock starts at the pop**, and the cord snakes back up over 1.5 s. The cord draws under all text. A VF
   gets no cord (E16).
 - **Time Warp (Refinement 3):** once the wave's quota has spawned and no egg is bold, every clock runs 5× [T];
   the warp stops on the exact instant an egg goes bold (the step is split there). Overtime never warps.
@@ -106,9 +109,13 @@ the memory store (below).
 - **Mess and hose:** a clear leaves a small splat on its own nest and drops the rest evenly at random over the
   whole board (a blob on a nest goes on that nest's mess, anywhere else on a floor layer under the nests); no
   neighbour targeting (E15), no cap; mess belongs to the nest and **covers its readout and post-it** (E14).
-  Wiping is click-and-drag. **In-game the cursor is always the hose nozzle** (menus keep the pointer); the hose
-  body and the egg-laying cord draw **under** all text (nests, HUD, how-to panel, Command Lines); behind the nests
-  and eggs is by design (E12). Water only while dragging. The cleanup call is a banner over the HUD bar.
+  Wiping is click-and-drag. **In-game the cursor is always the hose nozzle** (menus keep the pointer). The hose
+  body and its water draw **above the whole board** (nests, gunk, readouts) and below the how-to panel, the
+  Command Lines and the HUD bar (Refinement 4, superseding E12); the egg-laying cord stays **under** all text.
+  Water only while dragging. The cleanup call is a banner over the HUD bar.
+- **Readouts (Refinement 4):** three cartoon boxes: unit white/blue, type grey/black, timer yellow/purple, hot
+  pink/white at bold. Each sized for its widest reading; a readout may run wider than its nest. The browser rig's
+  section L checks the widest readings and post-its at all four window sizes: keep it passing.
 - **Egg ladder:** a fast clear (first third of overtime [T]) serves the next dish over the nest for ~1 s: Scrambled
   → … → Steak, Eggs & Brew!, holding at the top. A slow clear, any ERROR or a hatch resets it; it carries across
   waves; **no score effect**. It replaced the fried eggs by overtime third.
@@ -121,8 +128,11 @@ the memory store (below).
   F12 just clears it. The active line pulses; the game pauses itself when the window loses focus. **Esc, and only
   Esc, pauses.**
 - **Platform:** a plain browser tab as well as Fang Rock (`fangrock://arcade/eggtimer`, inside the hub's frame).
-- **Deferred:** creature, splat and escape art, and every final look and sound (Gemini); the title and end
-  screens; the pool's display name.
+- **Art direction (Refinement 4): "juxtaposition":** friendly family cartoon, dark twisted undertone.
+- **Title screen (Refinement 4):** a singing mommy alien and babies (too-wide smile, too many teeth), CSS only,
+  and an ORIGINAL chiptune (`audio.js` `titleTune`) on the title screen only; E21 (browser sound lock) open.
+- **Deferred:** creature, splat and escape art, and every final look and sound (Gemini); the end screen and the
+  rest of the title screen; the pool's display name.
 
 ## Standing rules
 - 🚫 **Never send real keystrokes or mouse input to the desktop, and never open browser windows outside a
@@ -157,5 +167,6 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-23
-Everything through the E13–E18 rulings is built and pushed live; rigs logic 131/0, browser 189/0. Waiting on
-Andrew for: his playtest in Nerva Beacon (then the skipped-spawn log for Chat) and the D3 digest.
+Everything through Refinement 4 is built and pushed live; rigs logic 141/0, browser 205/0. Open for Chat, one at
+a time: **E19–E21**. For Andrew: the shared transport Data Sheet lists 2133–2136 and 2139 twice (his call), his
+playtest in Nerva Beacon (then the skipped-spawn log for Chat), and the D3 digest.
