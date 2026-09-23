@@ -77,7 +77,7 @@ the memory store (below).
   exactly, in displayed time; never jitter it. Transport units only; readouts show the literal type code;
   the optional `, comment` is accepted; every new CAV draws a **new random unit** not already showing (D2), and
   no unit repeats within a wave until the whole (distinct, 54) pool is used (Refinement 4). CAV types come from a
-  **shuffle bag**, each type once, fresh each wave (E19, E20 open).
+  **shuffle bag**, each type once, fresh each wave; VF waits in it for a placement spawn (E19, E20 ruled).
 - **Egg lifecycle:** the egg appears when a CAV starts and grows, for information only. **`RCAV` does nothing
   until the CAV's real duration has passed.** That floor stops place-then-instantly-clear: don't loosen it.
   At that moment the readout goes bold, `RCAV` becomes valid and the egg cracks, as one event. Overtime is
@@ -130,7 +130,8 @@ the memory store (below).
 - **Platform:** a plain browser tab as well as Fang Rock (`fangrock://arcade/eggtimer`, inside the hub's frame).
 - **Art direction (Refinement 4): "juxtaposition":** friendly family cartoon, dark twisted undertone.
 - **Title screen (Refinement 4):** a singing mommy alien and babies (too-wide smile, too many teeth), CSS only,
-  and an ORIGINAL chiptune (`audio.js` `titleTune`) on the title screen only; E21 (browser sound lock) open.
+  and an ORIGINAL chiptune (`audio.js` `titleTune`) on the title and mode-selection screens (E21); Fang Rock's
+  Electron lets it start unprompted (measured), a browser tab at the first key.
 - **Deferred:** creature, splat and escape art, and every final look and sound (Gemini); the end screen and the
   rest of the title screen; the pool's display name.
 
@@ -167,6 +168,6 @@ means: read the store's `MEMORY.md` first (and any ⏸ one-shot handoff it lists
 and read and write Egg Timer memories **there**.
 
 ## State 2026-09-23
-Everything through Refinement 4 is built and pushed live; rigs logic 141/0, browser 205/0. Open for Chat, one at
-a time: **E19–E21**. For Andrew: the shared transport Data Sheet lists 2133–2136 and 2139 twice (his call), his
+Everything through Refinement 4 and the E19–E21 rulings is built and pushed live; rigs logic 141/0, browser
+206/0. No design question open. For Andrew: the shared transport Data Sheet lists 2133–2136 and 2139 twice (his call), his
 playtest in Nerva Beacon (then the skipped-spawn log for Chat), and the D3 digest.
