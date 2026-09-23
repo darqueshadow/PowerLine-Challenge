@@ -17,6 +17,12 @@
     <div id="title-scene" aria-hidden="false"></div>
     <p id="title-prompt" class="blink">PRESS ENTER</p>
     <p id="title-error" class="error" hidden></p>
+    <!-- Refinement 6 §1: on the title screen only, a big How To Play card with numbered steps in place of the
+         how-to panel (⏳ placeholder look); script.js fills the steps -->
+    <aside id="howto-title" class="howto-panel" aria-label="How to play">
+      <div class="banner">HOW TO PLAY</div>
+      <ol></ol>
+    </aside>
   </section>
 
   <!-- SETUP: mode buttons + Command Line count, one combined step (packet §5, §12; players see "Command Line", E7) -->
@@ -74,7 +80,7 @@
       </div>
       <!-- Refinement 2 §1: how to play, down one side. Never lists CAV durations.
            Refinement 5 §3: a cartoon look with alien-family doodles, kept clear of the text (⏳ placeholder art) -->
-      <aside id="howto" aria-label="How to play">
+      <aside id="howto" class="howto-panel" aria-label="How to play">
         <div class="title"><span>HOW TO PLAY</span></div>
         <ul></ul>
         <div class="doodles" aria-hidden="true"></div>

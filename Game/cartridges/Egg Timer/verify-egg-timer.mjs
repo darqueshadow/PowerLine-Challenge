@@ -69,31 +69,32 @@ async function until(fn, maxSeconds = 120, step = 0.25) {
    edge, the screen's own content sits inside the window and clear of it and of each other, and the panel's
    text fits and is never under a doodle. Leaves the window at 1440×900. */
 const SIZES = [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]];
-async function menuFit(name, extra = "") {
+async function menuFit(name, panelSel = "#howto") {
   for (const [w, h] of SIZES) {
     await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
     await wait(150);
     const f = await ev(`(() => {
-      const screen = document.querySelector('#screen-${name}'), panel = document.querySelector('#howto');
+      const screen = document.querySelector('#screen-${name}'), panel = document.querySelector('${panelSel}');
       const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
       const P = panel.getBoundingClientRect();
       const parts = [...screen.children].filter(e => e !== panel && !e.hidden && getComputedStyle(e).display !== 'none').map(e => ({ id: e.id || e.className || e.tagName, r: e.getBoundingClientRect() }));
       let overlaps = [];
       for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (hit(parts[i].r, parts[j].r)) overlaps.push(parts[i].id + '/' + parts[j].id);
       const words = [];
-      panel.querySelectorAll('.title span, li').forEach(e => { const rg = document.createRange(); rg.selectNodeContents(e); words.push(...rg.getClientRects()); });
+      panel.querySelectorAll('.title span, .banner, li').forEach(e => { const rg = document.createRange(); rg.selectNodeContents(e); words.push(...rg.getClientRects()); });
       return { here: panel.parentNode === screen && !screen.hidden, right: innerWidth - P.right, tall: P.height / innerHeight,
                outside: parts.filter(x => x.r.top < 0 || x.r.bottom > innerHeight || x.r.left < 0 || x.r.right > innerWidth).map(x => x.id),
                underPanel: parts.filter(x => hit(x.r, P)).map(x => x.id), overlaps,
+               textInside: [...panel.querySelectorAll('.banner, li, .title')].every(e => { const r = e.getBoundingClientRect(); return r.left >= P.left + 3 && r.right <= P.right - 3; }),
                fits: Math.max(...[...panel.querySelectorAll('li')].map(l => l.getBoundingClientRect().bottom)) <= P.bottom - 4, lines: panel.querySelectorAll('li').length,
                doodled: [...panel.querySelectorAll('.doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length,
                bulbs: panel.querySelectorAll('.bulb').length,
-               bulbOnWord: [...panel.querySelectorAll('.bulb')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length ${extra} };
+               bulbOnWord: [...panel.querySelectorAll('.bulb')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length };
     })()`);
     const at = `[${name}, ${w}×${h}]`;
-    ok(f.here && f.right < 20 && f.tall > 0.9 && f.lines >= 5, `the how-to panel shows down the right edge   ${at}`);
+    ok(f.here && f.right < 20 && f.tall > 0.9 && f.lines >= 4, `the ${panelSel === '#howto' ? 'how-to panel' : 'How To Play card'} shows down the right edge   ${at}`);
     ok(f.outside.length === 0 && f.underPanel.length === 0 && f.overlaps.length === 0, `…with everything else on the screen inside the window, clear of the panel and of each other   ${at} ${JSON.stringify([f.outside, f.underPanel, f.overlaps])}`);
-    ok(f.fits && f.doodled === 0, `…its text fitting, no doodle on a word   ${at}`);
+    ok(f.fits && f.textInside && f.doodled === 0, `…its text fitting inside it, no doodle on a word   ${at}`);
     ok(f.bulbs > 16 && f.bulbOnWord === 0, `…its attract lights round the edge, none behind a word   ${at} [${f.bulbs} bulbs]`);
     if (SHOTS && w === 1024) await shot(`15-panel-${name}-${w}x${h}`);
   }
@@ -149,7 +150,15 @@ try {
     ok(!!t && t.toothy && t.singing === "sing", "…looping, with one baby's slightly too many teeth");
   }
   await shot("01-title");
-  await menuFit("title");
+  {
+    // Refinement 6 §1: the title screen's own How To Play card, in the panel's place, laid out differently
+    const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return { steps: [...c.querySelectorAll('li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.step').textContent),
+      banner: c.querySelector('.banner').textContent, panelHere: !!document.querySelector('#screen-title #howto'), shown: c.getBoundingClientRect().width > 150 }; })()`);
+    eq(card.steps, ["1 The aliens are laying eggs in your CAVs.", "2 Clear each CAV the moment it's done, before the egg hatches.", "3 Clear fast, and breakfast gets fancier.", "4 Hose off the mess between waves."],
+      "Refinement 6 §1: the title screen shows a How To Play card with four numbered steps");
+    ok(card.shown && card.banner === "HOW TO PLAY" && !card.panelHere, "…in place of the in-game panel, which isn't on the title screen");
+  }
+  await menuFit("title", "#howto-title");
   {
     // Arcade attract lights (Andrew approved, 2026-09-23)
     const L = await watchLights(4);
@@ -730,6 +739,7 @@ try {
     ok(cb.flash && cb.times === "3", `…flashing a few times as cleanup starts, then holding steady   [${cb.times}]`);
     ok(cb.centre, "…and nothing is left in the middle of the board");
     ok(await ev("document.querySelector('#howto').parentNode.classList.contains('playrow') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "the how-to panel shows during cleanup too, in the play row");
+    ok(await ev("getComputedStyle(document.querySelector('#howto-title')).display === 'none' || document.querySelector('#screen-title').hidden"), "…and the title's How To Play card is only on the title screen");
     {
       await press("Escape");                     // hold the cleanup still while the lights are watched in real time
       const L = await watchLights(4);

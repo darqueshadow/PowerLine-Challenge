@@ -51,7 +51,8 @@
     var panel = $("#howto");
     var host = name === "play" ? $("#screen-play .playrow") : $("#screen-" + name);
     if (!host) return;
-    if (panel.parentNode !== host) host.appendChild(panel);
+    // Refinement 6 §1: the title screen has its own How To Play card instead
+    if (name !== "title" && panel.parentNode !== host) host.appendChild(panel);
     document.querySelectorAll(".screen").forEach(function (s) { s.classList.toggle("with-howto", s === host); });
   }
 
@@ -256,9 +257,11 @@
   /* Refinement 5 §3: the how-to panel's alien-family doodles. One sits beside the title and the rest in the
      space under the text, so they never cover a word; every doodleTurnEvery [T] one of them turns to a new
      angle (a CSS transition, so nothing here runs per frame), on every screen. */
+  var doodleList = [];   // every doodle that turns now and then: the panel's and the title card's
   function buildDoodles() {
     var title = $("#howto .title"), meadow = $("#howto .doodles");
-    var list = [ET.art.doodleEl(0)];
+    var list = doodleList;
+    list.push(ET.art.doodleEl(0));
     title.appendChild(list[0]);
     [[4, 12], [54, 9], [26, 56], [64, 58]].forEach(function (p, i) {
       var d = ET.art.doodleEl(i + 1);
@@ -275,6 +278,40 @@
     }, C.doodleTurnEvery * 1000);
   }
 
+  /* Refinement 6 §1: the title screen's How To Play card. Andrew may reword these; keep them to four short steps. */
+  var TITLE_STEPS = [
+    "The aliens are laying eggs in your CAVs.",
+    "Clear each CAV the moment it's done, before the egg hatches.",
+    "Clear fast, and breakfast gets fancier.",
+    "Hose off the mess between waves."
+  ];
+  function buildTitleCard() {
+    var ol = $("#howto-title ol");
+    TITLE_STEPS.forEach(function (text, i) {
+      var li = document.createElement("li");
+      var n = document.createElement("span");
+      n.className = "num";
+      n.textContent = String(i + 1);
+      var t = document.createElement("span");
+      t.className = "step";
+      t.textContent = text;
+      li.appendChild(n);
+      li.appendChild(t);
+      ol.appendChild(li);
+    });
+    // a row of alien-family doodles under the steps, turning with the panel's
+    var row = document.createElement("div");
+    row.className = "doodle-row";
+    [3, 2, 1].forEach(function (i) {
+      var d = ET.art.doodleEl(i);
+      d.style.setProperty("--turn", ((Math.random() * 2 - 1) * C.doodleTurnMax).toFixed(0) + "deg");
+      row.appendChild(d);
+      doodleList.push(d);
+    });
+    $("#howto-title").appendChild(row);
+    ET.lights.build($("#howto-title"));   // it keeps the arcade lights
+  }
+
   function wire() {
     ET.view.build();
     ET.title.build($("#title-scene"));
@@ -283,6 +320,7 @@
     paintHowTo("clear");
     buildDoodles();
     ET.lights.build($("#howto"));
+    buildTitleCard();
     ET.devmode.build({
       toggled: function (on) {
         $("#setup-dev").hidden = !on;
