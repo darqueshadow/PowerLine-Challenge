@@ -9,6 +9,9 @@
      clock  the displayed seconds every clock on screen shows. It runs sped up, at one
             shared rate that steps up on even waves, and a CAV goes bold on it.
    The wall clock is wallStart + clock, wrapped at midnight.
+   Time Warp (Refinement 3 §4): once the wave has spawned its last egg and no egg
+   is bold, `clock` runs warpFactor times as fast, until the next egg goes bold.
+   `time` never warps, so the overtime window is never shortened.
 
    A nest's life (packet §6–§7):
      idle ─spawn─▶ trigger (two-phase: waits for CAV #### TYPE, auto-opens on timeout)
@@ -211,11 +214,30 @@
     return (((this.wallStart + this.clock) % 86400) + 86400) % 86400;
   };
 
+  /* Time Warp is on while the wave's last egg has spawned and no egg is bold (checked every step, so
+     it re-checks after each clear and hatch). */
+  Game.prototype.warping = function () {
+    if (this.phase !== "wave" || this.spawned < this.quota) return false;
+    return !this.nests.some(function (n) { return n.unlocked && n.state === "overtime"; });
+  };
+
   Game.prototype.step = function (dt) {
     if (this.phase !== "wave" && this.phase !== "cleanup") return;
-    this.time += dt;
-    this.clock += dt * this.rate;
     var C = ET.CONFIG;
+    var rate = this.warping() ? this.rate * C.warpFactor : this.rate;
+    if (rate !== this.rate) {
+      // stop the warp on the exact instant the next egg goes bold: split the step there
+      var next = Infinity;
+      this.nests.forEach(function (n) { if (n.unlocked && n.state === "active") next = Math.min(next, n.boldClock); });
+      var until = (next - this.clock) / rate;
+      if (until > 1e-9 && until < dt) {
+        this.step(until);
+        if (this.phase === "wave" || this.phase === "cleanup") this.step(dt - until);
+        return;
+      }
+    }
+    this.time += dt;
+    this.clock += dt * rate;
 
     var nests = this.unlocked();
     for (var i = 0; i < nests.length; i++) {
@@ -226,7 +248,7 @@
       }
       if (n.state === "active" && this.clock >= n.boldClock) {
         // overtime is player seconds from the moment the clock crossed the mark, not from this step
-        n.boldAt = this.time - (this.clock - n.boldClock) / this.rate;
+        n.boldAt = this.time - (this.clock - n.boldClock) / rate;
         n.hatchAt = n.boldAt + ET.rules.overtimeFor(this.wave, this.rng);
         n.state = "overtime";
         this.emit("bold", { nest: n.id });
@@ -345,6 +367,7 @@
       clock: this.clock,
       wall: this.wall(),
       speed: this.speed,
+      warp: this.warping(),
       mode: this.mode,
       wave: this.wave,
       phase: this.phase,

@@ -581,6 +581,29 @@ try {
   }
   await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
+  /* ------------------------------------------------------- P. Time Warp */
+  section("P. Time Warp (Refinement 3 §4)");
+  await ev("__et.start('clear', 1)");
+  await ev("__et.advance(0.1)");
+  eq(await ev("document.querySelector('#warp').classList.contains('lit')"), false, "the TIME WARP panel is dark at the start of a wave");
+  {
+    let lit = null;
+    for (let t = 0; t < 300 && !lit; t += 0.25) {
+      const x = await snap();
+      if (x.warp) { lit = x; break; }
+      for (const y of x.nests.filter((z) => z.state === "overtime")) await ev(`__et.submit('RCAV ${y.unit}')`);
+      await ev("__et.advance(0.25)");
+    }
+    ok(!!lit && lit.spawned === lit.quota, "the clocks warp once the wave's last egg has spawned");
+    eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp').textContent")], [true, "TIME WARP"], "…and the panel lights up \"TIME WARP\"");
+    await shot("13-time-warp");
+    // measured over a short step that stays inside the warp (an egg going bold part-way would end it)
+    const w = await ev(`(() => { const a = __et.snapshot(); __et.advance(0.05); const b = __et.snapshot(); return b.warp ? ((b.wall - a.wall + 86400) % 86400) / (b.time - a.time) : null; })()`);
+    ok(w !== null && Math.abs(w - 150) < 1, `the wall clock warps too, 5× (150 displayed s per second in wave 1)   [${w && w.toFixed(1)}]`);
+    const b = await until((x) => x.nests.some((y) => y.state === "overtime"), 120, 0.1);
+    eq([!!b.hit, b.s.warp, await ev("document.querySelector('#warp').classList.contains('lit')")], [true, false, false], "an egg going bold ends the warp, and the panel goes dark");
+  }
+
   /* ------------------------------------------------------------ K. errors */
   section("K. a clean run");
   const errs = c.errors().filter((e) => !/favicon\.ico/.test(e));

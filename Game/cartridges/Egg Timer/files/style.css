@@ -135,6 +135,31 @@ h2 {
 .pool.hit { animation: hit 0.5s steps(4); }
 @keyframes hit { 0%, 50% { color: var(--ink); background: var(--hot); } }
 
+/* ⏳ placeholder look: Time Warp's backlit alien panel (Refinement 3 §4). Dark glass when off; lit, it
+   glows green and flickers. It lives in the band above the board, clear of every nest. */
+#warp {
+  margin-right: auto;
+  padding: 6px 16px;
+  background: #07140d;
+  border: 4px solid #1f3a2a;
+  border-radius: 14px 4px 14px 4px;
+  box-shadow: 5px 5px 0 var(--shadow);
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2vw, 30px);
+  letter-spacing: 0.3em;
+  color: #1c3526;
+  white-space: nowrap;
+}
+#warp.lit {
+  background: radial-gradient(ellipse at 50% 50%, #3dff9a, #0e8f4c 80%);
+  border-color: #b04dff;
+  color: #04170c;
+  text-shadow: 0 0 6px #d6ffe8;
+  box-shadow: 5px 5px 0 var(--shadow), 0 0 22px 4px rgba(61, 255, 154, 0.55);
+  animation: warp 0.9s steps(3) infinite;
+}
+@keyframes warp { 33% { filter: brightness(1.25); } 66% { filter: brightness(0.9); } }
+
 /* ⏳ placeholder look: a digital wall clock, seconds small and raised; Refinement 2 §3 makes it
    larger and more pronounced, and Refinement 3 §6 larger again, in the board's top-right corner */
 .wallclock {
@@ -547,5 +572,5 @@ h2 {
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched, #cleanup.flash { animation: none; }
+  .blink, .nest[data-state="trigger"] .readout, .box.active, .box.active.switched, #cleanup.flash, #warp.lit { animation: none; }
 }

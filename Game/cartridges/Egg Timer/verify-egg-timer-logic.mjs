@@ -423,6 +423,48 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
   ok(g.stats.skipped > 0 && g.stats.skippedByWave[1] === g.stats.skipped, `skipped spawns are counted against the wave they fell in   [W1 ${g.stats.skippedByWave[1]} of ${g.stats.skipped}]`);
 }
 
+section("O. Refinement 3 §4: Time Warp");
+{
+  // MB (30 min, 60 s at base speed): long enough that wave 1 has spawned all 8 while some still run.
+  const g = game("clear", [T("MB", 30)]);
+  let warpedBeforeLast = false, warpWithBold = false, sawWarp = false, sawAfter = false;
+  const bolds = [];
+  const ot = [];
+  let prev = null;
+  advance(g, 400, (x) => {
+    if (x.wave !== 1) return;
+    const w = x.warping();
+    if (w && x.spawned < x.quota) warpedBeforeLast = true;
+    if (w && x.unlocked().some((n) => n.state === "overtime")) warpWithBold = true;
+    if (w) sawWarp = true;
+    x.drain().forEach((e) => { if (e.type === "bold") { const n = x.nests[e.nest]; bolds.push(x.clock - n.boldClock - (x.time - n.boldAt) * x.rate); ot.push(n.hatchAt - n.boldAt); } });
+    if (prev && prev.warp && !w) sawAfter = true;
+    prev = { warp: w };
+    inState(x, "overtime").forEach((n) => { if (x.time - n.boldAt > 1) x.submit("RCAV " + n.unit); });
+  });
+  ok(sawWarp, "the clocks warp once the wave's last egg has spawned and none is bold");
+  ok(!warpedBeforeLast, "…never before the last egg of the wave has spawned");
+  ok(!warpWithBold, "…and never while an egg is bold");
+  ok(sawAfter, "an egg going bold ends the warp (it comes back after the clear)");
+  ok(bolds.length >= 8 && bolds.every((d) => Math.abs(d) < 1e-6), `the warp stops on the exact instant an egg goes bold (the clock runs normally from there)   [${bolds.length} bolds, worst ${Math.max(...bolds.map(Math.abs)).toExponential(1)}]`);
+  ok(ot.every((x) => x >= 5.4 - 1e-9 && x <= 6.6 + 1e-9), "the overtime window stays 6 s ±10% of the player's seconds");
+}
+{
+  // The rate: 5× the wave's speed, for the nest clocks and the wall clock alike.
+  const g = game("clear", [T("MB", 30)]);
+  g.spawned = g.quota;                         // as if the last egg has spawned
+  const n = g.nests[0];
+  n.type = T("MB", 30); n.unit = "2101";
+  g.activate(n, "auto");
+  advance(g, 0.05);                            // …through the lay, if there is one
+  while (n.state !== "active") advance(g, 0.05);
+  const c0 = g.clock, w0 = g.wall(), t0 = g.time;
+  advance(g, 1);
+  eq([g.warping(), Math.round((g.clock - c0) / (g.time - t0)), Math.round((g.wall() - w0) / (g.time - t0))], [true, 150, 150], "under Time Warp every clock runs 5× the wave's speed (150 displayed s a second in wave 1)");
+  eq(g.snapshot().warp, true, "the snapshot says so, for the panel");
+  eq(ET.CONFIG.warpFactor, 5, "the warp factor is 5 [T]");
+}
+
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
 eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides, "timerDisplay" in ET.CONFIG],
   ["per-spawn", true, false, "timer", false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · C15(b) timer only · D5's switch is gone");

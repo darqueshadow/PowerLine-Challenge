@@ -128,6 +128,9 @@
     // §3: the cleanup banner across the top flashes this many times as cleanup starts, then holds steady.
     cleanupFlashes: 3,             // [T]
     cleanupFlashSeconds: 0.3,      // [T] one flash, on and off
+    // §4 "Time Warp": once the wave has spawned its last egg and no egg is bold, every clock (nests and the
+    // wall clock) runs this many times the wave's speed, until an egg goes bold. Overtime is untouched.
+    warpFactor: 5,                 // [T]
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

@@ -11,7 +11,7 @@
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  var field, board, hud, banner, popups, wall, cleanup;
+  var field, board, hud, banner, popups, wall, cleanup, warp;
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
@@ -172,6 +172,7 @@
       popups = $("#popups");
       hud.poolLabel.textContent = ET.CONFIG.poolKey;
       wall = { hm: $("#wall-hm"), ss: $("#wall-ss") };
+      warp = $("#warp");
 
       var offs = offsets();
       for (var i = 0; i < ET.Game.COLS * ET.Game.ROWS; i++) {
@@ -245,6 +246,7 @@
       field.classList.remove("hose");
       banner.hidden = true;
       cleanup.el.hidden = true;
+      warp.classList.remove("lit");
       popups.innerHTML = "";
       noTypesShown = false;
     },
@@ -259,6 +261,7 @@
       hud.pool.textContent = pips;
       wall.hm.textContent = hhmm(snap.wall);
       wall.ss.textContent = two(Math.floor(snap.wall) % 60);
+      warp.classList.toggle("lit", !!snap.warp);
 
       snap.nests.forEach(function (s) {
         var v = nests[s.id];
