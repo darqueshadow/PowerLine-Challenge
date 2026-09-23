@@ -37,7 +37,7 @@ a session must not re-derive or break. Decision history lives in the memory stor
   the panel IS the instruction screen; the random cooked eggs are retired).
 - **Hose ruling (2026-09-22, replaces E5):** in-game the cursor is always the hose nozzle (a CSS cursor);
   the hose body (`#hose`, SVG, z-index 1) curves to a spigot on the board's bottom edge, UNDER `.hud`,
-  `.playrow` and `#console` (z-index 2), so it never covers text. It passes behind the nests too (E12, open).
+  `.playrow` and `#console` (z-index 2), so it never covers text. It passes behind the nests and eggs too, by design (E12, ruled: no layer split).
 - **Switching is being replaced by Alt+1–4** (ruling 2026-09-22: no Tab, no Ctrl+Tab, no switcher, auto-pause
   on blur). NOT built: Chat asked for a real-browser test first, and Andrew is running it by hand.
   **Alt+#, never Ctrl+#.** A lone Alt BLURS the page in Chrome without a guard.
