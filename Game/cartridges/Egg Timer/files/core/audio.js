@@ -69,8 +69,12 @@
     /* The pan on an empty nest after a hatch: dull, low, no ring. */
     clunk: function (delay) { tone("square", 110, 60, 0.18, 0.2, delay); noise(0.12, 0.5, 500, delay); },
 
-    /* ⏳ placeholder: the egg popping off its cord (Refinement 3 §7). */
-    pop: function () { tone("sine", 320, 900, 0.09, 0.22); tone("triangle", 1200, 700, 0.06, 0.08, 0.02); },
+    /* ⏳ placeholder: the wet squelch as the egg pops out of its cord (Refinement 4 §1). */
+    squelch: function () {
+      noise(0.16, 0.45, 700);
+      tone("sine", 260, 70, 0.22, 0.28);
+      tone("triangle", 520, 180, 0.12, 0.1, 0.05);
+    },
 
     buzz: function () { tone("sawtooth", 140, 120, 0.22, 0.18); },
 

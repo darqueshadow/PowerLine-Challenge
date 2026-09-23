@@ -167,23 +167,29 @@
     svg.setAttribute("aria-hidden", "true");
     screen.insertBefore(svg, screen.firstChild);
     cords = { svg: svg, screen: screen, list: [] };
+    function mk(g, tag, cls) { var e = document.createElementNS(NS, tag); e.setAttribute("class", cls); g.appendChild(e); return e; }
     for (var i = 0; i < nests.length; i++) {
       var g = document.createElementNS(NS, "g");
       g.setAttribute("class", "cord");
-      var path = document.createElementNS(NS, "path");
-      path.setAttribute("class", "cord-line");
-      var egg = document.createElementNS(NS, "ellipse");
-      egg.setAttribute("class", "cord-egg");
-      g.appendChild(path);
-      g.appendChild(egg);
+      var c = { g: g, path: mk(g, "path", "cord-line"), bulge: mk(g, "ellipse", "cord-bulge"), egg: mk(g, "ellipse", "cord-egg") };
       svg.appendChild(g);
       g.style.display = "none";
-      cords.list.push({ g: g, path: path, egg: egg });
+      cords.list.push(c);
     }
   }
-  function drawCord(i, s) {
+  function ell(e, x, y, rx, ry, on) {
+    e.style.display = on ? "" : "none";
+    if (!on) return;
+    e.setAttribute("cx", x.toFixed(1)); e.setAttribute("cy", y.toFixed(1));
+    e.setAttribute("rx", Math.max(0, rx).toFixed(1)); e.setAttribute("ry", Math.max(0, ry).toFixed(1));
+  }
+  /* Refinement 4 §1: slower and creepier. The cord drops (the first part of the drop), then a bulge, the
+     egg, travels down inside it; at the pop the egg squeezes out of the tip into the nest with a wet
+     squelch (the sound is on the "active" event); then the cord snakes slowly back up. It twitches the
+     whole time. `now` is the game's own time, so all of it freezes on pause. */
+  function drawCord(i, s, now) {
     var c = cords.list[i];
-    var show = !s.hidden && (s.lay !== null || s.retract !== null);   // ⏳ E16: VF has no egg to lay
+    var show = !s.hidden && (s.lay !== null || s.retract !== null);   // E16 (ruled): VF has no egg to lay
     c.g.style.display = show ? "" : "none";
     if (!show) return;
     var C = ET.CONFIG;
@@ -193,25 +199,35 @@
     var x = br.left - sr.left + el.offsetLeft;                     // nests are centred on their left/top
     var nestY = br.top - sr.top + el.offsetTop - el.offsetHeight / 2 + artH * (54 / 110);   // the egg's centre
     var eggRy = 28 * C.eggMinScale * w / 120, eggRx = 22 * C.eggMinScale * w / 120;
-    var tip, wiggle = 0, egg = false;
+    var end = nestY - 2.2 * eggRy;                                 // where the cord's tip hangs over the nest
+    var tip, wiggle = 0, bulgeY = null, eggY = null, eggK = 1;
+    var twitch = 2.2 * Math.sin(now * 23 + i * 1.7) * Math.sin(now * 3.1 + i);
     if (s.lay !== null) {
-      var t = s.lay * (C.layDrop + C.layPop);
-      if (t < C.layDrop) tip = (nestY - eggRy) * (t / C.layDrop);           // dropping, the egg on its tip
-      else tip = nestY - eggRy + Math.sin((t - C.layDrop) / C.layPop * Math.PI) * 4;   // settling, then the pop
-      egg = true;
+      var t = s.lay * (C.layDrop + C.layPop), dropShare = C.cordDropShare;
+      if (t < C.layDrop * dropShare) {
+        tip = end * (t / (C.layDrop * dropShare));                          // the cord comes down, empty
+      } else if (t < C.layDrop) {
+        tip = end;
+        bulgeY = end * ((t - C.layDrop * dropShare) / (C.layDrop * (1 - dropShare)));   // the egg, inside it
+      } else {
+        var u = (t - C.layDrop) / C.layPop;                                  // the pop: squeezed out
+        tip = end - Math.sin(u * Math.PI) * 6;
+        eggY = end + (nestY - end) * u;
+        eggK = 0.7 + 0.3 * u;
+      }
     } else {
-      tip = (nestY - eggRy) * (1 - s.retract);                              // snaking back up
-      wiggle = 14 * Math.sin(s.retract * Math.PI);
+      tip = end * (1 - s.retract);                                          // snaking slowly back up
+      wiggle = 18 * Math.sin(s.retract * Math.PI);
     }
-    var d = "M" + x.toFixed(1) + " 0";
-    for (var y = 24; y < tip; y += 24) d += " L" + (x + wiggle * Math.sin(y / 30 + s.retract * 12)).toFixed(1) + " " + y;
-    d += " L" + x.toFixed(1) + " " + Math.max(0, tip).toFixed(1);
+    var d = "M" + (x + twitch * 0.3).toFixed(1) + " 0";
+    for (var y = 18; y < tip; y += 18) {
+      var sway = wiggle * Math.sin(y / 26 + now * 9) + twitch * (y / Math.max(1, tip));
+      d += " L" + (x + sway).toFixed(1) + " " + y;
+    }
+    d += " L" + (x + twitch).toFixed(1) + " " + Math.max(0, tip).toFixed(1);
     c.path.setAttribute("d", d);
-    c.egg.style.display = egg ? "" : "none";
-    c.egg.setAttribute("cx", x.toFixed(1));
-    c.egg.setAttribute("cy", (tip + eggRy).toFixed(1));
-    c.egg.setAttribute("rx", eggRx.toFixed(1));
-    c.egg.setAttribute("ry", eggRy.toFixed(1));
+    ell(c.bulge, x + twitch * (bulgeY || 0) / Math.max(1, end), bulgeY || 0, eggRx * 1.4, eggRy * 1.3, bulgeY !== null);
+    ell(c.egg, x, eggY === null ? 0 : eggY, eggRx * eggK, eggRy * eggK, eggY !== null);
   }
 
   /* E15 (Refinement 3 rulings): `count` blobs dropped evenly at random over the whole board. One that
@@ -372,7 +388,7 @@
           if (v.note.textContent !== nt) v.note.textContent = nt;
         }
 
-        drawCord(s.id, s);
+        drawCord(s.id, s, snap.time);
 
         var scale = C.eggMinScale + (1 - C.eggMinScale) * s.grow;
         var wobble = s.state === "overtime" ? Math.sin(snap.time * 38) * (3 + 6 * s.crack) : 0;
@@ -424,7 +440,7 @@
           case "active":
             // the pop: the egg is in and the clock starts (Refinement 3 §7)
             v.el.classList.remove("scurry", "lunge");
-            if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.pop();
+            if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.squelch();
             break;
           case "bold":
             // VF is the only type with a pop-up: "Clear Fueling" as its clock and cracking egg appear
@@ -540,7 +556,10 @@
     fling: function (count) { fling(count); },
 
     /* For rigs: a nest's cord, if one is showing. */
-    cord: function (id) { var c = cords.list[id]; return c.g.style.display === "none" ? null : { d: c.path.getAttribute("d"), egg: c.egg.style.display !== "none" }; },
+    cord: function (id) {
+      var c = cords.list[id];
+      return c.g.style.display === "none" ? null : { d: c.path.getAttribute("d"), egg: c.egg.style.display !== "none", bulge: c.bulge.style.display !== "none" };
+    },
 
     /* For rigs: a nest's view pieces, and the board-wide floor mess. */
     nest: function (id) { return nests[id]; },

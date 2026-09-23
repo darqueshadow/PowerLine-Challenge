@@ -138,9 +138,11 @@
     // §7 egg-laying: when a CAV starts, a cord drops from the top of the screen (layDrop), lowers the egg
     // in and pops off (layPop). The CAV's clock starts at the pop; the cord snakes back up (layRetract)
     // while the clock runs. All in the player's seconds.
-    layDrop: 0.3,                  // [T]
-    layPop: 0.3,                   // [T]
-    layRetract: 0.45,              // [T]
+    // Refinement 4 §1: slower and creepier.
+    layDrop: 1.0,                  // [T] (was 0.3)
+    layPop: 0.4,                   // [T] (was 0.3)
+    layRetract: 1.5,               // [T] a slow snaking retract (was 0.45)
+    cordDropShare: 0.45,           // [T] of the drop, the empty cord coming down; the rest, the bulge travelling down it
 
     // ── Refinement 3 rulings (2026-09-23): the egg ladder ───────────────────
     // A "fast clear" lands in the first part of the overtime window. Consecutive fast clears climb the
