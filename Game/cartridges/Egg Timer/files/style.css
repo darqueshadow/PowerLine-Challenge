@@ -281,6 +281,40 @@ h2 {
 }
 @keyframes drop { to { transform: translate(var(--dx), 26px); opacity: 0; } }
 
+/* Refinement 5 §6: a small tag on the hose tap, just right of the spigot on the board's bottom edge, in the gap
+   under the bottom row of readouts (the layout rig checks it never touches a nest or readout) */
+#hose-tag {
+  position: absolute;
+  left: calc(50% + 16px);            /* the spigot sits at hoseSpigotX (0.5) */
+  bottom: 3px;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px 2px 4px;
+  background: #fff3d1;
+  color: #1a0d2e;
+  border: 2px solid #1a0d2e;
+  border-radius: 7px;
+  box-shadow: 2px 2px 0 var(--shadow);
+  font-size: clamp(10px, 0.8vw, 13px);
+  line-height: 1.1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+#hose-tag::before {                  /* the tag's string, tied to the tap */
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  width: 14px;
+  border-top: 2px solid #1a0d2e;
+}
+#hose-tag b { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.04em; }
+#hose-tag .mouse { width: 1.2em; height: 1.7em; flex: none; }
+#hose-tag .mouse rect, #hose-tag .mouse path { fill: #fff; stroke: #1a0d2e; stroke-width: 2; }
+#hose-tag .mouse .btn { fill: var(--hot); }
+
 /* Refinement 2 §1: how to play, down one side. Refinement 5 §3: a cartoon look (⏳ placeholder): a cream card
    with a thick wobbly outline and a hard offset shadow, dark ink type, the labels as tilted chips, and goofy
    alien-family doodles beside the title and in the space under the text, never over a word. */

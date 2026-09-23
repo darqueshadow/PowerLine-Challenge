@@ -225,7 +225,7 @@
       ["SWITCH", "Tab / Shift+Tab: next / previous Command Line (keeps what you typed)."],
       ["F12", "Next Command Line, cleared."],
       ["ESC", "Pause."],
-      ["CLEANUP", "Hose off the mess between waves."]
+      ["CLEANUP", "Click & drag the hose to clean up the mess."]   // Refinement 5 §6
     ]);
     var ul = $("#howto ul");
     ul.innerHTML = "";

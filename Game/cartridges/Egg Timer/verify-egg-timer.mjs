@@ -546,7 +546,7 @@ try {
     ok(await ev("!!document.querySelector('#howto') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "a how-to panel sits down one side during play");
     const lines = await ev("[...document.querySelectorAll('#howto li')].map(l => l.textContent)");
     eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", "SWITCH Tab / Shift+Tab: next / previous Command Line (keeps what you typed).",
-      "F12 Next Command Line, cleared.", "ESC Pause.", "CLEANUP Hose off the mess between waves."], "Refinement 3 §2: the panel's lines, in order");
+      "F12 Next Command Line, cleared.", "ESC Pause.", "CLEANUP Click & drag the hose to clean up the mess."], "Refinement 3 §2: the panel's lines, in order (Refinement 5 §6: the new Cleanup line)");
     for (const gone of ["RCAV", "post-it", "Clear Fueling", "Ctrl"]) ok(!txt.includes(gone), `…with no "${gone}" line any more`);
     ok(!/\d+:\d\d|\b\d+\s*min/i.test(txt), "…and never lists a CAV duration");
     const overlap = await ev(`(() => {
@@ -602,6 +602,10 @@ try {
       eq(hit, "hose", "…so where the hose crosses a readout, the hose is on top");
     }
     ok(lay.spigotOnEdge, "the spigot is fixed on the board's bottom edge");
+    const tag = await ev(`(() => { const t = document.querySelector('#hose-tag'), r = t.getBoundingClientRect(), p = document.querySelector('#hose .pipe').getBoundingClientRect(), f = document.querySelector('#board').getBoundingClientRect();
+      return { text: t.textContent.replace(/\\s+/g, ' ').trim(), mouse: !!t.querySelector('svg.mouse'), shown: r.width > 0, nearTap: r.left - p.right < 30 && r.left >= p.right - 1 && Math.abs(r.bottom - f.bottom) < 8 }; })()`);
+    ok(tag.shown && tag.text === "CLEANING HOSE: click & drag to spray" && tag.mouse, `Refinement 5 §6: the hose tap has a tag, with a mouse icon   [${tag.text}]`);
+    ok(tag.nearTap, "…right by the tap on the board's bottom edge");
     ok(lay.width <= 8, `the hose is thin   [${lay.width}px]`);
     const moveOnly = await ev(`(() => {
       const f = document.querySelector('#field').getBoundingClientRect();
@@ -737,11 +741,13 @@ try {
       // Refinement 5 §3: no doodle sits on a word of the panel's text (each text line's own box, not the block's)
       const words = [];
       document.querySelectorAll('#howto .title span, #howto li').forEach(e => { const rg = document.createRange(); rg.selectNodeContents(e); words.push(...rg.getClientRects()); });
+      const tag = document.querySelector('#hose-tag').getBoundingClientRect();
+      const tagged = nests.filter(x => hit(tag, x.r) || hit(tag, x.art)).length;
       const doodled = [...document.querySelectorAll('#howto .doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(w => w.width > 0 && hit(r, w)); }).length;
       const clock = document.querySelector('.wallclock').getBoundingClientRect();
       const field = document.querySelector('#field').getBoundingClientRect();
       document.querySelectorAll('.nest .postit').forEach(p => { p.hidden = true; });
-      return { doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
+      return { tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
                clockCorner: clock.right > field.right - 40 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
                howtoFits: document.querySelector('#howto').scrollHeight <= document.querySelector('#howto').clientHeight + 1,
                w: innerWidth, h: innerHeight };
@@ -757,6 +763,7 @@ try {
     ok(lay.clockCorner, `the wall clock is in the board's top-right corner, left of the how-to panel   ${at}`);
     ok(lay.howtoFits, `the how-to panel fits without scrolling   ${at}`);
     eq(lay.doodled, 0, `Refinement 5 §3: no doodle covers any of the panel's text   ${at}`);
+    ok(lay.tagged === 0 && lay.tagIn, `Refinement 5 §6: the hose tag stays on the board and touches no nest or readout   ${at}`);
     if (SHOTS) {
       await ev(`(() => { document.querySelectorAll('.mess').forEach((m, i) => i % 3 === 0 && ET.mess.splatter(m, 6)); return 1; })()`);
       await shot(`10-full-board-${w}x${h}`);
