@@ -530,6 +530,9 @@
         if (s.note) {
           var nt = noteText(s.note);
           if (v.note.textContent !== nt) v.note.textContent = nt;
+          // two looks (2026-09-23): the clock time as the wall clock, the minutes as a hand-lettered post-it
+          v.note.classList.toggle("at-clock", s.note.kind === "clock");
+          v.note.classList.toggle("minutes", s.note.kind !== "clock");
         }
 
         drawCord(s.id, s, snap.time);

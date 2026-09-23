@@ -599,7 +599,7 @@ try {
   /* ---------------------------------------------------------- H2. AD note */
   section("H2. the AD post-it");
   await ev("__et.start('clear', 1)");
-  let kinds = new Set(), adOk = true, otherNotes = 0, sawBold = false;
+  let kinds = new Set(), adOk = true, otherNotes = 0, sawBold = false, looks = {};
   for (let i = 0; i < 600 && (kinds.size < 2 || !sawBold); i++) {
     s = await snap();
     for (const x of s.nests) {
@@ -611,6 +611,9 @@ try {
         if (!/^Clear @ \d\d:\d\d$/.test(txt)) adOk = false;
       } else if (txt !== x.note.minutes + " min") adOk = false;
       kinds.add(x.note.kind);
+      if (!looks[x.note.kind] && x.note.kind === "duration") await shot("11b-ad-minutes");
+      if (!looks[x.note.kind]) looks[x.note.kind] = await ev(`(() => { const p = document.querySelector('.nest[data-id="${x.id}"] .postit'), cs = getComputedStyle(p), w = getComputedStyle(document.querySelector('.wallclock'));
+        return { cls: p.className, font: cs.fontFamily, color: cs.color, bg: cs.backgroundColor, border: cs.borderTopColor, wallFont: w.fontFamily, wallColor: w.color, wallBg: w.backgroundColor, wallBorder: w.borderTopColor }; })()`);
       if (x.state === "overtime" && !sawBold) {
         sawBold = (await ev(`getComputedStyle(document.querySelector('.nest[data-id="${x.id}"] .postit')).fontWeight`)) === "900";
         if (sawBold) await shot("11-ad-postit");
@@ -623,6 +626,16 @@ try {
   eq([...kinds].sort(), ["clock", "duration"], "both kinds of note turn up");
   eq(otherNotes, 0, "no other type shows a note");
   ok(sawBold, "an AD's note goes bold with the nest");
+  {
+    // AD note styles (Andrew approved, 2026-09-23)
+    const k = looks.clock, d = looks.duration;
+    ok(!!k && k.cls.includes("at-clock") && k.font === k.wallFont && k.color === k.wallColor && k.bg === k.wallBg && k.border === k.wallBorder,
+      `the "Clear @ HH:MM" note matches the wall clock: its colours and its digital font   [${k && k.font} ${k && k.color} on ${k && k.bg}]`);
+    ok(!!d && d.cls.includes("minutes") && /Patrick Hand/.test(d.font) && d.bg === "rgb(255, 233, 92)", `the "N min" note stays a post-it, hand-lettered   [${d && d.font}]`);
+    await ev("document.fonts.load('16px \"Patrick Hand\"').then(() => 1)");
+    const f = await ev(`({ ok: document.fonts.check('16px "Patrick Hand"'), src: performance.getEntriesByType('resource').map(e => e.name).filter(n => /PatrickHand/.test(n)) })`);
+    ok(f.ok && f.src.length > 0 && f.src.every((u) => u.startsWith("http://localhost:8898/")), `…in a font bundled with the game, not fetched from the web (works offline in Fang Rock)   [${f.src.map((u) => u.split("/").slice(-2).join("/")).join(", ")}]`);
+  }
 
   /* ----------------------------------------------- O. Refinement 2 extras */
   section("O. the how-to panel, the hose, sound");
@@ -813,7 +826,11 @@ try {
         n.querySelector('.unit').textContent = '8888';
         n.querySelector('.code').textContent = 'EOS';
         n.querySelector('.clock').textContent = '88:88';
-        const p = n.querySelector('.postit'); p.hidden = false; p.textContent = 'Clear @ 23:58';
+        // AD note styles: both kinds, each at its widest (every other nest), under a coat of gunk
+        const p = n.querySelector('.postit'), clock = n.dataset.id % 2 === 0;
+        p.hidden = false; p.textContent = clock ? 'Clear @ 23:58' : '30 min';
+        p.classList.toggle('at-clock', clock); p.classList.toggle('minutes', !clock);
+        ET.mess.splatter(n.querySelector('.mess'), 6);
       });
       const spill = [...document.querySelectorAll('.readout > span, .postit')].filter(e => e.scrollWidth > e.clientWidth + 0.5 || e.scrollHeight > e.clientHeight + 0.5).length;
       const f = document.querySelector('#board').getBoundingClientRect();
@@ -862,7 +879,7 @@ try {
                w: innerWidth, h: innerHeight };
     })()`);
     const at = `[${lay.w}×${lay.h}]`;
-    eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading, and every post-it, fits inside its box   ${at}`);
+    eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading, and both kinds of AD note (gunk-covered), fit inside their boxes   ${at}`);
     ok(lay.postitsInside, `every post-it stays on the board   ${at}`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);

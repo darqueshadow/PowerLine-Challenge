@@ -28,6 +28,16 @@
   --font-mono: "Courier New", Courier, monospace;
 }
 
+/* Patrick Hand: neat hand-lettering for the AD "N min" post-it, bundled in fonts/ so it works offline in Fang Rock.
+   Copyright (c) 2010-2012 Patrick Wagesreiter. Licensed under the SIL Open Font License 1.1 (fonts/OFL.txt). */
+@font-face {
+  font-family: "Patrick Hand";
+  src: url("fonts/PatrickHand-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 [hidden] { display: none !important; }
 
 * { box-sizing: border-box; }
@@ -659,6 +669,22 @@ h2 {
   z-index: 4;
 }
 .nest.bold .postit { font-weight: 900; }
+/* AD note styles (Andrew approved, 2026-09-23; ⏳ placeholder look). Two distinct looks:
+   "Clear @ HH:MM" is styled as the WALL CLOCK (its LED colours and its digital font): watch the wall clock.
+   "20 min" stays a post-it, hand-lettered: watch this nest's timer. The layout rig fits both at all four sizes. */
+.postit.at-clock {
+  padding: 2px 6px;
+  background: var(--led-bg);
+  color: var(--led);
+  border: 3px solid var(--led);
+  box-shadow: 3px 3px 0 var(--hot);
+  transform: none;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  text-shadow: 1px 1px 0 #5a2a00;
+  line-height: 1.1;
+}
+.postit.minutes { font-family: "Patrick Hand", var(--font-ui); font-size: clamp(13px, 1.3vw, 19px); line-height: 1.05; padding: 2px 7px; }
 
 /* ⏳ placeholder look: VF's "Clear Fueling" speech bubble, shown briefly then faded */
 .bubble {
