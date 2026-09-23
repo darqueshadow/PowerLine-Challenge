@@ -282,3 +282,21 @@ History lifted out of `Game/cartridges/Egg Timer/CLAUDE.md` at the second park o
   the commit chain tested `grep`'s exit code, not the rig's. Fixed at once (`d016698`), before any push.
 - **Dropped from CLAUDE.md as unused:** Esc in browser fullscreen belongs to the browser; reclaim it with Keyboard
   Lock as The Aquanaut does (`lockEscapeKey`, Chrome/Edge only), if Egg Timer ever goes fullscreen.
+
+## Moved from Egg Timer's CLAUDE.md on parking, 2026-09-23 (late)
+- **Spawn rate, closed 2026-09-23 (Chat, Andrew approved):** Andrew's playtest logged skipped spawns W1 1, W2 3,
+  W3 3, W4 4, so the spawn-gap shrink stays **stacked** with the clock-speed escalation; the skipped-spawns line
+  on the game-over screen stays as a debug aid. (Packet §11, *(Spawn ruling)*.)
+- **Retired switching:** the switcher, its most-recently-used order, Ctrl+Tab and the Alt+1–4 ruling are all gone
+  (Refinement 3); Tab / Shift+Tab / F12 is the whole scheme.
+- **Title tune in Fang Rock:** measured 2026-09-23 in a hidden Electron 32.3.3 window with the shell's defaults, the
+  AudioContext runs unprompted, so the tune plays on the title inside Fang Rock; a plain browser tab starts it at
+  the first key (E21).
+- **The hose's layer history:** it first ran under the nests (E12), then Refinement 4 put it above the whole board.
+- **Refinement tags:** the packet's tags now run through *(Refinement 6)*, *(Lightning tweak)*, *(AD notes & blank
+  boxes)*; the full list is the packet's filing notes, not CLAUDE.md.
+- **Numbers dropped from CLAUDE.md's summary (they live in `config.js` with sources, and in the packet):** cord
+  1.0 / 0.4 / 1.5 s; overtime 6 s, −0.25 s every 2 waves, floor 4.5 s, ±10%; speed +10% on even waves, cap 2×,
+  1 displayed minute = 2 player seconds; nests +1 every 2 waves, quota 8 +2 a wave; spawn gap 5–7 s −0.5 a
+  wave, floor 1 s; cleanup 5–10 s −0.5 a wave, floor 3 s; pool +1 per zero-escape wave, cap 3; perfect-wave
+  bonus 50 × wave; egg ladder "fast" = first third of overtime, Scrambled → … → Steak, Eggs & Brew!.
