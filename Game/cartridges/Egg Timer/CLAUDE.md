@@ -80,7 +80,8 @@ the memory store (below).
   seconds**: 6 s, −0.25 s every 2 waves, floor 4.5 s, fixed ±10%. Then the hatch, final. **VF** shows no egg
   and no timer until the trigger, when a "Clear Fueling" bubble pops. **Every AD shows a post-it**: "20 min", or
   "Clear @ HH:MM" against the wall clock, the next whole minute after start + draw (E1). The clock note looks
-  like the wall clock; the "N min" note is a post-it in Patrick Hand (bundled in `files/fonts/`, OFL).
+  like the wall clock (both in the bundled **DSEG** LED faces: DSEG7 digits, DSEG14 for "Clear @", OFL); the "N min"
+  note is a post-it in Patrick Hand (bundled in `files/fonts/`, OFL).
 - **Timer:** counts **up** in displayed time, MM:SS, through overtime. A larger 24-hour **wall clock** sits at
   the top centre of the playing field; the **Time Warp** panel sits in the **centre of the board** (Refinement 6;
   the middle row of nests sits two a side to leave it room): once the wave's last CAV has *started* and no egg is

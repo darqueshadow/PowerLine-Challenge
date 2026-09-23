@@ -49,6 +49,22 @@
     return note.kind === "clock" ? "Clear @ " + hhmm(note.at) : note.minutes + " min";
   }
 
+  /* Fill an AD note. The clock kind is two spans: "Clear @ " in the 14-segment LED face (the 7-segment one has
+     no "@") and HH:MM in the wall clock's own 7-segment face; its text reads the same as noteText's. */
+  function fillNote(el, note) {
+    var nt = noteText(note);
+    if (el.textContent === nt) return;
+    if (note.kind !== "clock") { el.textContent = nt; return; }
+    el.textContent = "";
+    var lbl = document.createElement("span"), hm = document.createElement("span");
+    lbl.className = "led-text";
+    lbl.textContent = "Clear @ ";
+    hm.className = "led-hm";
+    hm.textContent = hhmm(note.at);
+    el.appendChild(lbl);
+    el.appendChild(hm);
+  }
+
   function popup(nestEl, text, cls) {
     var p = document.createElement("div");
     p.className = "popup " + (cls || "");
@@ -396,6 +412,7 @@
   }
 
   ET.view = {
+    fillNote: fillNote,   // the layout rig fills every note at its widest the same way
     build: function () {
       field = $("#field");
       board = $("#board");
@@ -528,8 +545,7 @@
 
         v.note.hidden = !s.note;
         if (s.note) {
-          var nt = noteText(s.note);
-          if (v.note.textContent !== nt) v.note.textContent = nt;
+          fillNote(v.note, s.note);
           // two looks (2026-09-23): the clock time as the wall clock, the minutes as a hand-lettered post-it
           v.note.classList.toggle("at-clock", s.note.kind === "clock");
           v.note.classList.toggle("minutes", s.note.kind !== "clock");

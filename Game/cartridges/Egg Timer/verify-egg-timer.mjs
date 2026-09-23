@@ -613,7 +613,9 @@ try {
       kinds.add(x.note.kind);
       if (!looks[x.note.kind] && x.note.kind === "duration") await shot("11b-ad-minutes");
       if (!looks[x.note.kind]) looks[x.note.kind] = await ev(`(() => { const p = document.querySelector('.nest[data-id="${x.id}"] .postit'), cs = getComputedStyle(p), w = getComputedStyle(document.querySelector('.wallclock'));
-        return { cls: p.className, font: cs.fontFamily, color: cs.color, bg: cs.backgroundColor, border: cs.borderTopColor, wallFont: w.fontFamily, wallColor: w.color, wallBg: w.backgroundColor, wallBorder: w.borderTopColor }; })()`);
+        const hm = p.querySelector('.led-hm'), lbl = p.querySelector('.led-text');
+        return { cls: p.className, font: cs.fontFamily, hmFont: hm && getComputedStyle(hm).fontFamily, hmText: hm && hm.textContent, lblFont: lbl && getComputedStyle(lbl).fontFamily,
+                 color: cs.color, bg: cs.backgroundColor, border: cs.borderTopColor, wallFont: w.fontFamily, wallColor: w.color, wallBg: w.backgroundColor, wallBorder: w.borderTopColor }; })()`);
       if (x.state === "overtime" && !sawBold) {
         sawBold = (await ev(`getComputedStyle(document.querySelector('.nest[data-id="${x.id}"] .postit')).fontWeight`)) === "900";
         if (sawBold) await shot("11-ad-postit");
@@ -629,12 +631,15 @@ try {
   {
     // AD note styles (Andrew approved, 2026-09-23)
     const k = looks.clock, d = looks.duration;
-    ok(!!k && k.cls.includes("at-clock") && k.font === k.wallFont && k.color === k.wallColor && k.bg === k.wallBg && k.border === k.wallBorder,
-      `the "Clear @ HH:MM" note matches the wall clock: its colours and its digital font   [${k && k.font} ${k && k.color} on ${k && k.bg}]`);
+    ok(!!k && k.cls.includes("at-clock") && k.hmFont === k.wallFont && k.color === k.wallColor && k.bg === k.wallBg && k.border === k.wallBorder,
+      `the "Clear @ HH:MM" note matches the wall clock: its colours, and its HH:MM in the wall clock's digital font   [${k && k.hmFont} ${k && k.color} on ${k && k.bg}]`);
+    ok(!!k && /^"?DSEG7 Classic/.test(k.wallFont) && /^\d\d:\d\d$/.test(k.hmText) && /^"?DSEG14 Classic/.test(k.lblFont || ""),
+      `…the digits in DSEG7 (7-segment LED), "Clear @" in DSEG14 (DSEG7 has no "@")   [${k && k.lblFont}]`);
     ok(!!d && d.cls.includes("minutes") && /Patrick Hand/.test(d.font) && d.bg === "rgb(255, 233, 92)", `the "N min" note stays a post-it, hand-lettered   [${d && d.font}]`);
-    await ev("document.fonts.load('16px \"Patrick Hand\"').then(() => 1)");
-    const f = await ev(`({ ok: document.fonts.check('16px "Patrick Hand"'), src: performance.getEntriesByType('resource').map(e => e.name).filter(n => /PatrickHand/.test(n)) })`);
-    ok(f.ok && f.src.length > 0 && f.src.every((u) => u.startsWith("http://localhost:8898/")), `…in a font bundled with the game, not fetched from the web (works offline in Fang Rock)   [${f.src.map((u) => u.split("/").slice(-2).join("/")).join(", ")}]`);
+    await ev(`Promise.all(['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "DSEG14 Classic"'].map(f => document.fonts.load(f))).then(() => 1)`);
+    const f = await ev(`({ ok: ['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "DSEG14 Classic"'].every(x => document.fonts.check(x)),
+                          src: performance.getEntriesByType('resource').map(e => e.name).filter(n => /PatrickHand|DSEG/.test(n)) })`);
+    ok(f.ok && f.src.length === 3 && f.src.every((u) => u.startsWith("http://localhost:8898/")), `…in fonts bundled with the game, not fetched from the web (works offline in Fang Rock)   [${f.src.map((u) => u.split("/").slice(-2).join("/")).join(", ")}]`);
   }
 
   /* ----------------------------------------------- O. Refinement 2 extras */
@@ -815,6 +820,8 @@ try {
   section("L. layout: all 12 nests beside the how-to panel, at every measured size");
   await ev("__et.start('both', 4)");
   await ev("__et.advance(0.1)");
+  // measure in the real faces, not the fallback they swap from (the LED faces are wider than Courier)
+  await ev(`Promise.all(['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "DSEG14 Classic"'].map(f => document.fonts.load(f))).then(() => document.fonts.ready).then(() => 1)`);
   for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
     await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
     await ev(`(() => { document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()`);
@@ -828,7 +835,7 @@ try {
         n.querySelector('.clock').textContent = '88:88';
         // AD note styles: both kinds, each at its widest (every other nest), under a coat of gunk
         const p = n.querySelector('.postit'), clock = n.dataset.id % 2 === 0;
-        p.hidden = false; p.textContent = clock ? 'Clear @ 23:58' : '30 min';
+        p.hidden = false; p.textContent = ''; ET.view.fillNote(p, clock ? { kind: 'clock', at: 23 * 3600 + 58 * 60 } : { kind: 'duration', minutes: 30 });
         p.classList.toggle('at-clock', clock); p.classList.toggle('minutes', !clock);
         ET.mess.splatter(n.querySelector('.mess'), 6);
       });

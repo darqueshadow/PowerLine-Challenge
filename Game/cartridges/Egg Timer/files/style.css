@@ -26,6 +26,26 @@
   --font-display: "Arial Black", Impact, "Haettenschweiler", sans-serif;
   --font-ui: "Trebuchet MS", Verdana, sans-serif;
   --font-mono: "Courier New", Courier, monospace;
+  --font-led: "DSEG7 Classic", "Courier New", Courier, monospace;      /* the wall clock and the AD note's HH:MM */
+  --font-led-text: "DSEG14 Classic", "Courier New", Courier, monospace; /* letters on an LED ("Clear @"): DSEG7 has no "@" */
+}
+
+/* DSEG: 7- and 14-segment LED digits for the wall clock and the AD "Clear @ HH:MM" note (2026-09-23), bundled in
+   fonts/ unmodified. Copyright (c) 2017-2018 keshikan, Reserved Font Name "DSEG". Licensed under the SIL Open Font
+   License 1.1 (fonts/DSEG-LICENSE.txt). */
+@font-face {
+  font-family: "DSEG7 Classic";
+  src: url("fonts/DSEG7Classic-Bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DSEG14 Classic";
+  src: url("fonts/DSEG14Classic-Bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
 }
 
 /* Patrick Hand: neat hand-lettering for the AD "N min" post-it, bundled in fonts/ so it works offline in Fang Rock.
@@ -306,7 +326,7 @@ h2 {
   background: var(--led-bg);
   border: 4px solid var(--led);
   box-shadow: 5px 5px 0 var(--hot);
-  font-family: var(--font-mono);
+  font-family: var(--font-led);
   font-weight: 900;
   font-size: clamp(30px, 4vw, 62px);
   letter-spacing: 0.04em;
@@ -683,11 +703,13 @@ h2 {
   border: 3px solid var(--led);
   box-shadow: 3px 3px 0 var(--hot);
   transform: none;
-  font-family: var(--font-mono);
+  font-family: var(--font-led);
   font-weight: 900;
   text-shadow: 1px 1px 0 #5a2a00;
   line-height: 1.1;
 }
+/* the LED digits (2026-09-23): HH:MM in the wall clock's own DSEG7; "Clear @" in DSEG14, its 14-segment sibling */
+.postit.at-clock .led-text { font-family: var(--font-led-text); word-spacing: 0.2em; }
 .postit.minutes { font-family: "Patrick Hand", var(--font-ui); font-size: clamp(13px, 1.3vw, 19px); line-height: 1.05; padding: 2px 7px; }
 
 /* ⏳ placeholder look: VF's "Clear Fueling" speech bubble, shown briefly then faded */
