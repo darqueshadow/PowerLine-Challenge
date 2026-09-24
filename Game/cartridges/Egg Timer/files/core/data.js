@@ -31,6 +31,14 @@
 
   function yes(v) { return /^(yes|true|1)$/i.test(String(v)); }
 
+  /* A problem with a sheet's contents, not with fetching it: the title says what's wrong with which sheet
+     (`sheet` is "units" or "types"), without the http:// hint a failed fetch gets. */
+  function sheetError(sheet, message) {
+    var e = new Error(message);
+    e.sheet = sheet;
+    return e;
+  }
+
   ET.data = {
     PATHS: PATHS,
 
@@ -41,7 +49,7 @@
       var col = function (name) { return head.indexOf(name); };
       var need = ["code", "meaning", "min_minutes", "max_minutes", "two_phase_only", "hidden_until_trigger"];
       need.forEach(function (n) {
-        if (col(n) < 0) throw new Error("cav type table is missing the column: " + n);
+        if (col(n) < 0) throw sheetError("types", "The CAV type table has no \"" + n + "\" column.");
       });
       return r.slice(1).map(function (c) {
         return {
@@ -57,8 +65,23 @@
       });
     },
 
+    /* The transport units, from the sheet's "Units" column, found by its header rather than by position
+       (Andrew, 2026-09-24). D2 never puts a unit on two nests at once, so the game needs at least one different
+       unit for every nest: a sheet that can't give that refuses to start, saying why, rather than doubling units up. */
     parseUnits: function (text) {
-      return rows(text).slice(1).map(function (c) { return c[0]; }).filter(function (u) { return /^\d{4}$/.test(u); });
+      var r = rows(text);
+      if (!r.length) throw sheetError("units", "The transport unit sheet is empty.");
+      var col = r[0].map(function (h) { return h.toLowerCase(); }).findIndex(function (h) { return h === "units" || h === "unit"; });
+      if (col < 0) throw sheetError("units", "The transport unit sheet has no \"Units\" column.");
+      var units = r.slice(1).map(function (c) { return c[col]; }).filter(function (u) { return /^\d{4}$/.test(u); });
+      var distinct = units.filter(function (u, i) { return units.indexOf(u) === i; }).length;
+      var need = ET.CONFIG.nestsCap;
+      if (!distinct) throw sheetError("units", "The transport unit sheet lists no four-digit unit numbers.");
+      if (distinct < need) {
+        throw sheetError("units", "The transport unit sheet lists only " + distinct + " different unit" + (distinct === 1 ? "" : "s") +
+          "; the game needs at least " + need + ", one for every nest.");
+      }
+      return units;
     },
 
     fetchText: function (path) {
@@ -72,7 +95,9 @@
       var d = ET.data;
       return Promise.all([d.fetchText(PATHS.types), d.fetchText(PATHS.blank), d.fetchText(PATHS.units)])
         .then(function (t) {
-          return { types: d.parseTypes(t[0]), blankTypes: d.parseTypes(t[1]), units: d.parseUnits(t[2]) };
+          var types = d.parseTypes(t[0]), blankTypes;
+          try { blankTypes = d.parseTypes(t[1]); } catch (e) { if (e.sheet) e.sheet = "blank"; throw e; }   // name the right file
+          return { types: types, blankTypes: blankTypes, units: d.parseUnits(t[2]) };
         });
     }
   };

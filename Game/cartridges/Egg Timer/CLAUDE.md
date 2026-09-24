@@ -47,7 +47,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   `clock` is displayed time at the wave's shared speed. Bold is decided on `clock`, overtime on `time`.
 - `datasets/cav_types.csv` is Andrew's table; `cav_types_blank.csv` is the Blank Dataset Module, a
   Developer-Mode-only copy of the same seven types (D1). **Edit both** if the real table changes: the logic
-  rig fails when they differ. Units come from `../../../datasets/AP_ENP_BSE/2. Units_Transports.csv` (shared).
+  rig fails when they differ. Units come from `../../../datasets/AP_ENP_BSE/2. Units_Transports.csv` (shared). It is read by its
+  "Units" header; a sheet with fewer than 12 different units (one per nest) refuses to start, saying why.
 - **Rigs** (in this folder; `verify-*.mjs` never publishes):
   - `node verify-egg-timer-logic.mjs`: no server. Checks the curves and drives the game's states.
   - `node verify-egg-timer.mjs [shotsDir]`: headless Chrome via NB's `cdp.mjs`. Serve with

@@ -81,6 +81,23 @@ eq(types.filter((t) => t.hiddenUntilTrigger).map((t) => t.code), ["VF"], "only V
 const units = ET.data.parseUnits(read("../../datasets/AP_ENP_BSE/2. Units_Transports.csv"));
 eq(units.length, 54, "54 transport units from the shared Data Sheet");
 ok(units.every((u) => /^\d{4}$/.test(u)), "every unit is four digits");
+{
+  // Andrew, 2026-09-24: the unit column is found by its header, and a unit list the game can't use refuses to start
+  const twelve = Array.from({ length: 12 }, (_, i) => String(2101 + i));
+  const sheet = (head, list) => [head, ...list].join("\r\n");
+  const refuse = (text) => { try { ET.data.parseUnits(text); return null; } catch (e) { return { sheet: e.sheet, message: e.message }; } };
+  eq(ET.data.parseUnits(sheet("Station,Units,Notes", twelve.map((u) => `St ${u},${u},x`))), twelve, "the unit column is read by its \"Units\" header, wherever it sits");
+  eq(ET.data.parseUnits(sheet("units", twelve)).length, 12, "…in any case, and twelve different units (one per nest) are enough");
+  const noCol = refuse(sheet("Unit Number,Station", twelve.map((u) => `${u},St`)));
+  ok(!!noCol && noCol.sheet === "units" && /no "Units" column/.test(noCol.message), `a sheet with no "Units" column refuses to start, and says so   [${noCol && noCol.message}]`);
+  const empty = refuse(""), headOnly = refuse("Units\r\n"), junk = refuse(sheet("Units", ["21O1", "abcd", "210"]));
+  ok(!!empty && /is empty/.test(empty.message), `an empty sheet refuses to start   [${empty && empty.message}]`);
+  ok(!!headOnly && !!junk && [headOnly, junk].every((x) => x.sheet === "units" && /no four-digit unit numbers/.test(x.message)), `a sheet with no four-digit unit in it refuses to start   [${headOnly && headOnly.message}]`);
+  const short = refuse(sheet("Units", twelve.slice(0, 11).concat(["2101"])));
+  ok(!!short && /only 11 different units; the game needs at least 12/.test(short.message), `eleven different units (one doubled to make twelve rows) refuse to start: D2 needs one per nest   [${short && short.message}]`);
+  const types = (() => { try { ET.data.parseTypes("code,meaning\r\nVS,Vehicle Service"); return null; } catch (e) { return { sheet: e.sheet, message: e.message }; } })();
+  ok(!!types && types.sheet === "types" && /no "min_minutes" column/.test(types.message), `a CAV type table missing a column says which one   [${types && types.message}]`);
+}
 
 /* ------------------------------------------------------------------ D. game */
 const T = (code, min, extra = {}) => ({ code, meaning: code, min, max: min, twoPhaseOnly: false, hiddenUntilTrigger: false, ...extra });

@@ -1227,6 +1227,30 @@ try {
     eq(await ev("document.querySelector('#title-prompt').textContent"), "PRESS ENTER", "…the prompt changes once it has loaded");
     await press("Enter");
     eq(await ev("__et.screen()"), "setup", "…and then Enter goes on to setup as usual");
+
+    // Andrew, 2026-09-24: a unit list the game can't use refuses to start, with a clear message (served here in place
+    // of the real sheet, which is never touched)
+    const unusable = async (body) => {
+      await c.send("Fetch.enable", { patterns: [{ urlPattern: "*Units_Transports.csv*", requestStage: "Request" }] });
+      await reload();
+      const rid = await held(/Units_Transports\.csv/);
+      if (rid) await c.send("Fetch.fulfillRequest", { requestId: rid, responseCode: 200, responseHeaders: [{ name: "Content-Type", value: "text/csv" }], body: Buffer.from(body).toString("base64") });
+      await c.send("Fetch.disable");
+      for (let i = 0; i < 100 && (await ev("!!window.__et && __et.screen()")) !== "error"; i++) await wait(50);
+      await press("Enter");
+      await ev("document.querySelector('#screen-title').click(), 1");
+      return ev("({ screen: __et.screen(), ready: __et.ready(), prompt: document.querySelector('#title-prompt').textContent, why: document.querySelector('#title-error').hidden ? '' : document.querySelector('#title-error').textContent })");
+    };
+    const said = (u) => `[${u.prompt} · ${u.why}]`;
+    const empty = await unusable("Units\r\n");
+    ok(empty.screen === "error" && !empty.ready && empty.prompt === "CAN'T START: NO USABLE UNIT LIST" && /lists no four-digit unit numbers/.test(empty.why),
+      `an empty unit list: the title says it can't start, and why, and neither Enter nor a click starts anything   ${said(empty)}`);
+    ok(empty.why.includes("Game/datasets/AP_ENP_BSE/2. Units_Transports.csv") && !empty.why.includes("http://"), "…naming the sheet, with no misleading server hint");
+    const noCol = await unusable("Unit Number,Station\r\n" + Array.from({ length: 12 }, (_, i) => `${2101 + i},St`).join("\r\n") + "\r\n");
+    ok(noCol.screen === "error" && !noCol.ready && /no "Units" column/.test(noCol.why), `a sheet without a "Units" column: the same, naming the missing column   ${said(noCol)}`);
+    await reload();   // back to the real sheet
+    for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
+    ok(await ev("__et.ready() && __et.data().units.length === 54"), "(the real sheet loads again)");
   }
 
   /* ------------------------------------------------------------ K. errors */

@@ -355,11 +355,18 @@
     app.data = data;
     $("#title-prompt").textContent = "PRESS ENTER";
   }).catch(function (err) {
-    app.screen = "error";
-    $("#title-prompt").textContent = "COULDN'T LOAD THE CAV DATA";
+    app.screen = "error";   // nothing on this screen starts a game (Andrew, 2026-09-24)
+    var sheet = err && err.sheet;
     $("#title-error").hidden = false;
-    $("#title-error").textContent = String(err && err.message || err) +
-      " — run it over http:// (Game/Start Dev Server.bat), not by opening the file.";
+    if (sheet) {
+      // the sheet arrived but the game can't use it: say which sheet and why (a server hint wouldn't help)
+      $("#title-prompt").textContent = sheet === "units" ? "CAN'T START: NO USABLE UNIT LIST" : "CAN'T START: NO USABLE CAV TYPE TABLE";
+      $("#title-error").textContent = err.message + " (" + ET.data.PATHS[sheet].replace(/^(\.\.\/)+/, "Game/") + ")";
+    } else {
+      $("#title-prompt").textContent = "COULDN'T LOAD THE CAV DATA";
+      $("#title-error").textContent = String(err && err.message || err) +
+        " — run it over http:// (Game/Start Dev Server.bat), not by opening the file.";
+    }
   });
   requestAnimationFrame(frame);
 
