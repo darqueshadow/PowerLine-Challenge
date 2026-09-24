@@ -65,6 +65,17 @@
   --warp-off-border: #1f3a2a;             /* dark moss (panel off, border) */
   --warp-off-ink: #1c3526;                /* dim moss (panel off, lettering) */
 
+  /* E27: the Time Accelerator's grandfather clock (⏳ placeholder) */
+  --clock-case: #7a4a22;                  /* walnut */
+  --clock-face: #fff4d6;                  /* cream (clock face) */
+  --clock-window: #24123f;                /* dark plum glass (pendulum window) */
+  --clock-brass: #e0b040;                 /* brass (pendulum) */
+  --clock-hands: #1a0d2e;                 /* near-black aubergine (hands, "5×") */
+
+  /* E27: the options screen's HOW / TO / PLAY signs (lit, they use --gold) */
+  --sign-off-bg: #2a1640;                 /* unlit sign, dark plum */
+  --sign-off-ink: #7d6a96;                /* unlit sign lettering, dusty lilac */
+
   /* Egg-laying cord and Time Warp lightning */
   --cord-red: #9e0a1e;                    /* blood red */
   --cord-purple: #7a2cc4;                 /* cord purple (creeping stripes) */

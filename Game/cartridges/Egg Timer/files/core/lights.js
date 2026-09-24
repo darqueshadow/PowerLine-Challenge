@@ -126,6 +126,39 @@
       var v = visible(), all = [].concat.apply([], v.map(function (s) { return s.bulbs; }));
       return { mode: v.some(calm) ? "calm" : "attract", bulbs: all.length, lit: all.filter(function (b) { return b.on; }).length };
     },
-    tryToggle: function (i) { var s = visible()[0], b = s && s.bulbs[i]; return !!b && set(s, b, !b.on, now()); }
+    tryToggle: function (i) { var s = visible()[0], b = s && s.bulbs[i]; return !!b && set(s, b, !b.on, now()); },
+
+    /* E27 (ruled 2026-09-24): the options screen's HOW / TO / PLAY signs. They light one word at a time, then all
+       three for a beat, and repeat, only while their screen shows. 🚨 SAFETY: every change goes through step(), which
+       refuses one within signsMinChange of the last (never below 0.5 s), so at most 2 changes a second. Under reduced
+       motion all three stay lit and nothing changes. */
+    signs: function (host, screen) {
+      var list = [].slice.call(host.querySelectorAll(".sign"));
+      var PATTERN = [[0], [1], [2], [0, 1, 2]];
+      sg = { list: list, screen: screen, at: -1, last: -Infinity, log: [] };
+      function paint(lit) { list.forEach(function (e, i) { e.classList.toggle("on", lit.indexOf(i) >= 0); }); }
+      sg.step = function (t) {
+        var gap = Math.max(0.5, C().signsMinChange);                  // 🚨 the signs' flash-rate guard
+        if (t - sg.last < gap) return false;
+        sg.at = (sg.at + 1) % PATTERN.length;
+        sg.last = t;
+        paint(PATTERN[sg.at]);
+        sg.log.push({ t: t, lit: PATTERN[sg.at].slice() });
+        if (sg.log.length > 400) sg.log.splice(0, 200);
+        return true;
+      };
+      paint([0, 1, 2]);
+      setInterval(function () {
+        if (screen.hidden) return;
+        if (root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches) { sg.at = -1; paint([0, 1, 2]); return; }
+        var t = now(), hold = sg.at === PATTERN.length - 1 ? C().signsAllSeconds : C().signsStepSeconds;
+        if (sg.at < 0 || t - sg.last >= hold) sg.step(t);
+      }, 50);
+    },
+    /* For rigs: the signs' change log (seconds, which lit), which are lit now, and a direct try at a change. */
+    signLog: function () { return sg ? sg.log.slice() : []; },
+    signsLit: function () { return sg ? sg.list.map(function (e) { return e.classList.contains("on"); }) : []; },
+    trySign: function () { return !!sg && sg.step(now()); }
   };
+  var sg = null;
 })(window);

@@ -11,7 +11,7 @@
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  var field, board, floor, hud, banner, popups, wall, cleanup, warp;
+  var field, board, floor, hud, banner, popups, wall, cleanup, warp, hands;
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
@@ -281,6 +281,28 @@
      stops twitching; style.css stops the CSS loops. One live query, read every frame, so a change applies at once. */
   var motionQuery = root.matchMedia ? root.matchMedia("(prefers-reduced-motion: reduce)") : null;
   function reducedMotion() { return !!(motionQuery && motionQuery.matches); }
+  /* E27: the grandfather clock's hands. They turn only while the Time Accelerator runs, by the player's seconds (so
+     a pause holds them), and stop where they are when it ends. Under reduced motion they hold still and the face
+     shows "5×" instead. */
+  function resetHands() {
+    hands.at = ET.CONFIG.accelHandsAt.slice();
+    hands.t = null;
+    drawHands();
+  }
+  function drawHands() {
+    hands.hour.setAttribute("transform", "rotate(" + hands.at[0].toFixed(2) + " 40 46)");
+    hands.minute.setAttribute("transform", "rotate(" + hands.at[1].toFixed(2) + " 40 46)");
+  }
+  function turnHands(snap) {
+    var on = !!snap.warp, still = reducedMotion();
+    var dt = hands.t === null || snap.time < hands.t ? 0 : snap.time - hands.t;
+    hands.t = snap.time;
+    warp.classList.toggle("still", on && still);
+    if (!on || still || dt <= 0) return;
+    var turn = 360 * ET.CONFIG.accelMinuteTurns * dt;
+    hands.at = [(hands.at[0] + turn / 12) % 360, (hands.at[1] + turn) % 360];
+    drawHands();
+  }
   function rejag(t) {
     var gap = Math.max(1 / 2.5, 1 / ET.CONFIG.lightningFlickerHz);   // 🚨 never more than 2.5 a second, whatever the tunable says
     if (bolt.lastJag >= 0 && (t - bolt.lastJag < gap || reducedMotion())) return;
@@ -301,7 +323,7 @@
     var on = !!snap.warp;
     bolt.g.style.display = on ? "" : "none";
     if (!on) { bolt.links = 0; bolt.lastJag = -1; return; }
-    var sr = cords.screen.getBoundingClientRect(), br = board.getBoundingClientRect(), wr = warp.getBoundingClientRect();
+    var sr = cords.screen.getBoundingClientRect(), br = board.getBoundingClientRect(), wr = hands.face.getBoundingClientRect();   // E27: from the clock face
     var from = { x: wr.left + wr.width / 2 - sr.left, y: wr.top + wr.height / 2 - sr.top };
     var left = snap.nests.filter(function (s) { return s.state === "active" || s.state === "overtime"; }).map(function (s) {
       var el = nests[s.id].el;
@@ -439,6 +461,10 @@
       hud.poolLabel.textContent = ET.CONFIG.poolKey;
       wall = { hm: $("#wall-hm"), ss: $("#wall-ss") };
       warp = $("#warp");
+      // E27: the Time Accelerator's grandfather clock (⏳ placeholder art), in front of its plaque
+      warp.insertBefore(ET.art.clockSvg(ET.CONFIG.warpFactor), warp.firstChild);
+      hands = { hour: warp.querySelector(".hour"), minute: warp.querySelector(".minute"), face: warp.querySelector(".face") };
+      resetHands();
 
       var offs = offsets();
       for (var i = 0; i < ET.Game.COLS * ET.Game.ROWS; i++) {
@@ -513,8 +539,9 @@
       field.classList.remove("hose");
       banner.hidden = true;
       cleanup.el.hidden = true;
-      warp.classList.remove("lit");
+      warp.classList.remove("lit", "still");
       board.classList.remove("warp");
+      resetHands();
       cords.list.forEach(function (c) { c.g.style.display = "none"; });
       popups.innerHTML = "";
       noTypesShown = false;
@@ -535,6 +562,7 @@
       wall.hm.textContent = hhmm(snap.wall);
       wall.ss.textContent = two(Math.floor(snap.wall) % 60);
       warp.classList.toggle("lit", !!snap.warp);
+      turnHands(snap);
       board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the nests with a running clock glow (E22)
 
       snap.nests.forEach(function (s) {
@@ -748,6 +776,11 @@
 
     /* For rigs: the Time Warp lightning: shown, how many links, its path, and when it last re-jagged (seconds). */
     lightning: function () { return { on: bolt.g.style.display !== "none", links: bolt.links, d: bolt.core.getAttribute("d"), log: bolt.log.slice() }; },
+
+    /* For rigs: the grandfather clock's hands (degrees from 12) and whether its face shows the "5×". */
+    clockHands: function () {
+      return { hour: hands.at[0], minute: hands.at[1], fivex: getComputedStyle(warp.querySelector(".fivex")).display !== "none" };
+    },
 
     /* For rigs: a nest's cord, if one is showing. */
     cord: function (id) {

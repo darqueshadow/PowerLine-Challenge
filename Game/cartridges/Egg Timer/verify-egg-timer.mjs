@@ -32,6 +32,7 @@ const THEME_BASELINE = new URL("./verify-egg-timer-theme-baseline.mjs", import.m
 const URL_GAME = "http://localhost:8898/Game/cartridges/Egg%20Timer/files/index.html?seed=42&clock=23:58&cb=" + process.pid;
 
 let pass = 0, fail = 0;
+let setupFont = 0;   // E27: the options screen's panel type size, compared with play's in section O
 const fails = [];
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 function ok(cond, label) {
@@ -224,8 +225,9 @@ try {
     // Refinement 6 §1: the title screen's own How To Play card, in the panel's place, laid out differently
     const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return { steps: [...c.querySelectorAll('li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.step').textContent),
       banner: c.querySelector('.banner').textContent, panelHere: !!document.querySelector('#screen-title #howto'), shown: c.getBoundingClientRect().width > 150 }; })()`);
-    eq(card.steps, ["1 The aliens are laying eggs in your CAVs.", "2 Clear each CAV the moment it's done, before the egg hatches.", "3 Clear fast, and breakfast gets fancier.", "4 Hose off the mess between waves."],
-      "Refinement 6 §1: the title screen shows a How To Play card with four numbered steps");
+    eq(card.steps, ["1 The aliens are laying eggs in your CAVs.", "2 Clear each CAV the moment it's done, before the egg hatches.", "3 Clear fast, and breakfast gets fancier.", "4 Hose off the mess between waves.",
+      "5 Time Accelerator! When all the wave's eggs are laid and none are ready, every clock speeds up 5×. Get your next RCAV ready!"],
+      "Refinement 6 §1 and E27: the title screen shows a How To Play card with five numbered steps, the fifth the Time Accelerator");
     ok(card.shown && card.banner === "HOW TO PLAY" && !card.panelHere, "…in place of the in-game panel, which isn't on the title screen");
   }
   await menuFit("title", "#howto-title");
@@ -346,6 +348,31 @@ try {
     ok(left.length === 6 && left.every((x) => x < -0.5) && right.every((x) => x > 0.5), `…and every eye follows the cursor, left and right   [${left.map((x) => x.toFixed(1)).join(",")} / ${right.map((x) => x.toFixed(1)).join(",")}]`);
     await menuFit("setup");
     ok((await ev("document.querySelector('#setup-critter').getBoundingClientRect().height")) > 80, "…and the options creature still shows");
+  }
+  {
+    // E27 (ruled 2026-09-24): bigger instructions on the options screen, under three HOW / TO / PLAY signs
+    setupFont = await ev("parseFloat(getComputedStyle(document.querySelector('#howto')).fontSize)");
+    const words = await ev("[...document.querySelectorAll('#screen-setup #howto .sign')].map(e => e.textContent)");
+    eq(words, ["HOW", "TO", "PLAY"], "E27: the options screen's panel has three signs, HOW / TO / PLAY");
+    // watch them in real time: one word at a time, then all three, then round again
+    const t0 = await ev("performance.now() / 1000");
+    await wait(6000);
+    const S = await ev(`(() => { const log = ET.lights.signLog().filter(e => e.t >= ${t0}); let m = 0;
+      for (let i = 0; i < log.length; i++) { let n = 0; for (let j = i; j < log.length && log[j].t < log[i].t + 1; j++) n++; m = Math.max(m, n); }
+      return { seq: log.map(e => e.lit.join('')), worst: m, gaps: log.slice(1).map((e, i) => e.t - log[i].t) }; })()`);
+    const seq = S.seq.join(" ");
+    ok(/0 1 2 012/.test(seq) && S.seq.length >= 6, `…they light one word at a time, then all three together, and repeat   [${seq}]`);
+    ok(S.worst <= 2 && S.gaps.every((g) => g >= 0.5 - 0.02), `SAFETY: the signs never change more than 2 times a second   [worst ${S.worst} in any 1 s, shortest gap ${Math.min(...S.gaps).toFixed(2)} s]`);
+    const tries = await ev("(() => { let n = 0; for (let i = 0; i < 20; i++) n += ET.lights.trySign() ? 1 : 0; return n; })()");
+    ok(tries <= 1, `SAFETY: the signs' guard refuses a change inside 0.5 s, like the lights'   [${tries} of 20 rapid tries went through]`);
+    await shot("02b-setup-signs");
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    await wait(300);
+    const n0 = await ev("ET.lights.signLog().length");
+    await wait(1500);
+    const still = await ev("({ lit: ET.lights.signsLit(), n: ET.lights.signLog().length })");
+    ok(still.lit.every(Boolean) && still.lit.length === 3 && still.n === n0, `SAFETY: with reduced motion all three signs stay lit, and nothing changes   [${JSON.stringify(still.lit)}, ${still.n - n0} changes]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "clear/1", "defaults: Clear CAVs Only, 1 box");
   await press("ArrowRight");
@@ -894,6 +921,10 @@ try {
   {
     const txt = await ev("document.querySelector('#howto').innerText");
     ok(await ev("!!document.querySelector('#howto') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "a how-to panel sits down one side during play");
+    {
+      const playFont = await ev("parseFloat(getComputedStyle(document.querySelector('#howto')).fontSize)");
+      ok(setupFont > playFont * 1.15, `E27: the options screen's instructions are bigger than in play   [${setupFont} px vs ${playFont} px]`);
+    }
     const lines = await ev("[...document.querySelectorAll('#howto li')].map(l => l.textContent)");
     eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", "SWITCH Tab / Shift+Tab: next / previous Command Line (keeps what you typed).",
       "F12 Next Command Line, cleared.", "ESC Pause.", "CLEANUP Click & drag the hose to clean up the mess."], "Refinement 3 §2: the panel's lines, in order (Refinement 5 §6: the new Cleanup line)");
@@ -1175,9 +1206,9 @@ try {
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);
     ok(lay.besideHowto, `every nest sits beside the how-to panel, none under it   ${at}`);
-    eq(lay.clearOfTop, 0, `the wall clock and TIME WARP panel sit clear of every nest   ${at}`);
+    eq(lay.clearOfTop, 0, `the wall clock and the Time Accelerator's clock sit clear of every nest   ${at}`);
     ok(lay.clockCentre, `Refinement 6 §3: the wall clock is at the top centre of the playing field   ${at}`);
-    ok(lay.warpCentre && lay.warpClear === 0, `Refinement 6 §2: the Time Warp panel sits in the centre of the board, clear of every nest and readout   ${at}`);
+    ok(lay.warpCentre && lay.warpClear === 0, `Refinement 6 §2 and E27: the Time Accelerator's grandfather clock sits in the centre of the board, clear of every nest and readout   ${at}`);
     ok(lay.howtoFits, `the how-to panel fits without scrolling   ${at}`);
     eq(lay.doodled, 0, `Refinement 5 §3: no doodle covers any of the panel's text   ${at}`);
     eq(lay.bulbOnWord, 0, `no attract light sits behind a word of the panel   ${at}`);
@@ -1191,10 +1222,17 @@ try {
   await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
   /* ------------------------------------------------------- P. Time Warp */
-  section("P. Time Warp (Refinement 3 §4)");
+  section("P. Time Warp, shown as the Time Accelerator (Refinement 3 §4, E27)");
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.1)");
-  eq(await ev("document.querySelector('#warp').classList.contains('lit')"), false, "the TIME WARP panel is dark at the start of a wave");
+  eq(await ev("document.querySelector('#warp').classList.contains('lit')"), false, "the Time Accelerator is dark at the start of a wave");
+  {
+    // E27: a grandfather clock whose hands turn only while it runs
+    const off = await ev("(() => { const a = ET.view.clockHands(); __et.advance(0.5); const b = ET.view.clockHands(); return { a, b, svg: !!document.querySelector('#warp svg.clock-art .hour') && !!document.querySelector('#warp .minute'), text: document.querySelector('#warp .plaque').textContent }; })()");
+    ok(off.svg && off.text === "TIME ACCELERATOR", `E27: the centre panel is a grandfather clock with an hour and a minute hand, over a "TIME ACCELERATOR" plaque   [${off.text}]`);
+    ok(off.a.minute === off.b.minute && off.a.hour === off.b.hour, "…and its hands stand still while it isn't running");
+    ok(!(await ev("document.body.innerText")).toUpperCase().includes("TIME WARP"), "E27: nothing a player sees says \"Time Warp\"");
+  }
   {
     let lit = null;
     for (let t = 0; t < 300 && !lit; t += 0.25) {
@@ -1204,7 +1242,14 @@ try {
       await ev("__et.advance(0.25)");
     }
     ok(!!lit && lit.spawned === lit.quota, "the clocks warp once the wave's last egg has spawned");
-    eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp').textContent")], [true, "TIME WARP"], "…and the panel lights up \"TIME WARP\"");
+    eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp .plaque').textContent")], [true, "TIME ACCELERATOR"], "…and the Time Accelerator lights up");
+    {
+      // E27: the hands spin fast while it runs (one evaluation, so the live page can't end it in between)
+      const sp = await ev("(() => { const a = ET.view.clockHands(); __et.advance(0.1); const b = ET.view.clockHands(), s = __et.snapshot(); return { a, b, warp: s.warp, anim: getComputedStyle(document.querySelector('#warp .plaque')).animationName + '/' + getComputedStyle(document.querySelector('#warp')).animationName }; })()");
+      const turned = ((sp.b.minute - sp.a.minute) + 360) % 360;
+      ok(sp.warp && turned > 20 && sp.b.hour !== sp.a.hour, `E27: while it runs the clock's hands spin fast   [minute hand ${turned.toFixed(0)}° in 0.1 s]`);
+      eq([sp.b.fivex, sp.anim], [false, "none/none"], "…with no \"5×\" on the face, and nothing on the clock flickering");
+    }
     await ev("__et.advance(0)");
     const glow = () => ev(`(() => {
       const one = (n) => ({ border: getComputedStyle(n.querySelector('.readout .unit')).borderTopColor, art: getComputedStyle(n.querySelector('.nest-art')).filter });
@@ -1254,6 +1299,10 @@ try {
       await wait(1500);
       const still1 = await ev("ET.view.lightning().d");
       ok(still0 === still1 && !!still0, "SAFETY: with reduced motion the lightning holds still");
+      // E27: the clock's hands hold still too, and its face reads "5×" (stepped in one evaluation while it runs)
+      const h = await ev("(() => { const a = ET.view.clockHands(); __et.advance(0.1); const b = ET.view.clockHands(); return { a, b, warp: __et.snapshot().warp, five: document.querySelector('#warp .fivex').textContent }; })()");
+      ok(h.warp && h.a.minute === h.b.minute && h.a.hour === h.b.hour && h.b.fivex && h.five === "5×", `SAFETY: with reduced motion the clock's hands hold still and its face shows "5×"   [${h.five}, ${h.b.fivex}]`);
+      await shot("13d-accelerator-reduced-motion");
       await c.send("Emulation.setEmulatedMedia", { features: [] });
       await press("Escape");
     }

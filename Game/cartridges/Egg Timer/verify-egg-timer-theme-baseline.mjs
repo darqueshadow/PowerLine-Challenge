@@ -110,6 +110,74 @@ export default {
   "top": "0px",
   "z-index": "4"
  },
+ "#screen-setup #howto": {
+  "font-size": "clamp(13px, min(1.25vw, 2.2vh), 20px)",
+  "padding-left": "18px",
+  "padding-right": "18px",
+  "width": "RAW <--panel-w>"
+ },
+ "#screen-setup #howto .title": {
+  "column-gap": "12px",
+  "font-size": "1.1em",
+  "row-gap": "12px",
+  "text-shadow": "none"
+ },
+ "#screen-setup #howto .signs": {
+  "column-gap": "5px",
+  "display": "flex",
+  "row-gap": "5px"
+ },
+ "#screen-setup #howto .sign": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(42, 22, 64)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "border-bottom-color": "rgb(26, 13, 46)",
+  "border-bottom-left-radius": "6px",
+  "border-bottom-right-radius": "6px",
+  "border-bottom-style": "solid",
+  "border-bottom-width": "3px",
+  "border-image-outset": "0",
+  "border-image-repeat": "stretch",
+  "border-image-slice": "100%",
+  "border-image-source": "none",
+  "border-image-width": "1",
+  "border-left-color": "rgb(26, 13, 46)",
+  "border-left-style": "solid",
+  "border-left-width": "3px",
+  "border-right-color": "rgb(26, 13, 46)",
+  "border-right-style": "solid",
+  "border-right-width": "3px",
+  "border-top-color": "rgb(26, 13, 46)",
+  "border-top-left-radius": "6px",
+  "border-top-right-radius": "6px",
+  "border-top-style": "solid",
+  "border-top-width": "3px",
+  "box-shadow": "rgb(26, 13, 46) 3px 3px 0px",
+  "color": "rgb(125, 106, 150)",
+  "display": "inline-block",
+  "padding-bottom": "1px",
+  "padding-left": "4px",
+  "padding-right": "4px",
+  "padding-top": "1px"
+ },
+ "#screen-setup #howto .sign.on": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(255, 210, 58)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "color": "rgb(26, 13, 46)"
+ },
  "#howto-title": {
   "background-attachment": "initial",
   "background-clip": "initial",
@@ -305,6 +373,17 @@ export default {
   "background-attachment": "initial",
   "background-clip": "initial",
   "background-color": "rgb(255, 143, 199)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial"
+ },
+ "#howto-title li:nth-child(5) .num": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(61, 255, 154)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",
@@ -994,6 +1073,29 @@ export default {
   "color": "rgb(255, 247, 232)"
  },
  "#warp": {
+  "align-items": "center",
+  "display": "flex",
+  "flex-direction": "column",
+  "font-family": "\"Arial Black\", Impact, Haettenschweiler, sans-serif",
+  "font-size": "clamp(10px, 1vw, 17px)",
+  "left": "50%",
+  "letter-spacing": "0.12em",
+  "line-height": "1.1",
+  "position": "absolute",
+  "text-align": "center",
+  "top": "50%",
+  "transform": "translate(-50%, -50%)",
+  "z-index": "1"
+ },
+ "#warp .clock-art": {
+  "display": "block",
+  "filter": "drop-shadow(rgb(0, 0, 0) 4px 4px 0px)",
+  "height": "min(23cqh, 30cqw)",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "width": "auto"
+ },
+ "#warp .plaque": {
   "background-attachment": "initial",
   "background-clip": "initial",
   "background-color": "rgb(7, 20, 13)",
@@ -1004,10 +1106,10 @@ export default {
   "background-repeat": "initial",
   "background-size": "initial",
   "border-bottom-color": "rgb(31, 58, 42)",
-  "border-bottom-left-radius": "4px",
-  "border-bottom-right-radius": "14px",
+  "border-bottom-left-radius": "3px",
+  "border-bottom-right-radius": "8px",
   "border-bottom-style": "solid",
-  "border-bottom-width": "4px",
+  "border-bottom-width": "3px",
   "border-image-outset": "0",
   "border-image-repeat": "stretch",
   "border-image-slice": "100%",
@@ -1015,49 +1117,35 @@ export default {
   "border-image-width": "1",
   "border-left-color": "rgb(31, 58, 42)",
   "border-left-style": "solid",
-  "border-left-width": "4px",
+  "border-left-width": "3px",
   "border-right-color": "rgb(31, 58, 42)",
   "border-right-style": "solid",
-  "border-right-width": "4px",
+  "border-right-width": "3px",
   "border-top-color": "rgb(31, 58, 42)",
-  "border-top-left-radius": "14px",
-  "border-top-right-radius": "4px",
+  "border-top-left-radius": "8px",
+  "border-top-right-radius": "3px",
   "border-top-style": "solid",
-  "border-top-width": "4px",
-  "box-shadow": "rgb(0, 0, 0) 5px 5px 0px",
+  "border-top-width": "3px",
+  "box-shadow": "rgb(0, 0, 0) 3px 3px 0px",
   "color": "rgb(28, 53, 38)",
-  "font-family": "\"Arial Black\", Impact, Haettenschweiler, sans-serif",
-  "font-size": "clamp(14px, 1.6vw, 26px)",
-  "left": "50%",
-  "letter-spacing": "0.2em",
-  "line-height": "1.1",
-  "padding-bottom": "6px",
-  "padding-left": "12px",
-  "padding-right": "12px",
-  "padding-top": "6px",
-  "position": "absolute",
-  "text-align": "center",
-  "top": "50%",
-  "transform": "translate(-50%, -50%)",
-  "width": "min-content",
-  "z-index": "1"
+  "display": "block",
+  "margin-top": "-2.4em",
+  "padding-bottom": "3px",
+  "padding-left": "8px",
+  "padding-right": "8px",
+  "padding-top": "3px",
+  "text-wrap-mode": "nowrap",
+  "transform": "rotate(-2deg)",
+  "white-space-collapse": "collapse"
  },
- "#warp.lit": {
-  "animation-delay": "0s",
-  "animation-direction": "normal",
-  "animation-duration": "0.9s",
-  "animation-fill-mode": "none",
-  "animation-iteration-count": "infinite",
-  "animation-name": "warp",
-  "animation-play-state": "running",
-  "animation-range-end": "normal",
-  "animation-range-start": "normal",
-  "animation-timeline": "auto",
-  "animation-timing-function": "steps(3)",
+ "#warp .plaque > span": {
+  "display": "block"
+ },
+ "#warp.lit .plaque": {
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "initial",
-  "background-image": "radial-gradient(rgb(61, 255, 154), rgb(14, 143, 76) 80%)",
+  "background-color": "rgb(61, 255, 154)",
+  "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",
   "background-position-y": "initial",
@@ -1067,15 +1155,70 @@ export default {
   "border-left-color": "rgb(176, 77, 255)",
   "border-right-color": "rgb(176, 77, 255)",
   "border-top-color": "rgb(176, 77, 255)",
-  "box-shadow": "rgb(0, 0, 0) 5px 5px 0px, rgba(61, 255, 154, 0.55) 0px 0px 22px 4px",
-  "color": "rgb(4, 23, 12)",
-  "text-shadow": "rgb(214, 255, 232) 0px 0px 6px"
+  "box-shadow": "rgb(0, 0, 0) 3px 3px 0px, rgba(61, 255, 154, 0.55) 0px 0px 14px 3px",
+  "color": "rgb(4, 23, 12)"
  },
- "@keyframes warp » 33%": {
-  "filter": "brightness(1.25)"
+ "#warp.lit .clock-art": {
+  "filter": "drop-shadow(rgb(0, 0, 0) 4px 4px 0px) drop-shadow(rgb(61, 255, 154) 0px 0px 7px)"
  },
- "@keyframes warp » 66%": {
-  "filter": "brightness(0.9)"
+ "#warp .case": {
+  "fill": "rgb(122, 74, 34)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-linejoin": "round",
+  "stroke-width": "2.5"
+ },
+ "#warp .window": {
+  "fill": "rgb(36, 18, 63)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2"
+ },
+ "#warp .rod": {
+  "fill": "none",
+  "stroke": "rgb(224, 176, 64)",
+  "stroke-width": "2.5"
+ },
+ "#warp .bob": {
+  "fill": "rgb(224, 176, 64)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2"
+ },
+ "#warp .face": {
+  "fill": "rgb(255, 244, 214)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2.5"
+ },
+ "#warp.lit .face": {
+  "fill": "rgb(214, 255, 232)"
+ },
+ "#warp .tick": {
+  "fill": "none",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-linecap": "round",
+  "stroke-width": "2"
+ },
+ "#warp .hand": {
+  "fill": "none",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-linecap": "round",
+  "stroke-width": "3.4"
+ },
+ "#warp .minute .hand": {
+  "stroke-width": "2.4"
+ },
+ "#warp .cap": {
+  "fill": "rgb(26, 13, 46)"
+ },
+ "#warp .fivex": {
+  "display": "none",
+  "fill": "rgb(26, 13, 46)",
+  "font-family": "\"Arial Black\", Impact, Haettenschweiler, sans-serif",
+  "font-size": "11px",
+  "paint-order": "stroke",
+  "stroke": "rgb(214, 255, 232)",
+  "stroke-width": "3"
+ },
+ "#warp.still .fivex": {
+  "display": "inline"
  },
  ".wallclock": {
   "background-attachment": "initial",

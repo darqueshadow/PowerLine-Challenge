@@ -120,6 +120,34 @@
       return svg;
     },
 
+    /* E27 (⏳ placeholder art): the Time Accelerator's grandfather clock, on viewBox 0 0 80 170. The hands are
+       groups the view turns about the face's centre (40, 46); `fivex` is the face's "5×", shown only when the
+       hands hold still under reduced motion. Final art is Gemini's (brief slot 14). */
+    clockSvg: function (factor) {
+      var svg = el("svg", { class: "clock-art", viewBox: "0 0 80 170", "aria-hidden": "true" });
+      el("path", { class: "case", d: "M6 22 Q40 -6 74 22 Z" }, svg);                      // the hood's crown
+      el("rect", { class: "case", x: 8, y: 20, width: 64, height: 54, rx: 4 }, svg);     // the hood
+      el("rect", { class: "case", x: 16, y: 74, width: 48, height: 72 }, svg);           // the trunk
+      el("rect", { class: "window", x: 27, y: 82, width: 26, height: 44, rx: 13 }, svg);
+      el("path", { class: "rod", d: "M40 82 V112" }, svg);
+      el("circle", { class: "bob", cx: 40, cy: 116, r: 7 }, svg);
+      el("rect", { class: "case", x: 10, y: 146, width: 60, height: 18, rx: 2 }, svg);   // the base
+      el("rect", { class: "case", x: 12, y: 164, width: 12, height: 5 }, svg);           // feet
+      el("rect", { class: "case", x: 56, y: 164, width: 12, height: 5 }, svg);
+      el("circle", { class: "face", cx: 40, cy: 46, r: 22 }, svg);
+      for (var i = 0; i < 12; i++) {
+        var a = i * Math.PI / 6, r0 = i % 3 ? 18 : 15.5;
+        el("path", { class: "tick", d: "M" + (40 + r0 * Math.sin(a)).toFixed(2) + " " + (46 - r0 * Math.cos(a)).toFixed(2) +
+          " L" + (40 + 20 * Math.sin(a)).toFixed(2) + " " + (46 - 20 * Math.cos(a)).toFixed(2) }, svg);
+      }
+      var five = el("text", { class: "fivex", x: 40, y: 62, "text-anchor": "middle" }, svg);
+      five.textContent = factor + "×";
+      el("path", { class: "hand", d: "M40 50 L40 34" }, el("g", { class: "hour" }, svg));
+      el("path", { class: "hand", d: "M40 51 L40 28" }, el("g", { class: "minute" }, svg));
+      el("circle", { class: "cap", cx: 40, cy: 46, r: 2.6 }, svg);
+      return svg;
+    },
+
     /* The egg ladder's dish for rung `i` (0 = bottom), with its caption (Refinement 3 rulings). */
     dishEl: function (i, caption) {
       var d = document.createElement("div");

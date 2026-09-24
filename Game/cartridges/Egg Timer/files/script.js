@@ -312,12 +312,14 @@
     }, C.doodleTurnEvery * 1000);
   }
 
-  /* Refinement 6 §1: the title screen's How To Play card. Andrew may reword these; keep them to four short steps. */
+  /* Refinement 6 §1: the title screen's How To Play card. Andrew may reword these; keep them short.
+     E27 (ruled 2026-09-24) adds step 5, the Time Accelerator; its speed-up is read from the config, so it stays true. */
   var TITLE_STEPS = [
     "The aliens are laying eggs in your CAVs.",
     "Clear each CAV the moment it's done, before the egg hatches.",
     "Clear fast, and breakfast gets fancier.",
-    "Hose off the mess between waves."
+    "Hose off the mess between waves.",
+    "Time Accelerator! When all the wave's eggs are laid and none are ready, every clock speeds up " + C.warpFactor + "×. Get your next RCAV ready!"
   ];
   function buildTitleCard() {
     var ol = $("#howto-title ol");
@@ -354,6 +356,7 @@
     paintHowTo("clear");
     buildDoodles();
     ET.lights.build($("#howto"));
+    ET.lights.signs($("#howto .title"), $("#screen-setup"));   // E27: the options screen's HOW / TO / PLAY signs
     buildTitleCard();
     ET.devmode.build({
       toggled: function (on) {

@@ -69,9 +69,10 @@
           <div class="wallclock" aria-label="Wall clock"><span id="wall-hm">00:00</span><span id="wall-ss">00</span></div>
         </div>
         <div id="board">
-          <!-- ⏳ placeholder look: the backlit alien panel that lights up while the clocks warp (Refinement 3 §4);
-               Refinement 6 §2 puts it in the centre of the board -->
-          <div id="warp" aria-live="polite"><span>TIME WARP</span></div>
+          <!-- ⏳ placeholder look: the Time Accelerator (Refinement 3 §4's Time Warp, renamed by E27; the code says
+               "warp"), in the centre of the board (Refinement 6 §2). E27: a grandfather clock, built by view.js, over a
+               plaque that lights up while the clocks speed up -->
+          <div id="warp" aria-live="polite"><span class="plaque"><span>TIME</span> <span>ACCELERATOR</span></span></div>
         </div>
         <div id="popups"></div>
         <div id="banner" hidden></div>
@@ -84,7 +85,8 @@
       <!-- Refinement 2 §1: how to play, down one side. Never lists CAV durations.
            Refinement 5 §3: a cartoon look with alien-family doodles, kept clear of the text (⏳ placeholder art) -->
       <aside id="howto" class="howto-panel" aria-label="How to play">
-        <div class="title"><span>HOW TO PLAY</span></div>
+        <!-- E27: on the options screen the three words are signs that light in turn (lights.js) -->
+        <div class="title"><span class="signs"><span class="sign">HOW</span> <span class="sign">TO</span> <span class="sign">PLAY</span></span></div>
         <ul></ul>
         <div class="doodles" aria-hidden="true"></div>
       </aside>

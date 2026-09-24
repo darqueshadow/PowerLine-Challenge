@@ -151,6 +151,10 @@
     // §4 "Time Warp": once the wave has spawned its last egg and no egg is bold, every clock (nests and the
     // wall clock) runs this many times the wave's speed, until an egg goes bold. Overtime is untouched.
     warpFactor: 5,                 // [T]
+    // E27 (ruled 2026-09-24): players see it as the "Time Accelerator" (the code keeps "warp"). The centre panel is a
+    // grandfather clock whose hands spin while it runs; with reduced motion they hold still and the face reads "5×".
+    accelMinuteTurns: 1,           // [T] the minute hand's turns a player second while it runs (the hour hand: 1/12 of that)
+    accelHandsAt: [305, 60],       // [T] where the hour and minute hands start, in degrees from 12 (about 10:10)
     // §7 egg-laying: when a CAV starts, a cord drops from the top of the screen (layDrop), lowers the egg
     // in and pops off (layPop). The CAV's clock starts at the pop; the cord snakes back up (layRetract)
     // while the clock runs. All in the player's seconds.
@@ -214,6 +218,15 @@
     lightsChaseLength: 3,          // [T]
     lightsCalmRate: 0.12,          // [T] play and cleanup: tries per bulb per second…
     lightsCalmMinToggle: 1.5,      // [T] …and never sooner than this after that bulb's last change
+
+    // ── E27 (ruled 2026-09-24): the options screen's HOW / TO / PLAY signs ─────
+    // They light one word at a time, then all three for a beat, and repeat.
+    // 🚨 SAFETY: at most 2 changes a second. Every change goes through the signs' own guard (lights.js), which refuses
+    //   one within signsMinChange of the last, and that is never below 0.5 s whatever it is set to. Under reduced
+    //   motion all three stay lit.
+    signsStepSeconds: 0.6,         // [T] each single word
+    signsAllSeconds: 1.2,          // [T] all three together
+    signsMinChange: 0.5,           // the guard (never below 0.5 s: 2 changes a second)
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.
