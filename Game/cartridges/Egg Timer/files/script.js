@@ -68,6 +68,7 @@
     ET.audio.titleTune(name === "title" || name === "setup");
     if (name === "play") ET.boxes.focus();
     ET.view.hose();   // the hose shows on the play screen only
+    paintMute(ET.audio.muted());   // the mute button's tooltip names the key that works on this screen
   }
 
   /* ---------------------------------------------------------------- setup */
@@ -168,6 +169,7 @@
     app.paused = on;
     $("#pause").hidden = !on;
     if (!on) ET.boxes.focus();
+    paintMute(ET.audio.muted());   // paused, M mutes again
   }
 
   function submit(text) {
@@ -190,21 +192,22 @@
 
   /* ----------------------------------------------------------------- mute */
   /* E24 (Andrew, 2026-09-24): the mute button, top left on every screen, and the M key; remembered per browser. */
-  function paintMute(m) {
-    var b = $("#mute");
-    b.setAttribute("aria-pressed", String(m));
-    b.title = (m ? "Sound off" : "Sound on") + " (M)";
-  }
-  function setMuted(on) { paintMute(ET.audio.setMuted(on)); }
   /* ⏳ E25: M is a letter players type (MB), so while a Command Line has the keys it types; there the button mutes,
      and the "ctrl-m" value lets Ctrl+M too. Everywhere else (menus, the pause, the end of a game) M mutes. */
+  function typing() { return app.screen === "play" && !!app.game && app.game.phase !== "over" && !app.paused; }
+  /* The button's tooltip names the key that works right now, if any (in play, as built, none: the button does it). */
+  function paintMute(m) {
+    var b = $("#mute"), key = !typing() ? "M" : C.muteKeyInPlay === "ctrl-m" ? "Ctrl+M" : "";
+    b.setAttribute("aria-pressed", String(m));
+    b.title = (m ? "Sound off" : "Sound on") + (key ? " (" + key + ")" : "");
+  }
+  function setMuted(on) { paintMute(ET.audio.setMuted(on)); }
   function muteKey(ev) {
     if (ev.key !== "m" && ev.key !== "M") return false;
-    var typing = app.screen === "play" && app.game && app.game.phase !== "over" && !app.paused;
-    if (typing ? !(C.muteKeyInPlay === "ctrl-m" && ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey)
-               : (ev.ctrlKey || ev.altKey || ev.metaKey)) return false;
+    if (typing() ? !(C.muteKeyInPlay === "ctrl-m" && ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey)
+                 : (ev.ctrlKey || ev.altKey || ev.metaKey)) return false;
     ev.preventDefault();
-    setMuted(!ET.audio.muted());
+    if (!ev.repeat) setMuted(!ET.audio.muted());   // a held key mutes once, not on every auto-repeat
     return true;
   }
 

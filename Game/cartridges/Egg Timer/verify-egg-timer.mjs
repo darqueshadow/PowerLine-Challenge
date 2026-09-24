@@ -266,6 +266,21 @@ try {
     await ev("ET.audio.thong(); 1");
     const loud = await loudest(700);
     ok(!m2.muted && m2.pressed === "false" && m2.saved === "0" && Math.abs(l2 - ET_LEVEL) < 0.002 && loud > 0.01, `M again brings it back   [level ${l2 && l2.toFixed(2)}, peak ${loud.toFixed(3)}]`);
+    {
+      // a held M mutes once: the keyboard's auto-repeats don't flip it on and off (review fix, 2026-09-24)
+      await c.send("Input.dispatchKeyEvent", { type: "rawKeyDown", key: "m", code: "KeyM", windowsVirtualKeyCode: 77 });
+      const flips = [];
+      for (let i = 0; i < 7; i++) {
+        await c.send("Input.dispatchKeyEvent", { type: "rawKeyDown", key: "m", code: "KeyM", windowsVirtualKeyCode: 77, autoRepeat: true });
+        flips.push(await ev("ET.audio.muted()"));
+      }
+      await c.send("Input.dispatchKeyEvent", { type: "keyUp", key: "m", code: "KeyM", windowsVirtualKeyCode: 77 });
+      const held = await m();
+      ok(flips.every((x) => x === true) && held.muted && held.saved === "1", `holding M down mutes once; its auto-repeats change nothing   [${flips.join(",")}]`);
+      eq(await ev("document.querySelector('#mute').title"), "Sound off (M)", "…and the button's tooltip names the key");
+      await press("m");
+      eq(await ev("[ET.audio.muted(), document.querySelector('#mute').title]"), [false, "Sound on (M)"], "…and M, pressed again, brings it back");
+    }
     // a real mouse click on the button, as a player would
     const click = async () => {
       const r = await ev("(() => { const q = document.querySelector('#mute').getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2]; })()");
@@ -711,12 +726,16 @@ try {
     await ev("document.querySelector('.box.active input').value = ''; document.querySelector('.box.active input').focus(); 1");
     await typeM();
     eq(await line(), ["m", false, true], "⏳ E25: in play M types into the Command Line (MB needs it) and doesn't mute");
+    const tip = () => ev("document.querySelector('#mute').title");
+    eq(await tip(), "Sound on", "…so in play the button's tooltip names no key");
     await press("Escape");
+    const pausedTip = await tip();
     await press("m");
     const pausedMute = await ev("ET.audio.muted()");
     await press("m");
     await press("Escape");
-    ok(pausedMute && !(await ev("ET.audio.muted()")), "…while paused, M mutes and unmutes");
+    ok(pausedMute && !(await ev("ET.audio.muted()")) && pausedTip === "Sound on (M)", `…while paused, M mutes and unmutes, and the tooltip says so   [${pausedTip}]`);
+    eq(await tip(), "Sound on", "…and back in play the tooltip drops the key again");
     const at = await ev("(() => { const q = document.querySelector('#mute').getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2]; })()");
     const click = async () => { for (const type of ["mousePressed", "mouseReleased"]) await c.send("Input.dispatchMouseEvent", { type, x: at[0], y: at[1], button: "left", clickCount: 1 }); await wait(30); };
     await click();
@@ -728,6 +747,7 @@ try {
     await ev("ET.CONFIG.muteKeyInPlay = 'ctrl-m'; 1");
     await typeM(CTRL);
     const ctrlOn = await line();
+    eq(await tip(), "Sound off (Ctrl+M)", "(with \"ctrl-m\" the tooltip names Ctrl+M in play)");
     await typeM(CTRL);
     const ctrlOff = await line();
     await ev("ET.CONFIG.muteKeyInPlay = 'none'; 1");
