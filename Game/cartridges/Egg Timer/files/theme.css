@@ -36,9 +36,9 @@
   --readout-bold-timer-ink: #fff;         /* white (at the limit) */
 
   /* Wall clock and the AD notes */
-  --led: #ffb000;                         /* LED amber */
-  --led-bg: #140900;                      /* near-black brown (LED glass) */
-  --led-shadow: #5a2a00;                  /* burnt brown (LED digit shadow) */
+  --led: #39ff14;                         /* LED neon green (Andrew, 2026-09-23: not Time Warp's mint; no glow) */
+  --led-bg: #031200;                      /* near-black green (LED glass) */
+  --led-shadow: #0f3a00;                  /* dark green (LED digit shadow, hard offset) */
   --postit: #ffe95c;                      /* post-it yellow */
   --postit-ink: #2a1a00;                  /* dark brown pencil */
 

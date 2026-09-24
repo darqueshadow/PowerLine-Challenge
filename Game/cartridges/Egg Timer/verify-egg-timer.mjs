@@ -715,6 +715,14 @@ try {
     ok(t0 !== t1, `…turning to a new angle now and then   [${t0} → ${t1}]`);
   }
   eq(await ev("parseFloat(getComputedStyle(document.querySelector('.wallclock')).fontSize) > 2 * parseFloat(getComputedStyle(document.querySelector('#hud-score')).fontSize)"), true, "the wall clock is larger again: over twice the HUD's type");
+  {
+    // Andrew, 2026-09-23 night: the wall clock is neon green, not Time Warp's mint, and never glows (glow is for lit bulbs)
+    const w = await ev(`(() => { const cs = getComputedStyle(document.querySelector('.wallclock')), r = getComputedStyle(document.documentElement);
+      return { color: cs.color, border: cs.borderTopColor, text: cs.textShadow, box: cs.boxShadow, warp: r.getPropertyValue('--warp').trim() }; })()`);
+    ok(w.color === "rgb(57, 255, 20)" && w.border === w.color && w.warp.toLowerCase() === "#3dff9a", `the wall clock is neon green, not Time Warp's green   [${w.color} vs ${w.warp}]`);
+    const blurs = (sh) => sh === "none" ? [] : [...sh.matchAll(/(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px/g)].map((m) => +m[3]).filter((b) => b > 0);
+    eq([blurs(w.text), blurs(w.box)], [[], []], "…with no glow: its shadows are hard offsets, no blur");
+  }
   ok((await ev("ET.audio.state()")) !== "none", `sound is unlocked by the first key press   [${await ev("ET.audio.state()")}]`);
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");
