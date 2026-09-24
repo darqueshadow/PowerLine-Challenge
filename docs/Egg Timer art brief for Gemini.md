@@ -16,11 +16,12 @@ in the running game). Nothing in the game changes until the art comes back and a
 4. Keep a short record of how each picture was made (the Gemini model, the date, the prompt, your approval). It goes
    in `files/art/README.md`, which isn't copied to the game site but can be read in the public repo (see "Getting
    the files onto the site").
-5. **Slot 13 (the five break stages) comes from E26, which Chat has ruled as a concept only.** How fast a clear has to
-   be for each stage is still open, so the slot describes the look and leaves the timing to the code. Hand it over
-   after the pilot like any other slot. Its art rules (clearly cartoon alien, nothing human, no red, gross-funny and
-   not gory) are written for slot 13 only. Chat hasn't said whether they also cover the hatchling's red eyes and
-   needle fangs (slot 2) or the "baby with too many teeth" in the art direction below, so those are unchanged.
+5. **E26 (ruled 2026-09-24)** added the five break stages (slot 13) and three alien hints on the waiting egg (in the
+   pilot, slot 0), and made **rule 6, "Aliens", apply to all alien art**. Hand the pilot over with its hints.
+6. **⏳ Before you hand over slot 2 (the hatchling) or slot 5 (the mom face), settle one thing with Chat:** rule 6 says
+   "no red blood except the cord". The hatchling has **red eyes** and a dark-red mouth, ribs and legs, and the mom face
+   has **bloodshot eyes with red veins**. They aren't blood, but they are red. Keep them, or change them to other
+   colours? Those two slots keep today's colours until then.
 
 ---
 
@@ -34,7 +35,8 @@ the CAV's real time is up, the nest goes **bold** (its readouts turn bold) and t
 slow, the egg **hatches** and a horrible little creature escapes.
 
 **Art direction: "juxtaposition".** A friendly family cartoon with a dark, twisted undertone: cute alien mums and
-babies, but a smile that's a touch too wide, a baby with too many teeth, and hatchlings that are genuinely horrible.
+babies, but a smile that's a touch too wide, a baby with too many fangs, and hatchlings that are genuinely horrible.
+Scary is fine, but always scary **alien** (rule 6).
 
 **Era: 1980s arcade.** Inside the game the look is 1980s: think C64, NES, Sega Genesis and arcade cabinets. That means
 bold, saturated, high-contrast colour, thick dark outlines, and hard edges with hard offset shadows, **not** soft glows
@@ -103,13 +105,20 @@ or any other existing character.
 - Names the site's publishing step throws away: **never `verify-…png`**, never a name ending `-test.html` or `.bak`,
   and **never a folder called `screenshots`, `handoffs` or `design-system`**.
 
+### 6. Aliens (every alien picture: eggs, hatchling, breaks, mom face, title family, doodles)
+
+- **Clearly a cartoon alien.** Scary is fine, but scary **alien**: extra eyes, eyes on stalks, fangs, tentacles, slime.
+- **Nothing human.** No hands or fingers, no human eyes, no human teeth, no human skin.
+- **No red blood.** The only blood red in the game is on the egg-laying cord.
+- **Gross and funny, family cartoon.** Think of a spilt slushie, not an injury. Never gory.
+
 ---
 
 ## The slots at a glance
 
 | # | Slot | Shape (viewBox) | Largest on screen | Format | Moving parts |
 |---|------|-----------------|-------------------|--------|--------------|
-| **0** | **PILOT: nest + egg** | `-60 -62 120 110` | 200 × 183 px | SVG (or layered 400 × 367 PNG/WebP) | egg (grows, rocks), 3 cracks (drawn in), ooze (on/off), two twig looks |
+| **0** | **PILOT: nest + egg** | `-60 -62 120 110` | 200 × 183 px | SVG (or layered 400 × 367 PNG/WebP) | egg (grows, rocks), 3 cracks (drawn in), 3 alien hints (on/off), ooze (on/off), two twig looks |
 | 1 | Broken shell halves | same as the nest | 74 × 40 px | SVG, same file canvas as the nest | none |
 | 2 | Hatchling | same as the nest | 97 × 77 px at rest, **~580 × 460 px** in its lunge | **SVG only** | whole creature; legs |
 | 3 | Egg-ladder dishes (7) | `-56 -38 112 76` | 150 × 102 px | SVG or 300 × 204 PNG/WebP | none (the whole dish pops) |
@@ -179,7 +188,7 @@ y= 48 └───────────────────────�
 |---|---|---|---|---|
 | 1 | `ooze` | A translucent alien ooze puddle (one shape of class `pool`; flat colour, no soft glow) and 3 violet tendrils (class `tendril`): the "alien nest" look | **Shown only while the nest is in play**, hidden while it isn't. Otherwise still. | none (still) |
 | 2 | `twigs back` (two classes) | The far rim of the nest, **behind** the egg | Still. Needs a second, plain look (see "Two looks" below). | none |
-| 3 | `egg` (in `egg.svg`) | The alien egg: `shell`, spots of class `speckle`, and three `crack` lines | **Grows** from 35% to 100% size, then **rocks** side to side while cracking (details below) | **(0, 20)**, the bottom of the egg where it sits in the twigs |
+| 3 | `egg` (in `egg.svg`) | The alien egg: `shell`, spots of class `speckle`, three `crack` lines and three alien hints (`hint-3`, `hint-4`, `hint-5`) | **Grows** from 35% to 100% size, then **rocks** side to side while cracking (details below) | **(0, 20)**, the bottom of the egg where it sits in the twigs |
 | 4 | `twigs front` (two classes) | The near rim and sticks, **in front of** the egg's base, overlapping it | Still. Needs the plain look too. | none |
 
 (Slots 1 and 2, the broken shell halves and the hatchling, sit in front of these on the same canvas.)
@@ -208,6 +217,25 @@ y= 48 └───────────────────────�
     crack 2 in from the upper right **(16, −24)**, about 34 units; crack 3 in from the left **(−20, −12)**, about
     21 units. You may redraw them, but keep **three**, each starting at the edge.
   - Cracks are hidden until the egg is bold.
+- **Three alien hints** (E26): as the egg nears hatching, bits of the alien start poking out through the cracks. Each
+  is its own group inside `egg`, hidden until the game shows it:
+
+| Group (class) | What pokes out | Shown from |
+|---|---|---|
+| `hint-3` | The **tip of an antenna**, poking out of the top crack | 40% of the way from bold to hatch |
+| `hint-4` | A **wiggly leg** poking through a crack | 60% |
+| `hint-5` | A **tentacle**, with **alien slurpy seeping out** of a crack | 80% |
+
+  - Each appears **once**, at its moment, and stays until the egg is cleared or hatches (so at 80% all three show).
+    It just appears: no fade, no blink, no flash.
+  - Draw each hint **coming out of one of your cracks**, so it sits where the crack is. Keep every hint **inside
+    about x −30…30, y −44…20**, so it rocks with the egg without leaving the nest.
+  - They're the still-frame signal too: with motion turned off, the hints and the cracks together show how close the
+    egg is to hatching.
+  - They follow rule 6 (a cartoon alien, nothing human, no red). The antenna, leg and tentacle should look like
+    parts of the creature that breaks out in stages 3–5 of slot 13, not like the horrible hatchling.
+  - **Colours:** use the egg's palette plus `--drool` #b8ff5e for the slurpy and `--cord-purple` #7a2cc4 for a
+    purple part. Anything else is named with its hex in your notes.
 - **Speckles** (each spot a shape of class `speckle`): spots on the shell. They move with the egg and are never
   animated on their own.
 - **One special type, VF (vehicle fuelling), hides its egg until it's bold.** It then appears at full size, uncracked, and
@@ -263,8 +291,8 @@ y= 48 └───────────────────────�
 
 - `nest.svg`: groups `ooze` (holding the `pool` and the `tendril` lines), `twigs back` and `twigs front` (class names
   exactly as written, two classes each for the twigs).
-- `egg.svg`: group `egg` holding the `shell`, spots of class `speckle`, and three paths of class `crack`
-  (each with `pathLength="1"`).
+- `egg.svg`: group `egg` holding the `shell`, spots of class `speckle`, three paths of class `crack`
+  (each with `pathLength="1"`), and the three hint groups `hint-3`, `hint-4` and `hint-5`.
 - Raster fallback: `nest--ooze@2x.png`, `nest--twigs-back@2x.png`, `nest--twigs-front@2x.png`, `egg--shell@2x.png`,
   and so on, each **400 × 367 px**. Cracks can't be raster: they must be SVG lines so the game can draw them in.
 
@@ -320,7 +348,7 @@ y= 48 └───────────────────────�
 | `creature` | The whole hatchling | Scurry: slides sideways 5× its width and turns 90°. Lunge: grows to 6× (then 9× while fading). | The centre of the creature's own box, currently about (0, −1) |
 | `legs` (inside `creature`, drawn behind the body) | Eight jointed spider legs, four a side (at least **4 separate paths**) | During a scurry the game squashes them flat about the line y = 0 (see note) | The line y = 0 |
 | `eye` (at least **4**, inside `creature`) | A cluster of odd-sized **red** eyes | Still | none |
-| `fangs` (inside `creature`) | A row of needle teeth | Still | none |
+| `fangs` (inside `creature`) | A row of needle fangs | Still | none |
 
   The body, ribs, maw, drool and pupils can all be in one still group inside `creature`.
 - **Note on the legs:** today the code makes the legs vanish and reappear (squashed to zero height and back) about
@@ -407,7 +435,7 @@ y= 48 └───────────────────────�
 - **Format:** SVG, or 450 × 450 PNG/WebP.
 - **Layers:** **none.** One flat picture: the game slides the whole face in and out.
 - **What it shows now:** the mommy gone wrong. Three bloodshot eyes on stalks with pinprick pupils, angry brows, and
-  the too-wide smile split open into a maw of jagged teeth, drooling. **It must scare in a single still frame.**
+  the too-wide smile split open into a maw of jagged fangs, drooling. Scary, but scary alien (rule 6). **It must scare in a single still frame.**
 - **Colours:**
   - skin `--mom-skin` #3f7a2c, shading `--mom-shade` #24501a, outline `--mom-outline` #0c1a08;
   - eyes `--mom-eye` #fff2d6, pupils `--mom-pupil` #0c0000, veins `--mom-vein` #d0102a;
@@ -422,7 +450,7 @@ y= 48 └───────────────────────�
 
 - **What and where:** on the title screen, under the logo. A cute **mommy alien** on the left, **three baby aliens**
   to her right, all singing, with music notes drifting up. The twists: mommy's smile is a touch too wide, and the
-  middle baby has too many teeth. An original tune plays with it.
+  middle baby has too many fangs. An original tune plays with it.
 - **Shape:** viewBox `0 0 420 210` (2:1). The notes drift above the top edge, which is fine.
 - **Largest on screen:** 560 × 280 px (1 unit = 1.33 px).
 - **Format:** SVG (the layers below need it).
@@ -433,7 +461,7 @@ y= 48 └───────────────────────�
 | `mommy` > `sway` | Mommy's whole body: body, apron and heart, three eyes on stalks, the too-wide smile, cheeks | Leans left 4° and back, once every 1.56 s | **The bottom centre of everything inside `sway`**, measured by the game from your drawing. Keep her lowest point at y 200 and her drawing centred left-to-right on x 95, so the pivot stays at (95, 200). |
 | `pupil wink` × 3 (inside `sway`; two classes) | Her three pupils, each **its own circle on its eye**. Only these blink. | Blinks: squashes to 15% height for 0.19 s every 3.1 s, the three a moment apart | Each pupil's own centre, now (72, 63), (96, 55), (120, 63) |
 | `baby` > `bob` × 3 | Each baby's body, antennae, eyes and pupils (class `pupil` only: babies never blink) | Bobs up 8 units and back, once a second, out of step | A straight lift, no pivot. Bodies are centred at (205, 160), (270, 150), (335, 162), about 44 × 48 units each, so they stand at about y 184, 174 and 186. |
-| `mouth` × 3 (inside each `bob`) | Each baby's singing mouth; **baby 2's has too many teeth** | Squashes toward the top lip and back, quickly | 20% down from the top of the mouth |
+| `mouth` × 3 (inside each `bob`) | Each baby's singing mouth; **baby 2's has too many fangs** | Squashes toward the top lip and back, quickly | 20% down from the top of the mouth |
 | `note` × 4 | Music notes (now ♪ ♫ ♪ ♬ in a font; drawn notes are welcome) | Each drifts up 80 units and right 14, fading in and out, every 2.2 s | none (they only slide) |
 
 - **Keep the mouth interiors a dark tone** (`--mouth` #3b0a2a), not a bright colour. The mouths squash quickly (about
@@ -596,8 +624,10 @@ y= 48 └───────────────────────�
 
 - **What and where:** what's left in the nest after the frying pan smashes a cleared egg. **The faster the player
   cleared it, the cleaner the break. The slower the clear, the messier and more alien it gets.** There are five
-  stages, and each clear shows exactly one of them. The stage replaces the egg in the nest when the pan comes down,
-  and it's there for about a second. The code session sets the exact timing.
+  stages, and each clear shows exactly one of them: the time from bold to hatch is split into fifths, and a clear in
+  the first fifth shows stage 1, in the last fifth stage 5. So stage 3 matches the egg that has just shown its
+  antenna tip (`hint-3`), stage 4 its leg, and stage 5 its tentacle. The stage replaces the egg in the nest when the
+  pan comes down, and it's there for about a second. The code session sets the exact timing.
 - **Look only.** The amount of gunk thrown across the board (slot 11) is the same for every stage. The stage is only
   what's left in the nest.
 - **The five stages:**
@@ -610,14 +640,9 @@ y= 48 └───────────────────────�
 | 4 | `break-4-half-formed.svg` | **Half-formed.** A wiggly leg, an eyeball on a stalk, and purple slime. |
 | 5 | `break-5-leftovers.svg` | **Jokey leftovers.** A spill of alien slurpy, a tangle of legs, and a tentacle. |
 
-- **Art rules for this slot:**
-  - **Clearly a cartoon alien.** Each stage should look a little more alien than the one before, and stage 5 is
-    obviously not an egg any more.
-  - **Nothing human.** No hands or fingers, no human eyes, no teeth, no skin. Eyes are cartoon eyeballs on stalks
-    and legs are alien legs.
-  - **No red blood.** Red stays on the egg-laying cord only, so there's no red anywhere in this slot. The goo is
-    yolk-yellow, green and purple.
-  - **Gross and funny, not gory.** Think of a spilt slushie, not an injury.
+- **Art rules:** rule 6, "Aliens", above. Each stage should look a little more alien than the one before, and stage 5
+  is obviously not an egg any more. Eyes are cartoon eyeballs on stalks and legs are alien legs. No red anywhere in
+  this slot: the goo is yolk-yellow, green and purple.
 - **Shape:** the nest's viewBox `-60 -62 120 110`, drawn where the egg was: the break sits on the nest, around the
   egg's base at **(0, 20)**, and stays inside about **x −40…40, y −40…28** so the front twigs and the text boxes
   below the nest stay clear. The frying pan covers it at first, so every stage has to read once the pan lifts.
