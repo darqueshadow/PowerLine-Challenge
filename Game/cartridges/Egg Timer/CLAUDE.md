@@ -97,7 +97,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Waves and pool:** nests in play grow 5 → 12; **all 12 are on screen all game**, activating in a fixed
   spread-out order on a logical 4 × 3 grid. A wave ends after its quota resolves; spawning stops once the quota
   has spawned (D4); a spawn due on a full board is skipped; the shrinking spawn gap stacks with the clock
-  speed-up. Pool 3 (key `POOL`), −1 per escape only. **Only an empty pool ends the game.**
+  speed-up. Pool 3 (key `POOL`), −1 per escape, +1 for a wave with no escape (never above 3). **Only an empty pool ends the game.**
 - **Scoring:** a clear is 100 at the trigger, falling to 25 at the hatch, plus a perfect-wave bonus; no penalty
   for an escape or wiping. The frying pan is pure CSS and must never hold the keyboard. The **egg ladder** is
   cosmetic (fast clears serve fancier dishes; a slow clear, any ERROR or a hatch resets it).
@@ -168,6 +168,8 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 `MEMORY.md` (and any ⏸ one-shot handoff it lists), then `et-track.md`, and write Egg Timer memories **there**.
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
-## State 2026-09-23 (night)
-Everything is live through the neon-green wall clock and the new "Clear @" note (`eb9bbc5`; rigs logic 141/0,
-browser 350/0); no Chat question open (next free **E24**). The ⏸ handoff in the memory store has the details.
+## State 2026-09-24
+Audit fixes A are live (from `c14b3e5`; rigs logic 152/0, browser 409/0): the cleanup banner's flash cap, reduced
+motion, the title's Enter guard, the unit-sheet guard, E24's mute and master chain, and steadier rig checks.
+**E25 (the M key in play) is open with Chat**; next free **E26**. Left from the audit, by Andrew's choice: the art-slot
+layer, moving the JavaScript colours into `theme.css`, dead code, and the other test gaps.

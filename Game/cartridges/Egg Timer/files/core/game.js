@@ -18,7 +18,7 @@
           └───────▶ laying  (Refinement 3 §7: the cord lowers the egg in; no clock yet)
                     ─the pop─▶ active  (timer counts up from here, egg grows; RCAV does nothing yet)
                     ─real duration on the clock─▶ overtime (bold + RCAV valid + egg cracks, one event)
-                    ─RCAV─▶ splat ─▶ idle          (cleared: points, mess on nest + neighbours)
+                    ─RCAV─▶ splat ─▶ idle          (cleared: points; a small splat on the nest, the rest over the board, E15)
                     ─overtime runs out─▶ escape ─▶ idle   (hatched: pool −1)
    ========================================================================= */
 (function (root) {

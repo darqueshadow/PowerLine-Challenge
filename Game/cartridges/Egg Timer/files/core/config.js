@@ -125,7 +125,7 @@
     // Hose ruling (2026-09-22, replaces E5): in-game the cursor is ALWAYS the hose nozzle, with a
     // hose body curving down to a spigot at the bottom edge of the board. Water only while dragging.
     hoseWhen: "always",            // "always" | "wiping" | "cleanup" (the older rulings, kept as switch values)
-    hoseWidth: 6,                  // [T] px, kept thin: it runs under the nests and every piece of text
+    hoseWidth: 6,                  // [T] px, kept thin: it draws above the whole board (Refinement 4 §2), across nests and readouts
     hoseSpigotX: 0.5,              // [T] where the spigot sits along the board's bottom edge (0 left … 1 right)
     // E6: an Enter on an EMPTY Command Line does nothing (no ERROR, no buzz).
     errorOnEmpty: false,

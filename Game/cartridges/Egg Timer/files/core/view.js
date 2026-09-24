@@ -119,7 +119,8 @@
     setTimeout(function () { d.remove(); }, ET.CONFIG.dishSeconds * 1000);
   }
 
-  /* E5 (ruled): the hose all through cleanup, and mid-wave while a drag is wiping. */
+  /* The hose ruling (2026-09-22, replacing E5): the hose shows all game (hoseWhen "always"). The older rulings are kept
+     as switch values: "wiping" shows it through cleanup and while a drag wipes, "cleanup" through cleanup only. */
   var inCleanup = false;
   function paintHose() {
     var w = ET.CONFIG.hoseWhen;
