@@ -99,6 +99,12 @@
       paint();
     },
 
+    /* E30 (ruled 2026-09-24): the grey hint in an empty line: "CAV + unit + type" while a nest waits to be placed,
+       "RCAV + unit" otherwise (view.js sets it each frame from the snapshot). */
+    hint: function (text) {
+      boxes.forEach(function (b) { if (b.input.placeholder !== text) b.input.placeholder = text; });
+    },
+
     focus: function () {
       var b = boxes[active];
       if (b) b.input.focus({ preventScroll: true });

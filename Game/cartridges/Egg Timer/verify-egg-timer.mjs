@@ -106,11 +106,13 @@ async function menuFit(name, panelSel = "#howto") {
       let overlaps = [];
       for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (hit(parts[i].r, parts[j].r)) overlaps.push(parts[i].id + '/' + parts[j].id);
       const words = [];
-      panel.querySelectorAll('.title span, .banner, li').forEach(e => { const rg = document.createRange(); rg.selectNodeContents(e); words.push(...rg.getClientRects()); });
+      // the words themselves (text only: E29's comic strip has pictures inside its panels)
+      panel.querySelectorAll('.title span, .banner, li').forEach(e => { const tw = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n;
+        while ((n = tw.nextNode())) { if (!n.textContent.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(n); words.push(...rg.getClientRects()); } });
       return { here: panel.parentNode === screen && !screen.hidden, right: innerWidth - P.right, tall: P.height / innerHeight,
                outside: parts.filter(x => x.r.top < 0 || x.r.bottom > innerHeight || x.r.left < 0 || x.r.right > innerWidth).map(x => x.id),
                underPanel: parts.filter(x => hit(x.r, P)).map(x => x.id), overlaps,
-               textInside: [...panel.querySelectorAll('.banner, li, .title')].every(e => { const r = e.getBoundingClientRect(); return r.left >= P.left + 3 && r.right <= P.right - 3; }),
+               textInside: [...panel.querySelectorAll('.banner, li, .title')].every(e => { const r = e.getBoundingClientRect(); return r.width === 0 || (r.left >= P.left + 3 && r.right <= P.right - 3); }),
                fits: Math.max(...[...panel.querySelectorAll('li')].map(l => l.getBoundingClientRect().bottom)) <= P.bottom - 4, lines: panel.querySelectorAll('li').length,
                doodled: [...panel.querySelectorAll('.doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length,
                bulbs: panel.querySelectorAll('.bulb').length,
@@ -223,13 +225,14 @@ try {
   await shot("01-title");
   {
     // Refinement 6 §1: the title screen's own How To Play card, in the panel's place, laid out differently
-    const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return { steps: [...c.querySelectorAll('li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.step').textContent),
+    const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return { steps: [...c.querySelectorAll('.strip > li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.say').textContent),
+      pics: [...c.querySelectorAll('.strip > li')].map(l => l.querySelectorAll('.scene .pic').length), heads: c.querySelectorAll('.strip .head').length, split: c.querySelectorAll('.strip > li:nth-child(3) .half').length,
       banner: c.querySelector('.banner').textContent, panelHere: !!document.querySelector('#screen-title #howto'), shown: c.getBoundingClientRect().width > 150 }; })()`);
-    eq(card.steps, ["1 The aliens are laying eggs in your CAVs.",
-      "2 Wait for pink. When the timer turns pink and bold, the egg is ready. Type RCAV + the unit (like RCAV 2101) and press Enter. Too early won't work.",
-      "3 Clear fast, and breakfast gets fancier.", "4 Hose off the mess between waves.",
-      "5 Time Warp! When all the wave's eggs are laid and none are ready, every clock speeds up 5×. Get your next RCAV ready!"],
-      "Refinement 6 §1, E27 and E28: the title screen's How To Play card, five steps (step 2 the pink cue, step 5 Time Warp)");
+    eq(card.steps, ["1 The aliens are laying eggs in your CAVs.", "2 When the timer turns pink and bold, type RCAV + the unit. Too early won't work.",
+      "3 Clear fast, and breakfast gets fancier.", "4 Two lines! Tab to switch. Type the next RCAV while you wait.",
+      "5 Every clock speeds up 5× till an egg is ready. Get your next RCAV ready!"],
+      "E29 (ruled): the title's How To Play card is a five-panel comic strip, each step's words in a speech bubble, as ruled");
+    ok(card.pics.every((n) => n >= 1) && card.heads === 0 && card.split === 2, `…a picture in every panel, a number badge and no heading, panel 3 split fast / slow   [${card.pics.join(",")}]`);
     ok(card.shown && card.banner === "HOW TO PLAY" && !card.panelHere, "…in place of the in-game panel, which isn't on the title screen");
   }
   await menuFit("title", "#howto-title");
@@ -399,7 +402,12 @@ try {
     eq(await ev("document.querySelector('[data-boxes].selected').dataset.boxes"), "3", "…and the mouse picks too");
     await ev("document.querySelector('[data-boxes=\"2\"]').click(); 1");
   }
-  ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>"), "on the options screen the panel follows the mode picked (Follow Progression adds the Place line)");
+  {
+    const st = await ev(`(() => { const says = (q) => [...document.querySelectorAll(q + ' .strip .say')].map(e => e.textContent); const p = document.querySelector('#howto');
+      const strip = p.querySelector('.strip').getBoundingClientRect(), signs = p.querySelector('.signs').getBoundingClientRect();
+      return { same: JSON.stringify(says('#howto')) === JSON.stringify(says('#howto-title')), shown: strip.height > 100, under: strip.top >= signs.bottom, lines: [...p.querySelectorAll('ul li')].filter(l => l.getBoundingClientRect().height > 0).length }; })()`);
+    ok(st.same && st.shown && st.under && st.lines === 0, "E29: the options screen's panel shows the same comic strip, under the HOW / TO / PLAY signs, in place of its lines");
+  }
   ok(!(await ev("getComputedStyle(document.querySelector('[data-mode]')).cursor")).includes("url("), "menus and setup keep the normal pointer");
   eq(await ev("!document.querySelector('#hose') || document.querySelector('#hose').hidden || document.querySelector('#screen-play').hidden"), true, "no hose outside the game");
   await shot("02-setup");
@@ -938,15 +946,10 @@ try {
   /* ----------------------------------------------- O. Refinement 2 extras */
   section("O. the how-to panel, the hose, sound");
   {
-    const txt = await ev("document.querySelector('#howto').innerText");
-    ok(await ev("!!document.querySelector('#howto') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "a how-to panel sits down one side during play");
-    {
-      const playFont = await ev("parseFloat(getComputedStyle(document.querySelector('#howto')).fontSize)");
-      ok(setupFont > playFont * 1.15, `E27: the options screen's instructions are bigger than in play   [${setupFont} px vs ${playFont} px]`);
-    }
-    const lines = await ev("[...document.querySelectorAll('#howto li')].map(l => l.textContent)");
-eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", "ESC Pause."],
-      "E28: the panel keeps only Goal and Esc (Switch and F12 moved under the Command Lines, Cleanup onto the sink)");
+    // E30 (ruled 2026-09-24): no side panel in play; the board takes its width
+    const gone = await ev(`(() => { const p = document.querySelector('#howto'), f = document.querySelector('#field').getBoundingClientRect();
+      return { inPlay: !!p.closest('#screen-play'), w: p.getBoundingClientRect().width, right: innerWidth - f.right }; })()`);
+    ok(!gone.inPlay && gone.w === 0 && gone.right < 20, `E30: no side panel in play; the board runs to the right edge   [${gone.right}px spare]`);
     {
       // E28: the Command Lines' grey hint, and the switching hints just under the lines
       const cl = await ev(`(() => { const i = document.querySelector('#console .box input'), h = document.querySelector('#line-hints'), hr = h.getBoundingClientRect();
@@ -955,29 +958,11 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
         return { ph: i.placeholder, phColour: getComputedStyle(i, '::placeholder').color, count: __et.boxes().count, text: h.textContent.replace(/\\s+/g, ' ').trim(),
                  under: boxes.every(b => hr.top >= b.bottom + 12), inside: hr.bottom <= c.bottom && hr.left >= c.left, fits: h.scrollWidth <= h.clientWidth + 1 }; })()`);
       eq([cl.ph, cl.phColour], ["RCAV + unit", "rgb(111, 102, 135)"], "E28: an empty Command Line shows a grey \"RCAV + unit\"");
-      const want = cl.count > 1 ? "TAB / SHIFT+TAB next / previous line (keeps what you typed) · F12 next line, cleared" : "F12 clears the line";
-      ok(cl.text === want && cl.under && cl.inside && cl.fits, `E28: the Tab / F12 hints sit just under the Command Lines, below the ERROR line, on one line   [${cl.count} lines: ${cl.text}]`);
+      const want = (cl.count > 1 ? "TAB / SHIFT+TAB next / previous line (keeps what you typed) · F12 next line, cleared" : "F12 clears the line") + " · ESC pause";
+      ok(cl.text === want && cl.under && cl.inside && cl.fits, `E28 and E30: the Tab / F12 / Esc hints sit just under the Command Lines, below the ERROR line, on one line   [${cl.count} lines: ${cl.text}]`);
       const typed = await ev("(() => { const i = document.querySelector('#console .box.active input'); i.value = 'R'; const shown = i.matches(':placeholder-shown'); i.value = ''; return shown; })()");
       eq(typed, false, "…and the grey hint is gone as soon as the player types");
     }
-    for (const gone of ["RCAV", "post-it", "Clear Fueling", "Ctrl"]) ok(!txt.includes(gone), `…with no "${gone}" line any more`);
-    ok(!/\d+:\d\d|\b\d+\s*min/i.test(txt), "…and never lists a CAV duration");
-    const overlap = await ev(`(() => {
-      const h = document.querySelector('#howto').getBoundingClientRect();
-      return [...document.querySelectorAll('.nest:not([hidden])')].filter(n => { const r = n.getBoundingClientRect(); return r.right > h.left && r.left < h.right && r.bottom > h.top && r.top < h.bottom; }).length;
-    })()`);
-    eq(overlap, 0, "…without covering a nest");
-    // Refinement 5 §3: the cartoon look, with doodles that turn now and then
-    const look = await ev(`(() => { const cs = getComputedStyle(document.querySelector('#howto')); return { bg: cs.backgroundColor, ink: getComputedStyle(document.querySelector('#howto li')).color, round: parseFloat(cs.borderTopLeftRadius) > 8, doodles: document.querySelectorAll('#howto .doodle').length }; })()`);
-    ok(look.bg === "rgb(255, 243, 209)" && look.ink === "rgb(26, 13, 46)" && look.round, `Refinement 5 §3: the panel is a cartoon card, dark ink on cream, rounded   [${look.bg} / ${look.ink}]`);
-    ok(look.doodles >= 4, `…with alien-family doodles around the text   [${look.doodles}]`);
-    const turns = () => ev("[...document.querySelectorAll('#howto .doodle')].map(d => d.style.getPropertyValue('--turn')).join(',')");
-    // poll for up to 15 s rather than look once at 5.6 s: a turn picks a random angle, which can land on the one it had
-    // (steadied 2026-09-24)
-    const t0 = await turns();
-    let t1 = t0;
-    for (let i = 0; i < 60 && t1 === t0; i++) { await wait(250); t1 = await turns(); }
-    ok(t0 !== t1, `…turning to a new angle now and then   [${t0} → ${t1}]`);
   }
   eq(await ev("parseFloat(getComputedStyle(document.querySelector('.wallclock')).fontSize) > 2 * parseFloat(getComputedStyle(document.querySelector('#hud-score')).fontSize)"), true, "the wall clock is larger again: over twice the HUD's type");
   {
@@ -994,7 +979,7 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
   {
     // Hose ruling (2026-09-22): in-game the cursor is always the nozzle; menus keep the normal pointer
     const cur = (sel) => ev(`getComputedStyle(document.querySelector('${sel}')).cursor`);
-    ok((await cur("#field")).includes("url(") && (await cur("#howto")).includes("url(") && (await cur(".box.active input")).includes("url("), "in-game the cursor is always the hose nozzle (board, how-to panel, Command Line)");
+    ok((await cur("#field")).includes("url(") && (await cur(".box.active input")).includes("url("), "in-game the cursor is always the hose nozzle (board, Command Line)");
     const hosePath = await ev(`(() => {
       const f = document.querySelector('#field').getBoundingClientRect();
       document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: f.left + f.width * 0.8, clientY: f.top + 120 }));
@@ -1049,11 +1034,19 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
     })()`);
     ok(mid > 0, `mid-wave, dragging sprays water   [${mid} drops]`);
   }
-  eq(await ev("document.querySelector('#howto').innerText.includes('PLACE')"), false, "E8: Clear CAVs Only has no placement line");
-  await ev("__et.start('both', 1)");
-  ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>, e.g. CAV 2101 VS"), "E8: Both shows \"Place: CAV <unit> <type>, e.g. CAV 2101 VS\"");
-  await ev("__et.start('progression', 1)");
-  ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>"), "E8: Follow Progression shows it too");
+  {
+    // E30 (ruled): the Place hint moved into the empty Command Line, while a nest waits to be placed
+    const ph = () => ev("document.querySelector('#console .box input').placeholder");
+    eq(await ph(), "RCAV + unit", "E30: in Clear CAVs Only the empty line always says \"RCAV + unit\"");
+    const w = await ev(`(() => { __et.start('both', 1); __et.advance(0.1);
+      for (let i = 0; i < 400 && !__et.snapshot().nests.some(n => n.state === 'trigger'); i++) __et.advance(0.05);
+      const t = __et.snapshot().nests.find(n => n.state === 'trigger'), during = document.querySelector('#console .box input').placeholder;
+      if (t) __et.submit('CAV ' + t.unit + ' ' + t.code);
+      __et.advance(0.05);
+      const busy = __et.snapshot().nests.some(n => n.state === 'trigger');
+      return { t: !!t, during, after: document.querySelector('#console .box input').placeholder, busy }; })()`);
+    ok(w.t && w.during === "CAV + unit + type" && (w.busy || w.after === "RCAV + unit"), `E30: while a nest waits to be placed it says "CAV + unit + type", and "RCAV + unit" again once none waits   [${w.during} → ${w.after}]`);
+  }
   ok(await ev("(() => { const t = document.querySelector('#screen-setup').innerText; return /Command Lines/.test(document.querySelector('#screen-setup h2:nth-of-type(2)').textContent) && !/Command Box/i.test(t); })()"), "E7: players see \"Command Line\" on the setup screen, never \"Command Box\" (E29's heading)");
   eq([await ev("'FRIED' in ET.art"), await ev("ET.art.DISHES")], [false, 7], "the egg ladder replaces the fried eggs: seven dishes, no fried-egg art");
   await ev("__et.start('clear', 1)");
@@ -1096,17 +1089,8 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
       ok(tuned.bare <= 2 + 1e-9, `…and the stylesheet's own fallback is 2 a second too   [${tuned.bare.toFixed(2)}]`);
     }
     ok(cb.centre, "…and nothing is left in the middle of the board");
-    ok(await ev("document.querySelector('#howto').parentNode.classList.contains('playrow') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "the how-to panel shows during cleanup too, in the play row");
+    ok(await ev("document.querySelector('#howto').getBoundingClientRect().width === 0"), "E30: no side panel during cleanup either");
     ok(await ev("getComputedStyle(document.querySelector('#howto-title')).display === 'none' || document.querySelector('#screen-title').hidden"), "…and the title's How To Play card is only on the title screen");
-    {
-      await press("Escape");                     // hold the cleanup still while the lights are watched in real time
-      const L = await watchLights(4);
-      await press("Escape");
-      const dim = await ev("(() => { const b = document.querySelector('#howto .bulb'); return Number(getComputedStyle(b).opacity); })()");
-      eq(L.mode, "calm", "in play and cleanup the lights are calm");
-      ok(L.rate < 0.2 && dim <= 0.6, `…a slow, dim twinkle   [${L.changes} changes in 4 s over ${L.bulbs} bulbs, opacity ${dim}]`);
-      ok(L.onsPerSec <= 1 && L.changesPerSec <= 2 && L.groupPerSec === 0, `SAFETY: calm lights never flash fast   [worst ${L.onsPerSec} flashes, ${L.changesPerSec} changes, group ${L.groupPerSec} in any 1 s]`);
-    }
     await shot("12a-cleanup-banner");
     eq(await ev("getComputedStyle(document.querySelector('#field')).cursor.includes('url(')"), true, "during cleanup the cursor is the hose nozzle too");
     const drops = await ev(`(() => {
@@ -1180,12 +1164,30 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
   eq(await ev("document.querySelector('#over-score').textContent"), String(o.s.score), "it shows the final score");
   ok(/^SKIPPED SPAWNS  W1 \d+/.test(await ev("document.querySelector('#over-skipped').textContent")), `the playtest log lists skipped spawns per wave   [${await ev("document.querySelector('#over-skipped').textContent")}]`);
   await shot("09-over");
+  {
+    // E30: the menus keep the panel; on the game-over screen it holds what has no object of its own
+    const txt = await ev("document.querySelector('#howto').innerText");
+    const lines = await ev("[...document.querySelectorAll('#howto ul li')].map(l => l.textContent)");
+    eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", "ESC Pause."], "E28 and E30: on the game-over screen the panel keeps Goal and Esc");
+    for (const gone of ["RCAV", "post-it", "Clear Fueling", "Ctrl"]) ok(!txt.includes(gone), `…with no "${gone}" line`);
+    ok(!/\d+:\d\d|\b\d+\s*min/i.test(txt), "…and never lists a CAV duration");
+    // Refinement 5 §3: the cartoon look, with doodles that turn now and then
+    const look = await ev(`(() => { const cs = getComputedStyle(document.querySelector('#howto')); return { bg: cs.backgroundColor, ink: getComputedStyle(document.querySelector('#howto li')).color, round: parseFloat(cs.borderTopLeftRadius) > 8, doodles: document.querySelectorAll('#howto .doodles .doodle').length }; })()`);
+    ok(look.bg === "rgb(255, 243, 209)" && look.ink === "rgb(26, 13, 46)" && look.round, `Refinement 5 §3: the panel is a cartoon card, dark ink on cream, rounded   [${look.bg} / ${look.ink}]`);
+    ok(look.doodles >= 4, `…with alien-family doodles around the text   [${look.doodles}]`);
+    const turns = () => ev("[...document.querySelectorAll('#howto .doodles .doodle')].map(d => d.style.getPropertyValue('--turn')).join(',')");
+    // poll for up to 15 s: a turn picks a random angle, which can land on the one it had (steadied 2026-09-24)
+    const t0 = await turns();
+    let t1 = t0;
+    for (let i = 0; i < 60 && t1 === t0; i++) { await wait(250); t1 = await turns(); }
+    ok(t0 !== t1, `…turning to a new angle now and then   [${t0} → ${t1}]`);
+  }
   await menuFit("over");
   await press("Enter");
   eq(await ev("__et.screen()"), "setup", "Enter goes back to setup");
 
   /* ------------------------------------------------------ L. full-board layout */
-  section("L. layout: all 12 nests beside the how-to panel, at every measured size");
+  section("L. layout: all 12 nests across the whole board (E30: no side panel in play), at every measured size");
   await ev("__et.start('both', 4)");
   await ev("__et.advance(0.1)");
   // measure in the real faces, not the fallback they swap from (the LED faces are wider than Courier)
@@ -1256,10 +1258,9 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
+      return { muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpClear, warpCentre, tipsIn,
-               clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
-               howtoFits: Math.max(...[...document.querySelectorAll('#howto li')].map(l => l.getBoundingClientRect().bottom)) <= howto.bottom - 4,
+               clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
     })()`);
     const at = `[${lay.w}×${lay.h}]`;
@@ -1272,15 +1273,19 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);
-    ok(lay.besideHowto, `every nest sits beside the how-to panel, none under it   ${at}`);
+    ok(lay.panelGone, `E30: no side panel in play: the board runs to the window's right edge   ${at}`);
+    {
+      // E28 / E30: the longest grey hint fits in every Command Line (4 lines here), in the hint's own type
+      const fit = await ev(`(() => { const cv = document.createElement('canvas').getContext('2d');
+        return [...document.querySelectorAll('#console .box')].filter(b => b.getBoundingClientRect().width > 0).map(b => { const i = b.querySelector('input'), cs = getComputedStyle(i, '::placeholder');
+          cv.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily; return Math.round(i.clientWidth - cv.measureText('CAV + unit + type').width); }); })()`);
+      ok(fit.length === 4 && fit.every((x) => x >= 0), `E30: "CAV + unit + type" fits in each of 4 Command Lines   ${at} [${fit.join(", ")} px spare]`);
+    }
     eq(lay.clearOfTop, 0, `the wall clock, both first-game tags (E28) and Time Warp's clock sit clear of every nest   ${at}`);
     ok(lay.tipsIn, `E28: both first-game tags fit on the board beside the wall clock   ${at}`);
     await ev("(() => { document.querySelector('#tip-ready').hidden = true; document.querySelector('#tip-clock').hidden = true; return 1; })()");
     ok(lay.clockCentre, `Refinement 6 §3: the wall clock is at the top centre of the playing field   ${at}`);
     ok(lay.warpCentre && lay.warpClear === 0, `Refinement 6 §2, E27 and E28: Time Warp's grandfather clock, sign and caption sit in the centre of the board, clear of every nest and readout   ${at}`);
-    ok(lay.howtoFits, `the how-to panel fits without scrolling   ${at}`);
-    eq(lay.doodled, 0, `Refinement 5 §3: no doodle covers any of the panel's text   ${at}`);
-    eq(lay.bulbOnWord, 0, `no attract light sits behind a word of the panel   ${at}`);
     ok(lay.tagged === 0 && lay.tagIn, `Refinement 5 §6: the hose tag stays on the board and touches no nest or readout   ${at}`);
     ok(lay.muteClear, `E24: the mute button sits in the HUD bar's left end, clear of its words, the wall clock and the board   ${at}`);
     if (SHOTS) {
@@ -1496,14 +1501,14 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
   await ev("__et.advance(0.1)");
   {
     const C0 = await ev("JSON.stringify([ET.CONFIG.momFaceChance, ET.CONFIG.momFaceWindow])");
-    eq(await ev("ET.CONFIG.momFaceZones"), ["top", "panel"], "E23 (ruled): both zones are kept (the top one may cover the HUD bar, the panel one some how-to text, for its 0.85 s)");
+    eq(await ev("ET.CONFIG.momFaceZones"), ["top"], "E23 and E30: with no side panel in play, only the top zone is left (it may cover the HUD bar for its 0.85 s)");
     ok((await ev("ET.CONFIG.momFaceSeconds")) < 1, `it lasts under a second   [${await ev("ET.CONFIG.momFaceSeconds")} s]`);
     await ev("window.__hiss = 0; (function (h) { ET.audio.hiss = function () { window.__hiss++; return h.apply(this, arguments); }; })(ET.audio.hiss)");
     for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
       await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
       await ev(`(() => { document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()`);
       await wait(150);
-      for (const zone of ["top", "panel"]) {
+      for (const zone of ["top"]) {
         // show it, hold its slide still mid-way (fully in), and measure, all in one evaluation: nothing in the page can
         // run in between, so a busy machine can't catch it half in or already gone (steadied 2026-09-24)
         const m = await ev(`(() => {
@@ -1532,7 +1537,7 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
       for (let i = 0; i < 60 && !gone; i++) { gone = await ev("document.querySelector('#mom').hidden"); if (!gone) await wait(50); }
       ok(gone, `…and is gone again by itself a moment later   [after ${Date.now() - t0} ms]`);
     }
-    ok((await ev("window.__hiss")) >= 8, `each one comes with the hiss and gurgle   [${await ev("window.__hiss")} of 8]`);
+    ok((await ev("window.__hiss")) >= 4, `each one comes with the hiss and gurgle   [${await ev("window.__hiss")} of 4]`);
     // the schedule: at most once a wave, sometimes not at all, held by a pause
     await ev("ET.CONFIG.momFaceChance = 1; ET.CONFIG.momFaceWindow = [0.5, 1]; __et.start('clear', 1); __et.advance(0.1); 1");
     await ev("__et.advance(3)");

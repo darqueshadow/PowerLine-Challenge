@@ -695,6 +695,8 @@
       });
 
       drawLightning(snap);   // Refinement 6 §2
+      // E30: the Command Lines' grey hint: placing while a nest waits, clearing otherwise
+      if (ET.boxes && ET.boxes.hint) ET.boxes.hint(snap.nests.some(function (s) { return s.state === "trigger"; }) ? "CAV + unit + type" : "RCAV + unit");
       paintTips(snap);       // E28
 
       // Refinement 5 §5: the scary mom face, when this wave's moment comes (never in cleanup or on pause)

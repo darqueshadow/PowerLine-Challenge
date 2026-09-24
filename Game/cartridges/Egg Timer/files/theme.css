@@ -83,6 +83,7 @@
   --line-2: #ff3df2;                      /* line 2, magenta */
   --line-3: #ffe23d;                      /* line 3, lemon */
   --line-4: #7dff3d;                      /* line 4, lime */
+  --comic-bubble: #fff;                   /* E29: a speech bubble */
 
   /* E27: the options screen's HOW / TO / PLAY signs (lit, they use --gold) */
   --sign-off-bg: #2a1640;                 /* unlit sign, dark plum */

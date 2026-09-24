@@ -206,7 +206,8 @@
     // a readout or a Command Line, never takes input, no flashing.
     // E23 (ruled 2026-09-23): keep both. For its 0.85 s it may cover the HUD bar ("top") or some of the
     //   how-to text ("panel"). Dropping one here keeps it to the other.
-    momFaceZones: ["top", "panel"],
+    // E30 (ruled 2026-09-24) took the side panel out of play, so only "top" is left (E23: dropping one keeps it to the other).
+    momFaceZones: ["top"],
     momFaceChance: 0.6,            // [T] the chance a wave gets one
     momFaceWindow: [4, 30],        // [T] when, in the player's seconds after the wave starts (a wave that ends first gets none)
     momFaceSeconds: 0.85,          // [T] in, a beat, out

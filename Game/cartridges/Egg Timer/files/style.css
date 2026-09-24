@@ -44,7 +44,7 @@ button { font: inherit; }
 .screen.with-howto:not(#screen-play) > .howto-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 4; text-align: center; }
 #screen-title { --panel-w: clamp(250px, 27vw, 430px); }   /* E28: wider, for the longer step 2 */
 /* E27: on the options screen the how-to panel is wider and its type bigger, under three HOW / TO / PLAY signs */
-#screen-setup { --panel-w: clamp(230px, 23vw, 370px); }
+#screen-setup { --panel-w: clamp(250px, 27vw, 430px); }   /* E29: as wide as the title card, for the strip */
 #screen-setup #howto { width: var(--panel-w); padding-left: 18px; padding-right: 18px; font-size: clamp(13px, min(1.25vw, 2.2vh), 20px); }
 #screen-setup #howto .title { font-size: 1.1em; gap: 12px; text-shadow: none; }   /* 12 px: a doodle turned its full 28° still clears PLAY */
 #screen-setup #howto .signs { display: flex; gap: 5px; }
@@ -61,9 +61,10 @@ button { font: inherit; }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: clamp(8px, 2.6vh, 26px);
+  gap: clamp(6px, 1.4vh, 16px);
   background: var(--card);
   color: var(--outline);
+  font-size: clamp(12px, min(1.05vw, 1.9vh), 17px);   /* E29: the strip's words */
   border: 5px solid var(--outline);
   border-radius: 30px 18px 34px 20px / 20px 32px 18px 30px;
   box-shadow: 8px 8px 0 var(--speckle);
@@ -86,29 +87,47 @@ button { font: inherit; }
   text-shadow: 2px 2px 0 var(--outline);
   white-space: nowrap;
 }
-#howto-title ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: clamp(8px, 2.2vh, 22px); }
-#howto-title li { display: flex; align-items: center; gap: 12px; text-align: left; }
-#howto-title .num {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 1.9em;
-  height: 1.9em;
-  border-radius: 50%;
-  border: 3px solid var(--outline);
-  box-shadow: 2px 2px 0 var(--outline);
-  font-family: var(--font-display);
-  font-size: clamp(18px, 2vw, 30px);
-  color: var(--outline);
-}
-#howto-title li:nth-child(1) .num { background: var(--cyan); }
-#howto-title li:nth-child(2) .num { background: var(--mint); }
-#howto-title li:nth-child(3) .num { background: var(--gold); }
-#howto-title li:nth-child(4) .num { background: var(--pink); }
-#howto-title li:nth-child(5) .num { background: var(--warp); }   /* E27: the Time Accelerator's green */
-#howto-title .step { font-family: var(--font-ui); font-weight: 700; font-size: clamp(14px, 1.45vw, 22px); line-height: 1.3; }
-#howto-title .doodle-row { display: flex; justify-content: space-around; margin-top: 10px; }
-#howto-title .doodle { width: clamp(34px, 4.2vw, 64px); height: auto; aspect-ratio: 1; overflow: visible; transform: rotate(var(--turn, 0deg)); transition: transform 0.45s cubic-bezier(0.3, 1.8, 0.5, 1); }
+/* E29 (⏳ placeholder look): How To Play as a five-panel comic strip, the same on the title card and on the options
+   screen's panel. Each panel: a numbered heading, a picture on the left and the step's words in a speech bubble. */
+.strip { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: clamp(4px, 1vh, 10px); text-align: left; }
+.strip .cell { position: relative; display: grid; grid-template-columns: 26% 1fr; align-items: center; gap: 2px 7px; padding: 5px 6px 5px; border: 3px solid var(--outline); border-radius: 4px; box-shadow: 3px 3px 0 var(--outline); }
+/* E29 ruling: no headings, a small number badge in each panel's corner */
+.strip .num { position: absolute; top: -9px; left: -9px; z-index: 1; display: grid; place-items: center; width: 1.6em; height: 1.6em; border: 2px solid var(--outline); border-radius: 50%; box-shadow: 2px 2px 0 var(--outline); font-family: var(--font-display); font-size: 0.95em; color: var(--outline); }
+.strip .cell:nth-child(1) .num { background: var(--cyan); }
+.strip .cell:nth-child(2) .num { background: var(--readout-bold-timer-bg); }
+.strip .cell:nth-child(3) .num { background: var(--gold); }
+.strip .cell:nth-child(4) .num { background: var(--pink); }
+.strip .cell:nth-child(5) .num { background: var(--warp); }
+.strip .scene { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; min-width: 0; padding: 0.75em 0 0 0.7em; }   /* clear of the corner badge */
+.strip .scene.split { flex-direction: column; flex-wrap: nowrap; }
+.strip .half { display: flex; align-items: center; gap: 2px; width: 100%; }
+.strip .half .tag { font-family: var(--font-display); font-size: 0.62em; }
+.strip .fast .tag { color: var(--warp-edge); }
+.strip .slow .tag { color: var(--hot); }
+.strip .pic { display: block; width: 52%; max-width: 48px; height: auto; overflow: visible; transform: none; }
+.strip .pic.small { width: 34%; }
+.strip .half .pic { width: 60%; }
+.strip .clock-art.pic { width: 30%; }
+.strip .dish.pic { position: static; transform: none; animation: none; width: 60%; }
+.strip .chip { padding: 0 3px; border: 2px solid var(--outline); font-family: var(--font-mono); font-weight: 700; font-size: 0.72em; background: var(--readout-timer-bg); color: var(--readout-timer-ink); }
+.strip .chip.bold { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
+.strip .shout { padding: 0 4px; background: var(--comic-bubble); border: 2px solid var(--outline); border-radius: 8px; font-family: var(--font-display); font-size: 0.62em; white-space: nowrap; }
+.strip .keys { display: flex; gap: 2px; }
+.strip .keys i { display: block; width: 1.3em; height: 0.7em; background: var(--pan-rim); border: 2px solid var(--outline); border-radius: 2px; }
+.strip .say { position: relative; margin: 0; padding: 3px 7px; background: var(--comic-bubble); border: 2px solid var(--outline); border-radius: 12px; font-family: var(--font-ui); font-weight: 700; line-height: 1.22; color: var(--outline); }
+.strip .say::before { content: ""; position: absolute; left: -9px; top: 50%; margin-top: -5px; border: 5px solid transparent; border-right: 5px solid var(--outline); border-left-width: 4px; }
+/* the strip's little clock: the same placeholder as Time Warp's, held still */
+.strip .clock-art .case { fill: var(--clock-case); stroke: var(--outline); stroke-width: 3; }
+.strip .clock-art .window { fill: var(--clock-window); stroke: var(--outline); stroke-width: 2; }
+.strip .clock-art .rod { stroke: var(--clock-brass); stroke-width: 2.5; }
+.strip .clock-art .bob, .strip .clock-art .cap { fill: var(--clock-brass); stroke: var(--outline); stroke-width: 2; }
+.strip .clock-art .face { fill: var(--clock-face); stroke: var(--outline); stroke-width: 2.5; }
+.strip .clock-art .tick, .strip .clock-art .hand { stroke: var(--outline); stroke-width: 3; stroke-linecap: round; }
+.strip .clock-art .fivex { display: none; }
+/* E29: on the options screen the panel shows the strip under its signs, in place of its lines and doodles */
+#howto .strip { display: none; }
+#screen-setup #howto .strip { display: flex; }
+#screen-setup #howto ul, #screen-setup #howto .doodles { display: none; }
 
 .label { color: var(--dim); font-size: 0.75em; letter-spacing: 0.12em; }
 .blink { animation: blink 1s steps(2, start) infinite; }
@@ -898,7 +917,7 @@ h2 {
   font-size: clamp(16px, 1.7vw, 22px);
   text-transform: uppercase;
 }
-.box input::placeholder { color: var(--placeholder); opacity: 1; text-transform: none; }   /* E28: gone once the player types */
+.box input::placeholder { color: var(--placeholder); opacity: 1; text-transform: none; font-size: 0.8em; }   /* E28: gone once the player types */
 /* E28: the switching hints, just under the Command Lines, below the ERROR line */
 #line-hints { position: absolute; left: 18px; right: 18px; bottom: 5px; color: var(--dim); font-size: clamp(10px, 0.85vw, 13px); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 #line-hints b { color: var(--ink); font-family: var(--font-display); font-weight: 400; letter-spacing: 0.04em; }

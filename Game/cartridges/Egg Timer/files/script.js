@@ -49,8 +49,9 @@
      mode-selection and game-over screens it hangs down the right edge and the screen's content keeps clear of it. */
   function placeHowTo(name) {
     var panel = $("#howto");
-    var host = name === "play" ? $("#screen-play .playrow") : $("#screen-" + name);
-    if (!host) return;
+    // E30 (ruled 2026-09-24): no side panel in play: the board takes its width. The menus keep it.
+    var host = name === "play" ? null : $("#screen-" + name);
+    if (!host) { document.querySelectorAll(".screen").forEach(function (s) { s.classList.remove("with-howto"); }); return; }
     // Refinement 6 §1: the title screen has its own How To Play card instead
     if (name !== "title" && panel.parentNode !== host) host.appendChild(panel);
     document.querySelectorAll(".screen").forEach(function (s) { s.classList.toggle("with-howto", s === host); });
@@ -124,9 +125,10 @@
     ET.view.reset();
     ET.boxes.setup(boxes);
     // E28: the switching hints under the Command Lines (with one line there's nothing to switch to: F12 just clears it)
-    $("#line-hints").innerHTML = boxes > 1
+    // E30: Esc joins them, now the side panel is gone from play
+    $("#line-hints").innerHTML = (boxes > 1
       ? "<b>TAB</b> / <b>SHIFT+TAB</b> next / previous line (keeps what you typed) &nbsp;·&nbsp; <b>F12</b> next line, cleared"
-      : "<b>F12</b> clears the line";
+      : "<b>F12</b> clears the line") + " &nbsp;·&nbsp; <b>ESC</b> pause";
     paintHowTo(mode);
     show("play");
     app.game.start();
@@ -315,40 +317,103 @@
     }, C.doodleTurnEvery * 1000);
   }
 
+  /* E29 (ruled 2026-09-24): How To Play is a five-panel comic strip, one design on the title card and on the options
+     screen's panel (under its signs). One panel a step: a heading, a picture (⏳ enlarged how-to doodles for now; the art
+     is Gemini's, brief slots 16–20) and the step's words in a speech bubble. Panel 3 is split, fast and slow.
+     E29's rulings: no panel headings, only a number badge in each panel's corner (the heading stays as the panel's
+     accessible name); the words are TITLE_STEPS, as ruled; the old hose step is gone (the sink says it). */
+  var STRIP = [
+    { head: "Watch the nests", pics: [[1], [3, "small"]], chip: ["04:21", "timer"] },
+    { head: "Wait for pink", pics: [[0]], chip: ["10:00", "timer bold"], shout: "RCAV 2101!" },
+    { head: "Be quick", split: true },
+    { head: "Use your Command Lines", pics: [[2]], keys: true },
+    { head: "Time Warp", pics: [["clock"], [4, "small"]] }
+  ];
+  function buildStrip() {
+    var ol = document.createElement("ol");
+    ol.className = "strip";
+    STRIP.forEach(function (p, i) {
+      var li = document.createElement("li");
+      li.className = "cell";
+      li.dataset.step = i + 1;
+      li.setAttribute("aria-label", (i + 1) + ". " + p.head);
+      var num = document.createElement("span");
+      num.className = "num";
+      num.setAttribute("aria-hidden", "true");
+      num.textContent = String(i + 1);
+      li.appendChild(num);
+      var scene = document.createElement("div");
+      scene.className = "scene" + (p.split ? " split" : "");
+      function pic(spec) {
+        var el = spec[0] === "clock" ? ET.art.clockSvg(C.warpFactor) : ET.art.doodleEl(spec[0]);
+        el.setAttribute("class", (spec[0] === "clock" ? "clock-art" : "doodle") + " pic" + (spec[1] ? " " + spec[1] : ""));
+        return el;
+      }
+      if (p.split) {
+        // fast: the pan and a fancy plate; slow: a cracked egg with a leg flailing out
+        [["Fast!", "fast"], ["Slow…", "slow"]].forEach(function (h) {
+          var half = document.createElement("div");
+          half.className = "half " + h[1];
+          var lab = document.createElement("span");
+          lab.className = "tag";
+          lab.textContent = h[0];
+          half.appendChild(lab);
+          if (h[1] === "fast") {
+            var d = ET.art.dishEl(5, "");   // a fancy plate (the ladder's sixth dish), held still
+            d.className = "dish pic";
+            d.removeChild(d.querySelector(".caption"));
+            half.appendChild(d);
+          } else {
+            half.appendChild(pic([3]));
+          }
+          scene.appendChild(half);
+        });
+      } else {
+        (p.pics || []).forEach(function (s) { scene.appendChild(pic(s)); });
+        if (p.chip) {
+          var chip = document.createElement("span");
+          chip.className = "chip " + p.chip[1];
+          chip.textContent = p.chip[0];
+          scene.appendChild(chip);
+        }
+        if (p.shout) {
+          var sh = document.createElement("span");
+          sh.className = "shout";
+          sh.textContent = p.shout;
+          scene.appendChild(sh);
+        }
+        if (p.keys) {
+          var k = document.createElement("span");
+          k.className = "keys";
+          k.setAttribute("aria-hidden", "true");
+          k.innerHTML = "<i></i><i></i>";
+          scene.appendChild(k);
+        }
+      }
+      li.appendChild(scene);
+      var bubble = document.createElement("p");
+      bubble.className = "say";
+      bubble.textContent = TITLE_STEPS[i];
+      li.appendChild(bubble);
+      ol.appendChild(li);
+    });
+    return ol;
+  }
+
   /* Refinement 6 §1: the title screen's How To Play card. Andrew may reword these; keep them short.
      E27 (ruled 2026-09-24) adds step 5, Time Warp (E28 keeps that name); its speed-up is read from the config, so it
      stays true. E28 rewords step 2 around the colour cue: the timer turns pink when RCAV works. */
   var TITLE_STEPS = [
     "The aliens are laying eggs in your CAVs.",
-    "Wait for pink. When the timer turns pink and bold, the egg is ready. Type RCAV + the unit (like RCAV 2101) and press Enter. Too early won't work.",
+    "When the timer turns pink and bold, type RCAV + the unit. Too early won't work.",
     "Clear fast, and breakfast gets fancier.",
-    "Hose off the mess between waves.",
-    "Time Warp! When all the wave's eggs are laid and none are ready, every clock speeds up " + C.warpFactor + "×. Get your next RCAV ready!"
+    "Two lines! Tab to switch. Type the next RCAV while you wait.",
+    "Every clock speeds up " + C.warpFactor + "× till an egg is ready. Get your next RCAV ready!"
   ];
   function buildTitleCard() {
-    var ol = $("#howto-title ol");
-    TITLE_STEPS.forEach(function (text, i) {
-      var li = document.createElement("li");
-      var n = document.createElement("span");
-      n.className = "num";
-      n.textContent = String(i + 1);
-      var t = document.createElement("span");
-      t.className = "step";
-      t.textContent = text;
-      li.appendChild(n);
-      li.appendChild(t);
-      ol.appendChild(li);
-    });
-    // a row of alien-family doodles under the steps, turning with the panel's
-    var row = document.createElement("div");
-    row.className = "doodle-row";
-    [3, 2, 1].forEach(function (i) {
-      var d = ET.art.doodleEl(i);
-      d.style.setProperty("--turn", ((Math.random() * 2 - 1) * C.doodleTurnMax).toFixed(0) + "deg");
-      row.appendChild(d);
-      doodleList.push(d);
-    });
-    $("#howto-title").appendChild(row);
+    $("#howto-title").appendChild(buildStrip());   // E29: the comic strip
+    // E29: the same strip on the options screen, under the HOW / TO / PLAY signs (CSS shows it only there)
+    $("#howto").insertBefore(buildStrip(), $("#howto ul"));
     ET.lights.build($("#howto-title"));   // it keeps the arcade lights
   }
 
