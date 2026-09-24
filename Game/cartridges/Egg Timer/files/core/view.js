@@ -304,12 +304,16 @@
     var C = ET.CONFIG, on = !!snap.warp;
     if (on && !sign.was) sign.t0 = snap.time;   // it just kicked in
     sign.was = on;
-    var want = on;
+    var want = on, wobble = false;
     if (on && !reducedMotion()) {
       var step = Math.max(0.25, C.warpSignFlashSeconds / 2), k = Math.floor((snap.time - sign.t0) / step);
       want = k >= 2 * C.warpSignFlashes || k % 2 === 0;
+      // E31 (ruled 2026-09-24): once the flashes are done, the letters wobble and stretch while it runs. It's movement,
+      // not flashing: the sign stays lit and its colours never change (style.css). Never under reduced motion.
+      wobble = k >= 2 * C.warpSignFlashes;
     }
     setSign(want, snap.time);
+    if (sign.el.classList.contains("wobble") !== wobble) sign.el.classList.toggle("wobble", wobble);
   }
 
   /* E28: wave 1's first-game tags. The first egg to go bold gets "Pink = ready! Type RCAV <unit>" and the first

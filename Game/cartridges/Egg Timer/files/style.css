@@ -324,6 +324,16 @@ h2 {
   transform: rotate(-2deg);
 }
 /* E28: the sign lights (view.js's guarded setSign adds .on): it flashes 3 times as Time Warp kicks in, then stays lit */
+/* E31 (ruled 2026-09-24): while Time Warp runs (after its 3 flashes) the letters wobble and stretch fast: a transform only,
+   so the sign's brightness never changes. view.js adds .wobble; never under reduced motion. */
+#warp .plaque .letters { display: inline-block; }
+#warp .plaque.wobble .letters { animation: warp-wobble 0.36s linear infinite; }
+@keyframes warp-wobble {
+  0%, 100% { transform: none; }
+  20% { transform: scale(1.14, 0.86) skewX(-10deg); }
+  45% { transform: translateX(1px) scale(0.9, 1.12) skewX(8deg); }
+  70% { transform: translateX(-1px) scale(1.1, 0.92) skewX(-5deg); }
+}
 #warp .plaque.on { background: var(--warp); border-color: var(--violet); color: var(--warp-lit-ink); box-shadow: 3px 3px 0 var(--shadow), 0 0 14px 3px var(--warp-glow); }
 /* E28: the caption under the sign, dim until Time Warp runs */
 #warp .caption { display: block; margin-top: 4px; max-width: 15em; color: var(--dim); font-family: var(--font-ui); font-weight: 700; font-size: 0.95em; letter-spacing: 0; line-height: 1.2; white-space: normal; text-shadow: 1px 1px 0 var(--shadow); }
@@ -998,7 +1008,7 @@ h2 {
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter * { animation: none; }
+  .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   #title-scene .note, #setup-critter .note { opacity: 1; }
   /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24) */
   .nest[data-state="trigger"] .readout > span { border-color: var(--cyan); }

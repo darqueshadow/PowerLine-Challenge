@@ -1450,6 +1450,34 @@ export default {
   "transform": "rotate(-2deg)",
   "white-space-collapse": "collapse"
  },
+ "#warp .plaque .letters": {
+  "display": "inline-block"
+ },
+ "#warp .plaque.wobble .letters": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.36s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "infinite",
+  "animation-name": "warp-wobble",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "linear"
+ },
+ "@keyframes warp-wobble » 0%, 100%": {
+  "transform": "none"
+ },
+ "@keyframes warp-wobble » 20%": {
+  "transform": "scale(1.14, 0.86) skewX(-10deg)"
+ },
+ "@keyframes warp-wobble » 45%": {
+  "transform": "translateX(1px) scale(0.9, 1.12) skewX(8deg)"
+ },
+ "@keyframes warp-wobble » 70%": {
+  "transform": "translateX(-1px) scale(1.1, 0.92) skewX(-5deg)"
+ },
  "#warp .plaque.on": {
   "background-attachment": "initial",
   "background-clip": "initial",
@@ -3749,7 +3777,7 @@ export default {
   "margin-right": "0px",
   "margin-top": "0px"
  },
- "@media (prefers-reduced-motion: reduce) » .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",

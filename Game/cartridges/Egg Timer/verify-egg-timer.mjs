@@ -1335,6 +1335,49 @@ try {
     await ev("__et.start('clear', 1); __et.advance(0.1); 1");
   }
   {
+    // E31 (ruled 2026-09-24): after the flashes, while Time Warp runs, the letters wobble and stretch; the sign's brightness
+    // never changes. A real Time Warp, held on pause (the page keeps drawing it), watched in real time. The flashes are
+    // skipped for this one check (warpSignFlashes 0), so the wobble starts the moment Time Warp does.
+    const esc = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
+    const held = await ev(`(() => {
+      ET.CONFIG.__flashes = ET.CONFIG.warpSignFlashes; ET.CONFIG.warpSignFlashes = 0;
+      __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1);
+      for (let i = 0; i < 6000 && !__et.snapshot().warp; i++) { __et.snapshot().nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit)); __et.advance(0.05); }
+      const warp = __et.snapshot().warp;
+      ${esc};                                        // pause at once: nothing steps in between
+      return { warp, paused: !document.querySelector('#pause').hidden };
+    })()`);
+    const watch = () => ev(`new Promise((done) => {
+      const p = document.querySelector('#warp .plaque'), l = p.querySelector('.letters'), looks = [], shapes = [], n0 = ET.view.warpSign().log.length;
+      const look = () => { const a = getComputedStyle(p), b = getComputedStyle(l);
+        return [a.backgroundColor, a.color, a.opacity, a.filter, a.boxShadow, b.color, b.opacity, b.filter, b.textShadow].join('|'); };
+      let k = 0;
+      const t = setInterval(() => {
+        looks.push({ t: performance.now() / 1000, v: look() });
+        shapes.push(getComputedStyle(l).transform);
+        if (++k >= 40) {
+          clearInterval(t);
+          const changes = looks.slice(1).filter((x, i) => x.v !== looks[i].v).map((x) => x.t);
+          let worst = 0;
+          for (let i = 0; i < changes.length; i++) { let m = 0; for (let j = i; j < changes.length && changes[j] < changes[i] + 1; j++) m++; worst = Math.max(worst, m); }
+          done({ wobble: p.classList.contains('wobble'), anim: getComputedStyle(l).animationName, shapes: new Set(shapes).size, changes: changes.length, worst,
+                 lit: ET.view.warpSign().lit, signChanges: ET.view.warpSign().log.length - n0, warp: __et.snapshot().warp });
+        }
+      }, 50);
+    })`);
+    const wb = await watch();
+    ok(held.warp && held.paused && wb.warp && wb.wobble && wb.anim === "warp-wobble" && wb.shapes >= 5, `E31: while Time Warp runs, the "TIME WARP" letters wobble and stretch   [${wb.shapes} shapes in 2 s]`);
+    ok(wb.lit && wb.signChanges === 0 && wb.changes === 0 && wb.worst <= 2, `SAFETY: during the wobble the sign stays lit and its brightness never changes (the cap is 2 a second)   [${wb.changes} changes, worst ${wb.worst} in any 1 s]`);
+    await shot("13e-time-warp-wobble");
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    await wait(200);
+    const still = await watch();
+    ok(still.warp && still.lit && !still.wobble && still.anim === "none" && still.shapes === 1 && still.changes === 0, `SAFETY: with reduced motion the sign stays lit and doesn't wobble   [${still.anim}, ${still.shapes} shape]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+    await ev(`(() => { ${esc}; ET.CONFIG.warpSignFlashes = ET.CONFIG.__flashes; delete ET.CONFIG.__flashes; __et.start('clear', 1); __et.advance(0.1); return 1; })()`);
+  }
+  {
     let lit = null;
     for (let t = 0; t < 300 && !lit; t += 0.25) {
       const x = await snap();
