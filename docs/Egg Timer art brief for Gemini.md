@@ -16,6 +16,11 @@ in the running game). Nothing in the game changes until the art comes back and a
 4. Keep a short record of how each picture was made (the Gemini model, the date, the prompt, your approval). It goes
    in `files/art/README.md`, which isn't copied to the game site but can be read in the public repo (see "Getting
    the files onto the site").
+5. **Slot 13 (the five break stages) comes from E26, which Chat has ruled as a concept only.** How fast a clear has to
+   be for each stage is still open, so the slot describes the look and leaves the timing to the code. Hand it over
+   after the pilot like any other slot. Its art rules (clearly cartoon alien, nothing human, no red, gross-funny and
+   not gory) are written for slot 13 only. Chat hasn't said whether they also cover the hatchling's red eyes and
+   needle fangs (slot 2) or the "baby with too many teeth" in the art direction below, so those are unchanged.
 
 ---
 
@@ -117,6 +122,7 @@ or any other existing character.
 | 10 | Hose tap | `0 0 28 22` | 28 × 22 px | SVG | none |
 | 11 | Gunk splats and a water drop | `0 0 100 100` stamps | up to ~100 px across with droplets | SVG or 200 × 200 PNG/WebP | none |
 | 12 | Small icons: mute, mouse, favicon | `0 0 24 24`, `0 0 20 28`, `0 0 32 32` | mute 22 × 22; mouse ~16 × 22; favicon 16 × 16 (up to 32) | SVG only | mute icon swaps parts |
+| 13 | The five break stages (E26) | same as the nest | 200 × 183 px | SVG (or 400 × 367 PNG/WebP) | none (one stage shows, still) |
 
 Not image slots, so they stay drawn by code (see the end): the egg-laying cord, the Time Warp lightning and glow, the
 hose line, the arcade lights, and all the text boxes, panels and clocks.
@@ -206,8 +212,8 @@ y= 48 └───────────────────────�
   animated on their own.
 - **One special type, VF (vehicle fuelling), hides its egg until it's bold.** It then appears at full size, uncracked, and
   starts cracking at once. Nothing extra to draw; it's the same egg.
-- **The egg vanishes** when the player clears it (the pan slams and gunk splashes; there's no break animation) or
-  when it hatches (the shell halves and the hatchling take over).
+- **The egg vanishes** when the player clears it (the pan slams and gunk splashes; today there's no break picture,
+  and slot 13 adds one, a still picture in five stages) or when it hatches (the shell halves and the hatchling take over).
 
 ### Two looks for the twigs
 
@@ -583,6 +589,48 @@ y= 48 └───────────────────────�
   - A favicon can't use colour names, so write the hex values in: shell #7dff6a, outline and crack #1a0d2e,
     speckles #7a2cff.
   - **File:** `favicon.svg`, which replaces `files/favicon.svg`.
+
+---
+
+## Slot 13: the five break stages (E26)
+
+- **What and where:** what's left in the nest after the frying pan smashes a cleared egg. **The faster the player
+  cleared it, the cleaner the break. The slower the clear, the messier and more alien it gets.** There are five
+  stages, and each clear shows exactly one of them. The stage replaces the egg in the nest when the pan comes down,
+  and it's there for about a second. The code session sets the exact timing.
+- **Look only.** The amount of gunk thrown across the board (slot 11) is the same for every stage. The stage is only
+  what's left in the nest.
+- **The five stages:**
+
+| # | File | The look |
+|---|------|----------|
+| 1 | `break-1-elegant.svg` | **Elegant.** A clean crack, two neat shell halves, a bright round yolk, and a small sparkle. |
+| 2 | `break-2-messier.svg` | **Messier.** Jagged shell shards and a runny yolk spreading out. It's still just an egg. |
+| 3 | `break-3-alien-signs.svg` | **First alien signs.** The yolk has a green tinge, and a tiny antenna sticks up out of the goo. |
+| 4 | `break-4-half-formed.svg` | **Half-formed.** A wiggly leg, an eyeball on a stalk, and purple slime. |
+| 5 | `break-5-leftovers.svg` | **Jokey leftovers.** A spill of alien slurpy, a tangle of legs, and a tentacle. |
+
+- **Art rules for this slot:**
+  - **Clearly a cartoon alien.** Each stage should look a little more alien than the one before, and stage 5 is
+    obviously not an egg any more.
+  - **Nothing human.** No hands or fingers, no human eyes, no teeth, no skin. Eyes are cartoon eyeballs on stalks
+    and legs are alien legs.
+  - **No red blood.** Red stays on the egg-laying cord only, so there's no red anywhere in this slot. The goo is
+    yolk-yellow, green and purple.
+  - **Gross and funny, not gory.** Think of a spilt slushie, not an injury.
+- **Shape:** the nest's viewBox `-60 -62 120 110`, drawn where the egg was: the break sits on the nest, around the
+  egg's base at **(0, 20)**, and stays inside about **x −40…40, y −40…28** so the front twigs and the text boxes
+  below the nest stay clear. The frying pan covers it at first, so every stage has to read once the pan lifts.
+- **Largest on screen:** the whole nest canvas, 200 × 183 px. It's also shown on nests as small as 84 px wide, so
+  **each stage must still be recognisable at that size.** Stage 1 and stage 5 should look different at a glance.
+- **Layers:** one still group per file, class `break`. Nothing moves, and the game doesn't animate any part of it.
+- **Colours (from `theme.css`):** shell `--shell` #7dff6a, outlines `--crack` #1a0d2e and `--shadow` #000, yolk
+  `--yolk` #ffc21a and `--yolk-pale` #ffe08a, egg white `--egg-white` #fff6e0, green goo `--drool` #b8ff5e, purple
+  `--cord-purple` #7a2cc4. Anything else, such as a slurpy colour or a sparkle white, is named with its hex in your
+  notes, and Code adds it to `theme.css`.
+- **Animation limits:** none are needed, because each stage is a still picture. **Stage 1's sparkle must not
+  twinkle or flash**: draw it as a still star shape.
+- **Files:** `break-1-elegant.svg` … `break-5-leftovers.svg` (or `break-1-elegant@2x.png` … at 400 × 367 px).
 
 ---
 
