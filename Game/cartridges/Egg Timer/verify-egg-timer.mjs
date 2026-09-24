@@ -59,6 +59,24 @@ const ev = (s) => c.ev(s);
 const snap = () => ev("__et.snapshot()");
 async function shot(name) { if (SHOTS) await c.shot(`${SHOTS}\\${name}.png`); }
 
+/* Load the page afresh. The driver spots a finished load by the first load event in its log, so the log is emptied
+   first; anything it already held that the clean-run check (K) must see is carried over. */
+const carried = [];
+async function reload(url = URL_GAME) {
+  carried.push(...c.errors());
+  c.drain();
+  await c.goto(url);
+}
+/* Wait (in real time) for a request the rig is holding back with the Fetch domain. */
+async function held(pattern) {
+  for (let i = 0; i < 200; i++) {
+    const m = c.events().find((e) => e.method === "Fetch.requestPaused" && pattern.test(e.params.request.url));
+    if (m) return m.params.requestId;
+    await wait(50);
+  }
+  return null;
+}
+
 /* Advance until a nest matches, or give up. */
 async function until(fn, maxSeconds = 120, step = 0.25) {
   for (let t = 0; t < maxSeconds; t += step) {
@@ -1191,6 +1209,26 @@ try {
     await ev(`(() => { const c0 = ${C0}; ET.CONFIG.momFaceChance = c0[0]; ET.CONFIG.momFaceWindow = c0[1]; return 1; })()`);
   }
 
+  /* ------------------------------------------------ V. while the data loads */
+  section("V. loading: nothing starts before the data is in (Andrew, 2026-09-24)");
+  {
+    // hold the CAV table back, so the title sits on LOADING… for as long as the rig likes
+    await c.send("Fetch.enable", { patterns: [{ urlPattern: "*/datasets/cav_types.csv*", requestStage: "Request" }] });
+    await reload();
+    const id = await held(/\/datasets\/cav_types\.csv/);
+    ok(!!id, "(the rig holds the CAV table back, so the page is still loading)");
+    await press("Enter");
+    await ev("document.querySelector('#screen-title').click(), 1");
+    eq(await ev("[__et.screen(), __et.ready(), document.querySelector('#title-prompt').textContent]"), ["title", false, "LOADING…"],
+      "Enter (or a click) on the title while the data is still loading does nothing: no way into setup without it");
+    if (id) await c.send("Fetch.continueRequest", { requestId: id });
+    await c.send("Fetch.disable");
+    for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
+    eq(await ev("document.querySelector('#title-prompt').textContent"), "PRESS ENTER", "…the prompt changes once it has loaded");
+    await press("Enter");
+    eq(await ev("__et.screen()"), "setup", "…and then Enter goes on to setup as usual");
+  }
+
   /* ------------------------------------------------------------ K. errors */
   section("T. the theme file: the palette in its own file, the game looking exactly as before");
   {
@@ -1221,7 +1259,7 @@ try {
   }
 
   section("K. a clean run");
-  const errs = c.errors().filter((e) => !/favicon\.ico/.test(e));
+  const errs = carried.concat(c.errors()).filter((e) => !/favicon\.ico/.test(e));
   eq(errs, [], "no page errors, failed requests or 404s");
 } finally {
   c.close();

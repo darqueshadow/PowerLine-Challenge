@@ -102,6 +102,7 @@
 
   /* ----------------------------------------------------------------- play */
   function startGame(mode, boxes) {
+    if (!app.data) return;   // no game without the data (the title's guards keep the player from getting here first)
     clearTimeout(app.overTimer);
     var types = ET.devmode.on ? app.data.blankTypes : app.data.types;
     app.game = new ET.Game({
@@ -189,6 +190,9 @@
     if (ET.devmode.isOpen()) return;             // the prompt's own input has the keys
     switch (app.screen) {
       case "title":
+        // like a click on the title: nothing goes on until the data has loaded (Andrew, 2026-09-24)
+        if (ev.key === "Enter") { ev.preventDefault(); if (app.data) show("setup"); }
+        return;
       case "over":
         if (ev.key === "Enter") { ev.preventDefault(); show("setup"); }
         return;
