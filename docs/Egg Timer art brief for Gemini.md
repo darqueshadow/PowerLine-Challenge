@@ -26,6 +26,8 @@ in the running game). Nothing in the game changes until the art comes back and a
    for now.** (E27 also renamed it "Time Accelerator"; **E28 undid that: it's Time Warp**.)
 8. **E28 (ruled 2026-09-24)** put a small **sink with a drain** beside the hose's tap, with the hose's instructions on
    it: slot 15.
+9. **E29 (ruled 2026-09-24)** turned How To Play into a **five-panel comic strip**, the same on the title card and the
+   options screen: slots 16–20, one picture a panel. The words are the game's (speech bubbles), not the art's.
 
 ---
 
@@ -138,6 +140,7 @@ or any other existing character.
 | 13 | The five break stages (E26) | same as the nest | 200 × 183 px | SVG (or 400 × 367 PNG/WebP) | none (one stage shows, still) |
 | 14 | Time Warp's grandfather clock (E27) | `0 0 80 170` | about 70 × 140 px | **SVG only** | hour hand and minute hand (turn) |
 | 15 | The sink by the hose tap (E28) | `0 0 40 24` | about 42 × 25 px | SVG | none |
+| 16–20 | How To Play comic panels (E29), one each | `0 0 120 90` (slot 18: two, `0 0 120 44` each) | about 110 × 83 px | SVG or 240 × 180 PNG/WebP | none |
 
 Not image slots, so they stay drawn by code (see the end): the egg-laying cord, Time Warp's lightning and glow, the
 hose line, the arcade lights, and all the text boxes, panels and clocks.
@@ -722,6 +725,39 @@ y= 48 └───────────────────────�
   #1a0d2e. Suggest others by name and hex.
 - **Animation:** none.
 - **File:** `sink.svg`.
+
+---
+
+## Slots 16–20: the How To Play comic strip (E29)
+
+- **What and where:** How To Play is a strip of five comic panels, stacked down the How To Play card on the title
+  screen and down the side panel on the options screen. Each panel has a numbered heading and the step's words in a
+  speech bubble (**both live text, drawn by the game**), and **one picture, on the left of the bubble**. These slots
+  are those pictures.
+- **Shape:** viewBox **`0 0 120 90`** (4:3) for each, except slot 18, which is **two** pictures (fast and slow), each
+  **`0 0 120 44`**, stacked.
+- **Largest on screen:** about **110 × 83 px**; the smallest about **60 × 45 px**. Draw big, simple shapes with thick
+  outlines: a picture must read at 60 px wide.
+- **Style:** a Saturday-morning cartoon strip in the game's 1980s-arcade look. **Rule 6 applies to every panel**:
+  cartoon aliens, scary only in an alien way, **nothing human** (no hands or fingers: aliens type and hold things with
+  tentacles), no red blood, gross-funny. Reuse the title family (slot 6) so the strip feels like the same cast.
+- **No text in any picture** (rule 1), including no "RCAV" and no numbers on timers: the game writes those. Leave
+  the spaces noted below clear for the game's labels.
+
+| Slot | Panel | The picture |
+|---|---|---|
+| 16 | 1. Watch the nests | The mommy alien lowering an egg into a nest, with a blank yellow **timer box** under the nest (the game writes the time). |
+| 17 | 2. Wait for pink | A nest whose **timer box is hot pink** (`--readout-bold-timer-bg` #ff2d8a, left blank), and a little alien beside it, mouth wide open, shouting. **Leave the top right corner (about 50 × 20 units) clear**: the game puts the shout "RCAV 2101!" there in its own bubble. |
+| 18a | 3. Be quick: **fast** | The frying pan slamming down (slot 4's pan) and a fancy breakfast plate (like the top dishes of slot 3). **Leave the left 24 units clear** for the game's "Fast!" label. |
+| 18b | 3. Be quick: **slow** | A cracked egg with an alien leg flailing out of the crack. **Leave the left 24 units clear** for "Slow…". |
+| 19 | 4. Use your Command Lines | An alien typing on **two keyboards at once with its tentacles**, one keyboard per tentacle pair. Blank keys. |
+| 20 | 5. Time Warp | The grandfather clock (slot 14) with its hands spinning (speed lines are fine: it's a still picture) and an alien beside it, dizzy (spiral eyes, stars). |
+
+- **Colours:** the named colours already in this brief (the title family, the clock, the pan and dishes, the readouts).
+  Anything new is named with its hex in your notes.
+- **Animation:** none: each is a still picture. Nothing may rely on motion to make sense.
+- **Files:** `comic-1-watch.svg`, `comic-2-pink.svg`, `comic-3-fast.svg`, `comic-3-slow.svg`, `comic-4-lines.svg`,
+  `comic-5-warp.svg` (or `…@2x.png` at 240 × 180, and 240 × 88 for the two halves of panel 3).
 
 ---
 
