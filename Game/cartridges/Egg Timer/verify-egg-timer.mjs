@@ -715,8 +715,8 @@ try {
   await press("Escape");
   ok(await ev("!__et.paused()"), "…and Esc resumes it like any pause");
   {
-    // E24, and ⏳ E25: in play M is a letter players type (MB), so it types and doesn't mute; paused, M mutes;
-    // the button mutes any time, and never takes the keyboard from the Command Line
+    // E24, and E25 (ruled): in play M is a letter players type (MB), so it types and doesn't mute; there Ctrl+M mutes;
+    // paused, M mutes; the button mutes any time, and never takes the keyboard from the Command Line
     const typeM = async (mods = 0) => {
       await c.send("Input.dispatchKeyEvent", { type: "keyDown", key: "m", code: "KeyM", windowsVirtualKeyCode: 77, modifiers: mods, ...(mods ? {} : { text: "m", unmodifiedText: "m" }) });
       await c.send("Input.dispatchKeyEvent", { type: "keyUp", key: "m", code: "KeyM", windowsVirtualKeyCode: 77, modifiers: mods });
@@ -725,9 +725,9 @@ try {
     const line = () => ev("[document.querySelector('.box.active input').value, ET.audio.muted(), __et.boxes().focused]");
     await ev("document.querySelector('.box.active input').value = ''; document.querySelector('.box.active input').focus(); 1");
     await typeM();
-    eq(await line(), ["m", false, true], "⏳ E25: in play M types into the Command Line (MB needs it) and doesn't mute");
+    eq(await line(), ["m", false, true], "E25: in play M types into the Command Line (MB needs it) and doesn't mute");
     const tip = () => ev("document.querySelector('#mute').title");
-    eq(await tip(), "Sound on", "…so in play the button's tooltip names no key");
+    eq(await tip(), "Sound on (Ctrl+M)", "…so in play the button's tooltip names Ctrl+M, the key that works there");
     await press("Escape");
     const pausedTip = await tip();
     await press("m");
@@ -735,7 +735,7 @@ try {
     await press("m");
     await press("Escape");
     ok(pausedMute && !(await ev("ET.audio.muted()")) && pausedTip === "Sound on (M)", `…while paused, M mutes and unmutes, and the tooltip says so   [${pausedTip}]`);
-    eq(await tip(), "Sound on", "…and back in play the tooltip drops the key again");
+    eq(await tip(), "Sound on (Ctrl+M)", "…and back in play it names Ctrl+M again");
     const at = await ev("(() => { const q = document.querySelector('#mute').getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2]; })()");
     const click = async () => { for (const type of ["mousePressed", "mouseReleased"]) await c.send("Input.dispatchMouseEvent", { type, x: at[0], y: at[1], button: "left", clickCount: 1 }); await wait(30); };
     await click();
@@ -743,16 +743,19 @@ try {
     await click();
     ok(clicked[1] && clicked[2] && clicked[0] === "m" && !(await ev("ET.audio.muted()")), `in play the button mutes (and unmutes), and the Command Line keeps the keyboard and its text   [${JSON.stringify(clicked)}]`);
     ok((await ev("getComputedStyle(document.querySelector('#mute')).cursor")).includes("url("), "…and over it the cursor is still the hose nozzle, as everywhere in the game");
-    // the other E25 value still works: Ctrl+M mutes in play
-    await ev("ET.CONFIG.muteKeyInPlay = 'ctrl-m'; 1");
+    // E25 (ruled): Ctrl+M mutes in play, leaving the Command Line's text alone
     await typeM(CTRL);
     const ctrlOn = await line();
-    eq(await tip(), "Sound off (Ctrl+M)", "(with \"ctrl-m\" the tooltip names Ctrl+M in play)");
+    const ctrlTip = await tip();
     await typeM(CTRL);
     const ctrlOff = await line();
+    ok(ctrlOn[1] && ctrlOn[0] === "m" && ctrlOn[2] && !ctrlOff[1] && ctrlTip === "Sound off (Ctrl+M)", `E25: in play Ctrl+M mutes and unmutes, the Command Line keeping the keyboard and its text   [${JSON.stringify(ctrlOn)}, ${ctrlTip}]`);
+    // the other value still works as a switch: with "none" Ctrl+M does nothing in play
     await ev("ET.CONFIG.muteKeyInPlay = 'none'; 1");
     await typeM(CTRL);
-    ok(ctrlOn[1] && ctrlOn[0] === "m" && !ctrlOff[1] && !(await ev("ET.audio.muted()")), "(the \"ctrl-m\" value lets Ctrl+M mute in play; with \"none\", as built, Ctrl+M does nothing)");
+    const noneOff = !(await ev("ET.audio.muted()"));
+    await ev("ET.CONFIG.muteKeyInPlay = 'ctrl-m'; 1");
+    ok(noneOff, "(with the switch's other value, \"none\", Ctrl+M does nothing in play)");
     await ev("document.querySelector('.box.active input').value = ''; 1");
   }
 

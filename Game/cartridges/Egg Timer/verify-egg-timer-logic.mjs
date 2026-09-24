@@ -698,7 +698,7 @@ eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextO
 eq([ET.CONFIG.hoseWhen, ET.CONFIG.errorOnEmpty], ["always", false], "the hose is always the in-game cursor (Hose ruling, replacing E5) · E6 no ERROR on an empty Enter");
 eq([ET.CONFIG.adClockTarget, ET.CONFIG.adNoteFrom], ["full-minutes", "start"], "E1 round up · E2 note at the start (ruled 2026-09-22)");
 eq(ET.CONFIG.devModePasswordHash, null, "⏳ D3: no phrase set yet, so Developer Mode denies every entry");
-eq(ET.CONFIG.muteKeyInPlay, "none", "⏳ E25: M doesn't mute while a Command Line has the keys (built provisionally; the button does)");
+eq(ET.CONFIG.muteKeyInPlay, "ctrl-m", "E25 (ruled 2026-09-24): in play M types; the button and Ctrl+M mute there");
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) {

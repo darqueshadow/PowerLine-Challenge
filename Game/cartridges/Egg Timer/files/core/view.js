@@ -3,8 +3,8 @@
    Draws the playfield from game snapshots and reacts to game events.
    Owns nothing about the rules: if a number matters, it came from ET.Game.
 
-   Layout (packet §4): nests sit on a LOGICAL 4 × 3 grid, which is what decides
-   neighbours, but they are drawn scattered — each cell gets a fixed, organic
+   Layout (packet §4): nests sit on a LOGICAL 4 × 3 grid, which fixes their places
+   and the order they open in (a clear's gunk no longer picks neighbours, E15), but they are drawn scattered — each cell gets a fixed, organic
    offset, so the board never reads as a visible checkerboard. All 12 are on
    screen all game (Refinement 3 §8); the ones not yet active are plain.
    ========================================================================= */

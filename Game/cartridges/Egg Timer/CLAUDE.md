@@ -129,8 +129,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Horror beats (Refinement 5):** the hatchling is horrific; a **scary mom face** pops in at most once a wave,
   under 1 s, only inside a clipping box over the HUD bar or the how-to panel (covering either briefly is fine,
   E23), so it can never reach a nest, readout or Command Line (rig section Q). Never let it take input or flash.
-- **Sound (E24):** a mute button top left on every screen, and M (⏳ **E25**: not while a Command Line has the keys,
-  `muteKeyInPlay`), remembered per browser. Every sound goes through `audio.js`'s one master chain (a level, then a
+- **Sound (E24):** a mute button top left on every screen, and M, remembered per browser. **E25 (ruled):** while a
+  Command Line has the keys M types (MB); there the button and **Ctrl+M** mute (`muteKeyInPlay: "ctrl-m"`). Every sound goes through `audio.js`'s one master chain (a level, then a
   soft ceiling under full scale, so nothing clips): make any new sound connect to `bus()`, never to the speakers
   directly (rig section A2 fails on a second route). A background tab stops the title tune and holds every sound.
 - **Platform:** a plain browser tab, and Fang Rock (`fangrock://arcade/eggtimer`, in the hub's frame), which
@@ -171,5 +171,5 @@ Auto-memory loads the PLC root index instead, because it keys to the git root.
 ## State 2026-09-24
 Audit fixes A are live (from `c14b3e5`; rigs logic 152/0, browser 415/0): the cleanup banner's flash cap, reduced
 motion, the title's Enter guard, the unit-sheet guard, E24's mute and master chain, and steadier rig checks.
-**E25 (the M key in play) is open with Chat**; next free **E26**. Left from the audit, by Andrew's choice: the art-slot
+E25 ruled the same day (Ctrl+M mutes in play); no Chat question open, next free **E26**. Left from the audit, by Andrew's choice: the art-slot
 layer, moving the JavaScript colours into `theme.css`, dead code, and the other test gaps.
