@@ -42,7 +42,7 @@ button { font: inherit; }
 #screen-title, #screen-setup, #screen-over { container-type: inline-size; }
 .screen.with-howto:not(#screen-play) { padding-right: calc(var(--panel-w, clamp(170px, 15vw, 250px)) + 44px); }
 .screen.with-howto:not(#screen-play) > .howto-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 4; text-align: center; }
-#screen-title { --panel-w: clamp(210px, 20vw, 330px); }
+#screen-title { --panel-w: clamp(250px, 27vw, 430px); }   /* E28: wider, for the longer step 2 */
 /* E27: on the options screen the how-to panel is wider and its type bigger, under three HOW / TO / PLAY signs */
 #screen-setup { --panel-w: clamp(230px, 23vw, 370px); }
 #screen-setup #howto { width: var(--panel-w); padding-left: 18px; padding-right: 18px; font-size: clamp(13px, min(1.25vw, 2.2vh), 20px); }
@@ -291,10 +291,10 @@ h2 {
   letter-spacing: 0.12em;
   line-height: 1.1;
 }
-#warp .clock-art { display: block; height: min(23cqh, 30cqw); width: auto; overflow: visible; filter: drop-shadow(4px 4px 0 var(--shadow)); }
+#warp .clock-art { display: block; height: min(17cqh, 30cqw); width: auto; overflow: visible; filter: drop-shadow(4px 4px 0 var(--shadow)); }
 #warp .plaque {
   display: block;
-  margin-top: -2.4em;                /* across the clock's base */
+  margin-top: -1.6em;                /* across the clock's base */
   padding: 3px 8px;
   background: var(--warp-off-bg);
   border: 3px solid var(--warp-off-border);
@@ -304,8 +304,11 @@ h2 {
   white-space: nowrap;
   transform: rotate(-2deg);
 }
-#warp .plaque > span { display: block; }
-#warp.lit .plaque { background: var(--warp); border-color: var(--violet); color: var(--warp-lit-ink); box-shadow: 3px 3px 0 var(--shadow), 0 0 14px 3px var(--warp-glow); }
+/* E28: the sign lights (view.js's guarded setSign adds .on): it flashes 3 times as Time Warp kicks in, then stays lit */
+#warp .plaque.on { background: var(--warp); border-color: var(--violet); color: var(--warp-lit-ink); box-shadow: 3px 3px 0 var(--shadow), 0 0 14px 3px var(--warp-glow); }
+/* E28: the caption under the sign, dim until Time Warp runs */
+#warp .caption { display: block; margin-top: 4px; max-width: 15em; color: var(--dim); font-family: var(--font-ui); font-weight: 700; font-size: 0.95em; letter-spacing: 0; line-height: 1.2; white-space: normal; text-shadow: 1px 1px 0 var(--shadow); }
+#warp.lit .caption { color: var(--warp); }
 #warp.lit .clock-art { filter: drop-shadow(4px 4px 0 var(--shadow)) drop-shadow(0 0 7px var(--warp)); }
 #warp .case { fill: var(--clock-case); stroke: var(--outline); stroke-width: 2.5; stroke-linejoin: round; }
 #warp .window { fill: var(--clock-window); stroke: var(--outline); stroke-width: 2; }
@@ -343,6 +346,12 @@ h2 {
 #field { position: relative; flex: 1; min-width: 0; min-height: 0; touch-action: none; display: flex; flex-direction: column; }
 /* Refinement 3: a band across the top of the board for the wall clock (right) and the TIME WARP panel,
    so neither ever sits on a nest; the nests fill the board below it */
+/* E28: wave 1's first-game tags, either side of the wall clock (view.js sets their left / right); they never flash */
+#fieldtop .tip { position: absolute; top: 50%; transform: translateY(-50%); max-width: 30%; padding: 3px 8px; border: 2px solid var(--outline); border-radius: 7px; box-shadow: 3px 3px 0 var(--shadow); font-family: var(--font-display); font-size: clamp(10px, 0.95vw, 15px); letter-spacing: 0.04em; line-height: 1.15; white-space: normal; pointer-events: none; }
+#tip-ready { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
+#tip-clock { background: var(--card); color: var(--outline); }
+#tip-clock .arrow { color: var(--led); text-shadow: 1px 1px 0 var(--outline); }
+#cords .leader { fill: none; stroke: var(--leader); stroke-width: 2px; stroke-dasharray: 6 5; opacity: 0.85; }
 #fieldtop { position: relative; z-index: 25; flex: none; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 10px 16px 4px; }
 #board { position: relative; flex: 1; min-height: 0; container-type: size; }
 
@@ -399,6 +408,7 @@ h2 {
 
 /* Refinement 5 §6: a small tag on the hose tap, just right of the spigot on the board's bottom edge, in the gap
    under the bottom row of readouts (the layout rig checks it never touches a nest or readout) */
+/* E28: now a small sink with a drain, beside the spigot, with the hose's instructions on it (⏳ placeholder look) */
 #hose-tag {
   position: absolute;
   left: calc(50% + 16px);            /* the spigot sits at hoseSpigotX (0.5) */
@@ -408,7 +418,7 @@ h2 {
   align-items: center;
   gap: 5px;
   padding: 2px 7px 2px 4px;
-  background: var(--card);
+  background: var(--sink-steel);
   color: var(--outline);
   border: 2px solid var(--outline);
   border-radius: 7px;
@@ -428,6 +438,11 @@ h2 {
 }
 #hose-tag b { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.04em; }
 #hose-tag .mouse { width: 1.2em; height: 1.7em; flex: none; }
+#hose-tag .sink { width: 2.6em; height: 1.6em; flex: none; overflow: visible; }
+#hose-tag .sink .basin { fill: var(--sink-basin); stroke: var(--outline); stroke-width: 2; stroke-linejoin: round; }
+#hose-tag .sink .rim { stroke: var(--outline); stroke-width: 3; stroke-linecap: round; }
+#hose-tag .sink .drain { fill: var(--outline); }
+#hose-tag .sink .grate { stroke: var(--sink-steel); stroke-width: 1.2; }
 #hose-tag .mouse rect, #hose-tag .mouse path { fill: var(--white); stroke: var(--outline); stroke-width: 2; }
 #hose-tag .mouse .btn { fill: var(--hot); }
 
@@ -825,7 +840,9 @@ h2 {
   white-space: nowrap;
   overflow: hidden;
 }
-#cleanup .call { font-size: clamp(26px, 3.6vw, 46px); letter-spacing: 0.08em; line-height: 1; text-shadow: 3px 3px 0 var(--ink); }
+#cleanup .call { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+#cleanup .head { font-size: clamp(18px, 2.1vw, 32px); letter-spacing: 0.08em; text-shadow: 3px 3px 0 var(--ink); }
+#cleanup .sub { margin-top: 3px; color: var(--shadow); font-family: var(--font-ui); font-weight: 700; font-size: clamp(11px, 1vw, 16px); letter-spacing: 0.02em; }   /* E28 */
 #cleanup .left { display: inline-block; min-width: 1.4ch; text-align: right; }
 #cleanup .result { font-size: clamp(12px, 1.2vw, 18px); letter-spacing: 0.06em; }
 #cleanup.flash { animation: cleanup-flash var(--flash-each, 0.5s) steps(1) var(--flashes, 3); }   /* 🚨 ≤ 2 a second; view.js guards 2.5 */
@@ -833,9 +850,10 @@ h2 {
 
 /* ---------------------------------------------------------- command boxes */
 #console {
+  position: relative;
   display: flex;
   gap: 14px;
-  padding: 12px 18px 26px;   /* room for the ERROR line under a box */
+  padding: 12px 18px 44px;   /* room for the ERROR line under a box, then E28's switching hints */
   background: var(--shadow);
   border-top: 4px solid var(--hot);
 }
@@ -872,6 +890,10 @@ h2 {
   font-size: clamp(16px, 1.7vw, 22px);
   text-transform: uppercase;
 }
+.box input::placeholder { color: var(--placeholder); opacity: 1; text-transform: none; }   /* E28: gone once the player types */
+/* E28: the switching hints, just under the Command Lines, below the ERROR line */
+#line-hints { position: absolute; left: 18px; right: 18px; bottom: 5px; color: var(--dim); font-size: clamp(10px, 0.85vw, 13px); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+#line-hints b { color: var(--ink); font-family: var(--font-display); font-weight: 400; letter-spacing: 0.04em; }
 /* Refinement 2 §6: a red ERROR directly under the Command Line, for about a second */
 .box .err {
   position: absolute;

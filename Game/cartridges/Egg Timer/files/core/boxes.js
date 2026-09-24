@@ -80,9 +80,10 @@
         var el = document.createElement("div");
         el.className = "box";
         el.style.setProperty("--box", COLORS[i]);
-        el.innerHTML = '<span class="num">' + (i + 1) + '</span><input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="60">' +
+        // E28: a grey "RCAV + unit" in an empty line, gone as soon as the player types
+        el.innerHTML = '<span class="num">' + (i + 1) + '</span><input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="60" placeholder="RCAV + unit">' +
           '<span class="err" aria-live="assertive">ERROR</span>';
-        consoleEl.appendChild(el);
+        consoleEl.insertBefore(el, document.querySelector("#line-hints"));
         var input = el.querySelector("input");
         input.setAttribute("aria-label", "Command Line " + (i + 1));
         input.addEventListener("mousedown", function (ev) { ev.preventDefault(); ET.boxes.focus(); });

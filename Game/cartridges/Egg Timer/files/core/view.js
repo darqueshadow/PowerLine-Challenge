@@ -11,7 +11,7 @@
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  var field, board, floor, hud, banner, popups, wall, cleanup, warp, hands;
+  var field, board, floor, hud, banner, popups, wall, cleanup, warp, hands, sign, tips;
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
@@ -276,6 +276,89 @@
     function mk(cls) { var p = document.createElementNS(NS, "path"); p.setAttribute("class", cls); g.appendChild(p); return p; }
     bolt = { g: g, glow: mk("bolt-glow"), core: mk("bolt-core"), kinks: [], lastJag: -1, log: [], links: 0 };
     cords.svg.appendChild(g);
+    // E28: the first-game tags' leader lines, in the same layer: under every readout, taking no input
+    ["ready", "clock"].forEach(function (k) {
+      var p = document.createElementNS(NS, "path");
+      p.setAttribute("class", "leader");
+      p.style.display = "none";
+      cords.svg.appendChild(p);
+      tips[k].line = p;
+    });
+  }
+
+  /* E28: Time Warp's sign. When it kicks in it flashes warpSignFlashes times, then stays lit; it goes dark when Time
+     Warp ends. Timed by the player's seconds, so a pause holds it. 🚨 SAFETY: every change goes through setSign(),
+     which refuses one within warpSignMinChange of the last (never below 0.25 s), so at most 2 flashes a second. Under
+     reduced motion it lights at once, no flash. */
+  function setSign(on, t) {
+    if (sign.lit === on) return false;
+    if (t - sign.last < Math.max(0.25, ET.CONFIG.warpSignMinChange)) return false;   // 🚨 the flash-rate guard
+    sign.lit = on;
+    sign.last = t;
+    sign.el.classList.toggle("on", on);
+    sign.log.push({ t: t, on: on });
+    if (sign.log.length > 400) sign.log.splice(0, 200);
+    return true;
+  }
+  function paintSign(snap) {
+    var C = ET.CONFIG, on = !!snap.warp;
+    if (on && !sign.was) sign.t0 = snap.time;   // it just kicked in
+    sign.was = on;
+    var want = on;
+    if (on && !reducedMotion()) {
+      var step = Math.max(0.25, C.warpSignFlashSeconds / 2), k = Math.floor((snap.time - sign.t0) / step);
+      want = k >= 2 * C.warpSignFlashes || k % 2 === 0;
+    }
+    setSign(want, snap.time);
+  }
+
+  /* E28: wave 1's first-game tags. The first egg to go bold gets "Pink = ready! Type RCAV <unit>" and the first
+     "Clear @" note gets "Check the wall clock", each once a game, for as long as that CAV runs. They sit either side of
+     the wall clock, in the band above the board, so they never cover a nest or a readout; a thin leader line (in the
+     cord's layer, under every readout) runs to the egg or the note. Nothing flashes. */
+  function paintTips(snap) {
+    var C = ET.CONFIG;
+    if (snap.wave === C.tipsWave && !tips.clock.done) {
+      var noted = snap.nests.filter(function (s) { return s.note && s.note.kind === "clock" && (s.state === "active" || s.state === "overtime"); })[0];
+      if (noted) { tips.clock.nest = noted.id; tips.clock.done = true; }
+    }
+    var wr = document.querySelector(".wallclock").getBoundingClientRect(), tr = field.querySelector("#fieldtop").getBoundingClientRect();
+    ["ready", "clock"].forEach(function (k) {
+      var tip = tips[k], s = tip.nest === null ? null : snap.nests.filter(function (x) { return x.id === tip.nest; })[0];   // the snapshot lists nests in play only
+      var live = !!s && (k === "ready" ? s.state === "overtime" : !!s.note && (s.state === "active" || s.state === "overtime"));
+      if (!live) {
+        tip.nest = null;
+        tip.el.hidden = true;
+        tip.line.style.display = "none";
+        return;
+      }
+      if (k === "ready") {
+        var text = "Pink = ready! Type RCAV " + s.unit;
+        if (tip.el.textContent !== text) tip.el.textContent = text;
+      }
+      tip.el.hidden = false;
+      placeTip(k, wr, tr);
+      var sr = cords.screen.getBoundingClientRect(), a = tip.el.getBoundingClientRect();
+      var target = (k === "ready" ? nests[tip.nest].el.querySelector(".egg") : nests[tip.nest].note).getBoundingClientRect();
+      var x0 = (k === "ready" ? a.left + a.width * 0.3 : a.left + a.width * 0.7) - sr.left, y0 = a.bottom - sr.top;
+      var x1 = target.left + target.width / 2 - sr.left, y1 = target.top + target.height / 2 - sr.top;
+      tip.line.setAttribute("d", "M" + x0.toFixed(1) + " " + y0.toFixed(1) + " L" + x1.toFixed(1) + " " + y1.toFixed(1));
+      tip.line.style.display = "";
+    });
+  }
+  /* A tag either side of the wall clock: "ready" on its left, "clock" on its right. */
+  function placeTip(k, wr, tr) {
+    var el = tips[k].el;
+    if (k === "ready") { el.style.left = ""; el.style.right = (tr.right - wr.left + 14).toFixed(1) + "px"; }
+    else { el.style.right = ""; el.style.left = (wr.right - tr.left + 14).toFixed(1) + "px"; }
+  }
+  function resetTips() {
+    ["ready", "clock"].forEach(function (k) {
+      tips[k].nest = null;
+      tips[k].done = false;
+      tips[k].el.hidden = true;
+      if (tips[k].line) tips[k].line.style.display = "none";
+    });
   }
   /* Reduced motion: the lightning holds still, and (Andrew, 2026-09-24) the overtime egg stops wobbling and the cord
      stops twitching; style.css stops the CSS loops. One live query, read every frame, so a change applies at once. */
@@ -465,6 +548,10 @@
       warp.insertBefore(ET.art.clockSvg(ET.CONFIG.warpFactor), warp.firstChild);
       hands = { hour: warp.querySelector(".hour"), minute: warp.querySelector(".minute"), face: warp.querySelector(".face") };
       resetHands();
+      // E28: the sign and the caption under it
+      sign = { el: warp.querySelector(".plaque"), lit: false, last: -Infinity, t0: null, was: false, log: [] };
+      warp.querySelector(".caption").textContent = "All clocks " + ET.CONFIG.warpFactor + "× fast. Get your next RCAV ready!";
+      tips = { ready: { el: $("#tip-ready"), nest: null, done: false }, clock: { el: $("#tip-clock"), nest: null, done: false } };
 
       var offs = offsets();
       for (var i = 0; i < ET.Game.COLS * ET.Game.ROWS; i++) {
@@ -542,6 +629,13 @@
       warp.classList.remove("lit", "still");
       board.classList.remove("warp");
       resetHands();
+      sign.was = false;
+      sign.t0 = null;
+      sign.lit = false;
+      sign.last = -Infinity;
+      sign.log = [];
+      sign.el.classList.remove("on");
+      resetTips();
       cords.list.forEach(function (c) { c.g.style.display = "none"; });
       popups.innerHTML = "";
       noTypesShown = false;
@@ -563,6 +657,7 @@
       wall.ss.textContent = two(Math.floor(snap.wall) % 60);
       warp.classList.toggle("lit", !!snap.warp);
       turnHands(snap);
+      paintSign(snap);
       board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the nests with a running clock glow (E22)
 
       snap.nests.forEach(function (s) {
@@ -600,6 +695,7 @@
       });
 
       drawLightning(snap);   // Refinement 6 §2
+      paintTips(snap);       // E28
 
       // Refinement 5 §5: the scary mom face, when this wave's moment comes (never in cleanup or on pause)
       if (momAt !== null && snap.phase === "wave" && snap.time >= momAt) {
@@ -657,6 +753,8 @@
             if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.squelch();
             break;
           case "bold":
+            // E28: wave 1's first egg to go bold gets the "Pink = ready!" tag, once a game
+            if (game && game.wave === ET.CONFIG.tipsWave && !tips.ready.done) { tips.ready.nest = e.nest; tips.ready.done = true; }
             // VF is the only type with a pop-up: "Clear Fueling" as its clock and cracking egg appear
             var nest = game && game.nests[e.nest];
             if (nest && nest.type && nest.type.hiddenUntilTrigger) {
@@ -780,6 +878,20 @@
     /* For rigs: the grandfather clock's hands (degrees from 12) and whether its face shows the "5×". */
     clockHands: function () {
       return { hour: hands.at[0], minute: hands.at[1], fivex: getComputedStyle(warp.querySelector(".fivex")).display !== "none" };
+    },
+
+    /* For rigs: Time Warp's sign (lit now, and its change log) and the first-game tags. */
+    /* For rigs: place any shown tag beside the wall clock (the layout rig shows both at their longest to measure them). */
+    placeTips: function () {
+      var wr = document.querySelector(".wallclock").getBoundingClientRect(), tr = field.querySelector("#fieldtop").getBoundingClientRect();
+      ["ready", "clock"].forEach(function (k) { if (!tips[k].el.hidden) placeTip(k, wr, tr); });
+    },
+    warpSign: function () { return { lit: sign.lit, log: sign.log.slice() }; },
+    tips: function () {
+      return ["ready", "clock"].map(function (k) {
+        var t = tips[k];
+        return { shown: !t.el.hidden, text: t.el.textContent.trim(), nest: t.nest, done: t.done, line: t.line.style.display !== "none" ? t.line.getAttribute("d") : null };
+      });
     },
 
     /* For rigs: a nest's cord, if one is showing. */

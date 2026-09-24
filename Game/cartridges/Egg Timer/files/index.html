@@ -57,7 +57,8 @@
       <div><span class="label">SCORE</span> <span id="hud-score">0</span></div>
       <div id="hud-mode" class="mode"></div>
       <!-- Refinement 3 §3: the cleanup banner, across the top of the screen over this bar, never over the board -->
-      <div id="cleanup" hidden><span class="result"></span><span class="call">CLEAN UP <b class="left"></b></span></div>
+      <!-- E28: its words -->
+      <div id="cleanup" hidden><span class="result"></span><span class="call"><span class="head">CLEAN-UP TIME! <b class="left"></b></span><span class="sub">Hose down the mess before the next wave.</span></span></div>
     </header>
 
     <div class="playrow">
@@ -67,19 +68,24 @@
           <!-- ⏳ placeholder look: the wall clock (Timer Refinement §3), 24-hour, same speed as the nest clocks;
                larger again (Refinement 3 §6), at the top centre of the playing field (Refinement 6 §3) -->
           <div class="wallclock" aria-label="Wall clock"><span id="wall-hm">00:00</span><span id="wall-ss">00</span></div>
+          <!-- E28: wave 1's first-game tags, either side of the wall clock (view.js places them and draws their leaders) -->
+          <div id="tip-ready" class="tip" hidden></div>
+          <div id="tip-clock" class="tip" hidden><span class="arrow" aria-hidden="true">◀</span> Check the wall clock</div>
         </div>
         <div id="board">
-          <!-- ⏳ placeholder look: the Time Accelerator (Refinement 3 §4's Time Warp, renamed by E27; the code says
-               "warp"), in the centre of the board (Refinement 6 §2). E27: a grandfather clock, built by view.js, over a
-               plaque that lights up while the clocks speed up -->
-          <div id="warp" aria-live="polite"><span class="plaque"><span>TIME</span> <span>ACCELERATOR</span></span></div>
+          <!-- ⏳ placeholder look: Time Warp (Refinement 3 §4), in the centre of the board (Refinement 6 §2). E27: a
+               grandfather clock, built by view.js, over a sign that lights up while the clocks speed up. E28: the name
+               stays "Time Warp", with a caption under the sign (view.js fills in the speed) -->
+          <div id="warp" aria-live="polite"><span class="plaque">TIME WARP</span><span class="caption"></span></div>
         </div>
         <div id="popups"></div>
         <div id="banner" hidden></div>
-        <!-- Refinement 5 §6: the label on the hose tap (⏳ placeholder look) -->
-        <div id="hose-tag" aria-label="Cleaning hose: click and drag to spray">
+        <!-- Refinement 5 §6: the label on the hose tap. E28: a small sink with a drain beside the spigot, with the hose's
+             instructions on it (⏳ placeholder look) -->
+        <div id="hose-tag" aria-label="Cleaning hose: click and drag to spray. Use it any time!">
+          <svg class="sink" viewBox="0 0 40 24" aria-hidden="true"><path class="basin" d="M2 5 H38 L34 21 Q20 24 6 21 Z"/><path class="rim" d="M1 5 H39"/><ellipse class="drain" cx="20" cy="14" rx="4.5" ry="2.2"/><path class="grate" d="M17 14 H23"/></svg>
           <svg class="mouse" viewBox="0 0 20 28" aria-hidden="true"><rect x="2" y="2" width="16" height="24" rx="8"/><path class="btn" d="M10 2 A8 8 0 0 0 2 10 L10 10Z"/><path d="M10 2 V10 M2 10 H18"/></svg>
-          <span><b>CLEANING HOSE:</b> click &amp; drag to spray</span>
+          <span><b>CLEANING HOSE:</b> click &amp; drag to spray. Use it any time!</span>
         </div>
       </div>
       <!-- Refinement 2 §1: how to play, down one side. Never lists CAV durations.
@@ -92,7 +98,10 @@
       </aside>
     </div>
 
-    <footer id="console"></footer>
+    <footer id="console">
+      <!-- E28: the switching hints, just under the Command Lines (script.js words them for the number of lines) -->
+      <div id="line-hints"></div>
+    </footer>
 
 
     <div id="pause" class="overlay" hidden>

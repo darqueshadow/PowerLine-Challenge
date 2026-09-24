@@ -119,7 +119,7 @@ async function menuFit(name, panelSel = "#howto") {
                  return { shown: m.width > 20 && m.left >= 0 && m.top >= 0, hits: parts.filter(x => hit(x.r, m)).map(x => x.id).concat(hit(P, m) ? ['the panel'] : []) }; })() };
     })()`);
     const at = `[${name}, ${w}×${h}]`;
-    ok(f.here && f.right < 20 && f.tall > 0.9 && f.lines >= 4, `the ${panelSel === '#howto' ? 'how-to panel' : 'How To Play card'} shows down the right edge   ${at}`);
+    ok(f.here && f.right < 20 && f.tall > 0.9 && f.lines >= 2, `the ${panelSel === '#howto' ? 'how-to panel' : 'How To Play card'} shows down the right edge   ${at}`);
     ok(f.outside.length === 0 && f.underPanel.length === 0 && f.overlaps.length === 0, `…with everything else on the screen inside the window, clear of the panel and of each other   ${at} ${JSON.stringify([f.outside, f.underPanel, f.overlaps])}`);
     ok(f.fits && f.textInside && f.doodled === 0, `…its text fitting inside it, no doodle on a word   ${at}`);
     ok(f.bulbs > 16 && f.bulbOnWord === 0, `…its attract lights round the edge, none behind a word   ${at} [${f.bulbs} bulbs]`);
@@ -225,9 +225,11 @@ try {
     // Refinement 6 §1: the title screen's own How To Play card, in the panel's place, laid out differently
     const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return { steps: [...c.querySelectorAll('li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.step').textContent),
       banner: c.querySelector('.banner').textContent, panelHere: !!document.querySelector('#screen-title #howto'), shown: c.getBoundingClientRect().width > 150 }; })()`);
-    eq(card.steps, ["1 The aliens are laying eggs in your CAVs.", "2 Clear each CAV the moment it's done, before the egg hatches.", "3 Clear fast, and breakfast gets fancier.", "4 Hose off the mess between waves.",
-      "5 Time Accelerator! When all the wave's eggs are laid and none are ready, every clock speeds up 5×. Get your next RCAV ready!"],
-      "Refinement 6 §1 and E27: the title screen shows a How To Play card with five numbered steps, the fifth the Time Accelerator");
+    eq(card.steps, ["1 The aliens are laying eggs in your CAVs.",
+      "2 Wait for pink. When the timer turns pink and bold, the egg is ready. Type RCAV + the unit (like RCAV 2101) and press Enter. Too early won't work.",
+      "3 Clear fast, and breakfast gets fancier.", "4 Hose off the mess between waves.",
+      "5 Time Warp! When all the wave's eggs are laid and none are ready, every clock speeds up 5×. Get your next RCAV ready!"],
+      "Refinement 6 §1, E27 and E28: the title screen's How To Play card, five steps (step 2 the pink cue, step 5 Time Warp)");
     ok(card.shown && card.banner === "HOW TO PLAY" && !card.panelHere, "…in place of the in-game panel, which isn't on the title screen");
   }
   await menuFit("title", "#howto-title");
@@ -374,7 +376,7 @@ try {
     ok(still.lit.every(Boolean) && still.lit.length === 3 && still.n === n0, `SAFETY: with reduced motion all three signs stay lit, and nothing changes   [${JSON.stringify(still.lit)}, ${still.n - n0} changes]`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
-  eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "clear/1", "defaults: Clear CAVs Only, 1 box");
+  eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "clear/2", "defaults: Clear CAVs Only, and (E28) 2 Command Lines");
   await press("ArrowRight");
   await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp");
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "progression/4", "arrows change mode, and boxes stop at 4");
@@ -926,8 +928,21 @@ try {
       ok(setupFont > playFont * 1.15, `E27: the options screen's instructions are bigger than in play   [${setupFont} px vs ${playFont} px]`);
     }
     const lines = await ev("[...document.querySelectorAll('#howto li')].map(l => l.textContent)");
-    eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", "SWITCH Tab / Shift+Tab: next / previous Command Line (keeps what you typed).",
-      "F12 Next Command Line, cleared.", "ESC Pause.", "CLEANUP Click & drag the hose to clean up the mess."], "Refinement 3 §2: the panel's lines, in order (Refinement 5 §6: the new Cleanup line)");
+eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", "ESC Pause."],
+      "E28: the panel keeps only Goal and Esc (Switch and F12 moved under the Command Lines, Cleanup onto the sink)");
+    {
+      // E28: the Command Lines' grey hint, and the switching hints just under the lines
+      const cl = await ev(`(() => { const i = document.querySelector('#console .box input'), h = document.querySelector('#line-hints'), hr = h.getBoundingClientRect();
+        const boxes = [...document.querySelectorAll('#console .box')].filter(b => b.getBoundingClientRect().width > 0).map(b => b.getBoundingClientRect());
+        const c = document.querySelector('#console').getBoundingClientRect();
+        return { ph: i.placeholder, phColour: getComputedStyle(i, '::placeholder').color, count: __et.boxes().count, text: h.textContent.replace(/\\s+/g, ' ').trim(),
+                 under: boxes.every(b => hr.top >= b.bottom + 12), inside: hr.bottom <= c.bottom && hr.left >= c.left, fits: h.scrollWidth <= h.clientWidth + 1 }; })()`);
+      eq([cl.ph, cl.phColour], ["RCAV + unit", "rgb(111, 102, 135)"], "E28: an empty Command Line shows a grey \"RCAV + unit\"");
+      const want = cl.count > 1 ? "TAB / SHIFT+TAB next / previous line (keeps what you typed) · F12 next line, cleared" : "F12 clears the line";
+      ok(cl.text === want && cl.under && cl.inside && cl.fits, `E28: the Tab / F12 hints sit just under the Command Lines, below the ERROR line, on one line   [${cl.count} lines: ${cl.text}]`);
+      const typed = await ev("(() => { const i = document.querySelector('#console .box.active input'); i.value = 'R'; const shown = i.matches(':placeholder-shown'); i.value = ''; return shown; })()");
+      eq(typed, false, "…and the grey hint is gone as soon as the player types");
+    }
     for (const gone of ["RCAV", "post-it", "Clear Fueling", "Ctrl"]) ok(!txt.includes(gone), `…with no "${gone}" line any more`);
     ok(!/\d+:\d\d|\b\d+\s*min/i.test(txt), "…and never lists a CAV duration");
     const overlap = await ev(`(() => {
@@ -994,8 +1009,8 @@ try {
     }
     ok(lay.spigotOnEdge, "the spigot is fixed on the board's bottom edge");
     const tag = await ev(`(() => { const t = document.querySelector('#hose-tag'), r = t.getBoundingClientRect(), p = document.querySelector('#hose .pipe').getBoundingClientRect(), f = document.querySelector('#board').getBoundingClientRect();
-      return { text: t.textContent.replace(/\\s+/g, ' ').trim(), mouse: !!t.querySelector('svg.mouse'), shown: r.width > 0, nearTap: r.left - p.right < 30 && r.left >= p.right - 1 && Math.abs(r.bottom - f.bottom) < 8 }; })()`);
-    ok(tag.shown && tag.text === "CLEANING HOSE: click & drag to spray" && tag.mouse, `Refinement 5 §6: the hose tap has a tag, with a mouse icon   [${tag.text}]`);
+      return { text: t.textContent.replace(/\\s+/g, ' ').trim(), mouse: !!t.querySelector('svg.mouse'), sink: !!t.querySelector('svg.sink .drain'), shown: r.width > 0, nearTap: r.left - p.right < 30 && r.left >= p.right - 1 && Math.abs(r.bottom - f.bottom) < 8 }; })()`);
+    ok(tag.shown && tag.text === "CLEANING HOSE: click & drag to spray. Use it any time!" && tag.mouse && tag.sink, `E28: a small sink with a drain beside the spigot carries the hose's instructions   [${tag.text}]`);
     ok(tag.nearTap, "…right by the tap on the board's bottom edge");
     ok(lay.width <= 8, `the hose is thin   [${lay.width}px]`);
     const moveOnly = await ev(`(() => {
@@ -1042,7 +1057,7 @@ try {
       return { shown: !el.hidden, text: el.textContent, top: r.top, clearOfBoard: r.bottom <= f.top + 1, wide: r.width > 0.9 * innerWidth,
                flash: el.classList.contains('flash'), times: cs.animationIterationCount, centre: document.querySelector('#banner').hidden };
     })()`);
-    ok(cb.shown && /^WAVE 1 CLEAR.*CLEAN UP \d+$/.test(cb.text), `Refinement 3 §3: a cleanup banner shows   [${cb.text}]`);
+    ok(cb.shown && /^WAVE 1 CLEAR.*CLEAN-UP TIME! \d+Hose down the mess before the next wave\.$/.test(cb.text), `Refinement 3 §3 and E28: a cleanup banner shows "CLEAN-UP TIME! Hose down the mess before the next wave."   [${cb.text}]`);
     ok(cb.top <= 1 && cb.wide && cb.clearOfBoard, "…across the top of the screen, without covering the board");
     ok(cb.flash && cb.times === "3", `…flashing a few times as cleanup starts, then holding steady   [${cb.times}]`);
     {
@@ -1092,6 +1107,36 @@ try {
   }
 
   /* ------------------------------------------------------ I. developer mode */
+  section("W. wave 1's first-game tags (E28)");
+  {
+    // only ADs, so a "Clear @" note turns up; every clear right at its bold
+    const run = await ev(`(() => {
+      __et.start('clear', 1, { types: ['AD', 'VS'] }); __et.advance(0.1);
+      const out = { ready: null, clock: null, readyAgain: false, clockAgain: false, hitNest: 0, anim: [], after: null, wave2: false };
+      const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      const covers = (el) => { const r = el.getBoundingClientRect(); return [...document.querySelectorAll('.nest')].filter(n => hit(r, n.getBoundingClientRect()) || hit(r, n.querySelector('.readout').getBoundingClientRect())).length; };
+      for (let i = 0; i < 20000 && __et.snapshot().wave < 3; i++) {
+        __et.advance(0.05);
+        const s = __et.snapshot(), t = ET.view.tips();
+        if (t[0].shown && !out.ready) { const b = s.nests.find(n => n.id === t[0].nest); out.ready = { text: t[0].text, unit: b && b.unit, bold: b && b.state === 'overtime', line: !!t[0].line, pink: getComputedStyle(document.querySelector('#tip-ready')).backgroundColor }; out.hitNest += covers(document.querySelector('#tip-ready')); out.anim.push(getComputedStyle(document.querySelector('#tip-ready')).animationName); }
+        if (t[1].shown && !out.clock) { out.clock = { text: t[1].text, line: !!t[1].line, wave: s.wave }; out.hitNest += covers(document.querySelector('#tip-clock')); out.anim.push(getComputedStyle(document.querySelector('#tip-clock')).animationName); }
+        if (out.ready && out.after === null && !t[0].shown) out.after = true;
+        if (out.ready && out.after && t[0].shown) out.readyAgain = true;
+        if (out.clock && !t[1].shown && s.nests.some(n => n.note && n.note.kind === 'clock' && n.id !== t[1].nest) && t[1].shown) out.clockAgain = true;
+        if (s.wave >= 2 && (t[0].shown || t[1].shown)) out.wave2 = true;
+        s.nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit));
+      }
+      return out;
+    })()`);
+    ok(!!run.ready && run.ready.bold && run.ready.text === "Pink = ready! Type RCAV " + run.ready.unit && run.ready.line, `E28: in wave 1 the first egg to go bold gets a tag, with a leader line to it   [${run.ready && run.ready.text}]`);
+    eq(run.ready && run.ready.pink, "rgb(255, 45, 138)", "…in the bold timer's pink");
+    ok(!!run.clock && run.clock.text === "◀ Check the wall clock" && run.clock.line && run.clock.wave === 1, `E28: the first "Clear @" note gets "Check the wall clock", beside the wall clock, with a leader line to the note   [${run.clock && run.clock.text}]`);
+    eq(run.hitNest, 0, "E28: neither tag covers a nest or a readout");
+    ok(run.after === true && !run.readyAgain && !run.wave2, "E28: the ready tag goes when that egg is cleared, and neither tag comes back that game (wave 2 included)");
+    ok(run.anim.length === 2 && run.anim.every((a) => a === "none"), `E28: neither tag flashes   [${run.anim.join(", ")}]`);
+    await shot("17-first-game-tags");
+  }
+
   section("I. Developer Mode gate");
   await c.key("rawKeyDown", "B", "KeyB", 66, CTRL | SHIFT); await c.key("keyUp", "B", "KeyB", 66, CTRL | SHIFT); await wait(50);
   ok(await ev("!document.querySelector('#dev-prompt').hidden"), "Ctrl+Shift+B opens the timed password prompt");
@@ -1163,6 +1208,11 @@ try {
         if (hit(nests[i].r, nests[j].art)) covered++;
       }
       const howto = document.querySelector('#howto').getBoundingClientRect();
+      // E28: both first-game tags shown at their longest, beside the wall clock, measured with the band
+      const tr = document.querySelector('#tip-ready'), tc = document.querySelector('#tip-clock');
+      tr.hidden = false; tr.textContent = 'Pink = ready! Type RCAV 8888'; tc.hidden = false;
+      ET.view.placeTips();
+      const tipsIn = [tr, tc].every(t => { const r = t.getBoundingClientRect(), f = document.querySelector('#field').getBoundingClientRect(); return r.left >= f.left && r.right <= f.right && r.width > 40; });
       const top = [...document.querySelectorAll('#fieldtop > *, #warp')].map(e => e.getBoundingClientRect());
       const W = document.querySelector('#warp').getBoundingClientRect(), B = document.querySelector('#board').getBoundingClientRect();
       const warpClear = nests.filter(x => hit(W, x.n) || hit(W, x.r)).length;
@@ -1190,7 +1240,7 @@ try {
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
       return { muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
-               warpClear, warpCentre,
+               warpClear, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
                howtoFits: Math.max(...[...document.querySelectorAll('#howto li')].map(l => l.getBoundingClientRect().bottom)) <= howto.bottom - 4,
                w: innerWidth, h: innerHeight };
@@ -1206,9 +1256,11 @@ try {
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);
     ok(lay.besideHowto, `every nest sits beside the how-to panel, none under it   ${at}`);
-    eq(lay.clearOfTop, 0, `the wall clock and the Time Accelerator's clock sit clear of every nest   ${at}`);
+    eq(lay.clearOfTop, 0, `the wall clock, both first-game tags (E28) and Time Warp's clock sit clear of every nest   ${at}`);
+    ok(lay.tipsIn, `E28: both first-game tags fit on the board beside the wall clock   ${at}`);
+    await ev("(() => { document.querySelector('#tip-ready').hidden = true; document.querySelector('#tip-clock').hidden = true; return 1; })()");
     ok(lay.clockCentre, `Refinement 6 §3: the wall clock is at the top centre of the playing field   ${at}`);
-    ok(lay.warpCentre && lay.warpClear === 0, `Refinement 6 §2 and E27: the Time Accelerator's grandfather clock sits in the centre of the board, clear of every nest and readout   ${at}`);
+    ok(lay.warpCentre && lay.warpClear === 0, `Refinement 6 §2, E27 and E28: Time Warp's grandfather clock, sign and caption sit in the centre of the board, clear of every nest and readout   ${at}`);
     ok(lay.howtoFits, `the how-to panel fits without scrolling   ${at}`);
     eq(lay.doodled, 0, `Refinement 5 §3: no doodle covers any of the panel's text   ${at}`);
     eq(lay.bulbOnWord, 0, `no attract light sits behind a word of the panel   ${at}`);
@@ -1222,16 +1274,43 @@ try {
   await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
   /* ------------------------------------------------------- P. Time Warp */
-  section("P. Time Warp, shown as the Time Accelerator (Refinement 3 §4, E27)");
+  section("P. Time Warp (Refinement 3 §4, E27, E28)");
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.1)");
-  eq(await ev("document.querySelector('#warp').classList.contains('lit')"), false, "the Time Accelerator is dark at the start of a wave");
+  eq(await ev("document.querySelector('#warp').classList.contains('lit')"), false, "Time Warp is dark at the start of a wave");
   {
     // E27: a grandfather clock whose hands turn only while it runs
     const off = await ev("(() => { const a = ET.view.clockHands(); __et.advance(0.5); const b = ET.view.clockHands(); return { a, b, svg: !!document.querySelector('#warp svg.clock-art .hour') && !!document.querySelector('#warp .minute'), text: document.querySelector('#warp .plaque').textContent }; })()");
-    ok(off.svg && off.text === "TIME ACCELERATOR", `E27: the centre panel is a grandfather clock with an hour and a minute hand, over a "TIME ACCELERATOR" plaque   [${off.text}]`);
+    ok(off.svg && off.text === "TIME WARP", `E27 and E28: the centre panel is a grandfather clock with an hour and a minute hand, over a "TIME WARP" sign   [${off.text}]`);
     ok(off.a.minute === off.b.minute && off.a.hour === off.b.hour, "…and its hands stand still while it isn't running");
-    ok(!(await ev("document.body.innerText")).toUpperCase().includes("TIME WARP"), "E27: nothing a player sees says \"Time Warp\"");
+    eq(await ev("document.querySelector('#warp .caption').textContent"), "All clocks 5× fast. Get your next RCAV ready!", "E28: a caption under the sign");
+    ok(!(await ev("document.body.innerText")).toUpperCase().includes("ACCELERATOR"), "E28: E27's rename is undone: nothing a player sees says \"Accelerator\"");
+  }
+  {
+    // E28: the sign's flash, watched by drawing a steady Time Warp frame by frame (a real one can end, when the next
+    // egg goes bold, before the flashes are done); the game's own Time Warp is checked below. All in one evaluation.
+    const watchSign = `(() => {
+      __et.start('clear', 1); __et.advance(0.1);
+      const s = __et.snapshot(), t0 = s.time + 0.05, seen = [];
+      ET.view.render(Object.assign({}, s, { warp: false }));
+      for (let i = 0; i < 60; i++) { ET.view.render(Object.assign({}, s, { warp: true, time: t0 + i * 0.05 })); seen.push(ET.view.warpSign().lit ? 1 : 0); }
+      const log = ET.view.warpSign().log, ons = log.filter(e => e.on).map(e => e.t);
+      let worst = 0;
+      for (let i = 0; i < ons.length; i++) { let n = 0; for (let j = i; j < ons.length && ons[j] < ons[i] + 1; j++) n++; worst = Math.max(worst, n); }
+      const out = { seen: seen.join(''), offs: log.filter(e => !e.on).length, ons: ons.length, worst, gaps: log.slice(1).map((e, i) => e.t - log[i].t), anim: getComputedStyle(document.querySelector('#warp .plaque')).animationName };
+      __et.start('clear', 1); __et.advance(0.1);
+      return out;
+    })()`;
+    const fl = await ev(watchSign);
+    ok(fl.ons === 4 && fl.offs === 3 && /^1+0+1+0+1+0+1+$/.test(fl.seen), `E28: when Time Warp kicks in its sign flashes 3 times, then stays lit   [${fl.seen}]`);
+    ok(fl.worst <= 2 && fl.gaps.every((g) => g >= 0.25 - 1e-6) && fl.anim === "none", `SAFETY: the sign never flashes more than 2 times a second   [worst ${fl.worst} in any 1 s, shortest gap ${Math.min(...fl.gaps).toFixed(2)} s]`);
+    // E28: under reduced motion the sign lights at once when Time Warp kicks in, with no flash
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const rm = await ev(watchSign);
+    ok(/^1+$/.test(rm.seen) && rm.offs === 0, `SAFETY: with reduced motion the sign lights at once and doesn't flash   [${rm.seen}]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
   }
   {
     let lit = null;
@@ -1242,7 +1321,7 @@ try {
       await ev("__et.advance(0.25)");
     }
     ok(!!lit && lit.spawned === lit.quota, "the clocks warp once the wave's last egg has spawned");
-    eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp .plaque').textContent")], [true, "TIME ACCELERATOR"], "…and the Time Accelerator lights up");
+    eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp .plaque').textContent")], [true, "TIME WARP"], "…and Time Warp lights up");
     {
       // E27: the hands spin fast while it runs (one evaluation, so the live page can't end it in between)
       const sp = await ev("(() => { const a = ET.view.clockHands(); __et.advance(0.1); const b = ET.view.clockHands(), s = __et.snapshot(); return { a, b, warp: s.warp, anim: getComputedStyle(document.querySelector('#warp .plaque')).animationName + '/' + getComputedStyle(document.querySelector('#warp')).animationName }; })()");

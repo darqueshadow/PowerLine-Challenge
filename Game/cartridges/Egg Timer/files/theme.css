@@ -72,6 +72,12 @@
   --clock-brass: #e0b040;                 /* brass (pendulum) */
   --clock-hands: #1a0d2e;                 /* near-black aubergine (hands, "5×") */
 
+  /* E28: the sink by the hose's spigot, the Command Lines' grey hint, and the first-game tags' leader lines */
+  --sink-steel: #c3c9d1;                  /* brushed steel (sink) */
+  --sink-basin: #6e7682;                  /* shadowed steel (inside the basin) */
+  --placeholder: #6f6687;                 /* muted lavender grey ("RCAV + unit" in an empty line) */
+  --leader: #fff4d6;                      /* cream (a tag's leader line) */
+
   /* E27: the options screen's HOW / TO / PLAY signs (lit, they use --gold) */
   --sign-off-bg: #2a1640;                 /* unlit sign, dark plum */
   --sign-off-ink: #7d6a96;                /* unlit sign lettering, dusty lilac */

@@ -76,6 +76,7 @@
     // ── Command Boxes (packet §12) ───────────────────────────────────────────
     boxesMin: 1,
     boxesMax: 4,
+    boxesDefault: 2,         // E28 (ruled 2026-09-24): the options screen starts on 2 lines (1–4 still selectable)
 
     // ── Presentation (not rules; placeholders until art direction) ──────────
     eggMinScale: 0.35,       // egg size when a CAV starts; grows to 1.0 at the trigger
@@ -151,8 +152,14 @@
     // §4 "Time Warp": once the wave has spawned its last egg and no egg is bold, every clock (nests and the
     // wall clock) runs this many times the wave's speed, until an egg goes bold. Overtime is untouched.
     warpFactor: 5,                 // [T]
-    // E27 (ruled 2026-09-24): players see it as the "Time Accelerator" (the code keeps "warp"). The centre panel is a
-    // grandfather clock whose hands spin while it runs; with reduced motion they hold still and the face reads "5×".
+    // E27 (ruled 2026-09-24): the centre panel is a grandfather clock whose hands spin while it runs; with reduced motion
+    // they hold still and the face reads "5×". E28 (ruled 2026-09-24) keeps the name "Time Warp" (E27's rename is undone)
+    // and puts a caption under its sign. When it kicks in, the sign flashes warpSignFlashes times, then stays lit.
+    // 🚨 SAFETY: at most 2 flashes a second: every change of the sign goes through view.js's guard, which refuses one
+    //   within warpSignMinChange of the last (never below 0.25 s). Under reduced motion it lights at once, no flash.
+    warpSignFlashes: 3,            // [T]
+    warpSignFlashSeconds: 0.6,     // [T] one flash, on and off
+    warpSignMinChange: 0.25,       // the guard (never below 0.25 s: 2 flashes a second)
     accelMinuteTurns: 1,           // [T] the minute hand's turns a player second while it runs (the hour hand: 1/12 of that)
     accelHandsAt: [305, 60],       // [T] where the hour and minute hands start, in degrees from 12 (about 10:10)
     // §7 egg-laying: when a CAV starts, a cord drops from the top of the screen (layDrop), lowers the egg
@@ -227,6 +234,13 @@
     signsStepSeconds: 0.6,         // [T] each single word
     signsAllSeconds: 1.2,          // [T] all three together
     signsMinChange: 0.5,           // the guard (never below 0.5 s: 2 changes a second)
+
+    // ── E28 (ruled 2026-09-24): first-game tags ─────────────────────────────
+    // In wave 1 only, and then never again that game: a tag for the first egg to go bold ("Pink = ready! Type RCAV
+    // <unit>"), and one for the first "Clear @" note ("Check the wall clock"). They sit in the band above the board, so
+    // they never cover a nest or a readout, with a thin leader line (under every readout) to what they point at.
+    // Neither flashes.
+    tipsWave: 1,
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

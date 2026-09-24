@@ -24,7 +24,7 @@
     data: null,
     game: null,
     modeIndex: 0,
-    boxes: 1,
+    boxes: C.boxesDefault,   // E28: 2
     paused: false,
     overTimer: null,
     last: 0
@@ -123,6 +123,10 @@
     $("#hud-mode").textContent = MODES.filter(function (m) { return m.id === mode; })[0].label;
     ET.view.reset();
     ET.boxes.setup(boxes);
+    // E28: the switching hints under the Command Lines (with one line there's nothing to switch to: F12 just clears it)
+    $("#line-hints").innerHTML = boxes > 1
+      ? "<b>TAB</b> / <b>SHIFT+TAB</b> next / previous line (keeps what you typed) &nbsp;·&nbsp; <b>F12</b> next line, cleared"
+      : "<b>F12</b> clears the line";
     paintHowTo(mode);
     show("play");
     app.game.start();
@@ -268,11 +272,10 @@
     // E8 (ruled, kept as is by Refinement 3 until Andrew rewords it): the placement line only in the
     // modes that place, hidden in Clear CAVs Only
     if (mode === "both" || mode === "progression") lines.push(["PLACE", "CAV <unit> <type>, e.g. CAV 2101 VS"]);
+    // E28 (ruled 2026-09-24): the instructions moved beside their objects: Switch and F12 under the Command Lines, and
+    // Cleanup onto the hose's sink. What's left here is only what has no object of its own.
     lines = lines.concat([
-      ["SWITCH", "Tab / Shift+Tab: next / previous Command Line (keeps what you typed)."],
-      ["F12", "Next Command Line, cleared."],
-      ["ESC", "Pause."],
-      ["CLEANUP", "Click & drag the hose to clean up the mess."]   // Refinement 5 §6
+      ["ESC", "Pause."]
     ]);
     var ul = $("#howto ul");
     ul.innerHTML = "";
@@ -313,13 +316,14 @@
   }
 
   /* Refinement 6 §1: the title screen's How To Play card. Andrew may reword these; keep them short.
-     E27 (ruled 2026-09-24) adds step 5, the Time Accelerator; its speed-up is read from the config, so it stays true. */
+     E27 (ruled 2026-09-24) adds step 5, Time Warp (E28 keeps that name); its speed-up is read from the config, so it
+     stays true. E28 rewords step 2 around the colour cue: the timer turns pink when RCAV works. */
   var TITLE_STEPS = [
     "The aliens are laying eggs in your CAVs.",
-    "Clear each CAV the moment it's done, before the egg hatches.",
+    "Wait for pink. When the timer turns pink and bold, the egg is ready. Type RCAV + the unit (like RCAV 2101) and press Enter. Too early won't work.",
     "Clear fast, and breakfast gets fancier.",
     "Hose off the mess between waves.",
-    "Time Accelerator! When all the wave's eggs are laid and none are ready, every clock speeds up " + C.warpFactor + "×. Get your next RCAV ready!"
+    "Time Warp! When all the wave's eggs are laid and none are ready, every clock speeds up " + C.warpFactor + "×. Get your next RCAV ready!"
   ];
   function buildTitleCard() {
     var ol = $("#howto-title ol");
