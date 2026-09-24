@@ -2683,7 +2683,7 @@ export default {
  "#cleanup.flash": {
   "animation-delay": "0s",
   "animation-direction": "normal",
-  "animation-duration": "0.3s",
+  "animation-duration": "0.5s",
   "animation-fill-mode": "none",
   "animation-iteration-count": "3",
   "animation-name": "cleanup-flash",

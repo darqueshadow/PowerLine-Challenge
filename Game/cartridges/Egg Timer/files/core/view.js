@@ -89,6 +89,11 @@
     if (ms) bannerTimer = setTimeout(function () { banner.hidden = true; }, ms);
   }
 
+  /* 🚨 SAFETY (Andrew, 2026-09-24): the cleanup banner is the biggest thing on screen that flashes, so it gets a guard
+     like the lights' and the lightning's: one flash never takes less than 0.4 s, so the banner can never flash more
+     than 2.5 times a second, whatever cleanupFlashSeconds is tuned to. */
+  function cleanupFlashSeconds() { return Math.max(1 / 2.5, ET.CONFIG.cleanupFlashSeconds); }
+
   /* Restart a CSS animation on an element by swapping its class. */
   function replay(elm, base, cls) {
     elm.className = base;
@@ -604,7 +609,7 @@
             cleanup.result.textContent = result.join(" · ");
             cleanup.left.textContent = "";
             cleanup.el.style.setProperty("--flashes", ET.CONFIG.cleanupFlashes);
-            cleanup.el.style.setProperty("--flash-each", ET.CONFIG.cleanupFlashSeconds + "s");
+            cleanup.el.style.setProperty("--flash-each", cleanupFlashSeconds() + "s");   // 🚨 through the guard
             replay(cleanup.el, "", "flash");
             cleanup.el.hidden = false;
             break;

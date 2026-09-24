@@ -776,7 +776,7 @@ h2 {
 #cleanup .call { font-size: clamp(26px, 3.6vw, 46px); letter-spacing: 0.08em; line-height: 1; text-shadow: 3px 3px 0 var(--ink); }
 #cleanup .left { display: inline-block; min-width: 1.4ch; text-align: right; }
 #cleanup .result { font-size: clamp(12px, 1.2vw, 18px); letter-spacing: 0.06em; }
-#cleanup.flash { animation: cleanup-flash var(--flash-each, 0.3s) steps(1) var(--flashes, 3); }
+#cleanup.flash { animation: cleanup-flash var(--flash-each, 0.5s) steps(1) var(--flashes, 3); }   /* 🚨 ≤ 2 a second; view.js guards 2.5 */
 @keyframes cleanup-flash { 50% { background: var(--shadow); color: var(--cyan); } }
 
 /* ---------------------------------------------------------- command boxes */

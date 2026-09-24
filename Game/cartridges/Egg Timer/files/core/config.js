@@ -130,8 +130,10 @@
     switchFlashSeconds: 0.18,      // [T] the one quick bright flash on the line switched to
     pulseSeconds: 2.4,             // [T] the active line's slow neon pulse, one breath
     // §3: the cleanup banner across the top flashes this many times as cleanup starts, then holds steady.
+    // 🚨 SAFETY (Andrew, 2026-09-24): at most 2 flashes a second, and never more than 2.5 whatever this is set to
+    //   (a guard in view.js holds one flash to 0.4 s or longer). It was 0.3 s, 3.3 a second.
     cleanupFlashes: 3,             // [T]
-    cleanupFlashSeconds: 0.3,      // [T] one flash, on and off
+    cleanupFlashSeconds: 0.5,      // [T] one flash, on and off: 2 a second
     // §4 "Time Warp": once the wave has spawned its last egg and no egg is bold, every clock (nests and the
     // wall clock) runs this many times the wave's speed, until an egg goes bold. Overtime is untouched.
     warpFactor: 5,                 // [T]

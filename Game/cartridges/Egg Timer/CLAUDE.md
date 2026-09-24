@@ -111,6 +111,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   a word, ringed by **arcade attract lights** (`core/lights.js`): lively on menus, a dim twinkle in play.
   🚨 **No light or group over 3 flashes a second:** every bulb change goes through `set()`'s 0.2 s guard
   (`lightsMinToggle`, never below 1/6 s); keep the rig's flash checks passing. Bulbs never behind a word.
+  🚨 The **cleanup banner** flashes at most 2 a second [T], guard-capped at 2.5 (`cleanupFlashSeconds()` in `view.js`).
 - **Command Lines** (players never see "Command Box", E7; the code says boxes): 1–4, picked on the
   mode-selection screen, each its own colour; staged text in an inactive line clears when a wave starts.
   **Tab / Shift+Tab** next / previous line, text kept; **F12** next line and clears the line it lands on (E13);

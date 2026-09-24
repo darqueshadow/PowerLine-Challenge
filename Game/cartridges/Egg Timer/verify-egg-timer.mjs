@@ -818,6 +818,24 @@ try {
     ok(cb.shown && /^WAVE 1 CLEAR.*CLEAN UP \d+$/.test(cb.text), `Refinement 3 §3: a cleanup banner shows   [${cb.text}]`);
     ok(cb.top <= 1 && cb.wide && cb.clearOfBoard, "…across the top of the screen, without covering the board");
     ok(cb.flash && cb.times === "3", `…flashing a few times as cleanup starts, then holding steady   [${cb.times}]`);
+    {
+      // 🚨 SAFETY (Andrew, 2026-09-24): the banner flashes at most 2 times a second (it was 3.3), and a guard in view.js
+      // never lets it pass 2.5 whatever cleanupFlashSeconds is tuned to
+      const r0 = await ev("1 / parseFloat(getComputedStyle(document.querySelector('#cleanup')).animationDuration)");
+      ok(r0 <= 2 + 1e-9, `SAFETY: the cleanup banner flashes at most 2 times a second   [${r0.toFixed(2)} a second]`);
+      const tuned = await ev(`(() => {
+        const keep = ET.CONFIG.cleanupFlashSeconds, el = document.querySelector('#cleanup');
+        const rate = () => 1 / parseFloat(getComputedStyle(el).animationDuration);
+        const flash = (s) => { ET.CONFIG.cleanupFlashSeconds = s; ET.view.handle([{ type: 'wave-end', wave: 1, perfect: false, bonus: 0, poolGained: false }], null); return rate(); };
+        const fast = flash(0.1), zero = flash(0);
+        el.style.removeProperty('--flash-each');
+        const bare = rate();
+        flash(keep);
+        return { fast, zero, bare };
+      })()`);
+      ok(tuned.fast <= 2.5 + 1e-9 && tuned.zero <= 2.5 + 1e-9, `SAFETY: tuned past the cap (0.1 s, then 0 s a flash), the guard still holds it to 2.5 a second   [${tuned.fast.toFixed(2)}, ${tuned.zero.toFixed(2)}]`);
+      ok(tuned.bare <= 2 + 1e-9, `…and the stylesheet's own fallback is 2 a second too   [${tuned.bare.toFixed(2)}]`);
+    }
     ok(cb.centre, "…and nothing is left in the middle of the board");
     ok(await ev("document.querySelector('#howto').parentNode.classList.contains('playrow') && document.querySelector('#howto').getBoundingClientRect().width > 100"), "the how-to panel shows during cleanup too, in the play row");
     ok(await ev("getComputedStyle(document.querySelector('#howto-title')).display === 'none' || document.querySelector('#screen-title').hidden"), "…and the title's How To Play card is only on the title screen");
