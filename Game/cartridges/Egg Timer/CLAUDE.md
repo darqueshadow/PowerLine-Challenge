@@ -23,8 +23,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   digest, never the phrase; then set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
   **When he does it, walk him through it step by step in plain language** (Andrew, 2026-09-23): he types the phrase
   himself in his own terminal (`node make-dev-hash.mjs`, echo off, asked twice); Code only ever receives the code.
-  The shared transport sheet's doubles (2133–2136, 2139) were removed 2026-09-23 (54 units, each once); Andrew will
-  review the full unit list himself: change nothing else in it. The game still dedupes as a guard.
+  Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
 - **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E24**);
@@ -160,6 +159,4 @@ Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-23 (night)
 Everything is live through the neon-green wall clock and the new "Clear @" note (`eb9bbc5`; rigs logic 141/0,
-browser 350/0); the transport sheet's doubles are gone; no Chat question open (next free **E24**). One session again:
-the theming session's work is all committed, and its CLAUDE.md prune was kept. The ⏸ handoff in the memory store has
-the details.
+browser 350/0); no Chat question open (next free **E24**). The ⏸ handoff in the memory store has the details.

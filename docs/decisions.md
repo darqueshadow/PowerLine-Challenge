@@ -300,3 +300,21 @@ History lifted out of `Game/cartridges/Egg Timer/CLAUDE.md` at the second park o
   1 displayed minute = 2 player seconds; nests +1 every 2 waves, quota 8 +2 a wave; spawn gap 5–7 s −0.5 a
   wave, floor 1 s; cleanup 5–10 s −0.5 a wave, floor 3 s; pool +1 per zero-escape wave, cap 3; perfect-wave
   bonus 50 × wave; egg ladder "fast" = first third of overtime, Scrambled → … → Steak, Eggs & Brew!.
+
+## Resolved 2026-09-24 — Egg Timer: doubled units, blank boxes, font licences, clock and "Clear @" note look
+
+**Solved:** The shared transport sheet lists each of its 54 units once. "Darker blank boxes" is confirmed to mean the
+in-play empty nests' "----" / "--:--" boxes. Every bundled font's licence is served on the public site. The wall clock is
+neon green, and the "Clear @" note has cream Fredoka wording on a charcoal fill, its time still in the clock's LED digits.
+**Approach:** Removed the second copy of 2133–2136 and 2139 from `Game/datasets/AP_ENP_BSE/2. Units_Transports.csv`
+(`ee16cd3`); only Egg Timer reads it. The Pages deploy gained rsync `--include` rules ahead of `*.txt`, for `OFL*.txt` and
+`*LICEN[CS]E*.txt` directly in a `fonts/` folder (`c04c75e`). Clock `--led` became `#39ff14` (`f89565a`). The note uses
+`--note-clock-bg` `#2b2a2e` and `--note-clock-label` `#fff3d1`, with `Fredoka-Bold.woff2` and `Fredoka-LICENSE.txt` bundled
+(`eb9bbc5`). The blank-box reading is closed in the packet (`d3b6e3f`).
+**If you touch this again:** Change nothing else in the unit sheet: Andrew reviews the full list himself. The game's
+dedupe (`files/core/game.js:45`) stays as a guard, and both rigs assert 54. A licence file must sit directly in `fonts/`
+with an `OFL`/`LICENSE` name, or the deploy drops it (it staged 224 files, only these three `.txt`). Patrick Hand's woff2
+holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must stay clearly different and never glow
+(glow is for lit bulbs). DSEG14 and `--font-led-text` are unused but kept because NB may read the tokens. NB's style doc
+(`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
+during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
