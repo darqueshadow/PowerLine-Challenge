@@ -21,6 +21,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   and say so if anything besides Egg Timer is going out.
 - **Open, all Andrew's:** **D3**, the Developer Mode phrase (`devModePasswordHash`, null denies every entry): Andrew gives Code the
   digest, never the phrase; then set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
+  **When he does it, walk him through it step by step in plain language** (Andrew, 2026-09-23): he types the phrase
+  himself in his own terminal (`node make-dev-hash.mjs`, echo off, asked twice); Code only ever receives the code.
   The shared transport sheet's doubles (2133–2136, 2139) were removed 2026-09-23 (54 units, each once); Andrew will
   review the full unit list himself: change nothing else in it. The game still dedupes as a guard.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
@@ -33,7 +35,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 
 ## The build (`files/`)
 - `index.html`, `theme.css`, `style.css`, `script.js` (boot, screens, loop, keyboard, how-to panel), `favicon.svg`.
-- 🎨 **`theme.css` holds every colour** (106 named tokens), the font stacks and the `@font-face`s; `style.css` holds
+- 🎨 **`theme.css` holds every colour** (108 named tokens), the font stacks and the `@font-face`s; `style.css` holds
   none (rig section T fails on one). **Change a colour in `theme.css`.** NB's Egg Timer cabinet may read these tokens,
   so don't rename or drop one lightly. Section T also resolves every rule against `verify-egg-timer-theme-baseline.mjs`:
   after a DELIBERATE style change, re-run with `--write-theme-baseline` and commit the new baseline with the change.
@@ -156,7 +158,8 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 `MEMORY.md` (and any ⏸ one-shot handoff it lists), then `et-track.md`, and write Egg Timer memories **there**.
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
-## State 2026-09-23 (parked)
-Everything through the AD note looks is live (`06a393c`; rigs logic 141/0, browser 341/0); no Chat question open.
-⚠️ A second session was working here at the same time (it pushed `5116729`, DSEG fonts, and left rig edits
-uncommitted). The ⏸ handoff `handoff-et-2026-09-23c.md` in the memory store has the details.
+## State 2026-09-23 (night)
+Everything is live through the neon-green wall clock and the new "Clear @" note (`eb9bbc5`; rigs logic 141/0,
+browser 350/0); the transport sheet's doubles are gone; no Chat question open (next free **E24**). One session again:
+the theming session's work is all committed, and its CLAUDE.md prune was kept. The ⏸ handoff in the memory store has
+the details.
