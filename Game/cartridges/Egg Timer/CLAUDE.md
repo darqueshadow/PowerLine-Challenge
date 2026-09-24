@@ -26,7 +26,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E28**);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E31**; E30 is open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it.
@@ -86,9 +86,11 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   mirrors it exactly, its "Clear @" is cream **Fredoka** on dark charcoal; the "N min" note is a yellow post-it in
   Patrick Hand. All fonts OFL, in `files/fonts/` with their licence `.txt` (the deploy publishes those).
 - **Timer:** counts **up** in displayed time, MM:SS, through overtime. The 24-hour **wall clock** is at the top
-  centre; the **Time Accelerator** (E27: players never see "Time Warp"; the code says `warp`) is a **grandfather clock**
-  in the **centre of the board** (the middle row sits two a side for it), its hands spinning while it runs ("5×" on the
-  face under reduced motion), sized 23% of the board's height so it clears every nest. Once
+  centre; **Time Warp** (E28 kept the name; E27's "Time Accelerator" is undone) is a **grandfather clock** in the **centre
+  of the board** (the middle row sits two a side for it), its hands spinning while it runs ("5×" on the face under
+  reduced motion), over a "TIME WARP" sign and a caption. 🚨 The sign flashes 3 times as it kicks in, then stays lit:
+  at most 2 a second (`setSign()`'s 0.25 s guard), lit at once under reduced motion. The clock is 17% of the board's
+  height so clock, sign and caption clear every nest (about 27% is free). Once
   the wave's last CAV has *started* and no egg is bold, every clock runs 5× [T] until an egg goes bold (the step
   splits there; E18); overtime never warps. Meanwhile only nests with a running clock glow green (E22) and green
   **lightning** chains to them under every readout. 🚨 It re-jags 2/s [T], guard-capped at 2.5 (`rejag()`), still
@@ -110,27 +112,34 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   (on whichever nest or floor it lands); no neighbour targeting (E15), no cap; mess belongs to the nest and
   **covers its readout and post-it** (E14). Wiping is click-and-drag. **In-game the cursor is always the hose
   nozzle** (menus keep the pointer). The hose and its water draw **above the whole board**, below the how-to
-  panel, the Command Lines and the HUD bar. Water only while dragging; a tag labels the tap.
+  panel, the Command Lines and the HUD bar. Water only while dragging; a **sink** by the tap carries the hose's
+  instructions (E28). The **cleanup banner**: "CLEAN-UP TIME! <countdown>" / "Hose down the mess before the next wave."
+- **First-game tags (E28):** wave 1 only, once a game: "Pink = ready! Type RCAV <unit>" for the first bold egg, and
+  "◀ Check the wall clock" for the first "Clear @" note. They sit either side of the wall clock (never over a nest or a
+  readout) with a dashed leader line under every readout. No flashing.
 - **Readouts:** three cartoon boxes (unit white/blue, type grey/black, timer yellow/purple); at the limit all three
   go bold at once, unit dark green, timer hot pink/white. Each fits its widest reading (rig section L). A nest in
   play with no CAV has its boxes darkened ("not in play").
 - **How-to panel** **is** the instruction screen (E10) and **never lists CAV durations**. Lines: Goal, Switch,
-  F12, Esc, Cleanup, plus Place in Both and Follow Progression (E8); no syntax line (E17, 🔒). It shows on
+  **E28 moved Switch, F12 and Cleanup beside their objects**: it keeps Goal and Esc, plus Place in Both and Follow
+  Progression (E8); no syntax line (E17, 🔒; the RCAV hints E28 added live in the Command Lines and the tags, never
+  here). **E30 (open): retire it in play?** It shows on
   **every screen but the title** (`placeHowTo()` moves the one element), with turning doodles that never touch
   a word, ringed by **arcade attract lights** (`core/lights.js`): lively on menus, a dim twinkle in play.
   🚨 **No light or group over 3 flashes a second:** every bulb change goes through `set()`'s 0.2 s guard
   (`lightsMinToggle`, never below 1/6 s); keep the rig's flash checks passing. Bulbs never behind a word.
   🚨 The **cleanup banner** flashes at most 2 a second [T], guard-capped at 2.5 (`cleanupFlashSeconds()` in `view.js`).
   **Reduced motion** stills the CSS loops, the lights, the lightning, the place-me cue (steady cyan), the overtime
-  wobble, the cord twitch and the hatchling's legs (rig section R), the HOW / TO / PLAY signs and the Accelerator
-  clock's hands (E27); new motion must join that list.
+  wobble, the cord twitch and the hatchling's legs (rig section R), the HOW / TO / PLAY signs and Time Warp's
+  clock hands (E27) and sign (E28); new motion must join that list.
 - **Command Lines** (players never see "Command Box", E7; the code says boxes): 1–4, picked on the
-  mode-selection screen, each its own colour; staged text in an inactive line clears when a wave starts.
+  mode-selection screen (**2 by default**, E28), each its own colour; an empty line shows a grey "RCAV + unit", and the
+  Tab / F12 hints sit under the lines (E28); staged text in an inactive line clears when a wave starts.
   **Tab / Shift+Tab** next / previous line, text kept; **F12** next line and clears the line it lands on (E13);
   with 1 line, F12 just clears it. The active line pulses; the game pauses itself when the window loses focus.
   **Esc, and only Esc, pauses.**
-- **Title screen:** its own **How To Play card** (five numbered steps, `TITLE_STEPS`, step 5 the Time Accelerator, E27;
-  Andrew may reword), a
+- **Title screen:** its own **How To Play card** (five numbered steps, `TITLE_STEPS`: step 2 the pink cue, E28; step 5
+  Time Warp, E27/E28; Andrew may reword), a
   singing mommy alien and babies, and an ORIGINAL chiptune (`titleTune`) on the title and mode-selection
   screens (E21). The **mode-selection screen** has a three-headed singing blob whose eyes follow the cursor, and
   a bigger how-to panel under **HOW / TO / PLAY signs** (E27): one word at a time, then all three; 🚨 at most 2 changes a

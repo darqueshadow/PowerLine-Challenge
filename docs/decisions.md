@@ -319,6 +319,23 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-24 — Egg Timer: instructions beside their objects (E28)
+
+**Solved:** E27's "Time Accelerator" is Time Warp again, with a caption under its sign, which flashes 3 times as it kicks
+in. A sink by the hose's tap carries the hose's instructions. The cleanup banner reads "CLEAN-UP TIME! Hose down the mess
+before the next wave." An empty Command Line shows a grey "RCAV + unit", the Tab / F12 hints sit under the lines, and the
+options screen starts on 2 lines. In wave 1 the first bold egg and the first "Clear @" note get a tag each, once a game.
+The title card's step 2 is the pink cue. The side panel keeps only Goal, Esc and Place; E30 asks whether it's still needed.
+**Approach:** The tags sit in the band above the board beside the wall clock, with leader lines in the cord's layer, so
+they can never cover a nest or a readout. The sign's flash runs on the player's seconds behind `setSign()`'s guard. The
+clock went from 23% to 17% of the board's height to fit the caption. Rigs: logic 159/0, browser 444/0 (new section W for
+the tags; a new theme baseline).
+**If you touch this again:**
+- **Snapshot nests are the ones in play only**, so find a nest by `id`, never by index (the tags missed their nest at
+  first).
+- **The sign's flash test draws a steady Time Warp frame by frame**, since a real one can end before 3 flashes are done.
+- **Title card:** 27% of the window wide now; at 20% the longer step 2 pushed its banner into the lights.
+
 ## Resolved 2026-09-24 — Egg Timer: the Time Accelerator and How To Play upgrades (E27)
 
 **Solved:** "Time Warp" is now the "Time Accelerator" wherever players see it, and the centre panel is a placeholder
