@@ -26,7 +26,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E27**);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E28**);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it.
@@ -86,7 +86,9 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   mirrors it exactly, its "Clear @" is cream **Fredoka** on dark charcoal; the "N min" note is a yellow post-it in
   Patrick Hand. All fonts OFL, in `files/fonts/` with their licence `.txt` (the deploy publishes those).
 - **Timer:** counts **up** in displayed time, MM:SS, through overtime. The 24-hour **wall clock** is at the top
-  centre; the **Time Warp** panel is in the **centre of the board** (the middle row sits two a side for it). Once
+  centre; the **Time Accelerator** (E27: players never see "Time Warp"; the code says `warp`) is a **grandfather clock**
+  in the **centre of the board** (the middle row sits two a side for it), its hands spinning while it runs ("5×" on the
+  face under reduced motion), sized 23% of the board's height so it clears every nest. Once
   the wave's last CAV has *started* and no egg is bold, every clock runs 5× [T] until an egg goes bold (the step
   splits there; E18); overtime never warps. Meanwhile only nests with a running clock glow green (E22) and green
   **lightning** chains to them under every readout. 🚨 It re-jags 2/s [T], guard-capped at 2.5 (`rejag()`), still
@@ -120,15 +122,19 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   (`lightsMinToggle`, never below 1/6 s); keep the rig's flash checks passing. Bulbs never behind a word.
   🚨 The **cleanup banner** flashes at most 2 a second [T], guard-capped at 2.5 (`cleanupFlashSeconds()` in `view.js`).
   **Reduced motion** stills the CSS loops, the lights, the lightning, the place-me cue (steady cyan), the overtime
-  wobble, the cord twitch and the hatchling's legs (rig section R); new motion must join that list.
+  wobble, the cord twitch and the hatchling's legs (rig section R), the HOW / TO / PLAY signs and the Accelerator
+  clock's hands (E27); new motion must join that list.
 - **Command Lines** (players never see "Command Box", E7; the code says boxes): 1–4, picked on the
   mode-selection screen, each its own colour; staged text in an inactive line clears when a wave starts.
   **Tab / Shift+Tab** next / previous line, text kept; **F12** next line and clears the line it lands on (E13);
   with 1 line, F12 just clears it. The active line pulses; the game pauses itself when the window loses focus.
   **Esc, and only Esc, pauses.**
-- **Title screen:** its own **How To Play card** (four numbered steps, `TITLE_STEPS`; Andrew may reword), a
+- **Title screen:** its own **How To Play card** (five numbered steps, `TITLE_STEPS`, step 5 the Time Accelerator, E27;
+  Andrew may reword), a
   singing mommy alien and babies, and an ORIGINAL chiptune (`titleTune`) on the title and mode-selection
-  screens (E21). The **mode-selection screen** has a three-headed singing blob whose eyes follow the cursor.
+  screens (E21). The **mode-selection screen** has a three-headed singing blob whose eyes follow the cursor, and
+  a bigger how-to panel under **HOW / TO / PLAY signs** (E27): one word at a time, then all three; 🚨 at most 2 changes a
+  second (`ET.lights.signs`' 0.5 s guard), all lit under reduced motion.
 - **Horror beats (Refinement 5):** the hatchling is horrific; a **scary mom face** pops in at most once a wave,
   under 1 s, only inside a clipping box over the HUD bar or the how-to panel (covering either briefly is fine,
   E23), so it can never reach a nest, readout or Command Line (rig section Q). Never let it take input or flash.

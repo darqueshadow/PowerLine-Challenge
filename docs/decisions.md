@@ -319,6 +319,23 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-24 — Egg Timer: the Time Accelerator and How To Play upgrades (E27)
+
+**Solved:** "Time Warp" is now the "Time Accelerator" wherever players see it, and the centre panel is a placeholder
+grandfather clock whose hands spin while it runs. Under reduced motion its hands stop and the face shows "5×". The
+title's How To Play card has a fifth step about it. On the options screen the instructions are bigger, under HOW / TO /
+PLAY signs that light in turn and then all together. The art brief has the clock as slot 14.
+**Approach:** The code keeps "warp" (`#warp`, `snapshot().warp`, `--warp` tokens); only the words players see changed.
+The clock is `ET.art.clockSvg()`, turned by `turnHands()` in `view.js` on the player's seconds, so a pause holds it. The
+signs are `ET.lights.signs()`, with their own guard. Rigs: logic 159/0, browser 427/0, with a new theme baseline (only the
+clock, the signs, the options panel and step 5's badge changed; the old panel's 3.3-a-second brightness flicker is gone).
+**If you touch this again:**
+- **Size:** the clock is `min(23cqh, 30cqw)` tall. The free space between the nests is about 27% of the board's height, so
+  anything taller hits a nest's box (rig section L measures it at all four sizes).
+- **The doodle beside the signs** needs its 12 px gap: turned its full 28°, it would otherwise touch PLAY, and rig
+  `menuFit` fails at random.
+- **NB:** the Rec-Bay 4 table's backboard label changes from TIME WARP to TIME ACCELERATOR in NB's style doc.
+
 ## Resolved 2026-09-24 — Egg Timer: tiered clear points (E26)
 
 **Solved:** A clear now scores by tier: each egg's own overtime window (bold to hatch) splits into fifths, worth 100, 75,
