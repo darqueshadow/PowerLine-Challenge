@@ -18,10 +18,8 @@ in the running game). Nothing in the game changes until the art comes back and a
    the files onto the site").
 5. **E26 (ruled 2026-09-24)** added the five break stages (slot 13) and three alien hints on the waiting egg (in the
    pilot, slot 0), and made **rule 6, "Aliens", apply to all alien art**. Hand the pilot over with its hints.
-6. **⏳ Before you hand over slot 2 (the hatchling) or slot 5 (the mom face), settle one thing with Chat:** rule 6 says
-   "no red blood except the cord". The hatchling has **red eyes** and a dark-red mouth, ribs and legs, and the mom face
-   has **bloodshot eyes with red veins**. They aren't blood, but they are red. Keep them, or change them to other
-   colours? Those two slots keep today's colours until then.
+6. **Red in the art is settled (Chat, 2026-09-24):** red eyes and red veins are allowed as alien features, so the
+   hatchling (slot 2) and the mom face (slot 5) keep their reds. The rule is **no red liquid** except the cord (rule 6).
 7. **E27 (ruled 2026-09-24)** made the centre panel, Time Warp, a **grandfather clock**: slot 14. **No pocket watches
    for now.** (E27 also renamed it "Time Accelerator"; **E28 undid that: it's Time Warp**.)
 8. **E28 (ruled 2026-09-24)** put a small **sink with a drain** beside the hose's tap, with the hose's instructions on
@@ -115,7 +113,8 @@ or any other existing character.
 
 - **Clearly a cartoon alien.** Scary is fine, but scary **alien**: extra eyes, eyes on stalks, fangs, tentacles, slime.
 - **Nothing human.** No hands or fingers, no human eyes, no human teeth, no human skin.
-- **No red blood.** The only blood red in the game is on the egg-laying cord.
+- **No red liquid** (no blood, splatter, drips or pools) anywhere except the egg-laying cord. **Red eyes and red veins
+  are allowed** as alien features.
 - **Gross and funny, family cartoon.** Think of a spilt slushie, not an injury. Never gory.
 
 ---
@@ -241,7 +240,7 @@ y= 48 └───────────────────────�
     about x −30…30, y −44…20**, so it rocks with the egg without leaving the nest.
   - They're the still-frame signal too: with motion turned off, the hints and the cracks together show how close the
     egg is to hatching.
-  - They follow rule 6 (a cartoon alien, nothing human, no red). The antenna, leg and tentacle should look like
+  - They follow rule 6 (a cartoon alien, nothing human, no red liquid). The antenna, leg and tentacle should look like
     parts of the creature that breaks out in stages 3–5 of slot 13, not like the horrible hatchling.
   - **Colours:** use the egg's palette plus `--drool` #b8ff5e for the slurpy and `--cord-purple` #7a2cc4 for a
     purple part. Anything else is named with its hex in your notes.
@@ -650,8 +649,8 @@ y= 48 └───────────────────────�
 | 5 | `break-5-leftovers.svg` | **Jokey leftovers.** A spill of alien slurpy, a tangle of legs, and a tentacle. |
 
 - **Art rules:** rule 6, "Aliens", above. Each stage should look a little more alien than the one before, and stage 5
-  is obviously not an egg any more. Eyes are cartoon eyeballs on stalks and legs are alien legs. No red anywhere in
-  this slot: the goo is yolk-yellow, green and purple.
+  is obviously not an egg any more. Eyes are cartoon eyeballs on stalks and legs are alien legs. No red liquid in
+  this slot (rule 6): the goo is yolk-yellow, green and purple.
 - **Shape:** the nest's viewBox `-60 -62 120 110`, drawn where the egg was: the break sits on the nest, around the
   egg's base at **(0, 20)**, and stays inside about **x −40…40, y −40…28** so the front twigs and the text boxes
   below the nest stay clear. The frying pan covers it at first, so every stage has to read once the pan lifts.
@@ -731,8 +730,9 @@ y= 48 └───────────────────────�
 ## Slots 16–20: the How To Play comic strip (E29)
 
 - **What and where:** How To Play is a strip of five comic panels, stacked down the How To Play card on the title
-  screen and down the side panel on the options screen. Each panel has a numbered heading and the step's words in a
-  speech bubble (**both live text, drawn by the game**), and **one picture, on the left of the bubble**. These slots
+  screen and down the side panel on the options screen. Each panel has a small number badge (1–5) in its top-left corner and the
+  step's words in a speech bubble (**both drawn by the game**, no headings), and **one picture, on the left of the
+  bubble**. **Keep the picture's top-left corner (about 20 × 20 units) plain**: the badge sits over it. These slots
   are those pictures.
 - **Shape:** viewBox **`0 0 120 90`** (4:3) for each, except slot 18, which is **two** pictures (fast and slow), each
   **`0 0 120 44`**, stacked.
@@ -740,7 +740,7 @@ y= 48 └───────────────────────�
   outlines: a picture must read at 60 px wide.
 - **Style:** a Saturday-morning cartoon strip in the game's 1980s-arcade look. **Rule 6 applies to every panel**:
   cartoon aliens, scary only in an alien way, **nothing human** (no hands or fingers: aliens type and hold things with
-  tentacles), no red blood, gross-funny. Reuse the title family (slot 6) so the strip feels like the same cast.
+  tentacles), no red liquid, gross-funny. Reuse the title family (slot 6) so the strip feels like the same cast.
 - **No text in any picture** (rule 1), including no "RCAV" and no numbers on timers: the game writes those. Leave
   the spaces noted below clear for the game's labels.
 
