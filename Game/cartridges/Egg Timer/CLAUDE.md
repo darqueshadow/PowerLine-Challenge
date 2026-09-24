@@ -26,7 +26,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E31**; E30 is open);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E31**);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it.
@@ -106,7 +106,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   (`clearScoring: "tiers"`), plus a perfect-wave bonus; no penalty for an escape or wiping. **Never set tiers in
   displayed time**: at 30–60 displayed s a player second they become unreachable. The tier also picks the clear's
   **break stage** (1 elegant … 5 alien), and the waiting egg shows **alien hints** at tiers 3–5 (art, not built yet).
-  **Alien art:** scary alien, nothing human, no red except the cord.
+  **Alien art:** scary alien, nothing human, **no red liquid** (blood, splatter, drips, pools) except the cord; red eyes
+  and red veins are fine (Chat, 2026-09-24).
   The frying pan is pure CSS and must never hold the keyboard. The **egg ladder** is cosmetic (tier 1–2 clears serve fancier dishes; a slower clear, any ERROR or a hatch resets it).
 - **Mess and hose:** a clear leaves a small splat on its own nest and drops the rest evenly over the whole board
   (on whichever nest or floor it lands); no neighbour targeting (E15), no cap; mess belongs to the nest and
@@ -123,9 +124,10 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **How-to panel** **is** the instruction screen (E10) and **never lists CAV durations**. Lines: Goal, Switch,
   **E28 moved Switch, F12 and Cleanup beside their objects**: it keeps Goal and Esc, plus Place in Both and Follow
   Progression (E8); no syntax line (E17, 🔒; the RCAV hints E28 added live in the Command Lines and the tags, never
-  here). **E30 (open): retire it in play?** It shows on
-  **every screen but the title** (`placeHowTo()` moves the one element), with turning doodles that never touch
-  a word, ringed by **arcade attract lights** (`core/lights.js`): lively on menus, a dim twinkle in play.
+  here). **E30: never in play** (the board takes its width; Esc joins the hints under the Command Lines, and an empty
+  line says "CAV + unit + type" while a nest waits). It shows on the **options and game-over screens** (`placeHowTo()`
+  moves the one element; on the options screen it holds E29's comic strip under the signs), with turning doodles that never touch
+  a word, ringed by **arcade attract lights** (`core/lights.js`), lively on the menus.
   🚨 **No light or group over 3 flashes a second:** every bulb change goes through `set()`'s 0.2 s guard
   (`lightsMinToggle`, never below 1/6 s); keep the rig's flash checks passing. Bulbs never behind a word.
   🚨 The **cleanup banner** flashes at most 2 a second [T], guard-capped at 2.5 (`cleanupFlashSeconds()` in `view.js`).
@@ -146,8 +148,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   a bigger how-to panel under **HOW / TO / PLAY signs** (E27): one word at a time, then all three; 🚨 at most 2 changes a
   second (`ET.lights.signs`' 0.5 s guard), all lit under reduced motion.
 - **Horror beats (Refinement 5):** the hatchling is horrific; a **scary mom face** pops in at most once a wave,
-  under 1 s, only inside a clipping box over the HUD bar or the how-to panel (covering either briefly is fine,
-  E23), so it can never reach a nest, readout or Command Line (rig section Q). Never let it take input or flash.
+  under 1 s, only inside a clipping box over the HUD bar (covering it briefly is fine, E23; E30 took away the panel zone,
+  `momFaceZones: ["top"]`), so it can never reach a nest, readout or Command Line (rig section Q). Never let it take input or flash.
 - **Sound (E24):** a mute button top left on every screen, and M, remembered per browser. **E25 (ruled):** while a
   Command Line has the keys M types (MB); there the button and **Ctrl+M** mute (`muteKeyInPlay: "ctrl-m"`). Every sound goes through `audio.js`'s one master chain (a level, then a
   soft ceiling under full scale, so nothing clips): make any new sound connect to `bus()`, never to the speakers
@@ -188,11 +190,10 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-24
-**E29's comic strip is built but held** (it doesn't fit without a cut: Chat's call, packet §11 E29). It lives in
-`git stash` ("E29 strip, held for Chat's cuts"); `git stash pop` brings it back, then apply the cut and run both rigs.
+**How To Play is E29's five-panel comic strip** (title card and options screen), with the ruled words; no question is open.
 **Next:** Andrew takes the art brief (`docs/Egg Timer art brief for Gemini.md` at the repo root) to Chat for review,
 then the Gemini pilot (nest + egg, now with E26's three alien hints); the art-slot layer that hooks the files up is the
 code batch after that, and it also shows E26's break stages (the `cleared` event's `tier`) and the hints (at 40/60/80% of
-the window). **Open for Chat:** do the hatchling's red eyes and the mom face's red veins break "no red except the cord"?
+the window).
 Left from the audit, by Andrew's choice: the art-slot layer, moving the JavaScript colours into `theme.css`, dead code,
 and the other test gaps.

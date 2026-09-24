@@ -1,11 +1,3 @@
-> **FILING NOTE — Claude Code, 2026-09-24 (E30, E29's strip, red in the art).** Chat's rulings are filed verbatim as
-> `Previous Versions/EGG_TIMER_E30_E29_RULINGS_2026-09-24.md`; the packet before them is
-> `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e29-part.md`. **E30 ruled** (no side panel in play) and **E29's strip ruled**
-> (no headings, number badges, the ruled words, the old hose step gone): both built and **pushed live** under the standing
-> rule (both rigs green; everything fits at all four sizes, "and bold" kept). **Red in the art ruled:** red eyes and red
-> veins are allowed; no red *liquid* except the cord (brief rule 6). A knock-on of E30: the scary mom face keeps only its
-> top zone (E23 had said dropping one zone keeps it to the other). E26, E29 and E30 are filed in §11; no question is open.
-
 > **FILING NOTE — Claude Code, 2026-09-24 (E29, in part).** Chat's E29 (ruled) is filed verbatim as
 > `Previous Versions/EGG_TIMER_E29_2026-09-24.md`; the packet before it is `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e28.md`.
 > **Built and pushed live:** item 1, the Command Line picker (§12), and item 3, the comic panels as brief slots 16–20.
@@ -517,13 +509,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   press Enter. Too early won't work.") and step 5 ("Time Warp! …"). *(Code: the cleanup banner keeps its countdown
   after "CLEAN-UP TIME!", as Refinement 3 §3 had it; the title card is wider, 27% of the window [250–430 px], to hold
   the longer step 2.)*
-- ~~**E29. Command Line picker and comic-strip How To Play.**~~ **Resolved** *(E29 rulings, Chat)*: **the strip ships with
-  no panel headings, a number badge (1–5) in each panel's corner, and these words: 1 "The aliens are laying eggs in your
-  CAVs." 2 "When the timer turns pink and bold, type RCAV + the unit. Too early won't work." 3 "Clear fast, and
-  breakfast gets fancier." 4 "Two lines! Tab to switch. Type the next RCAV while you wait." 5 "Every clock speeds up 5×
-  till an egg is ready. Get your next RCAV ready!"; the old hose step is dropped (the sink covers it).** *(Code: it fits
-  at all four sizes with 76–372 px to spare, captions 12.3 px at the smallest; the same strip on the title card and on
-  the options screen, under its signs.)* *(Original report follows.)* **Item 1 built:** the options screen
+- **E29. Command Line picker and comic-strip How To Play.** *(E29, Chat)* **Item 1 built:** the options screen
   asks "How Many Command Lines?" with One / Two / Three / Four, each in its line's in-game colour, the one picked lit
   and the rest dimmed, Two by default, no flashing, keys and mouse both. **Item 3 built:** brief slots 16–20. **Item 2
   held, needs a cut (Chat's call):** the strip was built (one design on both screens, a numbered heading, a doodle
@@ -536,11 +522,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   Also needed: **panel 4's words**, which no ruling gives (the build uses "Two lines, two hands: Tab / Shift+Tab to
   switch, F12 for the next line, cleared."), and whether the old step 4 ("Hose off the mess between waves.") simply
   goes, now that the sink says it.
-- ~~**E30. Is the side panel still needed in play?**~~ **Resolved** *(E30, Chat)*: **removed in play, as proposed**: the board
-  takes its width; Esc joins the hints under the Command Lines ("ESC pause"); an empty Command Line says "CAV + unit +
-  type" while a nest waits to be placed, "RCAV + unit" otherwise; the menus keep the panel (on the game-over screen it
-  shows Goal and Esc). *(Code: the grey hint is 0.8 of the typed size so "CAV + unit + type" fits four lines at 1024 px;
-  the scary mom face keeps only its top zone.)* *(Original question follows.)* *(Raised by Code under E28 item 6.)* After E28 it holds only
+- **E30. Is the side panel still needed in play?** *(Raised by Code under E28 item 6.)* After E28 it holds only
   **Goal** ("Clear the CAVs as soon as they're done, as quick as you can."), **Esc** ("Pause.") and, in Both and Follow
   Progression, **Place** ("CAV <unit> <type>, e.g. CAV 2101 VS"). Everything else is beside its object. **Code's
   proposal:** retire it **in play** and give the board its width back (about 15% more room for the nests): Goal is
@@ -550,7 +532,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
 
 - ~~**E27. Time Accelerator and How To Play upgrades.**~~ **Resolved** *(E27, Chat)*: **"Time Warp" is the "Time Accelerator" wherever players see it** (the code keeps "warp"); the title's How To Play card gets **step 5**, "Time Accelerator! When all the wave's eggs are laid and none are ready, every clock speeds up 5×. Get your next RCAV ready!" (its 5× read from `warpFactor`); **on the options screen the instructions are bigger, under three HOW / TO / PLAY signs** that light one word at a time and then all three for a beat, at most 2 changes a second behind the same kind of guard as the lights, all lit under reduced motion; **the centre panel is a grandfather clock** (§7). *(Code: the signs step every 0.6 s [T] and hold all three 1.2 s [T]; their guard refuses a change within 0.5 s. On the options screen the panel is 23% of the window wide [230–370 px] with 13–20 px type, against 12–15 px in play. The clock takes 23% of the board's height, which keeps it clear of every nest at all four measured sizes.)*
 
-- ~~**E26. Tiered clear points and the five break stages.**~~ **Resolved** *(E26, Chat, Andrew approved)*: **tiers are fifths of each egg's own overtime window, 100 / 75 / 50 / 35 / 25; the ladder climbs on tiers 1–2; the waiting egg shows alien hints from tier 3; the alien art rules cover all alien art** (§7, §10). *(Code's investigation, which set the tiers in fifths)* Andrew's displayed-time tiers were 0.33 / 1 / 2 / 4 / 8 s at 1× and half that at the 2× cap, against a 4.05–6.6 s window: 10 s was below human reaction (an RCAV before the bold is rejected, so the fastest clear is a pre-typed line and Enter, about 0.3–0.5 s), and 4 min was unreachable before about wave 8. ~~**Still open:** do the hatchling's red eyes (and dark-red mouth, ribs and legs) and the mom face's red veins count as "red" under the art rules?~~ **Ruled** *(Chat, 2026-09-24)*: **red eyes and red veins are allowed as alien features; the rule is no red liquid (blood, splatter, drips, pools) except the cord.**
+- ~~**E26. Tiered clear points and the five break stages.**~~ **Resolved** *(E26, Chat, Andrew approved)*: **tiers are fifths of each egg's own overtime window, 100 / 75 / 50 / 35 / 25; the ladder climbs on tiers 1–2; the waiting egg shows alien hints from tier 3; the alien art rules cover all alien art** (§7, §10). *(Code's investigation, which set the tiers in fifths)* Andrew's displayed-time tiers were 0.33 / 1 / 2 / 4 / 8 s at 1× and half that at the 2× cap, against a 4.05–6.6 s window: 10 s was below human reaction (an RCAV before the bold is rejected, so the fastest clear is a pre-typed line and Enter, about 0.3–0.5 s), and 4 min was unreachable before about wave 8. **Still open:** do the hatchling's red eyes (and dark-red mouth, ribs and legs) and the mom face's red veins count as "red" under the art rules?
 
 ### Raised by Claude Code building Refinement 5 (2026-09-23) — all ruled
 

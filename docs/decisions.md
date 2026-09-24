@@ -319,6 +319,21 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-24 — Egg Timer: no side panel in play (E30), the comic strip (E29), red in the art
+
+**Solved:** The side panel is gone from play and the board takes its width. Esc joined the hints under the Command Lines,
+and an empty line says "CAV + unit + type" while a nest waits to be placed. How To Play is a five-panel comic strip on the
+title card and the options screen, with number badges and Chat's words. Brief rule 6 now allows red eyes and veins and
+bans only red liquid outside the cord.
+**Approach:** The strip came back from the stash with the ruled changes. `placeHowTo()` never puts the panel in play; its
+markup now starts in the options screen. `ET.boxes.hint()` sets the grey hint from each frame's snapshot. Rigs: logic
+159/0, browser 423/0 (the panel checks that assumed play moved to the game-over screen; a new theme baseline).
+**If you touch this again:**
+- **The mom face has only its top zone** (`momFaceZones: ["top"]`): its panel zone needs the panel, which isn't in play.
+- **The grey hint is 0.8 of the typed size**: at full size "CAV + unit + type" is cut off in four lines at 1024 px (rig
+  section L measures it).
+- **The rig's `menuFit` reads text only** (a tree walk over text nodes), because the strip has pictures inside its panels.
+
 ## Resolved 2026-09-24 — Egg Timer: the Command Line picker (E29, in part)
 
 **Solved:** The options screen's picker asks "How Many Command Lines?" with One to Four, each in its Command Line's
