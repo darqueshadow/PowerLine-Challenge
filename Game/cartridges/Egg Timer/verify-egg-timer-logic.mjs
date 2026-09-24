@@ -464,6 +464,40 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
   eq([n.note.kind, n.note.minutes, n.note.at, n.boldClock - n.startedClock], ["clock", 20, 14 * 3600 + 36 * 60, 20 * 60 + 20], "E1: 14:15:40 + 20 min reads \"Clear @ 14:36\" and bolds 20:20 later, never before the draw");
 }
 {
+  // Midnight (Andrew, 2026-09-24): the same rule across the date line. A start at 23:59:30 with a draw of 20 →
+  // "Clear @ 00:20", 20:30 later, never before the draw.
+  const AD = { code: "AD", meaning: "AD", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
+  const g = new ET.Game({ mode: "clear", types: [AD], units, wallStart: 23 * 3600 + 59 * 60 + 30 });
+  const seq = [0.5, 0.1];                     // minutes → 20, then the clock-time kind
+  g.rng = () => seq.shift();
+  const n = g.nests[5];
+  n.type = AD;
+  g.activate(n, "auto");
+  g.pop(n);
+  eq([n.note.kind, n.note.minutes, n.note.at, n.boldClock - n.startedClock], ["clock", 20, 20 * 60, 20 * 60 + 30], "midnight: 23:59:30 + 20 min reads \"Clear @ 00:20\" and bolds 20:30 later, never before the draw");
+}
+{
+  // …and played out: an AD that spawns on the first step (0.05 s), pops 1.4 s later at 23:58:43.5 and draws 19 minutes
+  // reads "Clear @ 00:18", and goes bold on the step the wall clock passes 00:18:00. A random source fixed at 0.45
+  // draws 19 minutes and the clock note every time.
+  const AD = { code: "AD", meaning: "AD", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
+  const g = new ET.Game({ mode: "clear", types: [AD], units, rng: () => 0.45, wallStart: 23 * 3600 + 58 * 60 });
+  g.start();
+  // copied as they happen: once the egg hatches its nest is reset, note and all
+  let first = null, rec = null, boldWall = null;
+  advance(g, 60, (x) => {
+    if (!first) {
+      first = x.unlocked().find((m) => m.state === "active" && m.note) || null;
+      if (first) rec = { startedWall: (x.wallStart + first.startedClock) % 86400, note: { ...first.note }, boldMark: (x.wallStart + first.boldClock) % 86400 };
+    }
+    if (first && boldWall === null && first.state === "overtime") boldWall = x.wall();
+  });
+  ok(!!rec && Math.abs(rec.startedWall - (23 * 3600 + 58 * 60 + 43.5)) < 1e-6 && rec.note.kind === "clock" && rec.note.minutes === 19 && rec.note.at === 18 * 60,
+    `midnight, played out: an AD popping at 23:58:43.5 with 19 minutes reads "Clear @ 00:18"   [${rec && JSON.stringify(rec.note)}, popped ${rec && rec.startedWall.toFixed(1)} s past midnight the day before]`);
+  ok(!!rec && boldWall !== null && boldWall >= 18 * 60 && boldWall < 18 * 60 + 1.5 && Math.abs(rec.boldMark - 18 * 60) < 1e-6,
+    `…and goes bold on the step the wall clock passes 00:18:00, on the far side of midnight   [wall ${boldWall && boldWall.toFixed(2)} s past midnight]`);
+}
+{
   // Skipped spawns are logged per wave (Refinement §9).
   const g = game("clear", [T("LONG", 60)]);
   advance(g, 60);

@@ -56,7 +56,10 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
     scratchpad, never under `Game/`. **Look at them too**: they have caught layout bugs the checks missed.
     Section L measures the layout and the readouts' widest readings at 1920×1080, 1440×900, 1280×720, 1024×640.
   - 🚨 **Gate on both rigs' EXIT CODES** before a commit or push. `node rig | grep …` exits 0 on a FAIL.
-  - The live page keeps stepping in real time between checks: pause it (Esc) or poll for anything timed.
+  - The live page keeps stepping in real time between checks: pause it (Esc), poll for anything timed, do the
+    whole thing inside one `ev()` (nothing runs in between), or record the moment at its event by wrapping
+    `ET.view.handle`. Never a fixed `wait()` before a timed check. `__et.start(mode, boxes, { wallStart, types, rng })`
+    plays out one exact case (rig-only).
   - CDP keys skip browser shortcuts: such cases are dispatched in-page; real keypresses are Andrew's to test.
 - `?seed=N&clock=HH:MM` replays a game exactly (the wall clock otherwise starts at the player's time of day).
 - **Developer Mode:** Ctrl+Shift+B (lowercase `b` too), then a timed password prompt. On unlock the next game

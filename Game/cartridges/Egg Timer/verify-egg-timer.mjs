@@ -41,6 +41,8 @@ function ok(cond, label) {
 }
 const eq = (got, want, label) => ok(JSON.stringify(got) === JSON.stringify(want), `${label}   [got ${JSON.stringify(got)}]`);
 const section = (s) => console.log(`\n${s}`);
+/* Seconds past midnight → "HH:MM:SS". */
+const hms = (s) => s === null || s === undefined ? "-" : [3600, 60, 1].map((d, i) => String(Math.floor(s / d) % (i ? 60 : 24)).padStart(2, "0")).join(":");
 
 const KEYS = {
   Enter: ["Enter", 13], Tab: ["Tab", 9], Escape: ["Escape", 27], F12: ["F12", 123],
@@ -413,14 +415,27 @@ try {
   eq((await snap()).pool, 3, "…with no pool penalty");
   eq(await ev("document.querySelector('.box.active').getBoundingClientRect().width > 0.9 * document.querySelector('#console').getBoundingClientRect().width"), true, "…and the Command Line keeps its full width (no class clash with the title screen's .error)");
   await shot("03a-error");
-  await wait(1200);
-  eq(await ev("__et.boxes().error[0]"), false, "the ERROR is gone after about a second");
+  {
+    // poll, not a fixed wait: a busy machine can hold the page's timer back a little (steadied 2026-09-24)
+    let gone = false;
+    for (let i = 0; i < 80 && !gone; i++) { await wait(50); gone = !(await ev("__et.boxes().error[0]")); }
+    ok(gone, "the ERROR is gone after about a second");
+  }
   await c.insert("RCAV 1");
   await press("F12");
   eq(await ev("__et.boxes().values[0]"), "", "F12 clears the box, no penalty");
   await press("Enter");
   eq(await ev("__et.boxes().error[0]"), false, "⏳ E6: an Enter on an empty Command Line shows no ERROR");
 
+  // record the nest clock at the very step this nest goes bold (the view hears every event with the game), so the
+  // reading can't drift with the live page's own frames between the rig's samples (steadied 2026-09-24)
+  await ev(`(() => { const h = ET.view.handle; window.__boldAt = null;
+    ET.view.handle = function (events, game) {
+      events.forEach((e) => { if (e.type === 'bold' && e.nest === ${n.id} && window.__boldAt === null) window.__boldAt = game.snapshot().nests.find((x) => x.id === ${n.id}).elapsed; });
+      return h.apply(this, arguments);
+    };
+    window.__unwatchBold = () => { ET.view.handle = h; };
+    return 1; })()`);
   // clear the other nests on the way, or a long CAV (EOS, MB) waits out three hatches and the game ends first
   let r = { hit: null };
   for (let t = 0; t < 80 && !r.hit; t += 0.25) {
@@ -435,12 +450,16 @@ try {
   eq(await boxes(), ["900 rgb(11, 93, 30) rgb(255, 255, 255)", "900 rgb(0, 0, 0) rgb(185, 185, 198)", "900 rgb(255, 255, 255) rgb(255, 45, 138)"],
     "Refinement 5 §2: at the limit, all three at once: unit bold dark green on white, type bold black on grey, timer bold white on hot pink");
   const expect = { VS: 10, STR: 10, SS: 15, EOS: 30, MB: 30 }[n.code];
-  // the rig samples every 0.25 s, which is 7.5 displayed seconds at base speed, and the live page also keeps
-  // stepping in real time between samples, so the trigger reads N:00 to N:09 (a flake read N:08 against "< 8")
-  if (expect) {
-    const clk = await ev(`${q(".clock")}.textContent`);
-    const [mm, ss] = clk.split(":").map(Number);
-    ok(mm === expect && ss < 10, `the nest clock shows displayed time: ${n.code} goes bold at ${expect}:00   [${clk}]`);
+  {
+    // the clock as it read at the bold step: one step of play is at most 0.1 s, 3 displayed seconds at base speed
+    const at = await ev("window.__boldAt");
+    await ev("window.__unwatchBold(), 1");
+    const clk = at === null ? "none" : `${String(Math.floor(at / 60)).padStart(2, "0")}:${String(Math.floor(at % 60)).padStart(2, "0")}`;
+    if (expect) ok(at !== null && Math.floor(at / 60) === expect && at - expect * 60 >= 0 && at - expect * 60 < 3.5, `the nest clock shows displayed time: ${n.code} goes bold at ${expect}:00   [${clk} at the bold step]`);
+    // and the readout shows the snapshot's own time, read in one go with the page held still
+    const shown = await ev(`(() => { __et.advance(0); const x = __et.snapshot().nests.find((y) => y.id === ${n.id}); return [${q(".clock")}.textContent, x.elapsed]; })()`);
+    const want = `${String(Math.floor(shown[1] / 60)).padStart(2, "0")}:${String(Math.floor(shown[1] % 60)).padStart(2, "0")}`;
+    eq(shown[0], want, "…and the readout shows the nest clock as MM:SS of displayed time");
   }
   ok(Number(await ev(`${q(".crack")}.style.strokeDashoffset`)) <= 1, "the egg starts cracking");
   await shot("03-bold");
@@ -463,8 +482,12 @@ try {
     await shot("04a-dish");
   }
   ok(await ev("__et.boxes().focused"), "the keyboard stays in the Command Line while the pan comes down");
-  await wait(600);
-  eq(await ev(`getComputedStyle(${q(".pan")}).opacity`), "0", "…and the pan is gone again a moment later");
+  {
+    // poll, not a fixed wait: a busy machine can hold a CSS animation back a little (steadied 2026-09-24)
+    let op = "";
+    for (let i = 0; i < 80 && op !== "0"; i++) { await wait(50); op = await ev(`getComputedStyle(${q(".pan")}).opacity`); }
+    eq(op, "0", "…and the pan is gone again a moment later");
+  }
 
   const cov = await ev(`__et.mess(${n.id})`);
   ok(cov > 0.0005, `the smashed nest gets a small splat of its own   [${(cov * 100).toFixed(1)}%]`);
@@ -618,9 +641,13 @@ try {
   eq([b.active, b.values], [1, ["RCAV 2041", "", ""]], "⏳ E13: F12 moves to the next line and clears the line it lands on");
   await press("F12", SHIFT);
   eq((await ev("__et.boxes()")).active, 1, "Shift+F12 does nothing");
-  const t0 = (await snap()).time;
-  await wait(400);
-  ok((await snap()).time > t0 + 0.2, "switching never pauses the game");
+  {
+    // poll, not a fixed wait: on a busy machine the page's frames come slower (steadied 2026-09-24)
+    const t0 = (await snap()).time;
+    let moved = false;
+    for (let i = 0; i < 100 && !moved; i++) { await wait(50); moved = (await snap()).time > t0 + 0.2; }
+    ok(moved && !(await ev("__et.paused()")), "switching never pauses the game");
+  }
   // A real browser keeps Ctrl+Tab before the page sees it (so a CDP key never arrives); send it in-page instead.
   const ctrlTab = `(() => {
     const opts = { key: 'Tab', code: 'Tab', ctrlKey: true, bubbles: true, cancelable: true };
@@ -775,7 +802,7 @@ try {
       if (x.code !== "AD") { if (txt !== null) otherNotes++; continue; }
       if (!x.note || txt === null) { adOk = false; continue; }
       if (x.note.kind === "clock") {
-        if (!/^Clear @ \d\d:\d\d$/.test(txt)) adOk = false;
+        if (txt !== "Clear @ " + hms(x.note.at).slice(0, 5)) adOk = false;   // the note's own time, not just its shape
       } else if (txt !== x.note.minutes + " min") adOk = false;
       kinds.add(x.note.kind);
       if (!looks[x.note.kind] && x.note.kind === "duration") await shot("11b-ad-minutes");
@@ -791,7 +818,29 @@ try {
     for (const x of s.nests.filter((y) => y.state === "overtime" && !(y.code === "AD" && !sawBold))) await ev(`__et.submit('RCAV ${x.unit}')`);
     await ev("__et.advance(0.5)");
   }
-  ok(adOk, "every running AD shows its note, reading \"N min\" or \"Clear @ HH:MM\"");
+  ok(adOk, "every running AD shows its note, reading its own \"N min\" or \"Clear @ HH:MM\"");
+  {
+    // Midnight, exactly (Andrew, 2026-09-24). A rig-only start: the wall clock at 23:55, ADs only, and a random source
+    // fixed at 0.1, which draws 12 minutes and the clock note every time. The first AD spawns on the page's first frame
+    // and pops 1.4 s later, at 23:55:42 plus that frame (under 23:56), so its note must read "Clear @ 00:08" (the next
+    // whole minute, 23:56, + 12, across midnight), and it must go bold as the wall clock passes 00:08:00. The wall
+    // clock is recorded at the very step the egg goes bold.
+    await ev(`(() => { const h = ET.view.handle; window.__boldWall = null;
+      ET.view.handle = function (events, game) { events.forEach((e) => { if (e.type === 'bold' && window.__boldWall === null) window.__boldWall = game.wall(); }); return h.apply(this, arguments); };
+      window.__unwatchBold = () => { ET.view.handle = h; };
+      return 1; })()`);
+    await ev("__et.start('clear', 1, { wallStart: 23 * 3600 + 55 * 60, types: ['AD'], rng: () => 0.1 }), 1");
+    const first = await until((x) => x.nests.find((y) => y.state === "active" && y.note), 10, 0.1);
+    const note = first.hit ? await ev(`(() => { __et.advance(0); const s = __et.snapshot(), x = s.nests.find((y) => y.id === ${first.hit.id});
+      return { text: document.querySelector('.nest[data-id="${first.hit.id}"] .postit').textContent, started: ((s.wall - x.elapsed) % 86400 + 86400) % 86400 }; })()`) : null;
+    ok(!!note && note.text === "Clear @ 00:08" && note.started >= 23 * 3600 + 55 * 60 + 42 && note.started < 23 * 3600 + 56 * 60,
+      `midnight: an AD started at 23:55 with a 12-minute draw reads "Clear @ 00:08"   [${note && note.text}, started ${note && hms(note.started)}]`);
+    const b = await until((x) => x.nests.some((y) => y.state === "overtime"), 40, 0.25);
+    const bw = await ev("window.__boldWall");
+    await ev("window.__unwatchBold(), 1");
+    ok(!!b.hit && bw !== null && bw >= 8 * 60 && bw < 8 * 60 + 3.5, `…and goes bold as the wall clock passes 00:08:00, after midnight   [the wall read ${hms(bw)} at the bold step]`);
+    await ev("__et.start('clear', 1), 1");   // an ordinary game again for what follows
+  }
   eq([...kinds].sort(), ["clock", "duration"], "both kinds of note turn up");
   eq(otherNotes, 0, "no other type shows a note");
   ok(sawBold, "an AD's note goes bold with the nest");
@@ -835,9 +884,11 @@ try {
     ok(look.bg === "rgb(255, 243, 209)" && look.ink === "rgb(26, 13, 46)" && look.round, `Refinement 5 §3: the panel is a cartoon card, dark ink on cream, rounded   [${look.bg} / ${look.ink}]`);
     ok(look.doodles >= 4, `…with alien-family doodles around the text   [${look.doodles}]`);
     const turns = () => ev("[...document.querySelectorAll('#howto .doodle')].map(d => d.style.getPropertyValue('--turn')).join(',')");
+    // poll for up to 15 s rather than look once at 5.6 s: a turn picks a random angle, which can land on the one it had
+    // (steadied 2026-09-24)
     const t0 = await turns();
-    await wait(5600);
-    const t1 = await turns();
+    let t1 = t0;
+    for (let i = 0; i < 60 && t1 === t0; i++) { await wait(250); t1 = await turns(); }
     ok(t0 !== t1, `…turning to a new angle now and then   [${t0} → ${t1}]`);
   }
   eq(await ev("parseFloat(getComputedStyle(document.querySelector('.wallclock')).fontSize) > 2 * parseFloat(getComputedStyle(document.querySelector('#hud-score')).fontSize)"), true, "the wall clock is larger again: over twice the HUD's type");
@@ -1283,26 +1334,34 @@ try {
       await ev(`(() => { document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()`);
       await wait(150);
       for (const zone of ["top", "panel"]) {
-        const went = await ev(`ET.view.mom('${zone}')`);
-        await wait(Math.round(0.45 * 1000 * (await ev("ET.CONFIG.momFaceSeconds"))));   // mid-way: fully in
+        // show it, hold its slide still mid-way (fully in), and measure, all in one evaluation: nothing in the page can
+        // run in between, so a busy machine can't catch it half in or already gone (steadied 2026-09-24)
         const m = await ev(`(() => {
+          const went = ET.view.mom('${zone}');
+          const slide = document.querySelector('#mom .face').getAnimations()[0];
+          if (slide) { slide.pause(); slide.currentTime = 0.45 * ET.CONFIG.momFaceSeconds * 1000; }
           const box = document.querySelector('#mom'), b = box.getBoundingClientRect(), f = box.querySelector('.face').getBoundingClientRect();
           const hit = (a, c) => a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom;
           const seen = { left: Math.max(b.left, f.left), right: Math.min(b.right, f.right), top: Math.max(b.top, f.top), bottom: Math.min(b.bottom, f.bottom) };
           const keep = [...document.querySelectorAll('.nest .nest-art, .nest .readout')].map(e => e.getBoundingClientRect()).concat([document.querySelector('#console').getBoundingClientRect()]);
-          return { shown: !box.hidden, covers: keep.filter(r => hit(b, r)).length, big: seen.bottom - seen.top, pe: getComputedStyle(box).pointerEvents,
+          return { went, shown: !box.hidden, covers: keep.filter(r => hit(b, r)).length, big: seen.bottom - seen.top, pe: getComputedStyle(box).pointerEvents,
                    anim: getComputedStyle(box.querySelector('.face')).animationName, focused: __et.boxes().focused };
         })()`);
         const at = `[${zone}, ${w}×${h}]`;
-        ok(went === zone && m.shown && m.big > 40, `it pops in ${zone === "top" ? "from the top edge" : "out of the side panel"}   ${at} [${Math.round(m.big)}px showing]`);
+        ok(m.went === zone && m.shown && m.big > 40, `it pops in ${zone === "top" ? "from the top edge" : "out of the side panel"}   ${at} [${Math.round(m.big)}px showing]`);
         eq(m.covers, 0, `…never over a nest, a readout or a Command Line   ${at}`);
         ok(m.pe === "none" && m.focused && /^mom-(top|bottom)$/.test(m.anim), `…takes no input (the Command Line keeps the keyboard) and slides rather than flashes   ${at}`);
         if (SHOTS && (w === 1440 || w === 1024)) await shot(`14-mom-${zone}-${w}x${h}`);
-        await wait(700);
       }
     }
     await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-    ok(await ev("document.querySelector('#mom').hidden"), "…and is gone again within a second");
+    {
+      // it hides itself on its own timer (0.85 s + 50 ms after the last one): poll for that, don't guess a wait
+      const t0 = Date.now();
+      let gone = false;
+      for (let i = 0; i < 60 && !gone; i++) { gone = await ev("document.querySelector('#mom').hidden"); if (!gone) await wait(50); }
+      ok(gone, `…and is gone again by itself a moment later   [after ${Date.now() - t0} ms]`);
+    }
     ok((await ev("window.__hiss")) >= 8, `each one comes with the hiss and gurgle   [${await ev("window.__hiss")} of 8]`);
     // the schedule: at most once a wave, sometimes not at all, held by a pause
     await ev("ET.CONFIG.momFaceChance = 1; ET.CONFIG.momFaceWindow = [0.5, 1]; __et.start('clear', 1); __et.advance(0.1); 1");

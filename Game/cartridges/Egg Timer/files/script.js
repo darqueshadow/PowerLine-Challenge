@@ -102,17 +102,20 @@
   }
 
   /* ----------------------------------------------------------------- play */
-  function startGame(mode, boxes) {
+  /* `rig` is for the rigs only (__et.start): a wall-clock start, a list of type codes and a random source, so one exact
+     case (an AD across midnight, say) can be played out in the real page. Players never pass it. */
+  function startGame(mode, boxes, rig) {
     if (!app.data) return;   // no game without the data (the title's guards keep the player from getting here first)
+    rig = rig || {};
     clearTimeout(app.overTimer);
     var types = ET.devmode.on ? app.data.blankTypes : app.data.types;
     app.game = new ET.Game({
       mode: mode,
       boxes: boxes,
-      types: types,
+      types: rig.types ? types.filter(function (t) { return rig.types.indexOf(t.code) >= 0; }) : types,
       units: app.data.units,
-      wallStart: wallStart(),
-      rng: SEED === null ? Math.random : ET.seededRandom(SEED)
+      wallStart: rig.wallStart !== undefined ? rig.wallStart : wallStart(),
+      rng: rig.rng || (SEED === null ? Math.random : ET.seededRandom(SEED))
     });
     app.paused = false;
     $("#pause").hidden = true;
@@ -404,7 +407,7 @@
     screen: function () { return app.screen; },
     ready: function () { return !!app.data; },
     data: function () { return app.data; },
-    start: function (mode, boxes) { startGame(mode, boxes || 1); return true; },
+    start: function (mode, boxes, rig) { startGame(mode, boxes || 1, rig); return true; },
     snapshot: function () { return app.game ? app.game.snapshot() : null; },
     advance: function (seconds) { stepGame(seconds); ET.view.render(app.game.snapshot()); return app.game.snapshot().time; },
     submit: submit,
