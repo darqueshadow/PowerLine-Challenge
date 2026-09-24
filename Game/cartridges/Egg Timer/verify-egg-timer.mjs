@@ -382,6 +382,23 @@ try {
   eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "progression/4", "arrows change mode, and boxes stop at 4");
   await c.key("keyDown", "2", "Digit2", 50, 0); await c.key("keyUp", "2", "Digit2", 50, 0); await wait(30);
   eq(await ev("document.querySelector('[data-boxes].selected').dataset.boxes"), "2", "a digit picks the box count");
+  {
+    // E29 (ruled 2026-09-24): "How Many Command Lines?", One to Four, each in its line's colour; the one picked lit, the rest dimmed
+    const pk = await ev(`(() => { const bs = [...document.querySelectorAll('[data-boxes]')];
+      return { head: [...document.querySelectorAll('#screen-setup h2')].map(h => h.textContent).find(t => /Command/.test(t)), words: bs.map(b => b.textContent),
+               borders: bs.map(b => getComputedStyle(b).borderTopColor), lines: ET.boxes.COLORS,
+               lit: bs.map(b => [b.classList.contains('selected'), getComputedStyle(b).opacity, getComputedStyle(b).backgroundColor]), anim: bs.map(b => getComputedStyle(b).animationName) }; })()`);
+    const hex = (c) => "#" + c.match(/\d+/g).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, "0")).join("");
+    eq([pk.head, pk.words], ["How Many Command Lines?", ["One", "Two", "Three", "Four"]], "E29: the picker asks \"How Many Command Lines?\", One to Four");
+    const unpicked = pk.lit.filter((l) => !l[0]), picked = pk.lit.find((l) => l[0]);
+    ok(pk.lit.every((l, i) => !l[0] || hex(l[2]) === pk.lines[i]) && pk.borders.every((b, i) => pk.lit[i][0] || hex(b) === pk.lines[i]),
+      `…each option in its Command Line's in-game colour   [${pk.borders.map(hex).join(" ")}]`);
+    ok(!!picked && picked[1] === "1" && unpicked.length === 3 && unpicked.every((l) => Number(l[1]) < 0.6) && pk.anim.every((a) => a === "none"),
+      `…the one picked lit, the rest dimmed, nothing flashing   [${pk.lit.map((l) => l[1]).join(" ")}]`);
+    await ev("document.querySelector('[data-boxes=\"3\"]').click(); 1");
+    eq(await ev("document.querySelector('[data-boxes].selected').dataset.boxes"), "3", "…and the mouse picks too");
+    await ev("document.querySelector('[data-boxes=\"2\"]').click(); 1");
+  }
   ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>"), "on the options screen the panel follows the mode picked (Follow Progression adds the Place line)");
   ok(!(await ev("getComputedStyle(document.querySelector('[data-mode]')).cursor")).includes("url("), "menus and setup keep the normal pointer");
   eq(await ev("!document.querySelector('#hose') || document.querySelector('#hose').hidden || document.querySelector('#screen-play').hidden"), true, "no hose outside the game");
@@ -1037,7 +1054,7 @@ eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", 
   ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>, e.g. CAV 2101 VS"), "E8: Both shows \"Place: CAV <unit> <type>, e.g. CAV 2101 VS\"");
   await ev("__et.start('progression', 1)");
   ok((await ev("document.querySelector('#howto').innerText")).includes("CAV <unit> <type>"), "E8: Follow Progression shows it too");
-  eq(await ev("document.querySelector('#screen-setup h2:nth-of-type(2)').textContent"), "COMMAND LINES", "E7: players see \"Command Line\" on the setup screen");
+  ok(await ev("(() => { const t = document.querySelector('#screen-setup').innerText; return /Command Lines/.test(document.querySelector('#screen-setup h2:nth-of-type(2)').textContent) && !/Command Box/i.test(t); })()"), "E7: players see \"Command Line\" on the setup screen, never \"Command Box\" (E29's heading)");
   eq([await ev("'FRIED' in ET.art"), await ev("ET.art.DISHES")], [false, 7], "the egg ladder replaces the fried eggs: seven dishes, no fried-egg art");
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");

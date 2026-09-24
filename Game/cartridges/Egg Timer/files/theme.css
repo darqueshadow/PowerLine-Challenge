@@ -78,6 +78,12 @@
   --placeholder: #6f6687;                 /* muted lavender grey ("RCAV + unit" in an empty line) */
   --leader: #fff4d6;                      /* cream (a tag's leader line) */
 
+  /* E29: each Command Line's colour, for the options screen's picker (the same as boxes.js's COLORS) */
+  --line-1: #22e3ff;                      /* line 1, electric cyan */
+  --line-2: #ff3df2;                      /* line 2, magenta */
+  --line-3: #ffe23d;                      /* line 3, lemon */
+  --line-4: #7dff3d;                      /* line 4, lime */
+
   /* E27: the options screen's HOW / TO / PLAY signs (lit, they use --gold) */
   --sign-off-bg: #2a1640;                 /* unlit sign, dark plum */
   --sign-off-ink: #7d6a96;                /* unlit sign lettering, dusty lilac */

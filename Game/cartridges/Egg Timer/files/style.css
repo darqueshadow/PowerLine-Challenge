@@ -346,6 +346,14 @@ h2 {
 #field { position: relative; flex: 1; min-width: 0; min-height: 0; touch-action: none; display: flex; flex-direction: column; }
 /* Refinement 3: a band across the top of the board for the wall clock (right) and the TIME WARP panel,
    so neither ever sits on a nest; the nests fill the board below it */
+/* E29: the options screen's Command Line picker: each option in its line's colour; the one picked lit, the rest
+   dimmed. It doesn't flash. */
+.counts button { min-width: 110px; border-color: var(--line); color: var(--line); opacity: 0.45; }
+.counts button[data-boxes="1"] { --line: var(--line-1); }
+.counts button[data-boxes="2"] { --line: var(--line-2); }
+.counts button[data-boxes="3"] { --line: var(--line-3); }
+.counts button[data-boxes="4"] { --line: var(--line-4); }
+.button-bank.counts button.selected { opacity: 1; background: var(--line); color: var(--shadow); border-color: var(--shadow); box-shadow: 2px 2px 0 var(--shadow), 0 0 14px 3px var(--line); }
 /* E28: wave 1's first-game tags, either side of the wall clock (view.js sets their left / right); they never flash */
 #fieldtop .tip { position: absolute; top: 50%; transform: translateY(-50%); max-width: 30%; padding: 3px 8px; border: 2px solid var(--outline); border-radius: 7px; box-shadow: 3px 3px 0 var(--shadow); font-family: var(--font-display); font-size: clamp(10px, 0.95vw, 15px); letter-spacing: 0.04em; line-height: 1.15; white-space: normal; pointer-events: none; }
 #tip-ready { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }

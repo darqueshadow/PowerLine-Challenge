@@ -1299,6 +1299,22 @@ export default {
   "position": "relative",
   "touch-action": "none"
  },
+ ".counts button": {
+  "border-color": "RAW <--line>",
+  "color": "RAW <--line>",
+  "min-width": "110px",
+  "opacity": "0.45"
+ },
+ ".button-bank.counts button.selected": {
+  "background": "RAW <--line>",
+  "border-bottom-color": "rgb(0, 0, 0)",
+  "border-left-color": "rgb(0, 0, 0)",
+  "border-right-color": "rgb(0, 0, 0)",
+  "border-top-color": "rgb(0, 0, 0)",
+  "box-shadow": "RAW 2px 2px 0 #000, 0 0 14px 3px <--line>",
+  "color": "rgb(0, 0, 0)",
+  "opacity": "1"
+ },
  "#fieldtop .tip": {
   "border-bottom-color": "rgb(26, 13, 46)",
   "border-bottom-left-radius": "7px",
