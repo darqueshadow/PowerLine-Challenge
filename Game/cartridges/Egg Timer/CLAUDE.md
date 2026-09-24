@@ -26,7 +26,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E26**);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E27**);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it.
@@ -98,9 +98,12 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   spread-out order on a logical 4 × 3 grid. A wave ends after its quota resolves; spawning stops once the quota
   has spawned (D4); a spawn due on a full board is skipped; the shrinking spawn gap stacks with the clock
   speed-up. Pool 3 (key `POOL`), −1 per escape, +1 for a wave with no escape (never above 3). **Only an empty pool ends the game.**
-- **Scoring:** a clear is 100 at the trigger, falling to 25 at the hatch, plus a perfect-wave bonus; no penalty
-  for an escape or wiping. The frying pan is pure CSS and must never hold the keyboard. The **egg ladder** is
-  cosmetic (fast clears serve fancier dishes; a slow clear, any ERROR or a hatch resets it).
+- **Scoring (E26):** a clear scores by **tier**, each a fifth of that egg's own overtime window: 100 / 75 / 50 / 35 / 25
+  (`clearScoring: "tiers"`), plus a perfect-wave bonus; no penalty for an escape or wiping. **Never set tiers in
+  displayed time**: at 30–60 displayed s a player second they become unreachable. The tier also picks the clear's
+  **break stage** (1 elegant … 5 alien), and the waiting egg shows **alien hints** at tiers 3–5 (art, not built yet).
+  **Alien art:** scary alien, nothing human, no red except the cord.
+  The frying pan is pure CSS and must never hold the keyboard. The **egg ladder** is cosmetic (tier 1–2 clears serve fancier dishes; a slower clear, any ERROR or a hatch resets it).
 - **Mess and hose:** a clear leaves a small splat on its own nest and drops the rest evenly over the whole board
   (on whichever nest or floor it lands); no neighbour targeting (E15), no cap; mess belongs to the nest and
   **covers its readout and post-it** (E14). Wiping is click-and-drag. **In-game the cursor is always the hose
@@ -170,6 +173,8 @@ Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-24
 **Next:** Andrew takes the art brief (`docs/Egg Timer art brief for Gemini.md` at the repo root) to Chat for review,
-then the Gemini pilot (nest + egg); the art-slot layer that hooks the files up is the code batch after that.
+then the Gemini pilot (nest + egg, now with E26's three alien hints); the art-slot layer that hooks the files up is the
+code batch after that, and it also shows E26's break stages (the `cleared` event's `tier`) and the hints (at 40/60/80% of
+the window). **Open for Chat:** do the hatchling's red eyes and the mom face's red veins break "no red except the cord"?
 Left from the audit, by Andrew's choice: the art-slot layer, moving the JavaScript colours into `theme.css`, dead code,
 and the other test gaps.

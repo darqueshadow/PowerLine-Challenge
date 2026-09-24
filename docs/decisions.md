@@ -319,6 +319,24 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-24 — Egg Timer: tiered clear points (E26)
+
+**Solved:** A clear now scores by tier: each egg's own overtime window (bold to hatch) splits into fifths, worth 100, 75,
+50, 35 and 25 points. That replaces the 100 → 25 slide. The egg ladder climbs on tiers 1–2. The tier also picks the clear's
+break stage (1 elegant … 5 alien), and the waiting egg shows alien hints from tier 3. Both are art, briefed to Gemini
+(slots 13 and 0) and not in the game yet.
+**Approach:** Andrew's first tiers were in displayed time (10 s / 30 s / 1 min / 2 min / 4 min after bold). Code measured
+them: the clocks run 30 displayed seconds per player second at 1× and 60 at the 2× cap, so the 10 s tier lasted 0.17–0.33 s
+(below reaction time, since an early RCAV is rejected) and 4 min couldn't be reached before about wave 8. Chat ruled fifths
+of each egg's window, which the cracks already show. Built as `clearScoring: "tiers"` in `config.js` (`"slide"` keeps the
+old scoring), with `ET.rules.clearTier()` and a `tier` on the `cleared` event. Rigs: logic 159/0, browser 415/0.
+**If you touch this again:**
+- **Never set tiers in displayed time.** The overtime window is in the player's seconds; the shortest fifth is 0.81 s (the
+  4.5 s floor with −10% jitter), and the logic rig fails if a tier drops under 0.8 s.
+- **The art-slot layer** shows the break stage from the event's `tier`, and the hints at 40/60/80% of the window, once each,
+  with no flash (groups `hint-3` … `hint-5` in `egg.svg`).
+- **Open:** whether the hatchling's red eyes and the mom face's red veins break the "no red except the cord" art rule.
+
 ## Resolved 2026-09-24 — Egg Timer: the full audit's batch A fixes, and the mute (E24, E25)
 
 **Solved:** All of Egg Timer's audit batch A is live. The cleanup banner flashes at most 2 times a second (a guard caps it at
