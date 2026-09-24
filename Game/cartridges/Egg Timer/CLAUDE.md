@@ -169,5 +169,7 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-24
+**Next:** Andrew takes the art brief (`docs/Egg Timer art brief for Gemini.md` at the repo root) to Chat for review,
+then the Gemini pilot (nest + egg); the art-slot layer that hooks the files up is the code batch after that.
 Left from the audit, by Andrew's choice: the art-slot layer, moving the JavaScript colours into `theme.css`, dead code,
 and the other test gaps.
