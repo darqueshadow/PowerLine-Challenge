@@ -111,6 +111,12 @@
     <p class="blink">PRESS ENTER</p>
   </section>
 
+  <!-- E24 (Andrew, 2026-09-24): sound on/off, top left on every screen, remembered per browser (⏳ placeholder look).
+       Pressed means muted. M does the same except while a Command Line has the keys (⏳ E25). -->
+  <button type="button" id="mute" aria-pressed="false" aria-label="Mute sound" title="Sound on/off (M)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker" d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="cross" d="M16 9l6 6M22 9l-6 6"/></svg>
+  </button>
+
   <!-- DEVELOPER MODE (Ctrl+Shift+B) -->
   <div id="dev-prompt" class="overlay" hidden>
     <div class="panel">

@@ -26,7 +26,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E24**);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E26**);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it.
@@ -126,6 +126,10 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Horror beats (Refinement 5):** the hatchling is horrific; a **scary mom face** pops in at most once a wave,
   under 1 s, only inside a clipping box over the HUD bar or the how-to panel (covering either briefly is fine,
   E23), so it can never reach a nest, readout or Command Line (rig section Q). Never let it take input or flash.
+- **Sound (E24):** a mute button top left on every screen, and M (⏳ **E25**: not while a Command Line has the keys,
+  `muteKeyInPlay`), remembered per browser. Every sound goes through `audio.js`'s one master chain (a level, then a
+  soft ceiling under full scale, so nothing clips): make any new sound connect to `bus()`, never to the speakers
+  directly (rig section A2 fails on a second route). A background tab stops the title tune and holds every sound.
 - **Platform:** a plain browser tab, and Fang Rock (`fangrock://arcade/eggtimer`, in the hub's frame), which
   serves the arcade from the **local** `(PCL)/Game` folder, not GitHub Pages.
 - **Deferred:** creature, splat, dish and escape art, and every final look and sound (Gemini); the end screen

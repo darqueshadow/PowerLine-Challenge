@@ -59,6 +59,7 @@
   function show(name) {
     app.screen = name;
     document.querySelectorAll(".screen").forEach(function (s) { s.hidden = s.id !== "screen-" + name; });
+    document.body.classList.toggle("playing", name === "play");   // in play the mute button takes the hose cursor too
     placeHowTo(name);
     ET.lights.mode(name === "play" ? "calm" : "attract");   // arcade attract lights: lively on menus, calm in play
     if (name === "setup") paintSetup();
@@ -184,10 +185,31 @@
     requestAnimationFrame(frame);
   }
 
+  /* ----------------------------------------------------------------- mute */
+  /* E24 (Andrew, 2026-09-24): the mute button, top left on every screen, and the M key; remembered per browser. */
+  function paintMute(m) {
+    var b = $("#mute");
+    b.setAttribute("aria-pressed", String(m));
+    b.title = (m ? "Sound off" : "Sound on") + " (M)";
+  }
+  function setMuted(on) { paintMute(ET.audio.setMuted(on)); }
+  /* ⏳ E25: M is a letter players type (MB), so while a Command Line has the keys it types; there the button mutes,
+     and the "ctrl-m" value lets Ctrl+M too. Everywhere else (menus, the pause, the end of a game) M mutes. */
+  function muteKey(ev) {
+    if (ev.key !== "m" && ev.key !== "M") return false;
+    var typing = app.screen === "play" && app.game && app.game.phase !== "over" && !app.paused;
+    if (typing ? !(C.muteKeyInPlay === "ctrl-m" && ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey)
+               : (ev.ctrlKey || ev.altKey || ev.metaKey)) return false;
+    ev.preventDefault();
+    setMuted(!ET.audio.muted());
+    return true;
+  }
+
   /* ------------------------------------------------------------- keyboard */
   document.addEventListener("keydown", function (ev) {
     if (ET.devmode.key(ev)) return;              // Ctrl+Shift+B, from any screen
     if (ET.devmode.isOpen()) return;             // the prompt's own input has the keys
+    if (muteKey(ev)) return;                     // E24
     switch (app.screen) {
       case "title":
         // like a click on the title: nothing goes on until the data has loaded (Andrew, 2026-09-24)
@@ -346,6 +368,13 @@
       b.addEventListener("click", function () { app.boxes = Number(b.dataset.boxes); paintSetup(); });
     });
     $("#start").addEventListener("click", function () { startGame(MODES[app.modeIndex].id, app.boxes); });
+
+    // E24: the mute button. Pressing it never takes the keyboard from a Command Line (or anything else).
+    var mute = $("#mute");
+    mute.hidden = !C.sound;
+    mute.addEventListener("mousedown", function (ev) { ev.preventDefault(); });
+    mute.addEventListener("click", function () { setMuted(!ET.audio.muted()); });
+    paintMute(ET.audio.muted());   // show the remembered setting
   }
 
   wire();

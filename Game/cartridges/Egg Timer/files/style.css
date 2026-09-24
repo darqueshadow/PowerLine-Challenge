@@ -216,6 +216,33 @@ h2 {
 .start { margin-top: 10px; background: var(--hot); border-color: var(--shadow); font-size: 26px; padding: 14px 48px; }
 .hint { color: var(--dim); font-size: 13px; letter-spacing: 0.08em; }
 .dev-note, #dev-badge { color: var(--bg); background: var(--cyan); padding: 4px 10px; font-family: var(--font-mono); font-weight: 700; }
+
+/* E24 (Andrew, 2026-09-24): the mute button, top left on every screen and above every overlay, so it can be pressed
+   while paused (⏳ placeholder look). Pressed (aria-pressed) means muted: the waves give way to a cross, in hot pink. */
+#mute {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 61;
+  width: 42px;
+  height: 36px;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--ink);
+  background: var(--bg-2);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 var(--shadow);
+  cursor: pointer;
+}
+#mute[hidden] { display: none; }
+#mute svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+#mute .speaker { fill: currentColor; }
+#mute .cross { display: none; }
+#mute[aria-pressed="true"] { color: var(--hot); border-color: var(--hot); }
+#mute[aria-pressed="true"] .waves { display: none; }
+#mute[aria-pressed="true"] .cross { display: inline; }
+#mute:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
 #dev-badge { position: fixed; top: 8px; right: 8px; z-index: 50; }
 
 /* ----------------------------------------------------------------- play */
@@ -225,7 +252,7 @@ h2 {
   display: flex;
   align-items: baseline;
   gap: clamp(14px, 3vw, 42px);
-  padding: 10px 18px;
+  padding: 10px 18px 10px 70px;   /* E24: room on the left for the mute button */
   background: var(--shadow);
   border-bottom: 4px solid var(--hot);
   font-family: var(--font-display);
@@ -296,7 +323,7 @@ h2 {
 
 /* ⏳ placeholder: in-game the cursor is ALWAYS the hose nozzle (Hose ruling, 2026-09-22); menus and
    setup keep the normal pointer. A drag still sprays water and wipes, as before. */
-#screen-play, #screen-play * {
+#screen-play, #screen-play *, body.playing #mute, body.playing #mute * {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M30 30 L16 16' stroke='%23000' stroke-width='9' stroke-linecap='round'/%3E%3Cpath d='M30 30 L16 16' stroke='%2322a34a' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M17 11 L11 17 L2 6 L6 2 Z' fill='%23ffd23a' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 3 3, crosshair;
 }
 

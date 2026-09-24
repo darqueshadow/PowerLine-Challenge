@@ -111,13 +111,16 @@ async function menuFit(name, panelSel = "#howto") {
                fits: Math.max(...[...panel.querySelectorAll('li')].map(l => l.getBoundingClientRect().bottom)) <= P.bottom - 4, lines: panel.querySelectorAll('li').length,
                doodled: [...panel.querySelectorAll('.doodle')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length,
                bulbs: panel.querySelectorAll('.bulb').length,
-               bulbOnWord: [...panel.querySelectorAll('.bulb')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length };
+               bulbOnWord: [...panel.querySelectorAll('.bulb')].filter(d => { const r = d.getBoundingClientRect(); return words.some(x => x.width > 0 && hit(r, x)); }).length,
+               mute: (() => { const m = document.querySelector('#mute').getBoundingClientRect();
+                 return { shown: m.width > 20 && m.left >= 0 && m.top >= 0, hits: parts.filter(x => hit(x.r, m)).map(x => x.id).concat(hit(P, m) ? ['the panel'] : []) }; })() };
     })()`);
     const at = `[${name}, ${w}×${h}]`;
     ok(f.here && f.right < 20 && f.tall > 0.9 && f.lines >= 4, `the ${panelSel === '#howto' ? 'how-to panel' : 'How To Play card'} shows down the right edge   ${at}`);
     ok(f.outside.length === 0 && f.underPanel.length === 0 && f.overlaps.length === 0, `…with everything else on the screen inside the window, clear of the panel and of each other   ${at} ${JSON.stringify([f.outside, f.underPanel, f.overlaps])}`);
     ok(f.fits && f.textInside && f.doodled === 0, `…its text fitting inside it, no doodle on a word   ${at}`);
     ok(f.bulbs > 16 && f.bulbOnWord === 0, `…its attract lights round the edge, none behind a word   ${at} [${f.bulbs} bulbs]`);
+    ok(f.mute.shown && f.mute.hits.length === 0, `…and the mute button top left, clear of all of it   ${at} ${f.mute.hits.length ? JSON.stringify(f.mute.hits) : ""}`);
     if (SHOTS && w === 1024) await shot(`15-panel-${name}-${w}x${h}`);
   }
   await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
@@ -235,6 +238,69 @@ try {
     ok(tries <= 1, `SAFETY: the guard refuses a bulb changing again inside 0.2 s   [${tries} of 40 rapid tries went through]`);
     ok((await ev("ET.CONFIG.lightsMinToggle")) >= 1 / 6, "SAFETY: the guard's minimum gap is never below 1/6 s (3 flashes a second)");
     await shot("16-lights-attract");
+  }
+
+  /* ------------------------------------------------------------ A2. sound */
+  section("A2. sound on and off (E24, Andrew 2026-09-24)");
+  {
+    const ET_LEVEL = await ev("ET.audio.LEVEL");
+    const m = () => ev("({ pressed: document.querySelector('#mute').getAttribute('aria-pressed'), muted: ET.audio.muted(), saved: localStorage.getItem('eggtimer.muted'), level: ET.audio.level() })");
+    const levelTo = async (want) => { let l = null; for (let i = 0; i < 60; i++) { l = await ev("ET.audio.level()"); if (l !== null && Math.abs(l - want) < 0.002) break; await wait(50); } return l; };
+    // the loudest sample leaving the master chain over `ms` of real time
+    const loudest = async (ms) => { let p = 0; for (let t = 0; t < ms; t += 25) { p = Math.max(p, await ev("ET.audio.peak()")); await wait(25); } return p; };
+    const b = await ev("(() => { const e = document.querySelector('#mute'), r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, cursor: getComputedStyle(e).cursor }; })()");
+    ok(b.w > 20 && b.h > 20 && b.x < 40 && b.y < 40, `a mute button sits top left   [${Math.round(b.x)},${Math.round(b.y)}, ${Math.round(b.w)}×${Math.round(b.h)}]`);
+    ok(!b.cursor.includes("url("), "…with the normal pointer on the menus");
+    const m0 = await m();
+    eq([m0.pressed, m0.muted, m0.saved], ["false", false, null], "sound starts on: a fresh browser has nothing remembered");
+    await press("m");   // also the first key, so sound unlocks here
+    const l1 = await levelTo(0), m1 = await m();
+    ok(m1.pressed === "true" && m1.muted && m1.saved === "1" && l1 !== null && l1 < 0.002, `M mutes: the button shows it, the browser remembers it, and the master level goes to 0   [${l1}]`);
+    await ev("ET.audio.thong(); ET.audio.buzz(); ET.audio.clunk(0); 1");
+    const quiet = await loudest(700);
+    ok(quiet < 1e-4 && (await ev("__et.tune()")), `muted, nothing leaves the speakers: not the title tune, nor a pan, buzz and clunk played together   [peak ${quiet.toExponential(1)}]`);
+    await press("M");   // Shift or Caps Lock: the same key
+    const l2 = await levelTo(ET_LEVEL), m2 = await m();
+    await ev("ET.audio.thong(); 1");
+    const loud = await loudest(700);
+    ok(!m2.muted && m2.pressed === "false" && m2.saved === "0" && Math.abs(l2 - ET_LEVEL) < 0.002 && loud > 0.01, `M again brings it back   [level ${l2 && l2.toFixed(2)}, peak ${loud.toFixed(3)}]`);
+    // a real mouse click on the button, as a player would
+    const click = async () => {
+      const r = await ev("(() => { const q = document.querySelector('#mute').getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2]; })()");
+      for (const type of ["mousePressed", "mouseReleased"]) await c.send("Input.dispatchMouseEvent", { type, x: r[0], y: r[1], button: "left", clickCount: 1 });
+      await wait(30);
+    };
+    await click();
+    const m3 = await m();
+    await click();
+    const m4 = await m();
+    ok(m3.muted && m3.saved === "1" && !m4.muted && m4.saved === "0", "a click on the button mutes, and a second click brings it back");
+    ok((await ev("__et.screen()")) === "title" && (await ev("document.activeElement !== document.querySelector('#mute')")), "…without leaving the title screen or taking the keyboard");
+    // a background tab (the page's visibility, simulated): the title tune stops and every sound is held
+    await ev("Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); 1");
+    let st = ""; for (let i = 0; i < 40 && st !== "suspended"; i++) { await wait(50); st = await ev("ET.audio.state()"); }
+    const away = await ev("__et.tune()");
+    ok(!away && st === "suspended", `in a background tab the title tune stops and every sound is held   [tune ${away}, sound ${st}]`);
+    await ev("delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); 1");
+    let back = false; for (let i = 0; i < 60 && !back; i++) { await wait(50); back = (await ev("__et.tune()")) && (await ev("ET.audio.state()")) === "running"; }
+    ok(back, "…and the tune starts again when the tab comes back");
+    // the master chain's ceiling, measured on a context of the rig's own (rendered offline, so it's exact)
+    const clip = await ev(`(async () => {
+      const sr = 44100, peak = (b) => { const d = b.getChannelData(0); let m = 0; for (let i = 0; i < d.length; i++) m = Math.max(m, Math.abs(d[i])); return m; };
+      const render = (voices, through) => { const a = new OfflineAudioContext(1, sr * 0.25, sr), into = through ? ET.audio.chain(a).input : a.destination;
+        voices.forEach(([type, f, g]) => { const o = a.createOscillator(), v = a.createGain(); o.type = type; o.frequency.value = f; v.gain.value = g; o.connect(v).connect(into); o.start(0); });
+        return a.startRendering().then(peak); };
+      const pile = Array.from({ length: 12 }, (_, i) => ['square', 110 * (1 + i * 0.07), 0.35]);   // twelve pan-loud sounds at once
+      return { raw: await render(pile, false), capped: await render(pile, true), one: await render([['sine', 440, 0.3]], true) };
+    })()`);
+    const CEIL = await ev("ET.audio.CEILING");
+    ok(clip.raw > 1, `twelve loud sounds at once would clip on their own   [peak ${clip.raw.toFixed(2)}]`);
+    ok(CEIL < 1 && clip.capped <= CEIL + 1e-6, `…through the master chain they never pass its ceiling, so nothing clips   [peak ${clip.capped.toFixed(3)}, ceiling ${CEIL}]`);
+    ok(Math.abs(clip.one - 0.3 * ET_LEVEL) < 0.005, `…while one ordinary sound passes untouched but for the master level   [${clip.one.toFixed(3)} for 0.3 × ${ET_LEVEL}]`);
+    // every sound goes through that chain: only audio.js makes sound, and it reaches the speakers in one place
+    const src = await ev(`Promise.all([...document.scripts].filter(s => s.src).map(s => fetch(s.src).then(r => r.text()).then(t => [s.src.split('/').pop(), (t.match(/\\.destination\\b/g) || []).length, /create(Oscillator|BufferSource)/.test(t)])))`);
+    eq([src.filter((x) => x[1] > 0).map((x) => x[0] + ":" + x[1]), src.filter((x) => x[2]).map((x) => x[0])], [["audio.js:1"], ["audio.js"]],
+      "every sound goes through the master chain: only audio.js makes sound, and only the chain reaches the speakers");
   }
 
   /* ------------------------------------------------------------ B. setup */
@@ -606,6 +672,42 @@ try {
   ok(await ev("__et.paused() && !document.querySelector('#pause').hidden"), "losing window focus pauses the game (a reflex Alt+Tab)");
   await press("Escape");
   ok(await ev("!__et.paused()"), "…and Esc resumes it like any pause");
+  {
+    // E24, and ⏳ E25: in play M is a letter players type (MB), so it types and doesn't mute; paused, M mutes;
+    // the button mutes any time, and never takes the keyboard from the Command Line
+    const typeM = async (mods = 0) => {
+      await c.send("Input.dispatchKeyEvent", { type: "keyDown", key: "m", code: "KeyM", windowsVirtualKeyCode: 77, modifiers: mods, ...(mods ? {} : { text: "m", unmodifiedText: "m" }) });
+      await c.send("Input.dispatchKeyEvent", { type: "keyUp", key: "m", code: "KeyM", windowsVirtualKeyCode: 77, modifiers: mods });
+      await wait(30);
+    };
+    const line = () => ev("[document.querySelector('.box.active input').value, ET.audio.muted(), __et.boxes().focused]");
+    await ev("document.querySelector('.box.active input').value = ''; document.querySelector('.box.active input').focus(); 1");
+    await typeM();
+    eq(await line(), ["m", false, true], "⏳ E25: in play M types into the Command Line (MB needs it) and doesn't mute");
+    await press("Escape");
+    await press("m");
+    const pausedMute = await ev("ET.audio.muted()");
+    await press("m");
+    await press("Escape");
+    ok(pausedMute && !(await ev("ET.audio.muted()")), "…while paused, M mutes and unmutes");
+    const at = await ev("(() => { const q = document.querySelector('#mute').getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2]; })()");
+    const click = async () => { for (const type of ["mousePressed", "mouseReleased"]) await c.send("Input.dispatchMouseEvent", { type, x: at[0], y: at[1], button: "left", clickCount: 1 }); await wait(30); };
+    await click();
+    const clicked = await line();
+    await click();
+    ok(clicked[1] && clicked[2] && clicked[0] === "m" && !(await ev("ET.audio.muted()")), `in play the button mutes (and unmutes), and the Command Line keeps the keyboard and its text   [${JSON.stringify(clicked)}]`);
+    ok((await ev("getComputedStyle(document.querySelector('#mute')).cursor")).includes("url("), "…and over it the cursor is still the hose nozzle, as everywhere in the game");
+    // the other E25 value still works: Ctrl+M mutes in play
+    await ev("ET.CONFIG.muteKeyInPlay = 'ctrl-m'; 1");
+    await typeM(CTRL);
+    const ctrlOn = await line();
+    await typeM(CTRL);
+    const ctrlOff = await line();
+    await ev("ET.CONFIG.muteKeyInPlay = 'none'; 1");
+    await typeM(CTRL);
+    ok(ctrlOn[1] && ctrlOn[0] === "m" && !ctrlOff[1] && !(await ev("ET.audio.muted()")), "(the \"ctrl-m\" value lets Ctrl+M mute in play; with \"none\", as built, Ctrl+M does nothing)");
+    await ev("document.querySelector('.box.active input').value = ''; 1");
+  }
 
   /* ------------------------------------------------ H. placement and VF */
   section("H. placement (Both) and VF");
@@ -976,7 +1078,11 @@ try {
       const clock = document.querySelector('.wallclock').getBoundingClientRect();
       const field = document.querySelector('#field').getBoundingClientRect();
       document.querySelectorAll('.nest .postit').forEach(p => { p.hidden = true; });
-      return { bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
+      // E24: the mute button in the HUD bar's left end, clear of its words, the wall clock and the board
+      const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
+      const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
+      const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
+      return { muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, besideHowto: nests.every(x => x.n.right <= howto.left + 1), clearOfTop,
                warpClear, warpCentre,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= howto.left + 1,
                howtoFits: Math.max(...[...document.querySelectorAll('#howto li')].map(l => l.getBoundingClientRect().bottom)) <= howto.bottom - 4,
@@ -1000,6 +1106,7 @@ try {
     eq(lay.doodled, 0, `Refinement 5 §3: no doodle covers any of the panel's text   ${at}`);
     eq(lay.bulbOnWord, 0, `no attract light sits behind a word of the panel   ${at}`);
     ok(lay.tagged === 0 && lay.tagIn, `Refinement 5 §6: the hose tag stays on the board and touches no nest or readout   ${at}`);
+    ok(lay.muteClear, `E24: the mute button sits in the HUD bar's left end, clear of its words, the wall clock and the board   ${at}`);
     if (SHOTS) {
       await ev(`(() => { document.querySelectorAll('.mess').forEach((m, i) => i % 3 === 0 && ET.mess.splatter(m, 6)); return 1; })()`);
       await shot(`10-full-board-${w}x${h}`);
@@ -1251,6 +1358,16 @@ try {
     await reload();   // back to the real sheet
     for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
     ok(await ev("__et.ready() && __et.data().units.length === 54"), "(the real sheet loads again)");
+
+    // E24: the mute setting is remembered per browser, across a reload, before any key is pressed
+    await press("m");
+    const before = await ev("[ET.audio.muted(), localStorage.getItem('eggtimer.muted')]");
+    await reload();
+    for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
+    const after = await ev("[ET.audio.muted(), document.querySelector('#mute').getAttribute('aria-pressed')]");
+    eq([before, after], [[true, "1"], [true, "true"]], "E24: muted stays muted after a reload: the browser remembers it");
+    await press("m");
+    eq(await ev("[ET.audio.muted(), localStorage.getItem('eggtimer.muted')]"), [false, "0"], "…and M turns it back on");
   }
 
   /* ------------------------------------------------------------ K. errors */

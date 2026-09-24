@@ -4,14 +4,63 @@
    files. The real sounds are Gemini's once art and audio direction start.
    The browser keeps audio locked until the player presses a key or clicks, so
    the context is made on the first one (unlock()) and anything before is silent.
+
+   E24 (Andrew, 2026-09-24): every sound goes through ONE master chain: a master
+   level, then a soft ceiling, then the speakers. Below the ceiling's knee a
+   sound passes untouched; above it the peaks are rounded off, and nothing ever
+   leaves louder than CEILING, however many sounds overlap, so it can't clip.
+   Mute takes the master level to 0 and is remembered per browser. In a
+   background tab the title tune stops and every sound is held; the tune starts
+   again from the top when the tab comes back.
    ========================================================================= */
 (function (root) {
   var ET = (root.ET = root.ET || {});
   var ctx = null;
 
+  var LEVEL = 0.8;        // the master level [T]: the loudest single sound passes well under the knee
+  var KNEE = 0.75;        // up to here the ceiling changes nothing…
+  var CEILING = 0.95;     // …and nothing ever leaves louder than this (full scale, where clipping starts, is 1)
+  var MUTE_KEY = "eggtimer.muted";
+  var muted = readMuted();
+  var out = null;         // the live context's master chain, made with the first sound
+
+  function readMuted() { try { return root.localStorage.getItem(MUTE_KEY) === "1"; } catch (e) { return false; } }
+  function saveMuted() { try { root.localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) { /* no storage (a private window): this visit only */ } }
+  function hidden() { return typeof document !== "undefined" && document.hidden; }
+
+  /* The soft ceiling: straight through up to KNEE, then rounded off towards CEILING. A WaveShaper holds anything past
+     its ends at the end value, so no input, however loud, gets out above CEILING. */
+  function ceilingCurve(n) {
+    var curve = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var x = (i / (n - 1)) * 2 - 1, a = Math.abs(x);
+      var y = a <= KNEE ? a : KNEE + (CEILING - KNEE) * Math.tanh((a - KNEE) / (CEILING - KNEE));
+      curve[i] = x < 0 ? -y : y;
+    }
+    return curve;
+  }
+
+  /* The master chain on context `a`, at master level `level`. `input` is where every sound connects; `meter` reads
+     what actually leaves (for rigs). */
+  function chain(a, level) {
+    var gain = a.createGain(), shaper = a.createWaveShaper(), meter = a.createAnalyser();
+    gain.gain.value = level;
+    shaper.curve = ceilingCurve(2049);
+    gain.connect(shaper);
+    shaper.connect(a.destination);
+    shaper.connect(meter);
+    return { input: gain, level: gain, meter: meter };
+  }
+
+  /* Where a sound on the live context connects: the master chain, made the first time. */
+  function bus() {
+    if (!out) out = chain(ctx, muted ? 0 : LEVEL);
+    return out.input;
+  }
+
   function ready() {
     if (!ET.CONFIG.sound || !ctx) return null;
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state === "suspended" && !hidden()) ctx.resume();
     return ctx;
   }
 
@@ -27,7 +76,7 @@
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(gain, t + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
-    o.connect(g).connect(a.destination);
+    o.connect(g).connect(bus());
     o.start(t);
     o.stop(t + seconds + 0.02);
   }
@@ -45,7 +94,7 @@
     f.type = "lowpass";
     f.frequency.value = cutoff;
     g.gain.value = gain;
-    src.connect(f).connect(g).connect(a.destination);
+    src.connect(f).connect(g).connect(bus());
     src.start(t);
   }
 
@@ -56,7 +105,7 @@
                 77, 81, 83, 81, 79, 76, 74, 76, 77, 76, 74, 71, 72, 0, 72, 0];
   var BASS = [48, 43, 45, 40, 41, 43, 41, 48];      // one per four melody notes
   var BEAT = 0.26;                                  // [T] seconds per melody note
-  var tune = { on: false, timer: null, bus: null };
+  var tune = { on: false, timer: null, bus: null, held: false };
   function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
   function note(type, m, at, len, gain) {
     var o = ctx.createOscillator(), g = ctx.createGain();
@@ -71,17 +120,38 @@
   }
   function phrase() {
     if (!tune.on) return;
+    if (hidden()) { tune.held = true; return; }      // a background tab: wait for it to come back
     if (!ctx || ctx.state !== "running") {           // not allowed to sound yet: keep asking, quietly
       if (ctx) ctx.resume();
       tune.timer = setTimeout(phrase, 300);
       return;
     }
-    if (!tune.bus) { tune.bus = ctx.createGain(); tune.bus.gain.value = 1; tune.bus.connect(ctx.destination); }
+    if (!tune.bus) { tune.bus = ctx.createGain(); tune.bus.gain.value = 1; tune.bus.connect(bus()); }
     var t0 = ctx.currentTime + 0.05;
     MELODY.forEach(function (m, i) { if (m) note("square", m, t0 + i * BEAT, BEAT * 0.9, 0.045); });
     BASS.forEach(function (m, i) { note("triangle", m, t0 + i * 4 * BEAT, BEAT * 3.6, 0.07); });
     note("sawtooth", 49, t0 + 28 * BEAT, BEAT * 2.5, 0.018);   // the sour note, under the sweet ending
     tune.timer = setTimeout(phrase, MELODY.length * BEAT * 1000);
+  }
+  /* Cut the tune off where it is: its notes are already scheduled, so they go with the tune's own bus. */
+  function silenceTune() {
+    clearTimeout(tune.timer);
+    tune.timer = null;
+    if (tune.bus) { tune.bus.gain.setValueAtTime(0, ctx.currentTime); tune.bus.disconnect(); tune.bus = null; }
+  }
+
+  /* E24: a background tab stops the title tune and holds every other sound; coming back resumes them, and the tune
+     starts again from the top (only if it had been cut off, so it never plays twice over). */
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        if (tune.on && (tune.bus || tune.timer)) { silenceTune(); tune.held = true; }
+        if (ctx && ctx.state === "running") ctx.suspend();
+      } else {
+        if (ctx && ET.CONFIG.sound) ctx.resume();
+        if (tune.on && tune.held) { tune.held = false; phrase(); }
+      }
+    });
   }
 
   ET.audio = {
@@ -124,7 +194,7 @@
       hg.gain.setValueAtTime(0.0001, t);
       hg.gain.exponentialRampToValueAtTime(volume, t + seconds * 0.3);
       hg.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
-      src.connect(bp).connect(hg).connect(a.destination);
+      src.connect(bp).connect(hg).connect(bus());
       src.start(t);
       // the gurgle: a low tone, its pitch wobbled fast and unevenly
       var o = a.createOscillator(), lfo = a.createOscillator(), depth = a.createGain(), og = a.createGain();
@@ -135,7 +205,7 @@
       og.gain.setValueAtTime(0.0001, t);
       og.gain.exponentialRampToValueAtTime(volume * 1.4, t + seconds * 0.25);
       og.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
-      o.connect(og).connect(a.destination);
+      o.connect(og).connect(bus());
       o.start(t); lfo.start(t);
       o.stop(t + seconds + 0.05); lfo.stop(t + seconds + 0.05);
     },
@@ -149,8 +219,8 @@
       if (!ET.CONFIG.sound) return;
       if (!on) {
         tune.on = false;
-        clearTimeout(tune.timer);
-        if (tune.bus) { tune.bus.gain.setValueAtTime(0, ctx.currentTime); tune.bus.disconnect(); tune.bus = null; }
+        tune.held = false;
+        silenceTune();
         return;
       }
       if (tune.on) return;
@@ -160,7 +230,34 @@
     },
     tunePlaying: function () { return tune.on && !!tune.bus; },
 
-    /* For rigs: whether a context exists, and its state. */
-    state: function () { return ctx ? ctx.state : "none"; }
+    /* E24: mute, remembered per browser. The master level fades to 0 (or back) over a few milliseconds, so it
+       doesn't click. */
+    muted: function () { return muted; },
+    setMuted: function (on) {
+      muted = !!on;
+      saveMuted();
+      if (out) {
+        var g = out.level.gain, t = ctx.currentTime;
+        g.cancelScheduledValues(t);
+        g.setTargetAtTime(muted ? 0 : LEVEL, t, 0.01);
+      }
+      return muted;
+    },
+
+    /* For rigs: whether a context exists, and its state; the master level right now (0 when muted); the loudest
+       sample leaving the master chain just now; and the chain itself with its ceiling, to measure on a context of
+       the rig's own. */
+    state: function () { return ctx ? ctx.state : "none"; },
+    level: function () { return out ? out.level.gain.value : null; },
+    peak: function () {
+      if (!out) return 0;
+      var d = new Float32Array(out.meter.fftSize), m = 0;
+      out.meter.getFloatTimeDomainData(d);
+      for (var i = 0; i < d.length; i++) m = Math.max(m, Math.abs(d[i]));
+      return m;
+    },
+    chain: function (a, level) { return chain(a, level === undefined ? LEVEL : level); },
+    CEILING: CEILING,
+    LEVEL: LEVEL
   };
 })(window);

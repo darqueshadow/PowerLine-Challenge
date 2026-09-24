@@ -113,6 +113,14 @@
     errorSeconds: 1.0,       // [T] how long the red ERROR shows under the Command Line
     sound: true,            // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
 
+    // ── E24 (Andrew, 2026-09-24): sound on and off ──────────────────────────
+    // A mute button on every screen and the M key, remembered per browser. The title tune pauses in a background tab,
+    // and every sound goes through one master level with a soft ceiling (audio.js), so overlaps can't clip.
+    // ⏳ PENDING (E25): during play the Command Line has the keys, and M is a letter players type (MB), so M can't
+    //   mute there. Built: M works on the title, mode-selection and game-over screens and while paused; in play the
+    //   button does it. "ctrl-m" also lets Ctrl+M mute in play.
+    muteKeyInPlay: "none",         // "none" | "ctrl-m"
+
     // ── Refinement 2 gaps, ruled 2026-09-22 (E5–E11) ─────────────────────────
     // Hose ruling (2026-09-22, replaces E5): in-game the cursor is ALWAYS the hose nozzle, with a
     // hose body curving down to a spigot at the bottom edge of the board. Water only while dragging.
