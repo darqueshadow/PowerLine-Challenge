@@ -318,3 +318,34 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (glow is for lit bulbs). DSEG14 and `--font-led-text` are unused but kept because NB may read the tokens. NB's style doc
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
+
+## Resolved 2026-09-24 — Egg Timer: the full audit's batch A fixes, and the mute (E24, E25)
+
+**Solved:** All of Egg Timer's audit batch A is live. The cleanup banner flashes at most 2 times a second (a guard caps it at
+2.5). Reduced motion now stills the place-me cue, the overtime wobble, the cord twitch and the hatchling's legs. Enter on the
+title waits for the data. A unit sheet the game can't use refuses to start with a clear message. The rig's timing-dependent
+checks are steady, and the midnight "Clear @" value is checked. E24 added a mute button and the M key, remembered per browser,
+with a master level so overlapping sounds can't clip and the title tune halted in a background tab. E25 ruled that Ctrl+M
+mutes during play.
+**Approach:** One commit per item, `c14b3e5`…`67e59c2`, each gated on both rigs (final: logic 152/0, browser 415/0), plus
+`443ef11` for E25. A five-lens adversarial review before the push found four nits, fixed in `9e03ddf`, `d45faab` and
+`67e59c2`. In the packet: an "Audit fixes A" filing note, §11 item 9 struck in favour of E15, and E24 and E25 filed. The
+pre-batch packet is saved as `Previous Versions/EGG_TIMER_CONTEXT_PACKET_direct-rulings.md`.
+**If you touch this again:**
+- **Flash guard:** `cleanupFlashSeconds()` in `files/core/view.js` never lets a flash take under 0.4 s (config gives 0.5 s),
+  and rig section O fails if a tuning gets past it.
+- **Reduced motion:** one live query, `reducedMotion()` in view.js, plus the CSS list in style.css's
+  `@media (prefers-reduced-motion)` block. The place-me cue holds a steady cyan border rather than disappearing. Rig section R
+  reads every item without reduced motion first, so its checks can fail. Its egg search needs 150 s: an EOS or MB takes 60 s
+  of play to go bold.
+- **Units:** `parseUnits` (`files/core/data.js`) finds the "Units" header. Fewer than `nestsCap` (12) distinct units throws
+  `sheetError("units")`; D2 needs one per nest. The title's "error" screen starts nothing, and Enter and the click both
+  check `app.data`.
+- **Sound:** every sound connects to `bus()` in `files/core/audio.js`: master level 0.8, then a WaveShaper soft ceiling (knee
+  0.75, ceiling 0.95), then the speakers. Rig A2 fails on a second `.destination` anywhere in the page's scripts. The
+  setting is stored in localStorage as `eggtimer.muted`. `muteKey()` ignores `ev.repeat`, and the tooltip names the key
+  that works on each screen. `muteKeyInPlay: "ctrl-m"` (VisiCAD has no Ctrl+M); M must keep typing in play, because MB is a
+  type code.
+- **Rigs:** `reload()` carries earlier page errors into check K. Section V holds and fulfils CSVs with the CDP Fetch domain.
+  `__et.start(mode, boxes, { wallStart, types, rng })` is a rig-only hook. A timed check never uses a fixed wait: poll, do it
+  inside one `ev()`, or wrap `ET.view.handle` at the event, installed in the same `ev()` as any game start.

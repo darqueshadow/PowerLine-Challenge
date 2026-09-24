@@ -169,7 +169,5 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-24
-Audit fixes A are live (from `c14b3e5`; rigs logic 152/0, browser 415/0): the cleanup banner's flash cap, reduced
-motion, the title's Enter guard, the unit-sheet guard, E24's mute and master chain, and steadier rig checks.
-E25 ruled the same day (Ctrl+M mutes in play); no Chat question open, next free **E26**. Left from the audit, by Andrew's choice: the art-slot
-layer, moving the JavaScript colours into `theme.css`, dead code, and the other test gaps.
+Left from the audit, by Andrew's choice: the art-slot layer, moving the JavaScript colours into `theme.css`, dead code,
+and the other test gaps.
