@@ -221,6 +221,8 @@
     c.g.style.display = show ? "" : "none";
     if (!show) return;
     var C = ET.CONFIG;
+    // reduced motion (Andrew, 2026-09-24): no twitch, and the retract keeps its snaking shape without writhing
+    var still = reducedMotion();
     // from the layout, not the drawn box: a nest popping in (its unlock animation) mustn't shrink the egg
     var sr = cords.screen.getBoundingClientRect(), br = board.getBoundingClientRect(), el = nests[i].el;
     var w = el.offsetWidth, artH = w * 110 / 120;                  // the nest art's viewBox is 120 × 110
@@ -229,7 +231,7 @@
     var eggRy = 28 * C.eggMinScale * w / 120, eggRx = 22 * C.eggMinScale * w / 120;
     var end = nestY - 2.2 * eggRy;                                 // where the cord's tip hangs over the nest
     var tip, wiggle = 0, bulgeY = null, eggY = null, eggK = 1;
-    var twitch = 2.2 * Math.sin(now * 23 + i * 1.7) * Math.sin(now * 3.1 + i);
+    var twitch = still ? 0 : 2.2 * Math.sin(now * 23 + i * 1.7) * Math.sin(now * 3.1 + i);
     if (s.lay !== null) {
       var t = s.lay * (C.layDrop + C.layPop), dropShare = C.cordDropShare;
       if (t < C.layDrop * dropShare) {
@@ -249,7 +251,7 @@
     }
     var d = "M" + (x + twitch * 0.3).toFixed(1) + " 0";
     for (var y = 18; y < tip; y += 18) {
-      var sway = wiggle * Math.sin(y / 26 + now * 9) + twitch * (y / Math.max(1, tip));
+      var sway = wiggle * Math.sin(y / 26 + (still ? 0 : now * 9)) + twitch * (y / Math.max(1, tip));
       d += " L" + (x + sway).toFixed(1) + " " + y;
     }
     d += " L" + (x + twitch).toFixed(1) + " " + Math.max(0, tip).toFixed(1);
@@ -274,7 +276,10 @@
     bolt = { g: g, glow: mk("bolt-glow"), core: mk("bolt-core"), kinks: [], lastJag: -1, log: [], links: 0 };
     cords.svg.appendChild(g);
   }
-  function reducedMotion() { return !!(root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+  /* Reduced motion: the lightning holds still, and (Andrew, 2026-09-24) the overtime egg stops wobbling and the cord
+     stops twitching; style.css stops the CSS loops. One live query, read every frame, so a change applies at once. */
+  var motionQuery = root.matchMedia ? root.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  function reducedMotion() { return !!(motionQuery && motionQuery.matches); }
   function rejag(t) {
     var gap = Math.max(1 / 2.5, 1 / ET.CONFIG.lightningFlickerHz);   // 🚨 never more than 2.5 a second, whatever the tunable says
     if (bolt.lastJag >= 0 && (t - bolt.lastJag < gap || reducedMotion())) return;
@@ -559,7 +564,7 @@
         drawCord(s.id, s, snap.time);
 
         var scale = C.eggMinScale + (1 - C.eggMinScale) * s.grow;
-        var wobble = s.state === "overtime" ? Math.sin(snap.time * 38) * (3 + 6 * s.crack) : 0;
+        var wobble = s.state === "overtime" && !reducedMotion() ? Math.sin(snap.time * 38) * (3 + 6 * s.crack) : 0;   // still under reduced motion
         v.egg.setAttribute("transform", "translate(0 20) rotate(" + wobble.toFixed(2) + ") scale(" + scale.toFixed(3) + ") translate(0 -20)");
         var off = String(1 - s.crack);
         for (var k = 0; k < v.cracks.length; k++) v.cracks[k].style.strokeDashoffset = off;

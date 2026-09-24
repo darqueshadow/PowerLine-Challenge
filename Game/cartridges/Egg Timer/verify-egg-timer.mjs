@@ -1075,6 +1075,74 @@ try {
     await shot("13b-warp-over");
   }
 
+  /* ------------------------------------------------------- R. reduced motion */
+  section("R. reduced motion (Andrew, 2026-09-24): the place-me cue, the overtime wobble, the cord twitch and the legs hold still");
+  {
+    // each is read first without reduced motion, so a check that can't fail can't hide here
+    await ev("__et.start('both', 1)");
+    await ev("__et.advance(0.1)");
+    const cue = () => ev(`(() => { const s = document.querySelector('.nest[data-state="trigger"] .readout > span'); if (!s) return null; const cs = getComputedStyle(s); return { anim: cs.animationName, border: cs.borderTopColor }; })()`);
+    const legs = () => ev(`(() => { const n = document.querySelector('.nest[data-id="0"]'); n.classList.add('scurry'); const a = getComputedStyle(n.querySelector('.legs')).animationName; n.classList.remove('scurry'); return a; })()`);
+    // one evaluation, so the live page can't step in between: place the CAV, then read the cord's x at every point
+    // and how far it spreads, over six moments of the lay
+    const layCord = (t) => ev(`(() => {
+      __et.submit('CAV ${t.unit} ${t.code}');
+      const out = [];
+      for (let i = 0; i < 6; i++) {
+        __et.advance(0.1);
+        const c = ET.view.cord(${t.id});
+        const xs = c ? [...c.d.matchAll(/[ML]([-\\d.]+) /g)].map(m => Number(m[1])) : [];
+        out.push(xs.length ? Math.max(...xs) - Math.min(...xs) : null);
+      }
+      return out;
+    })()`);
+    const tilts = (id) => ev(`(() => {
+      const out = [];
+      for (let i = 0; i < 6; i++) {
+        __et.advance(0.02);
+        const m = /rotate\\(([-\\d.]+)\\)/.exec(document.querySelector('.nest[data-id="${id}"] .egg').getAttribute('transform') || '');
+        out.push(m ? Math.abs(Number(m[1])) : null);
+      }
+      return out;
+    })()`);
+    // advance until `find` matches, clearing every other bold egg on the way so nothing hatches meanwhile
+    const seek = async (find, keep = -1) => {
+      for (let t = 0; t < 60; t += 0.25) {
+        const x = await snap();
+        const hit = find(x);
+        if (hit) return hit;
+        for (const y of x.nests.filter((z) => z.state === "overtime" && z.id !== keep)) await ev(`__et.submit('RCAV ${y.unit}')`);
+        await ev("__et.advance(0.25)");
+      }
+      return null;
+    };
+    // a trigger that isn't VF (VF lays no egg, E16), and later that same egg in overtime
+    const trigger = () => seek((x) => x.nests.find((y) => y.state === "trigger" && y.code !== "VF"));
+    const bold = (id) => seek((x) => x.nests.find((y) => y.id === id && y.state === "overtime"), id);
+    const motion = async (label) => {
+      const t = await trigger();
+      const cu = await cue();
+      const cord = t ? await layCord(t) : [];
+      const b = t ? await bold(t.id) : null;
+      const w = b ? await tilts(b.id) : [];
+      if (b) await ev(`__et.submit('RCAV ${b.unit}')`);
+      return { label, t: !!t, cue: cu, cord, bold: !!b, wobble: w, legs: await legs() };
+    };
+    const live = await motion("normal");
+    ok(live.t && !!live.cue && live.cue.anim === "cue", `without reduced motion the place-me cue blinks   [${live.cue && live.cue.anim}]`);
+    ok(live.cord.some((d) => d !== null && d > 0), `…the laying cord twitches   [spread ${live.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
+    ok(live.bold && live.wobble.some((a) => a !== null && a > 0), `…the egg wobbles in overtime   [${live.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
+    eq(live.legs, "legs", "…and the escaping hatchling's legs flip");
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const still = await motion("reduced");
+    ok(still.t && !!still.cue && still.cue.anim === "none" && still.cue.border === "rgb(34, 227, 255)", `SAFETY: with reduced motion the place-me cue stops blinking and holds a steady cyan border   [${still.cue && still.cue.anim}, ${still.cue && still.cue.border}]`);
+    ok(still.cord.length === 6 && still.cord.every((d) => d === 0), `SAFETY: …the laying cord hangs straight, no twitch   [spread ${still.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
+    ok(still.bold && still.wobble.length === 6 && still.wobble.every((a) => a === 0), `SAFETY: …the overtime egg doesn't wobble   [${still.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
+    eq(still.legs, "none", "SAFETY: …and the hatchling's legs don't flip");
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+  }
+
   /* ------------------------------------------------------- Q. the scary mom face */
   section("Q. the scary mom face (Refinement 5 §5)");
   await ev("__et.start('both', 4)");

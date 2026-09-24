@@ -897,6 +897,8 @@ h2 {
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter * { animation: none; }
+  .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter * { animation: none; }
   #title-scene .note, #setup-critter .note { opacity: 1; }
+  /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24) */
+  .nest[data-state="trigger"] .readout > span { border-color: var(--cyan); }
 }

@@ -3041,7 +3041,7 @@ export default {
   "margin-right": "0px",
   "margin-top": "0px"
  },
- "@media (prefers-reduced-motion: reduce) » .blink, .nest[data-state=\"trigger\"] .readout, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",
@@ -3056,5 +3056,11 @@ export default {
  },
  "@media (prefers-reduced-motion: reduce) » #title-scene .note, #setup-critter .note": {
   "opacity": "1"
+ },
+ "@media (prefers-reduced-motion: reduce) » .nest[data-state=\"trigger\"] .readout > span": {
+  "border-bottom-color": "rgb(34, 227, 255)",
+  "border-left-color": "rgb(34, 227, 255)",
+  "border-right-color": "rgb(34, 227, 255)",
+  "border-top-color": "rgb(34, 227, 255)"
  }
 };
