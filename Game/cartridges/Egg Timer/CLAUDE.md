@@ -133,7 +133,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   wobble, the cord twitch and the hatchling's legs (rig section R), the HOW / TO / PLAY signs and Time Warp's
   clock hands (E27) and sign (E28); new motion must join that list.
 - **Command Lines** (players never see "Command Box", E7; the code says boxes): 1–4, picked on the
-  mode-selection screen (**2 by default**, E28), each its own colour; an empty line shows a grey "RCAV + unit", and the
+  mode-selection screen (**2 by default**, E28; E29's picker: "How Many Command Lines?", One–Four, each in its line's
+  colour, the one picked lit), each its own colour; an empty line shows a grey "RCAV + unit", and the
   Tab / F12 hints sit under the lines (E28); staged text in an inactive line clears when a wave starts.
   **Tab / Shift+Tab** next / previous line, text kept; **F12** next line and clears the line it lands on (E13);
   with 1 line, F12 just clears it. The active line pulses; the game pauses itself when the window loses focus.
@@ -187,6 +188,8 @@ Timer (Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continu
 Auto-memory loads the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-24
+**E29's comic strip is built but held** (it doesn't fit without a cut: Chat's call, packet §11 E29). It lives in
+`git stash` ("E29 strip, held for Chat's cuts"); `git stash pop` brings it back, then apply the cut and run both rigs.
 **Next:** Andrew takes the art brief (`docs/Egg Timer art brief for Gemini.md` at the repo root) to Chat for review,
 then the Gemini pilot (nest + egg, now with E26's three alien hints); the art-slot layer that hooks the files up is the
 code batch after that, and it also shows E26's break stages (the `cleared` event's `tier`) and the hints (at 40/60/80% of

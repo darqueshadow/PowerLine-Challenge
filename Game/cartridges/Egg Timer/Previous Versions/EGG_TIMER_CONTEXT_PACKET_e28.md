@@ -1,9 +1,3 @@
-> **FILING NOTE — Claude Code, 2026-09-24 (E29, in part).** Chat's E29 (ruled) is filed verbatim as
-> `Previous Versions/EGG_TIMER_E29_2026-09-24.md`; the packet before it is `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e28.md`.
-> **Built and pushed live:** item 1, the Command Line picker (§12), and item 3, the comic panels as brief slots 16–20.
-> **Held back, per item 4:** item 2, the five-panel strip. It's built, but it doesn't fit at every size without a cut
-> (see E29 in §11), so it stays out of the game until Chat picks one.
-
 > **FILING NOTE — Claude Code, 2026-09-24 (E28).** Chat's E28 (ruled, amending E27) and its two additions are merged,
 > tagged *(E28)*, and filed verbatim as `Previous Versions/EGG_TIMER_E28_2026-09-24.md`; the packet before it is
 > `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e27.md`. **Instructions moved beside their objects:** the name stays
@@ -509,19 +503,6 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   press Enter. Too early won't work.") and step 5 ("Time Warp! …"). *(Code: the cleanup banner keeps its countdown
   after "CLEAN-UP TIME!", as Refinement 3 §3 had it; the title card is wider, 27% of the window [250–430 px], to hold
   the longer step 2.)*
-- **E29. Command Line picker and comic-strip How To Play.** *(E29, Chat)* **Item 1 built:** the options screen
-  asks "How Many Command Lines?" with One / Two / Three / Four, each in its line's in-game colour, the one picked lit
-  and the rest dimmed, Two by default, no flashing, keys and mouse both. **Item 3 built:** brief slots 16–20. **Item 2
-  held, needs a cut (Chat's call):** the strip was built (one design on both screens, a numbered heading, a doodle
-  picture and the step's words in a speech bubble; panel 3 split fast / slow) but doesn't fit. Over the room, in px, at
-  1280×720 / 1024×640: **title card +0 / +9, options panel +90 / +94** (the options panel's type is E27's bigger size,
-  13–20 px against the title card's 12–17 px). Measured with each cut: **shorter step 2** (e.g. "When the timer turns
-  pink, type RCAV + the unit. Too early won't work.") → title fits, options +32 / +31; **shorter steps 2 and 5** (5,
-  e.g. "Every clock speeds up 5× till an egg is ready. Get your next RCAV ready!") → options +13 / fits; **no panel
-  headings** → everything fits (3 px spare at 1024); **shorter 2 and 5 and no headings** → 76–114 px spare everywhere.
-  Also needed: **panel 4's words**, which no ruling gives (the build uses "Two lines, two hands: Tab / Shift+Tab to
-  switch, F12 for the next line, cleared."), and whether the old step 4 ("Hose off the mess between waves.") simply
-  goes, now that the sink says it.
 - **E30. Is the side panel still needed in play?** *(Raised by Code under E28 item 6.)* After E28 it holds only
   **Goal** ("Clear the CAVs as soon as they're done, as quick as you can."), **Esc** ("Pause.") and, in Both and Follow
   Progression, **Place** ("CAV <unit> <type>, e.g. CAV 2101 VS"). Everything else is beside its object. **Code's

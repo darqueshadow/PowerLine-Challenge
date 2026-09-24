@@ -319,6 +319,17 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-24 — Egg Timer: the Command Line picker (E29, in part)
+
+**Solved:** The options screen's picker asks "How Many Command Lines?" with One to Four, each in its Command Line's
+in-game colour: the one picked lit, the rest dimmed, Two by default. The art brief has the comic panels as slots 16–20.
+**Approach:** `--line-1…4` in `theme.css` match `boxes.js`'s COLORS; the rig checks each option's colour against COLORS.
+Rigs: logic 159/0, browser 448/0.
+**If you touch this again:**
+- **The comic strip (E29 item 2) is held in `git stash`**: built, but over the room at 1280 and 1024 on the options
+  screen, and Chat must pick a cut (packet §11, E29, has the measured options). Its speech bubble can't use the class
+  `bubble`: that's the VF "Clear Fueling" bubble, hidden until shown. It uses `say`.
+
 ## Resolved 2026-09-24 — Egg Timer: instructions beside their objects (E28)
 
 **Solved:** E27's "Time Accelerator" is Time Warp again, with a caption under its sign, which flashes 3 times as it kicks
