@@ -845,11 +845,13 @@ try {
     // and pops 1.4 s later, at 23:55:42 plus that frame (under 23:56), so its note must read "Clear @ 00:08" (the next
     // whole minute, 23:56, + 12, across midnight), and it must go bold as the wall clock passes 00:08:00. The wall
     // clock is recorded at the very step the egg goes bold.
-    await ev(`(() => { const h = ET.view.handle; window.__boldWall = null;
+    // the start and the watch in one evaluation, so no step of the game before it can slip a bold of its own in
+    // between (review fix, 2026-09-24); starting a game emits no bold of its own
+    await ev(`(() => { __et.start('clear', 1, { wallStart: 23 * 3600 + 55 * 60, types: ['AD'], rng: () => 0.1 });
+      const h = ET.view.handle; window.__boldWall = null;
       ET.view.handle = function (events, game) { events.forEach((e) => { if (e.type === 'bold' && window.__boldWall === null) window.__boldWall = game.wall(); }); return h.apply(this, arguments); };
       window.__unwatchBold = () => { ET.view.handle = h; };
       return 1; })()`);
-    await ev("__et.start('clear', 1, { wallStart: 23 * 3600 + 55 * 60, types: ['AD'], rng: () => 0.1 }), 1");
     const first = await until((x) => x.nests.find((y) => y.state === "active" && y.note), 10, 0.1);
     const note = first.hit ? await ev(`(() => { __et.advance(0); const s = __et.snapshot(), x = s.nests.find((y) => y.id === ${first.hit.id});
       return { text: document.querySelector('.nest[data-id="${first.hit.id}"] .postit').textContent, started: ((s.wall - x.elapsed) % 86400 + 86400) % 86400 }; })()`) : null;
