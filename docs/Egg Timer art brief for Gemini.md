@@ -22,8 +22,10 @@ in the running game). Nothing in the game changes until the art comes back and a
    "no red blood except the cord". The hatchling has **red eyes** and a dark-red mouth, ribs and legs, and the mom face
    has **bloodshot eyes with red veins**. They aren't blood, but they are red. Keep them, or change them to other
    colours? Those two slots keep today's colours until then.
-7. **E27 (ruled 2026-09-24)** renamed "Time Warp" to **"Time Accelerator"** (what players see; the code still says
-   "warp") and made the centre panel a **grandfather clock**: slot 14. **No pocket watches for now.**
+7. **E27 (ruled 2026-09-24)** made the centre panel, Time Warp, a **grandfather clock**: slot 14. **No pocket watches
+   for now.** (E27 also renamed it "Time Accelerator"; **E28 undid that: it's Time Warp**.)
+8. **E28 (ruled 2026-09-24)** put a small **sink with a drain** beside the hose's tap, with the hose's instructions on
+   it: slot 15.
 
 ---
 
@@ -72,7 +74,7 @@ or any other existing character.
   exactly.
 - If a picture really needs a new colour (a highlight, say), **name it and give its hex** in your notes. Code adds it
   to `theme.css` so the game has a single palette. Don't slip in unlisted colours.
-- **Don't draw glows, lighting effects or shadows that the game adds itself.** Examples: the Time Accelerator's green glow on
+- **Don't draw glows, lighting effects or shadows that the game adds itself.** Examples: Time Warp's green glow on
   running nests, the bold look on the readouts.
 
 ### 3. Animation limits (safety)
@@ -134,9 +136,10 @@ or any other existing character.
 | 11 | Gunk splats and a water drop | `0 0 100 100` stamps | up to ~100 px across with droplets | SVG or 200 × 200 PNG/WebP | none |
 | 12 | Small icons: mute, mouse, favicon | `0 0 24 24`, `0 0 20 28`, `0 0 32 32` | mute 22 × 22; mouse ~16 × 22; favicon 16 × 16 (up to 32) | SVG only | mute icon swaps parts |
 | 13 | The five break stages (E26) | same as the nest | 200 × 183 px | SVG (or 400 × 367 PNG/WebP) | none (one stage shows, still) |
-| 14 | The Time Accelerator's grandfather clock (E27) | `0 0 80 170` | about 90 × 192 px | **SVG only** | hour hand and minute hand (turn) |
+| 14 | Time Warp's grandfather clock (E27) | `0 0 80 170` | about 70 × 140 px | **SVG only** | hour hand and minute hand (turn) |
+| 15 | The sink by the hose tap (E28) | `0 0 40 24` | about 42 × 25 px | SVG | none |
 
-Not image slots, so they stay drawn by code (see the end): the egg-laying cord, the Time Accelerator's lightning and glow, the
+Not image slots, so they stay drawn by code (see the end): the egg-laying cord, Time Warp's lightning and glow, the
 hose line, the arcade lights, and all the text boxes, panels and clocks.
 
 ---
@@ -148,7 +151,7 @@ hose line, the arcade lights, and all the text boxes, panels and clocks.
 ### What it is and where it appears
 
 - **12 nests** sit on the play screen all game, scattered across the board in 3 rows. The centre is left free for the
-  Time Accelerator's grandfather clock (slot 14).
+  Time Warp's grandfather clock (slot 14).
 - A nest is either **not yet in play** (wave 1 opens 5; more open in later waves) or **in play**.
 - An in-play nest gets an **egg** whenever its unit goes on a CAV.
 - Under each nest the game draws three small text boxes (the unit, the CAV type and the timer). Those are the game's
@@ -288,7 +291,7 @@ y= 48 └───────────────────────�
 - The frying pan (slot 4).
 - Gunk splats (slot 11).
 - A "Clear Fueling" speech bubble.
-- A green glow around the whole nest while the Time Accelerator runs.
+- A green glow around the whole nest while Time Warp runs.
 
 ### Files for the pilot
 
@@ -570,7 +573,7 @@ y= 48 └───────────────────────�
   #06280f edge), so only the tap is a picture.
 - **Shape:** viewBox **`0 0 28 22`** (28 × 22 px, 1 unit = 1 px), anchored at its **bottom centre (14, 22)** on the
   board's edge. The hose (6 px, 10 px with its edge) comes out of the top of the pipe at **(14, 4)** and runs up; the
-  tap draws over the hose's end, so draw the pipe's mouth there. **Keep it no wider than about 32 px**: a label sits
+  tap draws over the hose's end, so draw the pipe's mouth there. **Keep it no wider than about 32 px**: the sink (slot 15) sits
   just to its right.
 - **Format:** SVG.
 - **Colours:** pipe `--tap-pipe` #9aa0a8, handle `--tap-valve` #d0342c, outlines `--black` #000.
@@ -662,10 +665,10 @@ y= 48 └───────────────────────�
 
 ---
 
-## Slot 14: the Time Accelerator's grandfather clock (E27)
+## Slot 14: Time Warp's grandfather clock (E27)
 
 - **What and where:** the centre of the play board, between the nests. When all the wave's eggs are laid and none is
-  ready, every clock in the game speeds up 5×: that's the **Time Accelerator**. While it runs, **this clock's hands
+  ready, every clock in the game speeds up 5×: that's **Time Warp**. While it runs, **this clock's hands
   spin fast**, the clock gets a green halo, and green lightning runs from its face to the nests. The rest of the time
   it just stands there with its hands still.
 - **Style:** a cartoon grandfather clock in the game's 1980s-arcade look (thick dark outlines, flat bold colour, hard
@@ -675,30 +678,50 @@ y= 48 └───────────────────────�
   a trunk with a pendulum window, and a base with feet.
   - **The face is a circle centred on (40, 46), radius about 22.** Keep the face there: the hands turn about that
     point, and the lightning starts from the face.
-  - **Keep the bottom 40 units (y 130…170) plain**: the game lays its "TIME ACCELERATOR" plaque (live text) across the
-    base, about 180 px wide on the largest screen (wider than the clock), so anything drawn there is hidden.
+  - **Keep the bottom 30 units (y 140…170) plain**: the game lays its "TIME WARP" sign (live text, which flashes 3 times
+    and then stays lit as Time Warp starts) across the base, wider than the clock, and a short caption under it ("All
+    clocks 5× fast. Get your next RCAV ready!"), so anything drawn there is hidden.
   - **Keep the lower third of the face (below y 54) free of detail**: with reduced motion the hands stop and the game
     writes **"5×"** there instead.
-- **Largest on screen:** about **90 × 192 px** (1 unit = 1.13 px); the smallest is about 50 × 107 px. It's scaled to fit
+- **Largest on screen:** about **70 × 140 px** (1 unit = 0.82 px; E28 made room for the caption); the smallest is about
+  36 × 72 px. It's scaled to fit
   the gap between the nests, so it must read as a clock when small: a **big face, bold hands**, few fine details.
 - **Layers** (every moving layer is its own group, **with no transform of its own**):
 
 | Layer (class) | What it is | What the game does | Pivot (viewBox) |
 |---|---|---|---|
 | `face` (a circle, or a group whose first shape is the face circle) | The clock face with its 12 hour marks. **No numbers** (no text in pictures). | Still. The game finds it to start the lightning from its centre. | none |
-| `hour` | The **hour hand**, drawn **pointing straight up to 12**: from the centre out to about 12–16 units | Turns about the pivot: 1/12 of a turn a second while the Accelerator runs, otherwise still | **(40, 46)** |
-| `minute` | The **minute hand**, drawn **pointing straight up to 12**, longer and thinner: out to about 18–23 units | Turns about the pivot: **one full turn a second** while the Accelerator runs, otherwise still | **(40, 46)** |
+| `hour` | The **hour hand**, drawn **pointing straight up to 12**: from the centre out to about 12–16 units | Turns about the pivot: 1/12 of a turn a second while Time Warp runs, otherwise still | **(40, 46)** |
+| `minute` | The **minute hand**, drawn **pointing straight up to 12**, longer and thinner: out to about 18–23 units | Turns about the pivot: **one full turn a second** while Time Warp runs, otherwise still | **(40, 46)** |
 | (still, any classes) | The case (hood, trunk, base), the pendulum window, the pendulum, and a centre cap over the hands | Still | none |
 
   Put the hands **after** the face in the file so they draw on top of it, and the centre cap after the hands.
 - **Colours** (from `theme.css`; placeholder palette, suggest better ones by name and hex):
   - case `--clock-case` #7a4a22, outlines `--outline` #1a0d2e;
-  - face `--clock-face` #fff4d6 (the game turns it pale green, `--warp-halo` #d6ffe8, while the Accelerator runs);
+  - face `--clock-face` #fff4d6 (the game turns it pale green, `--warp-halo` #d6ffe8, while Time Warp runs);
   - hands and centre cap `--clock-hands` #1a0d2e;
   - pendulum window `--clock-window` #24123f, pendulum `--clock-brass` #e0b040.
 - **Animation limits:** the hands only **turn**, which is movement, not flashing. **Nothing on the clock may flicker
   or flash.** Don't draw motion blur on the hands: they must read as two plain hands at any angle, and when still.
 - **File:** `grandfather-clock.svg`.
+
+---
+
+## Slot 15: the sink by the hose tap (E28)
+
+- **What and where:** a small sink with a drain, just right of the hose tap (slot 10) on the board's bottom edge. The
+  hose's instructions sit beside it as live text ("CLEANING HOSE: click & drag to spray. Use it any time!"), so the
+  sink is the picture and the words are the game's.
+- **Shape:** viewBox **`0 0 40 24`**: a basin seen from the front, a little lower at the bottom than at the rim, with a
+  **drain** (a dark oval with a grate) in the middle. Today's placeholder: a rim along y 5, the basin down to y 22, the
+  drain at (20, 14).
+- **Largest on screen:** about **42 × 25 px**; the smallest about 26 × 16 px. Bold, simple shapes.
+- **Style:** the game's 1980s-arcade look, a cartoon kitchen sink. Rule 6 applies if you add a touch of the aliens (say,
+  a little green goo round the drain).
+- **Colours:** steel `--sink-steel` #c3c9d1, inside the basin `--sink-basin` #6e7682, drain and outlines `--outline`
+  #1a0d2e. Suggest others by name and hex.
+- **Animation:** none.
+- **File:** `sink.svg`.
 
 ---
 
@@ -716,15 +739,15 @@ from `theme.css`, a pattern), but not a picture:
   - bulge `--cord-bulge` #8a2fd6 with edge `--cord-bulge-edge` #3b1060.
 
   The egg on its tip should end up using the same egg as slot 0 (a code job).
-- **The Time Accelerator's lightning.** Jagged green bolts that chain from the grandfather clock's face to the nearest running nest, then
+- **The Time Warp's lightning.** Jagged green bolts that chain from the grandfather clock's face to the nearest running nest, then
   on from nest to nest, in `--warp` #3dff9a with a `--bolt-core` #c8ffe2 centre. Its ends, lengths and number change
   constantly. **It reshapes 2 times a second, never more than 2.5 (a hard safety cap)**, and holds still under
   reduced motion. No fixed picture can fit.
-- **The Time Accelerator's glow** on running nests (a green edge the game adds), and **the hose line** from the tap to the
+- **The Time Warp's glow** on running nests (a green edge the game adds), and **the hose line** from the tap to the
   cursor (6 px, `--hose` #2fbf5a with a `--hose-outline` #06280f edge).
 - **The arcade attract lights:** the bulbs round the how-to panels' borders (`--bulb-*` colours).
 - **Text and panels:** the unit/type/timer boxes, the AD post-its, the "Clear Fueling" bubble, the wall clock, the
-  Time Accelerator's plaque (the "TIME ACCELERATOR" sign across the clock's base), the HUD bar, the how-to panel card, the Command Lines, the title logo and all menus.
+  "TIME WARP" sign across the clock's base and its caption, the HUD bar, the how-to panel card, the Command Lines, the title logo and all menus.
 
 ---
 
