@@ -681,7 +681,7 @@ y= 48 └───────────────────────�
   - **The face is a circle centred on (40, 46), radius about 22.** Keep the face there: the hands turn about that
     point, and the lightning starts from the face.
   - **Keep the bottom 30 units (y 140…170) plain**: the game lays its "TIME WARP" sign (live text, which flashes 3 times
-    and then stays lit as Time Warp starts) across the base, wider than the clock, and a short caption under it ("All
+    and then stays lit as Time Warp starts, its letters wobbling while it runs) across the base, wider than the clock, and a short caption under it ("All
     clocks 5× fast. Get your next RCAV ready!"), so anything drawn there is hidden.
   - **Keep the lower third of the face (below y 54) free of detail**: with reduced motion the hands stop and the game
     writes **"5×"** there instead.

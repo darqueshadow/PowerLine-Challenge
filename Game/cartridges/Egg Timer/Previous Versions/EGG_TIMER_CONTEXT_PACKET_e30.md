@@ -1,8 +1,3 @@
-> **FILING NOTE — Claude Code, 2026-09-24 (E31).** Chat's E31 (ruled) is filed verbatim as
-> `Previous Versions/EGG_TIMER_E31_2026-09-24.md`; the packet before it is `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e30.md`.
-> Time Warp's sign keeps its 3 flashes, then its letters wobble and stretch while it runs (§7). Built and **pushed live**
-> under the standing rule (both rigs green). No question is open.
-
 > **FILING NOTE — Claude Code, 2026-09-24 (E30, E29's strip, red in the art).** Chat's rulings are filed verbatim as
 > `Previous Versions/EGG_TIMER_E30_E29_RULINGS_2026-09-24.md`; the packet before them is
 > `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e29-part.md`. **E30 ruled** (no side panel in play) and **E29's strip ruled**
@@ -284,11 +279,7 @@ A whack-a-mole variant built on the real Niagara EMS CAV (Conditional Availabili
 **caption under its sign** reads "All clocks 5× fast. Get your next RCAV ready!" (the speed read from `warpFactor`). **When
 it kicks in, the sign flashes 3 times, then stays lit** (a flash is 0.6 s [T]; at most 2 a second behind a guard that
 refuses a change within 0.25 s; timed in the player's seconds, so a pause holds it). **Under reduced motion it lights
-at once, with no flash.** *(E31)* Andrew's very fast blink isn't allowed (at most 2 flashes a second), so instead:
-**after the 3 flashes, while Time Warp runs, the "TIME WARP" letters wobble and stretch fast** (a 0.36 s [T] squash,
-stretch and skew of the letters only). The sign stays lit and its colours never change. **Under reduced motion: lit,
-no wobble.** *(Code: the rig holds a real Time Warp on pause and samples the sign for 2 s: the letters change shape, the
-brightness doesn't change at all.)* The clock is now 17% of the board's height, to leave room for the caption.
+at once, with no flash.** The clock is now 17% of the board's height, to leave room for the caption.
 *(E28)* **Wave 1's first-game tags.** In wave 1 only, and never again that game: the **first egg to go bold** gets
 "**Pink = ready! Type RCAV <unit>**" (the unit filled in), in the bold timer's pink, for as long as that egg is bold;
 the **first "Clear @" note** gets "**◀ Check the wall clock**" for as long as that CAV runs. Neither flashes. *(Code:
@@ -518,10 +509,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
 - ~~**E24. No way to turn the sound off.**~~ **Resolved** *(Andrew, 2026-09-24, audit fixes A)*: **a mute button plus the M key, remembered per browser; the title tune pauses in a background tab; a master level so overlapping sounds can't clip. No volume slider.** *(Code: the button sits top left on every screen, above every overlay, so it works while paused too; in play the HUD makes room for it, it keeps the hose-nozzle cursor, and pressing it never takes the keyboard from a Command Line. Every sound goes through one master level (0.8 [T]) and then a soft ceiling: untouched below its knee, and nothing ever leaves louder than 0.95 of full scale, however many sounds overlap. A background tab stops the title tune and holds every sound; the tune starts again from the top when the tab comes back. The setting is kept in the browser's own storage, so a private window forgets it. The browser rig checks each part.)* *(The gap, from the audit)* There was no mute or volume control, overlapping sounds could pass full scale and clip, and the title tune played on in a background tab.
 - ~~**E25. The M key during play.**~~ **Resolved** *(Andrew, 2026-09-24)*: **keep as built, with Ctrl+M on for play**: M mutes on the menus and while paused, the mute button any time, and **Ctrl+M during play** (`muteKeyInPlay: "ctrl-m"`). Andrew confirmed Ctrl+M does nothing in VisiCAD, so it teaches no wrong habit. *(Original question follows.)* M is a letter players type (the MB code), and during play a Command Line always has the keys, so M can't mute there without breaking typing. **Built** (`muteKeyInPlay: "none"`): M mutes on the title, mode-selection and game-over screens and while paused; during play the mute button does it. The other value, `"ctrl-m"`, also lets **Ctrl+M** mute mid-game (Chrome has no Ctrl+M shortcut of its own). Needed: keep it as built, or give play a mute key such as Ctrl+M.
 
-### Raised by Chat (2026-09-24) — E26 to E31 ruled
-
-- ~~**E31. Time Warp sign effect.**~~ **Resolved** *(E31, Chat)*: see §7: the 3 flashes, then the letters wobble and
-  stretch while it runs; lit throughout, never brighter or dimmer; no wobble under reduced motion.
+### Raised by Chat (2026-09-24) — E26, E27 and E28 ruled; E30 open
 
 - ~~**E28. Instructions beside their objects.**~~ **Resolved** *(E28, Chat, with two additions)*: see the filing note and
   §7, §8, §12. The sink, the banner's words, the Command Lines' grey hint and hints, 2 lines by default, the tags, step 2

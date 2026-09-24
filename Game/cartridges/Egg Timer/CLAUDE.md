@@ -26,7 +26,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E31**);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E32**);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it.
@@ -89,7 +89,9 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   centre; **Time Warp** (E28 kept the name; E27's "Time Accelerator" is undone) is a **grandfather clock** in the **centre
   of the board** (the middle row sits two a side for it), its hands spinning while it runs ("5×" on the face under
   reduced motion), over a "TIME WARP" sign and a caption. 🚨 The sign flashes 3 times as it kicks in, then stays lit:
-  at most 2 a second (`setSign()`'s 0.25 s guard), lit at once under reduced motion. The clock is 17% of the board's
+  at most 2 a second (`setSign()`'s 0.25 s guard), lit at once under reduced motion. Then (E31) its **letters wobble
+  and stretch** while it runs: a transform only, never a brightness change (🚨 no fast blink: Andrew asked, the flash
+  rule forbids it); no wobble under reduced motion. The clock is 17% of the board's
   height so clock, sign and caption clear every nest (about 27% is free). Once
   the wave's last CAV has *started* and no egg is bold, every clock runs 5× [T] until an egg goes bold (the step
   splits there; E18); overtime never warps. Meanwhile only nests with a running clock glow green (E22) and green

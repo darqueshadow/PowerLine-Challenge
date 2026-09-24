@@ -319,6 +319,15 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-24 — Egg Timer: Time Warp's sign wobbles (E31)
+
+**Solved:** Andrew wanted Time Warp's sign to blink very fast, which the flash rule forbids. The sign keeps its 3 flashes,
+then its letters wobble and stretch while Time Warp runs; the sign stays lit and its brightness never changes.
+**Approach:** `paintSign()` adds `.wobble` once the flashes are done (never under reduced motion); style.css animates the
+`.letters` span's transform only. Rigs: logic 159/0, browser 426/0 (new theme baseline).
+**If you touch this again:** the rig check holds a real Time Warp on pause with `warpSignFlashes` set to 0, samples every
+colour of the sign for 2 s, and fails on any change. Keep the effect a transform.
+
 ## Resolved 2026-09-24 — Egg Timer: no side panel in play (E30), the comic strip (E29), red in the art
 
 **Solved:** The side panel is gone from play and the board takes its width. Esc joined the hints under the Command Lines,
