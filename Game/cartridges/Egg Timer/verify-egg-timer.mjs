@@ -1106,8 +1106,9 @@ try {
       return out;
     })()`);
     // advance until `find` matches, clearing every other bold egg on the way so nothing hatches meanwhile
+    // (up to 150 s of play: an EOS or MB takes 60 s to go bold in wave 1)
     const seek = async (find, keep = -1) => {
-      for (let t = 0; t < 60; t += 0.25) {
+      for (let t = 0; t < 150; t += 0.25) {
         const x = await snap();
         const hit = find(x);
         if (hit) return hit;
