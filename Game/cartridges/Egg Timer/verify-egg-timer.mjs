@@ -661,7 +661,7 @@ try {
       if (!looks[x.note.kind] && x.note.kind === "duration") await shot("11b-ad-minutes");
       if (!looks[x.note.kind]) looks[x.note.kind] = await ev(`(() => { const p = document.querySelector('.nest[data-id="${x.id}"] .postit'), cs = getComputedStyle(p), w = getComputedStyle(document.querySelector('.wallclock'));
         const hm = p.querySelector('.led-hm'), lbl = p.querySelector('.led-text');
-        return { cls: p.className, font: cs.fontFamily, hmFont: hm && getComputedStyle(hm).fontFamily, hmText: hm && hm.textContent, lblFont: lbl && getComputedStyle(lbl).fontFamily,
+        return { cls: p.className, font: cs.fontFamily, hmFont: hm && getComputedStyle(hm).fontFamily, hmText: hm && hm.textContent, lblFont: lbl && getComputedStyle(lbl).fontFamily, lblColor: lbl && getComputedStyle(lbl).color, hmColor: hm && getComputedStyle(hm).color,
                  color: cs.color, bg: cs.backgroundColor, border: cs.borderTopColor, wallFont: w.fontFamily, wallColor: w.color, wallBg: w.backgroundColor, wallBorder: w.borderTopColor }; })()`);
       if (x.state === "overtime" && !sawBold) {
         sawBold = (await ev(`getComputedStyle(document.querySelector('.nest[data-id="${x.id}"] .postit')).fontWeight`)) === "900";
@@ -678,15 +678,21 @@ try {
   {
     // AD note styles (Andrew approved, 2026-09-23)
     const k = looks.clock, d = looks.duration;
-    ok(!!k && k.cls.includes("at-clock") && k.hmFont === k.wallFont && k.color === k.wallColor && k.bg === k.wallBg && k.border === k.wallBorder,
-      `the "Clear @ HH:MM" note matches the wall clock: its colours, and its HH:MM in the wall clock's digital font   [${k && k.hmFont} ${k && k.color} on ${k && k.bg}]`);
-    ok(!!k && /^"?DSEG7 Classic/.test(k.wallFont) && /^\d\d:\d\d$/.test(k.hmText) && /^"?DSEG14 Classic/.test(k.lblFont || ""),
-      `…the digits in DSEG7 (7-segment LED), "Clear @" in DSEG14 (DSEG7 has no "@")   [${k && k.lblFont}]`);
+    ok(!!k && k.cls.includes("at-clock") && k.hmFont === k.wallFont && k.hmColor === k.wallColor && k.border === k.wallBorder,
+      `the "Clear @ HH:MM" note's time mirrors the wall clock: its colour and its digital font   [${k && k.hmFont} ${k && k.hmColor}]`);
+    ok(!!k && /^"?DSEG7 Classic/.test(k.wallFont) && /^\d\d:\d\d$/.test(k.hmText), `…the digits in DSEG7 (7-segment LED)   [${k && k.hmText}]`);
+    // Andrew, 2026-09-23 night: the wording in a chunky rounded cream font, on a dark charcoal note
+    ok(!!k && /^"?Fredoka/.test(k.lblFont || "") && k.lblColor === "rgb(255, 243, 209)" && k.bg === "rgb(43, 42, 46)",
+      `…"Clear @" in chunky rounded cream (Fredoka), on dark charcoal   [${k && k.lblFont} ${k && k.lblColor} on ${k && k.bg}]`);
+    ok(!!k && !!d && k.bg !== d.bg && k.font !== d.font, `…and clearly not the yellow "N min" post-it   [${k && k.bg} vs ${d && d.bg}]`);
     ok(!!d && d.cls.includes("minutes") && /Patrick Hand/.test(d.font) && d.bg === "rgb(255, 233, 92)", `the "N min" note stays a post-it, hand-lettered   [${d && d.font}]`);
-    await ev(`Promise.all(['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "DSEG14 Classic"'].map(f => document.fonts.load(f))).then(() => 1)`);
-    const f = await ev(`({ ok: ['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "DSEG14 Classic"'].every(x => document.fonts.check(x)),
-                          src: performance.getEntriesByType('resource').map(e => e.name).filter(n => /PatrickHand|DSEG/.test(n)) })`);
+    await ev(`Promise.all(['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "Fredoka"'].map(f => document.fonts.load(f))).then(() => 1)`);
+    const f = await ev(`({ ok: ['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "Fredoka"'].every(x => document.fonts.check(x)),
+                          src: performance.getEntriesByType('resource').map(e => e.name).filter(n => /PatrickHand|DSEG|Fredoka/.test(n)) })`);
     ok(f.ok && f.src.length === 3 && f.src.every((u) => u.startsWith("http://localhost:8898/")), `…in fonts bundled with the game, not fetched from the web (works offline in Fang Rock)   [${f.src.map((u) => u.split("/").slice(-2).join("/")).join(", ")}]`);
+    // each bundled font's licence ships beside it (the deploy publishes licence .txt files in fonts/ folders)
+    eq(await ev(`Promise.all(['OFL.txt', 'DSEG-LICENSE.txt', 'Fredoka-LICENSE.txt'].map((n) => fetch('fonts/' + n).then((r) => r.ok ? r.text() : '').then((t) => /SIL OPEN FONT LICENSE/i.test(t))))`),
+      [true, true, true], "every bundled font's licence file is served beside it (Patrick Hand, DSEG, Fredoka)");
   }
 
   /* ----------------------------------------------- O. Refinement 2 extras */
@@ -876,7 +882,7 @@ try {
   await ev("__et.start('both', 4)");
   await ev("__et.advance(0.1)");
   // measure in the real faces, not the fallback they swap from (the LED faces are wider than Courier)
-  await ev(`Promise.all(['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "DSEG14 Classic"'].map(f => document.fonts.load(f))).then(() => document.fonts.ready).then(() => 1)`);
+  await ev(`Promise.all(['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "Fredoka"'].map(f => document.fonts.load(f))).then(() => document.fonts.ready).then(() => 1)`);
   for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
     await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
     await ev(`(() => { document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()`);
@@ -1018,6 +1024,11 @@ try {
       const fl = await ev(`(() => { const log = ET.view.lightning().log.filter(t => t >= ${t0}); let m = 0;
         for (let i = 0; i < log.length; i++) { let n = 0; for (let j = i; j < log.length && log[j] < log[i] + 1; j++) n++; m = Math.max(m, n); } return { n: log.length, worst: m }; })()`);
       ok(fl.n > 0 && fl.worst <= 2.5, `SAFETY: the lightning flickers, but never more than 2.5 times a second (2 a second [T], headroom under the 3 limit)   [${fl.n} re-jags in 3 s, worst ${fl.worst} in any 1 s]`);
+      // for Andrew (2026-09-23 night): the neon-green wall clock beside the lit Time Warp panel, taken while held so
+      // the warp stays on; the wave banner and the pause card are kept out of this one picture only
+      await ev("['#banner', '#pause'].forEach((q) => document.querySelector(q).style.visibility = 'hidden'); 1");
+      await shot("13c-clock-vs-warp");
+      await ev("['#banner', '#pause'].forEach((q) => document.querySelector(q).style.visibility = ''); 1");
       await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
       await wait(500);
       const still0 = await ev("ET.view.lightning().d");

@@ -39,6 +39,8 @@
   --led: #39ff14;                         /* LED neon green (Andrew, 2026-09-23: not Time Warp's mint; no glow) */
   --led-bg: #031200;                      /* near-black green (LED glass) */
   --led-shadow: #0f3a00;                  /* dark green (LED digit shadow, hard offset) */
+  --note-clock-bg: #2b2a2e;               /* dark charcoal ("Clear @" note fill) */
+  --note-clock-label: #fff3d1;            /* cream ("Clear @" wording) */
   --postit: #ffe95c;                      /* post-it yellow */
   --postit-ink: #2a1a00;                  /* dark brown pencil */
 
@@ -144,6 +146,7 @@
   --font-mono: "Courier New", Courier, monospace;
   --font-led: "DSEG7 Classic", "Courier New", Courier, monospace;
   --font-led-text: "DSEG14 Classic", "Courier New", Courier, monospace;
+  --font-rounded: "Fredoka", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
 }
 
 /* DSEG: 7- and 14-segment LED digits for the wall clock and the AD "Clear @ HH:MM" note (2026-09-23), bundled in
@@ -160,6 +163,17 @@
   font-family: "DSEG14 Classic";
   src: url("fonts/DSEG14Classic-Bold.woff2") format("woff2");
   font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fredoka: chunky rounded lettering for the "Clear @" wording on the AD clock note (Andrew, 2026-09-23), bundled in
+   fonts/ unmodified (Google Fonts' Latin build). Copyright 2016 The Fredoka Project Authors. Licensed under the
+   SIL Open Font License 1.1 (fonts/Fredoka-LICENSE.txt). */
+@font-face {
+  font-family: "Fredoka";
+  src: url("fonts/Fredoka-Bold.woff2") format("woff2");
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }

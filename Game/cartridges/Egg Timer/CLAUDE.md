@@ -76,9 +76,10 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   then running. **`RCAV` does nothing until the CAV's real duration has passed**: that floor stops
   place-then-instantly-clear, so don't loosen it. Then bold, `RCAV` valid and the crack are one event; overtime
   (the player's seconds) then the hatch, final. **VF** hides egg and timer until "Clear Fueling". **Every AD shows a post-it**: "20 min", or
-  "Clear @ HH:MM" against the wall clock, the next whole minute after start + draw (E1). The clock note looks
-  like the wall clock (both in the bundled **DSEG** LED faces: DSEG7 digits, DSEG14 for "Clear @", OFL); the "N min"
-  note is a post-it in Patrick Hand (bundled in `files/fonts/`, OFL).
+  "Clear @ HH:MM" against the wall clock, the next whole minute after start + draw (E1). The wall clock is
+  **neon green** (`#39ff14`, no glow; not Time Warp's mint) in the bundled **DSEG7** LED face; the clock note's HH:MM
+  mirrors it exactly, its "Clear @" is cream **Fredoka** on dark charcoal; the "N min" note is a yellow post-it in
+  Patrick Hand. All fonts OFL, in `files/fonts/` with their licence `.txt` (the deploy publishes those).
 - **Timer:** counts **up** in displayed time, MM:SS, through overtime. The 24-hour **wall clock** is at the top
   centre; the **Time Warp** panel is in the **centre of the board** (the middle row sits two a side for it). Once
   the wave's last CAV has *started* and no egg is bold, every clock runs 5× [T] until an egg goes bold (the step

@@ -49,8 +49,8 @@
     return note.kind === "clock" ? "Clear @ " + hhmm(note.at) : note.minutes + " min";
   }
 
-  /* Fill an AD note. The clock kind is two spans: "Clear @ " in the 14-segment LED face (the 7-segment one has
-     no "@") and HH:MM in the wall clock's own 7-segment face; its text reads the same as noteText's. */
+  /* Fill an AD note. The clock kind is two spans: "Clear @ " in chunky rounded cream lettering and HH:MM in the
+     wall clock's own 7-segment face; its text reads the same as noteText's. */
   function fillNote(el, note) {
     var nt = noteText(note);
     if (el.textContent === nt) return;

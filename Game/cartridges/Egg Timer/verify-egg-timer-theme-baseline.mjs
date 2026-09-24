@@ -18,6 +18,13 @@ export default {
  },
  "@font-face #3": {
   "font-display": "RAW swap",
+  "font-family": "Fredoka",
+  "font-style": "normal",
+  "font-weight": "700",
+  "src": "RAW url(\"fonts/Fredoka-Bold.woff2\") format(\"woff2\")"
+ },
+ "@font-face #4": {
+  "font-display": "RAW swap",
   "font-family": "\"Patrick Hand\"",
   "font-style": "normal",
   "font-weight": "400",
@@ -2260,7 +2267,7 @@ export default {
  ".postit.at-clock": {
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "rgb(3, 18, 0)",
+  "background-color": "rgb(43, 42, 46)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",
@@ -2297,8 +2304,10 @@ export default {
   "transform": "none"
  },
  ".postit.at-clock .led-text": {
-  "font-family": "\"DSEG14 Classic\", \"Courier New\", Courier, monospace",
-  "word-spacing": "0.2em"
+  "color": "rgb(255, 243, 209)",
+  "font-family": "Fredoka, \"Arial Rounded MT Bold\", \"Trebuchet MS\", sans-serif",
+  "font-weight": "700",
+  "text-shadow": "rgb(0, 0, 0) 1px 1px 0px"
  },
  ".postit.minutes": {
   "font-family": "\"Patrick Hand\", \"Trebuchet MS\", Verdana, sans-serif",

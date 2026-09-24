@@ -644,11 +644,12 @@ h2 {
 }
 .nest.bold .postit { font-weight: 900; }
 /* AD note styles (Andrew approved, 2026-09-23; ⏳ placeholder look). Two distinct looks:
-   "Clear @ HH:MM" is styled as the WALL CLOCK (its LED colours and its digital font): watch the wall clock.
+   "Clear @ HH:MM": the HH:MM mirrors the WALL CLOCK exactly (its LED colour and 7-segment font): watch the wall
+   clock. The wording is chunky rounded cream lettering, on a dark charcoal note (Andrew, 2026-09-23 night).
    "20 min" stays a post-it, hand-lettered: watch this nest's timer. The layout rig fits both at all four sizes. */
 .postit.at-clock {
   padding: 2px 6px;
-  background: var(--led-bg);
+  background: var(--note-clock-bg);
   color: var(--led);
   border: 3px solid var(--led);
   box-shadow: 3px 3px 0 var(--hot);
@@ -658,8 +659,8 @@ h2 {
   text-shadow: 1px 1px 0 var(--led-shadow);
   line-height: 1.1;
 }
-/* the LED digits (2026-09-23): HH:MM in the wall clock's own DSEG7; "Clear @" in DSEG14, its 14-segment sibling */
-.postit.at-clock .led-text { font-family: var(--font-led-text); word-spacing: 0.2em; }
+/* HH:MM in the wall clock's own DSEG7; "Clear @" in Fredoka, cream, with a hard black offset (no glow) */
+.postit.at-clock .led-text { font-family: var(--font-rounded); font-weight: 700; color: var(--note-clock-label); text-shadow: 1px 1px 0 var(--shadow); }
 .postit.minutes { font-family: "Patrick Hand", var(--font-ui); font-size: clamp(13px, 1.3vw, 19px); line-height: 1.05; padding: 2px 7px; }
 
 /* ⏳ placeholder look: VF's "Clear Fueling" speech bubble, shown briefly then faded */
