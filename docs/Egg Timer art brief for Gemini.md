@@ -2,14 +2,26 @@
 
 *Written 2026-09-24 by Claude Code from the live game's code (everything below was read out of the code and measured
 in the running game). Nothing in the game changes until the art comes back and a later coding session hooks it up.*
+*Re-verified against the live build (through E31, `b4ce20c`) on 2026-09-24: every colour, viewBox, anchor, size and
+class hook re-read from the code and re-measured at 1920×1080, 1440×900, 1280×720 and 1024×640.*
+
+**This file is the build spec** (Chat's review, 2026-09-24): Code's checklist when it hooks the art up. **Gemini never
+sees it whole.** Chat writes Gemini's short look prompts separately, from the slot sections here. The sections marked
+🔒 are for Code and Andrew only.
+
+**Gemini's slots:** 0–8, 13, 14 and 16–20. **Slots 9, 10, 11, 12 and 15 are no longer Gemini slots:** Code keeps drawing
+them and restyles them to match the approved pilot in the art-slot batch. Their sections stay here as Code's spec.
 
 ---
 
 ## For Andrew: how to use this brief
 
+> 🔒 **Code and Andrew only. Not for Gemini.** Leave this section out of anything Gemini sees.
+
 1. Give Gemini **"The game in one minute"**, **"Rules for every picture"** and **the pilot slot (nest and egg)** first.
    Review what comes back before asking for anything else.
-2. After the pilot is right, hand over **one slot at a time**, each with the rules section again.
+2. After the pilot is right, hand over **one slot at a time** (Gemini's slots only: 0–8, 13, 14, 16–20), each with
+   the rules section again (without rule 5). Chat writes the look prompt for each.
 3. Bring the files to an Egg Timer Code session. Today every picture is drawn by code, and there are no image slots
    yet. Hooking the files up is the next code batch (the "art-slot layer" from the audit). That session will check
    every file against this brief and run both rigs before anything goes live.
@@ -89,10 +101,13 @@ or any other existing character.
 
 ### 4. Size and readability
 
-- Each slot gives its **largest** on-screen size. Many are also shown much smaller (a nest can be as small as 84 px
+- Each slot gives its **largest** on-screen size. Many are also shown much smaller (a nest can be as small as 93 px
   wide), so **bold shapes and thick outlines** matter more than detail.
 
 ### 5. File names and where they go
+
+> 🔒 **Code and Andrew only. Not for Gemini.** Leave this section out of anything Gemini sees.
+
 
 - All art goes in one folder: **`Game/cartridges/Egg Timer/files/art/`**. The favicon is the one exception: it stays
   at `files/favicon.svg`.
@@ -123,26 +138,26 @@ or any other existing character.
 
 | # | Slot | Shape (viewBox) | Largest on screen | Format | Moving parts |
 |---|------|-----------------|-------------------|--------|--------------|
-| **0** | **PILOT: nest + egg** | `-60 -62 120 110` | 200 × 183 px | SVG (or layered 400 × 367 PNG/WebP) | egg (grows, rocks), 3 cracks (drawn in), 3 alien hints (on/off), ooze (on/off), two twig looks |
+| **0** | **PILOT: nest + egg** | `-60 -62 120 110` | 202 × 187 px | SVG (or layered 400 × 367 PNG/WebP) | egg (grows, rocks), 3 cracks (drawn in), 3 alien hints (on/off), ooze (on/off), two twig looks |
 | 1 | Broken shell halves | same as the nest | 74 × 40 px | SVG, same file canvas as the nest | none |
 | 2 | Hatchling | same as the nest | 97 × 77 px at rest, **~580 × 460 px** in its lunge | **SVG only** | whole creature; legs |
 | 3 | Egg-ladder dishes (7) | `-56 -38 112 76` | 150 × 102 px | SVG or 300 × 204 PNG/WebP | none (the whole dish pops) |
-| 4 | Frying pan | `-60 -40 150 80` | 236 × 126 px (272 × 145 at the slam) | SVG or 544 × 290 PNG/WebP | none (the whole pan slams) |
-| 5 | Scary mom face | `-100 -100 200 200` | 225 × 225 px | SVG or 450 × 450 PNG/WebP | none (the whole face slides) |
+| 4 | Frying pan | `-60 -40 150 80` | 222 × 118 px (255 × 136 at the slam) | SVG or 510 × 272 PNG/WebP | none (the whole pan slams) |
+| 5 | Scary mom face | `-100 -100 200 200` | 146 × 146 px | SVG or 300 × 300 PNG/WebP | none (the whole face slides) |
 | 6 | Title scene | `0 0 420 210` | 560 × 280 px | SVG | mommy sway, 3 pupils, 3 babies, 3 mouths, 4 notes |
 | 7 | Mode-selection creature | `0 0 300 200` | 300 × 200 px | SVG | whole body, 3 heads, 6 pupils, 3 mouths, 3 notes |
 | 8 | How-to doodles (5) | `0 0 60 60` each | 64 × 64 px | SVG or 128 × 128 PNG/WebP | none (the whole doodle turns) |
-| 9 | Hose-nozzle cursor | `0 0 32 32` | 32 × 32 px, fixed | SVG + 64 × 64 PNG | none |
-| 10 | Hose tap | `0 0 28 22` | 28 × 22 px | SVG | none |
-| 11 | Gunk splats and a water drop | `0 0 100 100` stamps | up to ~100 px across with droplets | SVG or 200 × 200 PNG/WebP | none |
-| 12 | Small icons: mute, mouse, favicon | `0 0 24 24`, `0 0 20 28`, `0 0 32 32` | mute 22 × 22; mouse ~16 × 22; favicon 16 × 16 (up to 32) | SVG only | mute icon swaps parts |
-| 13 | The five break stages (E26) | same as the nest | 200 × 183 px | SVG (or 400 × 367 PNG/WebP) | none (one stage shows, still) |
-| 14 | Time Warp's grandfather clock (E27) | `0 0 80 170` | about 70 × 140 px | **SVG only** | hour hand and minute hand (turn) |
-| 15 | The sink by the hose tap (E28) | `0 0 40 24` | about 42 × 25 px | SVG | none |
-| 16–20 | How To Play comic panels (E29), one each | `0 0 120 90` (slot 18: two, `0 0 120 44` each) | about 110 × 83 px | SVG or 240 × 180 PNG/WebP | none |
+| 9 | Hose-nozzle cursor · **Code draws it** | `0 0 32 32` | 32 × 32 px, fixed | SVG + 64 × 64 PNG | none |
+| 10 | Hose tap · **Code draws it** | `0 0 28 22` | 28 × 22 px | SVG | none |
+| 11 | Gunk splats and a water drop · **Code draws them** | `0 0 100 100` stamps | up to ~100 px across with droplets | SVG or 200 × 200 PNG/WebP | none |
+| 12 | Small icons: mute, mouse, favicon · **Code draws them** | `0 0 24 24`, `0 0 20 28`, `0 0 32 32` | mute 22 × 22; mouse ~16 × 22; favicon 16 × 16 (up to 32) | SVG only | mute icon swaps parts |
+| 13 | The five break stages (E26) | same as the nest | 202 × 187 px | SVG (or 404 × 374 PNG/WebP) | none (one stage shows, still) |
+| 14 | Time Warp's grandfather clock (E27) | `0 0 80 170` | about 65 × 139 px | **SVG only** | hour hand and minute hand (turn) |
+| 15 | The sink by the hose tap (E28) · **Code draws it** | `0 0 40 24` | about 34 × 21 px | SVG | none |
+| 16–20 | How To Play comic panels (E29), one each | `0 0 120 90` (slot 18: two, `0 0 120 44` each) | about 96 × 72 px | SVG or 200 × 150 PNG/WebP | none |
 
 Not image slots, so they stay drawn by code (see the end): the egg-laying cord, Time Warp's lightning and glow, the
-hose line, the arcade lights, and all the text boxes, panels and clocks.
+hose line, the arcade lights, all the text boxes, panels, signs, tags and clocks, and (Chat's review) slots 9–12 and 15.
 
 ---
 
@@ -163,13 +178,13 @@ hose line, the arcade lights, and all the text boxes, panels and clocks.
 
 - **viewBox `-60 -62 120 110`**: x runs −60 to 60, y runs −62 (top) to 48 (bottom). The point (0, 0) is near the
   middle of the nest.
-- **Largest on screen: 200 × 183 px** (1 unit = 1.67 px). **Smallest: 84 px wide** (1 unit = 0.7 px).
+- **Largest on screen: 202 × 187 px** (1 unit = 1.68 px). **Smallest: 93 px wide** (1 unit = 0.78 px).
 - The game **tilts each nest by up to ±5°** around the point (0, −7) and never rotates it further. Leave a little
   margin at the edges.
 - **Keep the important drawing inside x −48…48 and y −40…37.** The outer strip can be covered by a neighbouring
   nest's text boxes. The tendrils can reach the edges, as they do now.
 - **Format:** two SVGs for this slot, on the same viewBox: **`nest.svg`** and **`egg.svg`**. If raster, every layer
-  is a **400 × 367 px** transparent PNG/WebP covering the whole viewBox.
+  is a **404 × 374 px** transparent PNG/WebP covering the whole viewBox.
 
 ### How the space is laid out (viewBox units)
 
@@ -208,7 +223,7 @@ y= 48 └───────────────────────�
   this size.
 - **Growing.** From the moment it's laid, the game scales the whole `egg` group from **35% to 100%** around (0, 20), so
   it grows upward out of the nest. It reaches full size exactly when the CAV's time is up. At 35% the egg is only
-  about **26 × 33 px** on the largest nest and **11 × 14 px** on the smallest, **so it must still read as an egg when
+  about **26 × 33 px** on the largest nest and **12 × 15 px** on the smallest, **so it must still read as an egg when
   tiny**.
 - **"Bold"** means the moment the CAV's time is up. The nest's readouts turn bold; **the egg itself needs no bold
   look**.
@@ -294,6 +309,7 @@ y= 48 └───────────────────────�
 - Gunk splats (slot 11).
 - A "Clear Fueling" speech bubble.
 - A green glow around the whole nest while Time Warp runs.
+- In wave 1, a thin dashed line from a tag above the board that ends on the egg ("Pink = ready!", E28).
 
 ### Files for the pilot
 
@@ -302,9 +318,12 @@ y= 48 └───────────────────────�
 - `egg.svg`: group `egg` holding the `shell`, spots of class `speckle`, three paths of class `crack`
   (each with `pathLength="1"`), and the three hint groups `hint-3`, `hint-4` and `hint-5`.
 - Raster fallback: `nest--ooze@2x.png`, `nest--twigs-back@2x.png`, `nest--twigs-front@2x.png`, `egg--shell@2x.png`,
-  and so on, each **400 × 367 px**. Cracks can't be raster: they must be SVG lines so the game can draw them in.
+  and so on, each **404 × 374 px**. Cracks can't be raster: they must be SVG lines so the game can draw them in.
 
 ### Three things for the code session to handle (not Gemini's job)
+
+> 🔒 **Code and Andrew only. Not for Gemini.** Leave this section out of anything Gemini sees.
+
 
 - **The cord egg.** The egg on the laying cord is drawn by code as a plain oval in the egg's colours. It lands
   centred on (0, −8), but the nest egg appears centred on (0, 10.2), so the egg drops 18 viewBox units at that moment
@@ -312,9 +331,10 @@ y= 48 └───────────────────────�
   should use the same picture and end at 35% size with its base on (0, 20), tilted with the nest.
 - **Class names are code hooks.** The code writes the egg's `transform` itself and reads the `crack` paths by class;
   style.css, the inactive-twig recolour and the rigs select `.ooze`, `.twigs.back`, `.twigs.front`, `.egg`, `.crack`,
-  `.speckle`, `.shells`, `.creature`, `.legs`, `.eye` and `.fangs`. Keep them as given.
+  `.speckle`, `.shells`, `.creature`, `.legs`, `.eye` and `.fangs`; E28's wave-1 tag aims its leader line at `.egg`.
+  Keep them as given. The hint groups `hint-3` … `hint-5` are new hooks for this batch.
 - **The stylesheet will override the art.** style.css still styles the placeholder by those same class names
-  (fills, strokes, stroke widths, and opacity 0.28 on `.ooze .pool`; style.css:495-529). When the new art goes in,
+  (fills, strokes, stroke widths, and opacity 0.28 on `.ooze .pool`; style.css:572-606). When the new art goes in,
   strip or retune those rules so they don't replace the art's own colours and widths, then re-run the theme baseline
   (`--write-theme-baseline`).
 
@@ -394,7 +414,7 @@ y= 48 └───────────────────────�
   7. Steak, Eggs & Brew!
 - **Shape:** viewBox `-56 -38 112 76`. The plate is centred at **(0, 2)** (about 108 × 68 units). Keep the food
   inside −50…50 × −34…34.
-- **Largest on screen:** 150 × 102 px.
+- **Largest on screen:** 150 × 102 px; the smallest 92 × 63 px.
 - **Format:** SVG, or 300 × 204 PNG/WebP.
 - **Layers:** **none needed.** Each dish can be one flat picture of plate and food. The game moves the whole dish:
   it pops in from 40% size, holds for 0.6 s, then rises and fades.
@@ -422,8 +442,9 @@ y= 48 └───────────────────────�
   - **The pan's bowl is centred at (0, 0)** (about 88 × 60 units).
   - **The handle points right**, from x 34 to x 84, at y −6…6.
   - The game's placement assumes the bowl at (0, 0) and the handle on the right, so keep both.
-- **Largest on screen:** 236 × 126 px, briefly 272 × 145 px at the top of the slam.
-- **Format:** SVG, or 544 × 290 PNG/WebP.
+- **Largest on screen:** 222 × 118 px, briefly 255 × 136 px at the top of the slam; the smallest 109 × 58 px (it's
+  118% of its nest's width).
+- **Format:** SVG, or 510 × 272 PNG/WebP.
 - **Layers:** none. One flat picture; the game moves, tilts and fades the whole pan around the point **(15, 0)**.
 - **Colours:** rim `--pan-rim` #2b2b33, cooking surface `--pan-base` #43434f, glint `--pan-glint` #8c8ca0, handle
   `--pan-handle` #5a3418, outlines `--black` #000.
@@ -435,12 +456,14 @@ y= 48 └───────────────────────�
 ## Slot 5: the scary mom face
 
 - **What and where:** a horror jump-scare. At most once a wave (and not every wave), a monstrous version of the
-  title screen's mommy alien slides in for under a second. It comes either down from the top edge of the screen or
-  up out of the how-to panel. It is **fully in view for only about 0.3 seconds**.
+  title screen's mommy alien slides in for under a second. **It comes down from the top edge of the screen only**
+  (over the HUD bar and the band above the board): since E30 there's no how-to panel in play to come up out of. It is
+  **fully in view for only about 0.3 seconds**.
 - **Shape:** viewBox `-100 -100 200 200` (square). The face is centred at about (0, 10). **Keep everything inside the
   square**, because it's cut off at the edges.
-- **Largest on screen:** 225 × 225 px, often smaller (about 146 px when it comes from the top).
-- **Format:** SVG, or 450 × 450 PNG/WebP.
+- **Largest on screen:** 146 × 146 px; the smallest 120 × 120 px. Bold shapes: it's small and on screen for well under a
+  second.
+- **Format:** SVG, or 300 × 300 PNG/WebP.
 - **Layers:** **none.** One flat picture: the game slides the whole face in and out.
 - **What it shows now:** the mommy gone wrong. Three bloodshot eyes on stalks with pinprick pupils, angry brows, and
   the too-wide smile split open into a maw of jagged fangs, drooling. Scary, but scary alien (rule 6). **It must scare in a single still frame.**
@@ -460,7 +483,7 @@ y= 48 └───────────────────────�
   to her right, all singing, with music notes drifting up. The twists: mommy's smile is a touch too wide, and the
   middle baby has too many fangs. An original tune plays with it.
 - **Shape:** viewBox `0 0 420 210` (2:1). The notes drift above the top edge, which is fine.
-- **Largest on screen:** 560 × 280 px (1 unit = 1.33 px).
+- **Largest on screen:** 560 × 280 px (1 unit = 1.33 px); the smallest 448 × 224 px.
 - **Format:** SVG (the layers below need it).
 - **Layers** (every moving layer is its own group, **with no transform of its own**, placed by an outer group):
 
@@ -496,7 +519,7 @@ y= 48 └───────────────────────�
 
   Crooked notes drift up, one of them a flat (♭). **The eyes follow the mouse.**
 - **Shape:** viewBox `0 0 300 200` (3:2).
-- **Largest on screen:** 300 × 200 px (1 unit = 1 px).
+- **Largest on screen:** 300 × 200 px (1 unit = 1 px); the smallest 198 × 132 px.
 - **Format:** SVG.
 - **Layers:**
 
@@ -525,9 +548,12 @@ y= 48 └───────────────────────�
 
 ## Slot 8: the how-to doodles (5)
 
-- **What and where:** goofy **"kid's drawing on the fridge"** doodles of the alien family, scattered in the empty
-  space of the how-to panel (and three of them under the title screen's How To Play card). Every 2.5 seconds, one of
-  them turns to a new angle.
+- **What and where:** goofy **"kid's drawing on the fridge"** doodles of the alien family, on the how-to panel.
+  **Where they still appear (after E29 and E30):** on the **game-over screen** (all five: one beside the panel's title
+  and four in the empty space under its text) and on the **options screen** (only the one beside the HOW / TO / PLAY
+  signs; E29's comic strip fills the rest). The title card no longer has any, and the panel is gone from play. Until
+  slots 16–20 arrive, the comic strip also borrows them, enlarged, as its placeholder pictures. Every 2.5 seconds, one
+  of them turns to a new angle.
 - **The five, as now:**
   0. a grinning baby with antennae up;
   1. the mommy with three eyes on stalks and a too-wide smile;
@@ -538,7 +564,7 @@ y= 48 └───────────────────────�
   - The game turns the whole doodle to a new angle of up to **28° either way around its centre (30, 30)**, with a
     springy overshoot of about 10° before it settles. In the panel, anything that sticks out is cut off.
   - **Keep each drawing inside a circle about 28 units from the centre** so it is never cut off.
-- **Largest on screen:** 64 × 64 px (and 36 px when beside the panel's title).
+- **Largest on screen:** 64 × 64 px (the four on the game-over screen); the one beside the title is 34–56 px.
 - **Format:** SVG, or 128 × 128 PNG/WebP.
 - **Layers:** none. One flat picture each, **pupils drawn in**.
 - **Style:** **dark ink lines and one main flat colour** each (a small second accent, such as the mommy's pink apron,
@@ -552,6 +578,9 @@ y= 48 └───────────────────────�
 ---
 
 ## Slot 9: the hose-nozzle cursor
+
+> **Not a Gemini slot** (Chat's review, 2026-09-24): Code keeps drawing it and restyles it to match the approved pilot
+> in the art-slot batch. This section is Code's spec.
 
 - **What and where:** in the game, the mouse pointer is always a garden-hose spray nozzle. Players click and drag it
   to wash off the gunk.
@@ -570,6 +599,9 @@ y= 48 └───────────────────────�
 
 ## Slot 10: the hose tap
 
+> **Not a Gemini slot** (Chat's review, 2026-09-24): Code keeps drawing it and restyles it to match the approved pilot
+> in the art-slot batch. This section is Code's spec.
+
 - **What and where:** a garden tap poking up from the middle of the board's bottom edge. The hose runs from it to
   the cursor. The hose itself is a **line drawn by the game** (6 px wide, `--hose` #2fbf5a with a `--hose-outline`
   #06280f edge), so only the tap is a picture.
@@ -585,6 +617,9 @@ y= 48 └───────────────────────�
 ---
 
 ## Slot 11: gunk splats and a water drop
+
+> **Not a Gemini slot** (Chat's review, 2026-09-24): Code keeps drawing it and restyles it to match the approved pilot
+> in the art-slot batch. This section is Code's spec.
 
 - **Gunk:** when an egg is smashed, gooey egg gunk splats onto its nest and flies across the board. The game **stamps**
   splats at random spots and sizes onto the board, and the player **wipes them off pixel by pixel** with the
@@ -607,6 +642,9 @@ y= 48 └───────────────────────�
 ---
 
 ## Slot 12: small icons (mute, mouse, favicon)
+
+> **Not a Gemini slot** (Chat's review, 2026-09-24): Code keeps drawing it and restyles it to match the approved pilot
+> in the art-slot batch. This section is Code's spec.
 
 - **Mute button icon** (top left of every screen, drawn 22 × 22 px):
   - viewBox `0 0 24 24`, three separate groups: `speaker`, `waves` (shown when the sound is on) and `cross` (shown
@@ -654,7 +692,7 @@ y= 48 └───────────────────────�
 - **Shape:** the nest's viewBox `-60 -62 120 110`, drawn where the egg was: the break sits on the nest, around the
   egg's base at **(0, 20)**, and stays inside about **x −40…40, y −40…28** so the front twigs and the text boxes
   below the nest stay clear. The frying pan covers it at first, so every stage has to read once the pan lifts.
-- **Largest on screen:** the whole nest canvas, 200 × 183 px. It's also shown on nests as small as 84 px wide, so
+- **Largest on screen:** the whole nest canvas, 202 × 187 px. It's also shown on nests as small as 93 px wide, so
   **each stage must still be recognisable at that size.** Stage 1 and stage 5 should look different at a glance.
 - **Layers:** one still group per file, class `break`. Nothing moves, and the game doesn't animate any part of it.
 - **Colours (from `theme.css`):** shell `--shell` #7dff6a, outlines `--crack` #1a0d2e and `--shadow` #000, yolk
@@ -663,7 +701,7 @@ y= 48 └───────────────────────�
   notes, and Code adds it to `theme.css`.
 - **Animation limits:** none are needed, because each stage is a still picture. **Stage 1's sparkle must not
   twinkle or flash**: draw it as a still star shape.
-- **Files:** `break-1-elegant.svg` … `break-5-leftovers.svg` (or `break-1-elegant@2x.png` … at 400 × 367 px).
+- **Files:** `break-1-elegant.svg` … `break-5-leftovers.svg` (or `break-1-elegant@2x.png` … at 404 × 374 px).
 
 ---
 
@@ -685,8 +723,8 @@ y= 48 └───────────────────────�
     clocks 5× fast. Get your next RCAV ready!"), so anything drawn there is hidden.
   - **Keep the lower third of the face (below y 54) free of detail**: with reduced motion the hands stop and the game
     writes **"5×"** there instead.
-- **Largest on screen:** about **70 × 140 px** (1 unit = 0.82 px; E28 made room for the caption); the smallest is about
-  36 × 72 px. It's scaled to fit
+- **Largest on screen:** about **65 × 139 px** (1 unit = 0.81 px; E28 made room for the caption); the smallest is about
+  32 × 69 px (1 unit = 0.41 px). It's scaled to fit
   the gap between the nests, so it must read as a clock when small: a **big face, bold hands**, few fine details.
 - **Layers** (every moving layer is its own group, **with no transform of its own**):
 
@@ -711,13 +749,16 @@ y= 48 └───────────────────────�
 
 ## Slot 15: the sink by the hose tap (E28)
 
+> **Not a Gemini slot** (Chat's review, 2026-09-24): Code keeps drawing it and restyles it to match the approved pilot
+> in the art-slot batch. This section is Code's spec.
+
 - **What and where:** a small sink with a drain, just right of the hose tap (slot 10) on the board's bottom edge. The
   hose's instructions sit beside it as live text ("CLEANING HOSE: click & drag to spray. Use it any time!"), so the
   sink is the picture and the words are the game's.
 - **Shape:** viewBox **`0 0 40 24`**: a basin seen from the front, a little lower at the bottom than at the rim, with a
   **drain** (a dark oval with a grate) in the middle. Today's placeholder: a rim along y 5, the basin down to y 22, the
   drain at (20, 14).
-- **Largest on screen:** about **42 × 25 px**; the smallest about 26 × 16 px. Bold, simple shapes.
+- **Largest on screen:** about **34 × 21 px**; the smallest about 26 × 16 px. Bold, simple shapes.
 - **Style:** the game's 1980s-arcade look, a cartoon kitchen sink. Rule 6 applies if you add a touch of the aliens (say,
   a little green goo round the drain).
 - **Colours:** steel `--sink-steel` #c3c9d1, inside the basin `--sink-basin` #6e7682, drain and outlines `--outline`
@@ -736,8 +777,8 @@ y= 48 └───────────────────────�
   are those pictures.
 - **Shape:** viewBox **`0 0 120 90`** (4:3) for each, except slot 18, which is **two** pictures (fast and slow), each
   **`0 0 120 44`**, stacked.
-- **Largest on screen:** about **110 × 83 px**; the smallest about **60 × 45 px**. Draw big, simple shapes with thick
-  outlines: a picture must read at 60 px wide.
+- **Largest on screen:** about **96 × 72 px**; the smallest about **56 × 42 px**. Draw big, simple shapes with thick
+  outlines: a picture must read at 56 px wide.
 - **Style:** a Saturday-morning cartoon strip in the game's 1980s-arcade look. **Rule 6 applies to every panel**:
   cartoon aliens, scary only in an alien way, **nothing human** (no hands or fingers: aliens type and hold things with
   tentacles), no red liquid, gross-funny. Reuse the title family (slot 6) so the strip feels like the same cast.
@@ -757,11 +798,14 @@ y= 48 └───────────────────────�
   Anything new is named with its hex in your notes.
 - **Animation:** none: each is a still picture. Nothing may rely on motion to make sense.
 - **Files:** `comic-1-watch.svg`, `comic-2-pink.svg`, `comic-3-fast.svg`, `comic-3-slow.svg`, `comic-4-lines.svg`,
-  `comic-5-warp.svg` (or `…@2x.png` at 240 × 180, and 240 × 88 for the two halves of panel 3).
+  `comic-5-warp.svg` (or `…@2x.png` at 200 × 150, and 200 × 73 for the two halves of panel 3).
 
 ---
 
 ## Stays drawn by code (not image slots)
+
+> 🔒 **Code and Andrew only. Not for Gemini.** Leave this section out of anything Gemini sees.
+
 
 These are live shapes the game draws each frame, or styled text and panels. Gemini can suggest a **look** (colours
 from `theme.css`, a pattern), but not a picture:
@@ -781,13 +825,23 @@ from `theme.css`, a pattern), but not a picture:
   reduced motion. No fixed picture can fit.
 - **The Time Warp's glow** on running nests (a green edge the game adds), and **the hose line** from the tap to the
   cursor (6 px, `--hose` #2fbf5a with a `--hose-outline` #06280f edge).
-- **The arcade attract lights:** the bulbs round the how-to panels' borders (`--bulb-*` colours).
+- **The arcade attract lights:** the bulbs round the how-to panels' borders on the menu screens (`--bulb-*` colours).
 - **Text and panels:** the unit/type/timer boxes, the AD post-its, the "Clear Fueling" bubble, the wall clock, the
-  "TIME WARP" sign across the clock's base and its caption, the HUD bar, the how-to panel card, the Command Lines, the title logo and all menus.
+  "TIME WARP" sign across the clock's base (its 3 flashes and E31's letter wobble) and its caption, the HUD bar, the
+  how-to panel card, the Command Lines (their grey hint and the hints under them), the title logo and all menus,
+  including E29's "How Many Command Lines?" picker and the HOW / TO / PLAY signs.
+- **The comic strip's frame:** its panels, number badges, speech bubbles, the "RCAV 2101!" shout, the "Fast!" / "Slow…"
+  labels and the little timer chips. Slots 16–20 are only the pictures.
+- **E28's wave-1 tags** ("Pink = ready!", "Check the wall clock") and their dashed leader lines.
+- **Slots 9, 10, 11, 12 and 15** (Chat's review): the hose-nozzle cursor, the hose tap, the gunk splats and water drop,
+  the small icons and the sink. Code restyles them to match the approved pilot.
 
 ---
 
 ## Getting the files onto the site (checked 2026-09-24)
+
+> 🔒 **Code and Andrew only. Not for Gemini.** Leave this section out of anything Gemini sees.
+
 
 - **Yes, the deploy publishes images from the cartridge.** The live site already serves `.svg` files (as
   `image/svg+xml`) and `.png` files (as `image/png`) from the game folder, including Egg Timer's own `favicon.svg`.
