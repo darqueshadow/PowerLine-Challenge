@@ -389,6 +389,7 @@
         this.emit("cleared", {
           nest: hit.id,
           points: points,
+          tier: ET.rules.clearTier(into, span),   // E26: 1 (fast, elegant) … 5 (slow, alien); the break stage it will show
           fast: fast,
           rung: fast ? Math.min(this.streak, ET.CONFIG.ladder.length) - 1 : -1,   // which dish, or none
           streak: this.streak

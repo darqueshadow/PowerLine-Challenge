@@ -62,7 +62,13 @@
     poolCap: 3,
 
     // ── Scoring (packet §10) ─────────────────────────────────────────────────
-    clearPointsMax: 100,     // cleared right as it goes bold…
+    // E26 (ruled 2026-09-24): a clear scores by TIER, each a fifth of that egg's own overtime window, so all five
+    //   can be reached at every clock speed. The cracks draw in over the same window, so the egg shows the tier.
+    //   "slide" is the old scoring: 100 at the bold, sliding linearly to 25 at the hatch.
+    clearScoring: "tiers",   // "tiers" | "slide"
+    clearTierEnds: [0.2, 0.4, 0.6, 0.8, 1],    // where each tier ends, as a share of the overtime window
+    clearTierPoints: [100, 75, 50, 35, 25],    // tier 1 … tier 5
+    clearPointsMax: 100,     // "slide": cleared right as it goes bold…
     clearPointsMin: 25,      // …decaying linearly to this at the hatch
     placementPoints: 10,
     perfectWavePerWave: 50,  // 50 × wave number
@@ -156,11 +162,13 @@
     cordWidth: 10,                 // [T] Refinement 6 §4: thicker (was 4 px), striped blood red and purple, deeply ribbed
 
     // ── Refinement 3 rulings (2026-09-23): the egg ladder ───────────────────
-    // A "fast clear" lands in the first part of the overtime window. Consecutive fast clears climb the
+    // A "fast clear" lands in the first part of the overtime window: E26 (ruled 2026-09-24), a tier 1 or tier 2
+    // clear (ladderTiers); with the old "slide" scoring, the first third (fastClearShare). Consecutive fast clears climb the
     // ladder, one dish a rung, and stay at the top while the streak holds. A slow clear, any ERROR or a
     // hatch drops the streak to the bottom. It carries across waves, resets at game over, and is
     // cosmetic only: no score effect.
-    fastClearShare: 1 / 3,         // [T] the first third of the overtime window
+    ladderTiers: 2,                // E26: tiers 1–2 climb the ladder
+    fastClearShare: 1 / 3,         // [T] "slide" scoring only: the first third of the overtime window
     ladder: ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Eggs Benny",
              "Eggs Benny w/ Avocado", "Steak, Eggs & Brew!"],   // [T] wording and steps
     dishSeconds: 1.0,              // [T] how long a fast clear's dish and caption show over the nest

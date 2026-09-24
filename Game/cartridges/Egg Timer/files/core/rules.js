@@ -84,18 +84,29 @@
       return type.min + rng() * (type.max - type.min);
     },
 
-    /* 100 right as it goes bold, linearly down to 25 at the moment it would hatch. */
+    /* E26: which tier (1–5) a clear lands in, by its share of that egg's own overtime window. */
+    clearTier: function (intoOvertime, overtimeLength) {
+      var ends = C().clearTierEnds;
+      var t = overtimeLength > 0 ? intoOvertime / overtimeLength : 1;
+      for (var i = 0; i < ends.length - 1; i++) if (t < ends[i]) return i + 1;
+      return ends.length;
+    },
+
+    /* E26 "tiers": the tier's points. "slide": 100 right as it goes bold, linearly down to 25 at the hatch. */
     clearPoints: function (intoOvertime, overtimeLength) {
       var c = C();
+      if (c.clearScoring === "tiers") return c.clearTierPoints[ET.rules.clearTier(intoOvertime, overtimeLength) - 1];
       var t = overtimeLength > 0 ? intoOvertime / overtimeLength : 1;
       t = Math.max(0, Math.min(1, t));
       return Math.round(c.clearPointsMax - (c.clearPointsMax - c.clearPointsMin) * t);
     },
 
-    /* A fast clear (Refinement 3 rulings, the egg ladder): inside the first part of the overtime window. */
+    /* A fast clear climbs the egg ladder (Refinement 3 rulings): E26, a tier 1–2 clear; "slide", the first third. */
     isFastClear: function (intoOvertime, overtimeLength) {
+      var c = C();
+      if (c.clearScoring === "tiers") return ET.rules.clearTier(intoOvertime, overtimeLength) <= c.ladderTiers;
       var t = overtimeLength > 0 ? intoOvertime / overtimeLength : 1;
-      return t < C().fastClearShare;
+      return t < c.fastClearShare;
     },
 
     perfectWaveBonus: function (wave) {

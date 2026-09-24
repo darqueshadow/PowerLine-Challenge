@@ -47,7 +47,22 @@ eq([1, 2, 3, 4, 5, 12, 13, 30].map(R.overtimeBaseFor), [6, 6, 5.75, 5.75, 5.5, 4
 eq([1, 2, 3, 4, 5, 18, 20, 40].map((w) => Math.round(R.clockSpeed(w) * 100) / 100), [1, 1.1, 1.1, 1.2, 1.2, 1.9, 2, 2], "clock speed: 1.0, +10% on even waves, cap 2× at wave 20");
 eq([1, 20].map(R.clockRate), [30, 60], "a displayed minute takes 2 s at base speed, 1 s at the cap (10:00 in 10 s)");
 eq([1, 2, 3, 4, 13, 14].map((w) => Math.round(R.placementChance(w) * 100)), [0, 0, 0, 10, 100, 100], "Follow Progression: 0 in waves 1–3, 10% at wave 4, 100% at wave 13");
-eq([0, 2.5, 5, 9].map((x) => R.clearPoints(x, 5)), [100, 63, 25, 25], "clear points: 100 at bold, linear to 25 at the hatch");
+eq(ET.CONFIG.clearScoring, "tiers", "E26 (ruled): a clear scores by tier, not the old slide");
+eq([0, 0.19, 0.2, 0.39, 0.4, 0.59, 0.6, 0.79, 0.8, 0.99, 1, 1.5].map((t) => R.clearTier(t * 5, 5)), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5], "E26: the tiers are fifths of the egg's own overtime window");
+eq([0.1, 0.3, 0.5, 0.7, 0.9].map((t) => R.clearPoints(t * 5, 5)), [100, 75, 50, 35, 25], "E26: tier points 100 / 75 / 50 / 35 / 25");
+{
+  // every tier stays reachable at every wave: its share of the SHORTEST window (floor, −10% jitter) is still wide
+  const shortest = R.overtimeBaseFor(40) * (1 - ET.CONFIG.overtimeJitter);
+  const widths = ET.CONFIG.clearTierEnds.map((e, i) => (e - (i ? ET.CONFIG.clearTierEnds[i - 1] : 0)) * shortest);
+  ok(widths.every((w) => w >= 0.8), `E26: every tier lasts at least 0.8 s, even in the shortest overtime window   [${widths.map((w) => w.toFixed(2)).join(", ")} s]`);
+}
+{
+  const was = ET.CONFIG.clearScoring;
+  ET.CONFIG.clearScoring = "slide";
+  eq([0, 2.5, 5, 9].map((x) => R.clearPoints(x, 5)), [100, 63, 25, 25], "the \"slide\" switch value still slides 100 at bold, linearly to 25 at the hatch");
+  eq([0, 0.3, 0.34, 0.6].map((t) => R.isFastClear(t * 6, 6)), [true, true, false, false], "…and its fast clear is still the first third");
+  ET.CONFIG.clearScoring = was;
+}
 eq([1, 5, 10].map(R.perfectWaveBonus), [50, 250, 500], "perfect wave bonus: 50 × wave");
 eq([R.minutesFor({ code: "VS", min: 10, max: 10 }, () => 0.5), R.minutesFor({ code: "MB", min: 30, max: 30 }, () => 0.5)], [10, 30], "fixed types go bold at their own minutes");
 eq([0, 0.5, 0.999999].map((u) => R.minutesFor({ code: "AD", min: 10, max: 30 }, () => u)), [10, 20, 30], "AD: whole minutes, 10–30 inclusive");
@@ -308,13 +323,13 @@ section("K. the activation order (Refinement 3 §8)");
 }
 
 section("N. Refinement 3 rulings (2026-09-23): the egg ladder");
-eq([0, 0.3, 0.34, 0.6, 1].map((t) => R.isFastClear(t * 6, 6)), [true, true, false, false, false], "a fast clear lands in the first third of the overtime window [T]");
+eq([0, 0.19, 0.39, 0.4, 0.6, 1].map((t) => R.isFastClear(t * 6, 6)), [true, true, true, false, false, false], "E26: a fast clear is a tier 1 or tier 2 clear (the first 40% of the overtime window)");
 eq(ET.CONFIG.panSeconds < 0.5, true, "the pan's slam is under 0.5 s");
 eq(ET.CONFIG.ladder, ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Eggs Benny", "Eggs Benny w/ Avocado", "Steak, Eggs & Brew!"], "the ladder's seven dishes, bottom to top");
 {
   // Clear every CAV right at its bold: the streak climbs a rung a clear, then holds at the top, across waves.
   const g = game("clear", [T("VS", 10)]);
-  const rungs = [], waves = new Set();
+  const rungs = [], waves = new Set(), tiers = new Set();
   let scoreGap = 0;
   advance(g, 400, (x) => {
     inState(x, "overtime").forEach((n) => {
@@ -322,8 +337,9 @@ eq(ET.CONFIG.ladder, ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Egg
       x.submit("RCAV " + n.unit);
       scoreGap = Math.max(scoreGap, Math.abs(x.score - before - R.clearPoints(into, span)));
     });
-    x.drain().forEach((e) => { if (e.type === "cleared") { rungs.push(e.rung); waves.add(x.wave); } });
+    x.drain().forEach((e) => { if (e.type === "cleared") { rungs.push(e.rung); tiers.add(e.tier); waves.add(x.wave); } });
   });
+  eq([...tiers], [1], "E26: a clear right at its bold is tier 1, and the cleared event says so");
   eq(rungs.slice(0, 9), [0, 1, 2, 3, 4, 5, 6, 6, 6], "consecutive fast clears climb the ladder, one dish a rung, and stay at the top");
   ok(waves.size >= 2 && rungs.every((r, i) => r === Math.min(i, 6)), `the streak carries across waves   [${rungs.length} fast clears over ${waves.size} waves]`);
   eq(scoreGap, 0, "the ladder is cosmetic: every clear scores exactly as before");
@@ -349,6 +365,7 @@ eq(ET.CONFIG.ladder, ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Egg
       if (late) { g.drain(); g.submit("RCAV " + late.unit); e = g.drain().find((x) => x.type === "cleared"); }
     }
     eq([e && e.fast, e && e.rung, g.streak], [false, -1, 0], "a slow clear shows no dish and drops the streak to the bottom");
+    ok(e && e.tier >= 3 && e.points === ET.CONFIG.clearTierPoints[e.tier - 1], `E26: that slow clear is tier 3 or later, and scores its tier's points   [tier ${e && e.tier}, ${e && e.points}]`);
   }
   {
     const g = climb(game("clear", [T("VS", 10)]), 2);
