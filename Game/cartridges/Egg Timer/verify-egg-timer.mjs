@@ -184,7 +184,7 @@ try {
   section("A. boot and data");
   ok(await ev("__et.ready()"), "the page loads its data over http://");
   eq(await ev("__et.data().types.map(t => t.code).join(',')"), "VS,STR,SS,EOS,MB,AD,VF", "the CAV type table loads");
-  eq(await ev("__et.data().units.length"), 59, "59 transport units load from the shared Data Sheet");
+  eq(await ev("__et.data().units.length"), 54, "54 transport units load from the shared Data Sheet");
   eq(await ev("JSON.stringify(__et.data().blankTypes) === JSON.stringify(__et.data().types) && __et.data().blankTypes.map(t => t.code).join(',')"), "VS,STR,SS,EOS,MB,AD,VF", "D1: the Blank Dataset Module loads the seven real types, every value the same");
   eq(await ev("__et.screen()"), "title", "it opens on the title screen");
   eq(await ev("[...document.querySelectorAll('.logo .et')].map(e => e.textContent).join('')"), "ET", "the styled letters in the title spell ET");

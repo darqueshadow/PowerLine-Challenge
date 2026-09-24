@@ -79,7 +79,7 @@ eq(types.filter((t) => t.hiddenUntilTrigger).map((t) => t.code), ["VF"], "only V
   ok(blank.length === 7 && JSON.stringify(blank) === JSON.stringify(types), `D1: the Blank Dataset Module holds the seven real types, every value the same   [${blank.map((t) => t.code).join(",")}]`);
 }
 const units = ET.data.parseUnits(read("../../datasets/AP_ENP_BSE/2. Units_Transports.csv"));
-eq(units.length, 59, "59 transport units from the shared Data Sheet");
+eq(units.length, 54, "54 transport units from the shared Data Sheet");
 ok(units.every((u) => /^\d{4}$/.test(u)), "every unit is four digits");
 
 /* ------------------------------------------------------------------ D. game */
@@ -567,7 +567,7 @@ section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");
   // A long game of short CAVs in Both (triggers wait on the board too), watching every spawn.
   const g = game("both", [T("VS", 10)], 33);
   const distinct = new Set(units).size;
-  eq([units.length, distinct, g.units.length], [59, 54, 54], "the Data Sheet's 59 rows hold 54 distinct units (five listed twice); the pool is the 54");
+  eq([units.length, distinct, g.units.length], [54, 54, 54], "the Data Sheet's 54 rows are 54 distinct units (the five doubles removed 2026-09-23); the pool is the 54");
   let dupOnBoard = false, repeatBeforeRefill = 0, spawnsChecked = 0;
   let seen = new Set(), wave = 1;
   for (let i = 0; i < 40000 && g.phase !== "over"; i++) {

@@ -21,7 +21,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   and say so if anything besides Egg Timer is going out.
 - **Open, all Andrew's:** **D3**, the Developer Mode phrase (`devModePasswordHash`, null denies every entry): Andrew gives Code the
   digest, never the phrase; then set the hash, strike D3 in the packet, and change the rig checks labelled ⏳ D3.
-  **The shared transport sheet lists 2133–2136 and 2139 twice** (59 rows, 54 units): his call; the game dedupes.
+  The shared transport sheet's doubles (2133–2136, 2139) were removed 2026-09-23 (54 units, each once); Andrew will
+  review the full unit list himself: change nothing else in it. The game still dedupes as a guard.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10** (the Goal line is
   enough for dispatchers). Don't "fix" it.
 - **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E24**);

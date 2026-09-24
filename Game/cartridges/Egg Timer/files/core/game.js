@@ -42,7 +42,7 @@
     this.mode = opts.mode;                 // "clear" | "progression" | "both"
     this.boxes = opts.boxes || 1;
     this.types = opts.types || [];
-    // the pool is the distinct unit numbers: the shared Data Sheet lists five of them twice (Refinement 4 §3)
+    // the pool is the distinct unit numbers (Refinement 4 §3); the sheet's five doubles were removed 2026-09-23, this stays as a guard
     this.units = (opts.units || []).filter(function (u, i, all) { return all.indexOf(u) === i; });
     this.rng = opts.rng || Math.random;
     this.time = 0;
