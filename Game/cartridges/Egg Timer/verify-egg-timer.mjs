@@ -1482,6 +1482,28 @@ try {
     await shot("13b-warp-over");
   }
 
+  /* ------------------------------------------------------- H3. the hatchling's legs */
+  section("H3. the hatchling's legs in a scurry (Chat ruling, 2026-09-25)");
+  {
+    // watch one scurry frame by frame: the legs keep their height the whole time (a swing, never a squash or a flip)
+    const sc = await ev(`new Promise((done) => {
+      const n = document.querySelector('.nest[data-id="0"]'), legs = n.querySelector('.legs');
+      n.dataset.state = 'escape'; n.classList.remove('lunge'); n.classList.add('scurry');
+      const h = [], slant = [], looks = [];
+      const t0 = performance.now();
+      const tick = () => {
+        const m = new DOMMatrix(getComputedStyle(legs).transform === 'none' ? undefined : getComputedStyle(legs).transform);
+        h.push(m.d); slant.push(+m.c.toFixed(3));
+        const p = getComputedStyle(legs.querySelector('path')); looks.push(p.stroke + '|' + p.opacity + '|' + getComputedStyle(legs).opacity + '|' + getComputedStyle(legs).visibility);
+        if (performance.now() - t0 < 1300) requestAnimationFrame(tick);
+        else { n.classList.remove('scurry'); n.dataset.state = 'idle'; done({ frames: h.length, minH: Math.min(...h), slants: new Set(slant).size, looks: new Set(looks).size, anim: getComputedStyle(legs).animationName }); }
+      };
+      requestAnimationFrame(tick);
+    })`);
+    ok(sc.frames > 20 && sc.minH > 0.99 && sc.slants > 5, `the legs stay visible through the whole scurry: they swing (shuffle), never squashed to zero height or flipped   [${sc.frames} frames, smallest height ×${sc.minH.toFixed(2)}, ${sc.slants} slants]`);
+    ok(sc.looks === 1, "SAFETY: …and they never change colour or fade, so nothing flashes");
+  }
+
   /* ------------------------------------------------------- R. reduced motion */
   section("R. reduced motion (Andrew, 2026-09-24): the place-me cue, the overtime wobble, the cord twitch and the legs hold still");
   {
@@ -1540,14 +1562,14 @@ try {
     ok(live.t && !!live.cue && live.cue.anim === "cue", `without reduced motion the place-me cue blinks   [${live.cue && live.cue.anim}]`);
     ok(live.cord.some((d) => d !== null && d > 0), `…the laying cord twitches   [spread ${live.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(live.bold && live.wobble.some((a) => a !== null && a > 0), `…the egg wobbles in overtime   [${live.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
-    eq(live.legs, "legs", "…and the escaping hatchling's legs flip");
+    eq(live.legs, "legs", "…and the escaping hatchling's legs shuffle");
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const still = await motion("reduced");
     ok(still.t && !!still.cue && still.cue.anim === "none" && still.cue.border === "rgb(34, 227, 255)", `SAFETY: with reduced motion the place-me cue stops blinking and holds a steady cyan border   [${still.cue && still.cue.anim}, ${still.cue && still.cue.border}]`);
     ok(still.cord.length === 6 && still.cord.every((d) => d === 0), `SAFETY: …the laying cord hangs straight, no twitch   [spread ${still.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(still.bold && still.wobble.length === 6 && still.wobble.every((a) => a === 0), `SAFETY: …the overtime egg doesn't wobble   [${still.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
-    eq(still.legs, "none", "SAFETY: …and the hatchling's legs don't flip");
+    eq(still.legs, "none", "SAFETY: …and the hatchling's legs hold still");
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
 

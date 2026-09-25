@@ -374,14 +374,15 @@ y= 48 └───────────────────────�
 | Layer (class) | What it is | What the game does | Anchor |
 |---|---|---|---|
 | `creature` | The whole hatchling | Scurry: slides sideways 5× its width and turns 90°. Lunge: grows to 6× (then 9× while fading). | The centre of the creature's own box, currently about (0, −1) |
-| `legs` (inside `creature`, drawn behind the body) | Eight jointed spider legs, four a side (at least **4 separate paths**) | During a scurry the game squashes them flat about the line y = 0 (see note) | The line y = 0 |
+| `legs` (inside `creature`, drawn behind the body) | Eight jointed spider legs, four a side (at least **4 separate paths**) | During a scurry the game swings them side to side (a slant, about 14° each way, 3 times a second), never changing their size (see note) | The line y = 0 |
 | `eye` (at least **4**, inside `creature`) | A cluster of odd-sized **red** eyes | Still | none |
 | `fangs` (inside `creature`) | A row of needle fangs | Still | none |
 
   The body, ribs, maw, drool and pupils can all be in one still group inside `creature`.
-- **Note on the legs:** today the code makes the legs vanish and reappear (squashed to zero height and back) about
-  8 times a second during a scurry, which is over the 2-a-second limit. The code session will change that.
-  **Design the legs to read as legs with no animation at all.**
+- **Note on the legs (Chat ruling, 2026-09-25; built):** the legs stay visible at all times. In a scurry they shuffle:
+  the game slants the whole `legs` group side to side about its own centre, and never squashes, flips or hides them;
+  nothing flashes. (They used to flip through zero height 8 times a second.) With motion turned off they hold still.
+  **Design the legs to read as legs with no animation at all**, and in one group so they slant together.
 - **Design for the close-up.** In the lunge every line is magnified 6×, so a 3-unit outline becomes 18 units.
 - **Colours:**
   - body `--hatchling-body` #2a0d14;

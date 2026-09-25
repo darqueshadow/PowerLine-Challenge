@@ -319,6 +319,13 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: the hatchling's legs (Chat ruling)
+
+**Solved:** In a scurry the hatchling's legs shuffle (a slant back and forth) and never vanish; nothing flashes.
+**Approach:** `@keyframes legs` is a `skewX(-14deg → 14deg)` swing about the legs' own centre, 0.3 s, alternating; it was
+`scaleY(-1)` in `steps(2)`, a flip through zero height 8.3 times a second. Rigs: logic 159/0, browser 462/0 (new H3).
+**If you touch this again:** keep any leg motion a transform that keeps their height (rig H3 fails below ×0.99).
+
 ## Resolved 2026-09-25 — Egg Timer: music (Chat ruling)
 
 **Solved:** Andrew's three Suno tracks play: the title track on the menus, the gameplay loop in play, the game-over track

@@ -1,3 +1,7 @@
+> **FILING NOTE — Claude Code, 2026-09-25 (Legs).** Chat's answers are filed verbatim as
+> `Previous Versions/EGG_TIMER_CHAT_ANSWERS_2026-09-25.md`. Item 2, the hatchling's legs, is merged here, tagged *(Legs)*
+> (§7), built and **pushed live**; item 1, the cord egg, goes on the pilot-art hold branch.
+
 > **FILING NOTE — Claude Code, 2026-09-25 (Music).** Chat's music ruling is merged, tagged *(Music)*, filed verbatim as
 > `Previous Versions/EGG_TIMER_MUSIC_2026-09-25.md` (§7, §11). Built and **pushed live** under the standing rule (both
 > rigs green). **E34 raised:** the game-over screen's default button. Andrew's source files stay off GitHub and the site.
@@ -302,6 +306,9 @@ at once, with no flash.** *(E31)* Andrew's very fast blink isn't allowed (at mos
 **after the 3 flashes, while Time Warp runs, the "TIME WARP" letters wobble and stretch fast** (a 0.36 s [T] squash,
 stretch and skew of the letters only). The sign stays lit and its colours never change. **Under reduced motion: lit,
 no wobble.**
+*(Legs)* **The hatchling's legs stay visible at all times: in a scurry they shuffle (a side-to-side slant), never squashed
+to zero height or flipped; nothing flashes.** *(Code: a 14° skew each way, 0.3 s a swing; it was a flip through zero
+height 8 times a second, over the flash limit. Still under reduced motion. Rig section H3 samples a whole scurry.)*
 *(Music)* **Andrew's three Suno tracks replace the title tune:** "Title Screens" on the title, mode-selection and
 options screens (one track: moving between them doesn't restart it), "Ticking Clock" (the extended take) in play from the
 first wave to game over, and "Game Over" once on the game-over screen. Each loop plays its intro once, then loops with no

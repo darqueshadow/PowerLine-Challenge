@@ -612,12 +612,14 @@ h2 {
 .creature .slit { fill: var(--hatchling-slit); }
 .creature .legs path { fill: none; stroke: var(--hatchling-legs); stroke-width: 3; stroke-linecap: square; stroke-linejoin: miter; }
 .nest.scurry .creature { animation: scurry 1.3s steps(10) forwards; }
-.nest.scurry .legs { animation: legs 0.12s steps(2) infinite; }
+.nest.scurry .legs { animation: legs 0.3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 50%; }
 @keyframes scurry {
   0% { transform: translate(0, -6px); }
   100% { transform: translate(calc(var(--dir, 1) * 520%), 80%) rotate(calc(var(--dir, 1) * 90deg)); }
 }
-@keyframes legs { to { transform: scaleY(-1); } }
+/* Chat ruling, 2026-09-25: the legs shuffle, a swing that never hides them (it was a flip through zero height, 8 a
+   second). Only their slant changes, never their size or colour, so nothing flashes; still under reduced motion. */
+@keyframes legs { from { transform: skewX(-14deg); } to { transform: skewX(14deg); } }
 .nest.lunge { z-index: 20; }
 .nest.lunge .creature { animation: lunge 1.3s steps(8) forwards; }
 @keyframes lunge {
