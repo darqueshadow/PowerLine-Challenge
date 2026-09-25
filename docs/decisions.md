@@ -319,6 +319,13 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: a clear's gunk blown up ~5× on a nest growing in (bug, found building E38)
+
+**Solved:** A blob a clear flung onto a nest during its 0.4 s unlock (scaled from 20%) came out about 5× too big.
+**Approach:** `fling()` placed and sized the blob by the canvas's drawn (transformed) box; it now sizes it by the canvas's
+layout width (`offsetWidth`). Rig section D pins one blob onto an unlocking nest and measures it (10.5% before, 0.6% after).
+**If you touch this again:** `getBoundingClientRect()` includes that unlock scale; anything sized from it must allow for it.
+
 ## Resolved 2026-09-25 — Egg Timer: E40, the first press and PRESS ANY KEY (Chat ruling)
 
 **Solved:** `titleFirstPress` stays "sound"; the title prompt says PRESS ANY KEY until the first press, where needed.

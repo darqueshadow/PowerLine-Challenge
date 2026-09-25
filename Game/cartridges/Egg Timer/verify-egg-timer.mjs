@@ -670,6 +670,21 @@ try {
     eq(fl[2], 0, "…one pass wipes it clean, not half-way (a clear's splatter used to leave the eraser half-transparent)");
   }
   ok(await ev("__et.boxes().focused"), "the command box gets the keyboard back after wiping");
+  {
+    // a clear's gunk that lands on a nest while it is still growing in (its unlock) is the same size as any other: one
+    // smallest blob, pinned (by the random numbers) onto an unlocking nest's canvas, measured once the nest is full size
+    const one = await ev(`(() => { __et.start('clear', 1); __et.advance(0.05);
+      const n = document.querySelector('.nest.unlock'), id = +n.dataset.id, cv = ET.view.nest(id).mess; ET.mess.clear(cv);
+      const b = document.querySelector('#board').getBoundingClientRect(), m = cv.getBoundingClientRect();
+      const seq = [(m.left + m.width / 2 - b.left) / b.width, (m.top + m.height / 2 - b.top) / b.height, 0], R = Math.random;
+      Math.random = () => (seq.length ? seq.shift() : 0.5);
+      try { ET.view.fling(1); } finally { Math.random = R; }
+      return { id, scaled: m.width < cv.offsetWidth * 0.9 }; })()`);
+    await wait(600);   // the unlock is over
+    const blob = await ev(`__et.mess(${one.id})`);
+    ok(one.scaled && blob > 0 && blob < 0.03, `gunk landing on a nest as it grows in is the usual size, not blown up once it's full size   [${(blob * 100).toFixed(1)}% of the nest's canvas]`);
+    await ev(`(ET.mess.clear(ET.view.nest(${one.id}).mess), 1)`);
+  }
 
   /* ------------------------------------------------------ E. hatch, pool */
   section("E. a hatch drains the pool");
