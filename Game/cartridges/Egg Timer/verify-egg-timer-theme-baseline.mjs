@@ -2559,8 +2559,8 @@ export default {
  },
  ".nest.scurry .legs": {
   "animation-delay": "0s",
-  "animation-direction": "normal",
-  "animation-duration": "0.12s",
+  "animation-direction": "alternate",
+  "animation-duration": "0.3s",
   "animation-fill-mode": "none",
   "animation-iteration-count": "infinite",
   "animation-name": "legs",
@@ -2568,7 +2568,9 @@ export default {
   "animation-range-end": "normal",
   "animation-range-start": "normal",
   "animation-timeline": "auto",
-  "animation-timing-function": "steps(2)"
+  "animation-timing-function": "ease-in-out",
+  "transform-box": "fill-box",
+  "transform-origin": "50% 50%"
  },
  "@keyframes scurry » 0%": {
   "transform": "translate(0px, -6px)"
@@ -2576,8 +2578,11 @@ export default {
  "@keyframes scurry » 100%": {
   "transform": "translate(calc(520%), 80%) rotate(calc(90deg))"
  },
+ "@keyframes legs » 0%": {
+  "transform": "skewX(-14deg)"
+ },
  "@keyframes legs » 100%": {
-  "transform": "scaleY(-1)"
+  "transform": "skewX(14deg)"
  },
  ".nest.lunge": {
   "z-index": "20"
@@ -3815,6 +3820,13 @@ export default {
   "margin-left": "0px",
   "margin-right": "0px",
   "margin-top": "0px"
+ },
+ "#screen-over p.hint": {
+  "font-family": "\"Trebuchet MS\", Verdana, sans-serif",
+  "font-size": "13px"
+ },
+ "#over-buttons": {
+  "margin-top": "12px"
  },
  "@media (prefers-reduced-motion: reduce) » .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",

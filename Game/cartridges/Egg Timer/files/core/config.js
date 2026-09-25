@@ -125,6 +125,25 @@
     errorSeconds: 1.0,       // [T] how long the red ERROR shows under the Command Line
     sound: true,            // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
 
+    // ── Music (Chat ruling, 2026-09-25) ──────────────────────────────────────
+    // Andrew's three Suno tracks, prepared by make-music.py from files/assets/music/ (never published): each loop file is
+    // the track up to its loop's end, with an 80 ms equal-power crossfade baked in at the join, and the gameplay loop also
+    // has its volume ramp baked in. loop = [start, end] in seconds inside the file; the file plays from 0 once, then loops.
+    // The tempo is exact: each loop is a whole number of bars (Chat's "about 144" and "about 129" measure 141.02 and
+    // 131.15). The numbers are make-music.py's files/audio/music.json, repeated here.
+    music: {
+      title: { file: "audio/title-screens-loop.mp3", loop: [34.668005, 92.531995], bpm: 141.02, level: 0.2 },   // title, mode selection, options
+      gameplay: { file: "audio/ticking-clock-loop.mp3", loop: [9.198005, 151.940431], bpm: 131.15, level: 0.03 }, // first wave to game over
+      over: { file: "audio/game-over.mp3", loop: null, bpm: 113.45, level: 0.2, seconds: 121.4 }                 // plays once
+    },
+    // [T] levels before the master: the menus have no sound effects to protect; in play the music sits at least 6 dB
+    // under the quietest effect (the egg-laying squeeze), which rig section M measures.
+    musicFade: 0.5,                // [T] seconds: every change of screen fades out and in; so does leaving game over
+    musicPauseFade: 0.05,          // [T] seconds: Esc pauses and resumes the gameplay music where it stopped, without a click
+    // ⏳ PENDING (E34): the game-over screen's default button (Enter). "title" (a clear way back to the title screen,
+    //   Chat's ruling) or "again" (play again, what Enter did before).
+    overDefault: "title",
+
     // ── E24 (Andrew, 2026-09-24): sound on and off ──────────────────────────
     // A mute button on every screen and the M key, remembered per browser. The title tune pauses in a background tab,
     // and every sound goes through one master level with a soft ceiling (audio.js), so overlaps can't clip.
@@ -253,9 +272,8 @@
     // ⏳ PENDING (E32): Andrew picks the tint in playtest from three swatches (theme.css --board-tint-*); `?tint=` in the
     //   address tries another one without changing this.
     boardTint: "lilac",            // "lilac" | "mint" | "cream"
-    // The beat clock: a BPM stored with each gameplay track (no beat detection). ⏳ There's no gameplay music yet, so
-    // this is a placeholder track. It runs on the player's seconds: mute doesn't stop it, pause freezes it.
-    gameplayTracks: [{ name: "placeholder (no gameplay music yet)", bpm: 100 }],
+    // The beat clock reads the gameplay track's BPM (music.gameplay.bpm, below). It runs on the player's seconds: mute
+    // doesn't stop the lights, pause freezes them.
     // 🚨 SAFETY: each light fades in and out over lightsBeats beats (never snaps); at most one new light a beat; at most
     //   lightsMax at once; faint (lightsPeak). None flashes: one slow rise and fall each, seconds long.
     lightsBeatChance: 0.5,         // [T] the chance a beat starts a new light

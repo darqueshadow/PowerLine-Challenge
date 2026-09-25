@@ -324,7 +324,7 @@
     el.style.setProperty("--dark-opacity", ET.CONFIG.warpDarkOpacity);
     back = { el: el, veil: veil, tint: pick, lights: [], beat: null, dark: false, darkAt: -Infinity, darkLog: [], starts: [], ids: 0 };
   }
-  function track() { return ET.CONFIG.gameplayTracks[0]; }
+  function track() { return ET.CONFIG.music.gameplay; }   // the beat: the gameplay track's BPM
   function setDark(on, t) {
     if (back.dark === on) return false;
     if (t - back.darkAt < Math.max(0.5, ET.CONFIG.warpDarkMinChange)) return false;   // 🚨 the veil's guard

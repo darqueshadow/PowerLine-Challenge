@@ -25,7 +25,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E34**; E32 and E33 are open);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E35**; E32, E33 and E34 are open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -142,6 +142,11 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Sound (E24/E25):** a mute button top left on every screen, and M (remembered per browser); in play M types, so the
   button and **Ctrl+M** mute. Every sound goes through `audio.js`'s one master chain: connect new sounds to `bus()`,
   never to the speakers directly (rig section A2). A background tab stops the title tune and holds every sound.
+  **Music (Chat, 2026-09-25):** `files/audio/` (from `make-music.py`; Andrew's sources in the git-ignored `files/assets/`):
+  the title track on the menus (shared), the gameplay loop in play, the game-over track once. 0.5 s fades on every
+  change; Esc pauses and resumes; the loops are sample-exact (loop points in `config.js` = `music.json`). The gameplay
+  level keeps it ≥ 6 dB under the quietest effect (rig section M). Game over: TITLE SCREEN / PLAY AGAIN (⏳ **E34**:
+  the default), and at the track's end it returns to the title by itself.
   Laying an egg: a squeeze on the cord's last stretch, then a pop (Chat, 2026-09-25; synthesized, ±8% pitch, at most 2
   of each at once, kept under THONG, the buzz and the hiss: rig section S measures them offline).
 - **Platform:** a plain browser tab, and Fang Rock (`fangrock://arcade/eggtimer`), which serves the arcade from the

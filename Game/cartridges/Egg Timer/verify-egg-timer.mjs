@@ -300,14 +300,17 @@ try {
     const m4 = await m();
     ok(m3.muted && m3.saved === "1" && !m4.muted && m4.saved === "0", "a click on the button mutes, and a second click brings it back");
     ok((await ev("__et.screen()")) === "title" && (await ev("document.activeElement !== document.querySelector('#mute')")), "…without leaving the title screen or taking the keyboard");
-    // a background tab (the page's visibility, simulated): the title tune stops and every sound is held
+    // a background tab (the page's visibility, simulated): every sound is held, the music where it is (music ruling,
+    // 2026-09-25: it pauses rather than stopping)
     await ev("Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); 1");
     let st = ""; for (let i = 0; i < 40 && st !== "suspended"; i++) { await wait(50); st = await ev("ET.audio.state()"); }
-    const away = await ev("__et.tune()");
-    ok(!away && st === "suspended", `in a background tab the title tune stops and every sound is held   [tune ${away}, sound ${st}]`);
+    const at0 = (await ev("ET.audio.musicState()")).at;
+    await wait(600);
+    const at1 = (await ev("ET.audio.musicState()")).at;
+    ok(st === "suspended" && at0 !== null && at0 === at1, `in a background tab every sound is held, and the title music pauses where it is   [sound ${st}, at ${at0 && at0.toFixed(2)} → ${at1 && at1.toFixed(2)} s]`);
     await ev("delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); 1");
-    let back = false; for (let i = 0; i < 60 && !back; i++) { await wait(50); back = (await ev("__et.tune()")) && (await ev("ET.audio.state()")) === "running"; }
-    ok(back, "…and the tune starts again when the tab comes back");
+    let back = false; for (let i = 0; i < 60 && !back; i++) { await wait(50); back = (await ev("ET.audio.state()")) === "running" && (await ev("ET.audio.musicState()")).at > at1; }
+    ok(back, "…and carries on from there when the tab comes back");
     // the master chain's ceiling, measured on a context of the rig's own (rendered offline, so it's exact)
     const clip = await ev(`(async () => {
       const sr = 44100, peak = (b) => { const d = b.getChannelData(0); let m = 0; for (let i = 0; i < d.length; i++) m = Math.max(m, Math.abs(d[i])); return m; };
@@ -1183,8 +1186,18 @@ try {
     ok(t0 !== t1, `…turning to a new angle now and then   [${t0} → ${t1}]`);
   }
   await menuFit("over");
+  {
+    // the game-over screen (music ruling, 2026-09-25): a clear way back to the title screen, and play again
+    const ob = await ev("({ words: [...document.querySelectorAll('#over-buttons button')].map(b => b.textContent), lit: document.querySelector('#over-buttons .selected').dataset.go, def: ET.CONFIG.overDefault })");
+    eq([ob.words, ob.lit], [["TITLE SCREEN", "PLAY AGAIN"], ob.def], "game over has two buttons, TITLE SCREEN and PLAY AGAIN, the default one lit (E34)");
+    await press("ArrowRight");
+    eq(await ev("document.querySelector('#over-buttons .selected').dataset.go"), ob.def === "title" ? "again" : "title", "…← → pick the other");
+    await press("ArrowLeft");
+  }
+  eq(await ev("__et.music().want"), "over", "the game-over track plays on the game-over screen");
   await press("Enter");
-  eq(await ev("__et.screen()"), "setup", "Enter goes back to setup");
+  eq(await ev("__et.screen()"), (await ev("ET.CONFIG.overDefault")) === "again" ? "setup" : "title", "Enter presses the lit button: back to the title screen");
+  eq(await ev("__et.music().want"), "title", "…and the title music takes over");
 
   /* ------------------------------------------------------ L. full-board layout */
   section("L. layout: all 12 nests across the whole board (E30: no side panel in play), at every measured size");
@@ -1469,6 +1482,28 @@ try {
     await shot("13b-warp-over");
   }
 
+  /* ------------------------------------------------------- H3. the hatchling's legs */
+  section("H3. the hatchling's legs in a scurry (Chat ruling, 2026-09-25)");
+  {
+    // watch one scurry frame by frame: the legs keep their height the whole time (a swing, never a squash or a flip)
+    const sc = await ev(`new Promise((done) => {
+      const n = document.querySelector('.nest[data-id="0"]'), legs = n.querySelector('.legs');
+      n.dataset.state = 'escape'; n.classList.remove('lunge'); n.classList.add('scurry');
+      const h = [], slant = [], looks = [];
+      const t0 = performance.now();
+      const tick = () => {
+        const m = new DOMMatrix(getComputedStyle(legs).transform === 'none' ? undefined : getComputedStyle(legs).transform);
+        h.push(m.d); slant.push(+m.c.toFixed(3));
+        const p = getComputedStyle(legs.querySelector('path')); looks.push(p.stroke + '|' + p.opacity + '|' + getComputedStyle(legs).opacity + '|' + getComputedStyle(legs).visibility);
+        if (performance.now() - t0 < 1300) requestAnimationFrame(tick);
+        else { n.classList.remove('scurry'); n.dataset.state = 'idle'; done({ frames: h.length, minH: Math.min(...h), slants: new Set(slant).size, looks: new Set(looks).size, anim: getComputedStyle(legs).animationName }); }
+      };
+      requestAnimationFrame(tick);
+    })`);
+    ok(sc.frames > 20 && sc.minH > 0.99 && sc.slants > 5, `the legs stay visible through the whole scurry: they swing (shuffle), never squashed to zero height or flipped   [${sc.frames} frames, smallest height ×${sc.minH.toFixed(2)}, ${sc.slants} slants]`);
+    ok(sc.looks === 1, "SAFETY: …and they never change colour or fade, so nothing flashes");
+  }
+
   /* ------------------------------------------------------- R. reduced motion */
   section("R. reduced motion (Andrew, 2026-09-24): the place-me cue, the overtime wobble, the cord twitch and the legs hold still");
   {
@@ -1527,15 +1562,83 @@ try {
     ok(live.t && !!live.cue && live.cue.anim === "cue", `without reduced motion the place-me cue blinks   [${live.cue && live.cue.anim}]`);
     ok(live.cord.some((d) => d !== null && d > 0), `…the laying cord twitches   [spread ${live.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(live.bold && live.wobble.some((a) => a !== null && a > 0), `…the egg wobbles in overtime   [${live.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
-    eq(live.legs, "legs", "…and the escaping hatchling's legs flip");
+    eq(live.legs, "legs", "…and the escaping hatchling's legs shuffle");
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const still = await motion("reduced");
     ok(still.t && !!still.cue && still.cue.anim === "none" && still.cue.border === "rgb(34, 227, 255)", `SAFETY: with reduced motion the place-me cue stops blinking and holds a steady cyan border   [${still.cue && still.cue.anim}, ${still.cue && still.cue.border}]`);
     ok(still.cord.length === 6 && still.cord.every((d) => d === 0), `SAFETY: …the laying cord hangs straight, no twitch   [spread ${still.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(still.bold && still.wobble.length === 6 && still.wobble.every((a) => a === 0), `SAFETY: …the overtime egg doesn't wobble   [${still.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
-    eq(still.legs, "none", "SAFETY: …and the hatchling's legs don't flip");
+    eq(still.legs, "none", "SAFETY: …and the hatchling's legs hold still");
     await c.send("Emulation.setEmulatedMedia", { features: [] });
+  }
+
+  /* ------------------------------------------------------- M. music */
+  section("M. music (Chat ruling, 2026-09-25)");
+  {
+    const esc = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
+    // the files: small, decoding to exactly the lengths make-music.py wrote, the loop points as in its manifest
+    const files = await ev(`fetch('audio/music.json').then(r => r.json()).then(man => Promise.all(Object.entries(ET.CONFIG.music).map(([k, M]) =>
+      fetch(M.file).then(r => r.arrayBuffer()).then(ab => { const kb = Math.round(ab.byteLength / 1024);
+        return new OfflineAudioContext(2, 44100, 44100).decodeAudioData(ab).then(b => {
+          const d0 = b.getChannelData(0), d1 = b.getChannelData(1), m = (i) => (d0[i] + d1[i]) / 2, sr = b.sampleRate;
+          const out = { k, kb, seconds: +(b.length / sr).toFixed(3), want: man[k].loop ? +man[k].loop[1].toFixed(3) : man[k].seconds, same: JSON.stringify(M.loop) === JSON.stringify(man[k].loop || null) && M.bpm === man[k].bpm };
+          if (M.loop) {
+            const i0 = Math.round(M.loop[0] * sr), i1 = Math.round(M.loop[1] * sr), w = 8 * sr;
+            const rms = (a, z) => { let q = 0; for (let i = a; i < z; i++) q += m(i) * m(i); return Math.sqrt(q / (z - a)); };
+            out.step = +Math.abs(m(i1 - 1) - m(i0)).toFixed(4);
+            out.joinDb = +(20 * Math.log10(rms(i1 - w, i1) / rms(i0, i0 + w))).toFixed(2);
+          }
+          // the loud parts: the 90th percentile of 400 ms windows
+          const W = Math.round(0.4 * sr), r = []; for (let a = 0; a + W < b.length; a += W) { let q = 0; for (let i = a; i < a + W; i += 4) q += m(i) * m(i); r.push(Math.sqrt(q / (W / 4))); }
+          r.sort((x, y) => x - y); out.p90 = r[Math.floor(r.length * 0.9)];
+          return out; }); }))))`);
+    const fm = Object.fromEntries(files.map((f) => [f.k, f]));
+    ok(files.length === 3 && files.every((f) => f.kb < 2600 && f.same && Math.abs(f.seconds - f.want) < 0.01),
+      `three music files, each under 2.6 MB, decoding to exactly the length make-music.py wrote, loop points and tempo as in its manifest   [${files.map((f) => f.k + " " + f.kb + " KB, " + f.seconds + " s").join("; ")}]`);
+    ok(fm.title.step < 0.02 && fm.gameplay.step < 0.02, `each loop's join has no click: the jump from its end to its start is a tiny step   [title ${fm.title.step}, gameplay ${fm.gameplay.step}]`);
+    ok(Math.abs(fm.gameplay.joinDb) <= 0.5, `the gameplay loop's volume ramp is baked in: its end matches its start within 0.5 dB   [${fm.gameplay.joinDb} dB]`);
+    eq(await ev("ET.view.backdrop().bpm"), await ev("ET.CONFIG.music.gameplay.bpm"), "the board lights keep time to the gameplay track's BPM, measured from the file");
+    // the mix: the gameplay music, at its level, sits at least 6 dB under every sound effect (measured while each sounds)
+    const cues = await ev(`Promise.all([['thong'], ['buzz'], ['hiss', [0.85, 0.12]], ['squeeze'], ['pop']].map(([k, a]) => ET.audio.measure(k, a, 1).then(x => ({ k, active: x.active }))))`);
+    const quietest = cues.reduce((a, b) => (a.active < b.active ? a : b)), musicRms = fm.gameplay.p90 * (await ev("ET.CONFIG.music.gameplay.level"));
+    const under = 20 * Math.log10(quietest.active / musicRms);
+    ok(under >= 6, `in play the music sits at least 6 dB under every sound effect (THONG, buzz, hiss, the egg-laying squeeze and pop)   [${under.toFixed(1)} dB under the quietest, the ${quietest.k}]`);
+    // the menus share one track: title → options doesn't restart it; into play it fades over to the gameplay track
+    await ev("__et.start('clear', 1); 1");
+    if (await ev("__et.paused()")) await ev(`(() => { ${esc}; return 1; })()`);   // start unpaused
+    const into = async (screen, want) => { await ev(`__et.show('${screen}')`); for (let i = 0; i < 60; i++) { const m = await ev("__et.music()"); if (m.playing === want) return m; await wait(50); } return ev("__et.music()"); };
+    const t1 = await into("title", "title"), n1 = t1.log.filter((e) => e.started === "title").length;
+    const t2 = await into("setup", "title"), n2 = t2.log.filter((e) => e.started === "title").length;
+    ok(t1.playing === "title" && t2.playing === "title" && n2 === n1, "the title and options screens share the title track: moving between them doesn't restart it");
+    const g0 = await into("play", "gameplay");
+    await wait(100);   // (a ramp's first moment reads back as its old value)
+    const early = (await ev("__et.music()")).level;
+    await wait(700);
+    const full = (await ev("__et.music()")).level, lvl = await ev("ET.CONFIG.music.gameplay.level");
+    ok(g0.playing === "gameplay" && early < lvl * 0.9 && Math.abs(full - lvl) < 1e-4, `changing screens fades the music out and the next in, about half a second, no hard cut   [gameplay level ${early.toFixed(4)} → ${full.toFixed(4)}]`);
+    // Time Warp leaves the music alone
+    const tw = await ev("(() => { const s = __et.snapshot(), a = ET.audio.musicState(); ET.view.render(Object.assign({}, s, { warp: true, time: s.time + 0.05 })); const b = ET.audio.musicState(); ET.view.render(Object.assign({}, s, { warp: false, time: s.time + 0.7 })); return [a.playing, b.playing, a.level === b.level]; })()");
+    eq(tw, ["gameplay", "gameplay", true], "Time Warp doesn't change the music");
+    // Esc pauses the gameplay music where it is, and resumes from there
+    if (await ev("__et.paused()")) await ev(`(() => { ${esc}; return 1; })()`);
+    await wait(300);
+    const before = (await ev("__et.music()")).at;
+    await ev(`(() => { ${esc}; return 1; })()`);
+    const held = await ev("__et.music()");
+    await wait(500);
+    await ev(`(() => { ${esc}; return 1; })()`);
+    let res = null; for (let i = 0; i < 40; i++) { res = await ev("__et.music()"); if (res.playing) break; await wait(50); }
+    const resumedFrom = res.log.filter((e) => e.started === "gameplay").pop().from;
+    ok(held.paused && !held.playing && Math.abs(resumedFrom - before) < 0.25, `Esc pauses the gameplay music, and it resumes where it stopped   [paused at ${before.toFixed(2)} s, resumed from ${resumedFrom.toFixed(2)} s]`);
+    // game over: its track plays once, and at its end the game goes back to the title screen and the title music
+    await ev("__et.show('over')");
+    let ov = null; for (let i = 0; i < 60; i++) { ov = await ev("__et.music()"); if (ov.playing === "over") break; await wait(50); }
+    const once = await ev("ET.CONFIG.music.over.loop === null");
+    await ev("__et.endMusic()");   // as if it had played to its end
+    let home = null; for (let i = 0; i < 60; i++) { home = await ev("({ screen: __et.screen(), m: __et.music() })"); if (home.screen === "title" && home.m.want === "title") break; await wait(50); }
+    ok(ov.playing === "over" && once && home.screen === "title" && home.m.want === "title", "the game-over track plays once; left alone, at its end the game goes back to the title screen and the title music starts");
+    await ev("__et.show('setup'); 1");
   }
 
   /* ------------------------------------------------------- S. egg-laying sound */

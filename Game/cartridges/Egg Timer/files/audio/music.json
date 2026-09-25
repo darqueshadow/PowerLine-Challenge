@@ -1,0 +1,51 @@
+{
+ "title": {
+  "file": "title-screens-loop.mp3",
+  "bpm": 141.02,
+  "seconds": 141.6,
+  "onset_ms": -50,
+  "join_match": 0.36,
+  "chat": [
+   34.72,
+   92.58
+  ],
+  "loop": [
+   34.668005,
+   92.531995
+  ],
+  "bars": 34,
+  "moved_ms": [
+   -52,
+   -48
+  ],
+  "join_step": 0.0044
+ },
+ "gameplay": {
+  "file": "ticking-clock-loop.mp3",
+  "bpm": 131.15,
+  "seconds": 181.68,
+  "onset_ms": -40,
+  "join_match": 0.293,
+  "chat": [
+   9.24,
+   151.99
+  ],
+  "loop": [
+   9.198005,
+   151.940431
+  ],
+  "bars": 78,
+  "moved_ms": [
+   -42,
+   -50
+  ],
+  "ramp_db": 3.07,
+  "join_db_after": 0.19,
+  "join_step": 0.0014
+ },
+ "over": {
+  "file": "game-over.mp3",
+  "bpm": 113.45,
+  "seconds": 121.4
+ }
+}

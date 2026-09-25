@@ -1,16 +1,3 @@
-> **FILING NOTE — Claude Code, 2026-09-25 (Legs).** Chat's answers are filed verbatim as
-> `Previous Versions/EGG_TIMER_CHAT_ANSWERS_2026-09-25.md`. Item 2, the hatchling's legs, is merged here, tagged *(Legs)*
-> (§7), built and **pushed live**; item 1, the cord egg, goes on the pilot-art hold branch.
-
-> **FILING NOTE — Claude Code, 2026-09-25 (Music).** Chat's music ruling is merged, tagged *(Music)*, filed verbatim as
-> `Previous Versions/EGG_TIMER_MUSIC_2026-09-25.md` (§7, §11). Built and **pushed live** under the standing rule (both
-> rigs green). **E34 raised:** the game-over screen's default button. Andrew's source files stay off GitHub and the site.
-
-> **FILING NOTE — Claude Code, 2026-09-25 (Pilot art).** Chat's pilot-art ruling (nest + egg) is merged, tagged
-> *(Pilot art)*, filed verbatim as `Previous Versions/EGG_TIMER_PILOT_ART_2026-09-25.md`. Built on the local branch
-> `et-pilot-art-hold`, both rigs green, and **held for Andrew's approval** of the screenshots of every state (in his
-> Downloads: "Egg Timer pilot art - every state.png"). After his yes it merges to `main` and goes live.
-
 > **FILING NOTE — Claude Code, 2026-09-25 (Lay sound).** Chat's egg-laying sound ruling is merged, tagged *(Lay sound)*,
 > filed verbatim as `Previous Versions/EGG_TIMER_LAY_SOUND_2026-09-25.md` (§7). Built and **pushed live** under the
 > standing rule (both rigs green). The pilot-art ruling that came with it waits for Andrew's approval of screenshots.
@@ -311,30 +298,6 @@ at once, with no flash.** *(E31)* Andrew's very fast blink isn't allowed (at mos
 **after the 3 flashes, while Time Warp runs, the "TIME WARP" letters wobble and stretch fast** (a 0.36 s [T] squash,
 stretch and skew of the letters only). The sign stays lit and its colours never change. **Under reduced motion: lit,
 no wobble.**
-*(Legs)* **The hatchling's legs stay visible at all times: in a scurry they shuffle (a side-to-side slant), never squashed
-to zero height or flipped; nothing flashes.** *(Code: a 14° skew each way, 0.3 s a swing; it was a flip through zero
-height 8 times a second, over the flash limit. Still under reduced motion. Rig section H3 samples a whole scurry.)*
-*(Music)* **Andrew's three Suno tracks replace the title tune:** "Title Screens" on the title, mode-selection and
-options screens (one track: moving between them doesn't restart it), "Ticking Clock" (the extended take) in play from the
-first wave to game over, and "Game Over" once on the game-over screen. Each loop plays its intro once, then loops with no
-gap or click (an 80 ms equal-power crossfade baked in at the join); the gameplay loop's last minute is ramped down so its
-end matches its start. **Every change of screen fades out and in (0.5 s [T]); Esc pauses the gameplay music and resumes
-where it stopped; a background tab holds all music; mute covers it; Time Warp doesn't change it.** The gameplay music sits
-clearly under every sound effect. **The game-over screen** has TITLE SCREEN and PLAY AGAIN buttons (← → pick, Enter
-presses the lit one; leaving fades the music out); left alone, the game-over track plays to its end and the game returns
-to the title screen and its music. *(Code: `make-music.py` prepares the files in `files/audio/` from Andrew's MP3s (no
-WAVs), with provenance in `files/audio/README.md`. Chat's loop points were checked on the files: the joins were matched by
-waveform and both points moved together onto the beat (up to ~50 ms). The tempos measure **141.02** (title; Chat: about
-144) and **131.15** BPM (gameplay; Chat: about 129), each loop a whole number of bars (34 and 78); the board lights use
-131.15. The ramp measured 3.07 dB and leaves the join within 0.2 dB. Levels [T]: menus 0.2, play 0.03, which puts the
-gameplay music 6.8 dB under the quietest effect, the egg-laying squeeze. Andrew's full-length sources in
-`files/assets/` are git-ignored: never committed, so never published.)*
-
-*(Pilot art)* **The nest and egg are Andrew's approved pictures** (a hybrid: the cracks stay vector), with the egg's
-hints as pictures coming out of its cracks. **Each egg is mirrored left/right at random (50/50) when it's laid**, and
-**about 1 egg in 6 [T] gets a rare eye hint** from 50% of the way to hatching, beside the others, staying until the egg is
-cleared or hatches (a still picture, no blink). *(Code: the layers are in `files/art/`, built by `make-pilot-art.py`;
-the eye sits in the right crack below the leg; the cord's egg is still the plain oval, the brief's next code item.)*
 *(Lay sound)* **Laying an egg sounds: a short wet, rubbery squeeze while the bulge travels the cord's last stretch, then
 a cartoon "finger out of the mouth" pop the moment the egg drops into the nest.** Synthesized for now; each lay nudges
 the pitch (±8% [T]); at most 2 [T] of each sound at once; both clearly under THONG, the buzz and the hiss. Mute covers
@@ -582,17 +545,6 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
 
 - ~~**E24. No way to turn the sound off.**~~ **Resolved** *(Andrew, 2026-09-24, audit fixes A)*: **a mute button plus the M key, remembered per browser; the title tune pauses in a background tab; a master level so overlapping sounds can't clip. No volume slider.** *(Code: the button sits top left on every screen, above every overlay, so it works while paused too; in play the HUD makes room for it, it keeps the hose-nozzle cursor, and pressing it never takes the keyboard from a Command Line. Every sound goes through one master level (0.8 [T]) and then a soft ceiling: untouched below its knee, and nothing ever leaves louder than 0.95 of full scale, however many sounds overlap. A background tab stops the title tune and holds every sound; the tune starts again from the top when the tab comes back. The setting is kept in the browser's own storage, so a private window forgets it. The browser rig checks each part.)* *(The gap, from the audit)* There was no mute or volume control, overlapping sounds could pass full scale and clip, and the title tune played on in a background tab.
 - ~~**E25. The M key during play.**~~ **Resolved** *(Andrew, 2026-09-24)*: **keep as built, with Ctrl+M on for play**: M mutes on the menus and while paused, the mute button any time, and **Ctrl+M during play** (`muteKeyInPlay: "ctrl-m"`). Andrew confirmed Ctrl+M does nothing in VisiCAD, so it teaches no wrong habit. *(Original question follows.)* M is a letter players type (the MB code), and during play a Command Line always has the keys, so M can't mute there without breaking typing. **Built** (`muteKeyInPlay: "none"`): M mutes on the title, mode-selection and game-over screens and while paused; during play the mute button does it. The other value, `"ctrl-m"`, also lets **Ctrl+M** mute mid-game (Chrome has no Ctrl+M shortcut of its own). Needed: keep it as built, or give play a mute key such as Ctrl+M.
-
-### Raised by Code building the music (2026-09-25) — E34 open
-
-- **E34. The game-over screen's default button.** *(Music: "a clear way back to the title screen: a button, with Enter
-  as its key if it's the default. If there is also a Play Again, keep it.")* Before, the screen had no buttons: Enter or a
-  click went to the mode selection. Built: **TITLE SCREEN** and **PLAY AGAIN** (to the mode selection), ← → pick, Enter
-  presses the lit one, ⏳ `overDefault: "title"` (the other value, `"again"`, keeps Enter going where it used to).
-  Needed: which one is the default?
-- *(A note, not a question.)* The gameplay music follows the rule "clearly under the sound effects", and the quietest
-  effect is the soft egg-laying squeeze, so the music plays at 0.03 of full (6.8 dB under it). If it feels too quiet in
-  playtest, the fix is to raise the effects and the music together, not the music alone.
 
 ### Raised by Code building the board lights (2026-09-25) — E32 and E33 open
 

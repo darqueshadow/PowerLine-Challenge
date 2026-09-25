@@ -5,7 +5,7 @@
    smile runs a touch too wide, and one baby has slightly too many teeth.
    Pure inline SVG with CSS animation: it is built once at boot, draws nothing
    per frame from script, and never holds up the keyboard or the game's start.
-   The tune is audio.js's titleTune(), an original melody.
+   The music is Andrew's title track (audio.js's music("title"), Chat ruling 2026-09-25).
    The mode-selection screen gets its own creature (buildCritter, below).
    ========================================================================= */
 (function (root) {

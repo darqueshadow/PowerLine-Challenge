@@ -64,9 +64,13 @@
     placeHowTo(name);
     ET.lights.mode(name === "play" ? "calm" : "attract");   // arcade attract lights: lively on menus, calm in play
     if (name === "setup") paintSetup();
-    // Refinement 4 §6 and E21 (ruled): the title tune plays on the title AND mode-selection screens, so it's
-    // heard once the first key or click has unlocked sound; it stops when a game starts
-    ET.audio.titleTune(name === "title" || name === "setup");
+    // Music (Chat ruling, 2026-09-25): the menu screens share the title track (E21: heard once the first key or click
+    // has unlocked sound), play has the gameplay track, game over its own, played once. A change fades out and in.
+    ET.audio.music(name === "play" ? "gameplay" : name === "over" ? "over" : "title");
+    if (name === "over") paintOver(C.overDefault === "again" ? "again" : "title");
+    // with no sound at all the game-over track can't end, so its length stands in for it
+    clearTimeout(app.overAuto);
+    if (name === "over" && ET.audio.state() === "none") app.overAuto = setTimeout(function () { if (app.screen === "over") show("title"); }, C.music.over.seconds * 1000);
     if (name === "play") ET.boxes.focus();
     ET.view.hose();   // the hose shows on the play screen only
     paintMute(ET.audio.muted());   // the mute button's tooltip names the key that works on this screen
@@ -171,9 +175,19 @@
     show("over");
   }
 
+  /* The game-over screen's two buttons (Chat ruling, 2026-09-25): TITLE SCREEN and PLAY AGAIN (to the mode selection,
+     where Enter used to go). Leaving fades the game-over music out on the way (show() changes the track). If the player
+     does nothing, the game-over track plays to its end and the game goes back to the title screen by itself. */
+  function paintOver(which) {
+    app.over = which;
+    document.querySelectorAll("#over-buttons [data-go]").forEach(function (b) { b.classList.toggle("selected", b.dataset.go === which); });
+  }
+  function leaveOver(which) { show(which === "again" ? "setup" : "title"); }
+
   function setPaused(on) {
     app.paused = on;
     $("#pause").hidden = !on;
+    ET.audio.musicPause(on);   // the gameplay music pauses and resumes where it stopped
     if (!on) ET.boxes.focus();
     paintMute(ET.audio.muted());   // paused, M mutes again
   }
@@ -228,7 +242,9 @@
         if (ev.key === "Enter") { ev.preventDefault(); if (app.data) show("setup"); }
         return;
       case "over":
-        if (ev.key === "Enter") { ev.preventDefault(); show("setup"); }
+        // two buttons (Chat ruling, 2026-09-25): ← → pick, Enter presses the lit one (the default: E34)
+        if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") { ev.preventDefault(); paintOver(app.over === "title" ? "again" : "title"); }
+        if (ev.key === "Enter") { ev.preventDefault(); leaveOver(app.over); }
         return;
       case "setup":
         setupKey(ev);
@@ -435,7 +451,10 @@
     });
 
     $("#screen-title").addEventListener("click", function () { if (app.data) show("setup"); });
-    $("#screen-over").addEventListener("click", function () { show("setup"); });
+    document.querySelectorAll("#over-buttons [data-go]").forEach(function (b) {
+      b.addEventListener("click", function () { leaveOver(b.dataset.go); });
+    });
+    ET.audio.onMusicEnd(function (k) { if (k === "over" && app.screen === "over") show("title"); });
     document.querySelectorAll("[data-mode]").forEach(function (b) {
       b.addEventListener("click", function () {
         app.modeIndex = MODES.map(function (m) { return m.id; }).indexOf(b.dataset.mode);
@@ -491,6 +510,10 @@
     mess: function (id) { return ET.mess.coverage(ET.view.nest(id).mess); },
     floor: function () { return ET.mess.coverage(ET.view.floor()); },
     tune: function () { return ET.audio.tunePlaying(); },
+    // rig-only: the music now, a screen change as a button would make it, and a track's end as if it had played out
+    music: function () { return ET.audio.musicState(); },
+    show: function (name) { show(name); return name; },
+    endMusic: function () { return ET.audio.endMusicForRig(); },
     nestClass: function (id) { var v = ET.view.nest(id); return v.el.className + " state=" + v.el.dataset.state; }
   };
 })();
