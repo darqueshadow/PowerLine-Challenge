@@ -94,7 +94,7 @@ button { font: inherit; }
 /* E29 ruling: no headings, a small number badge in each panel's corner */
 .strip .num { position: absolute; top: -9px; left: -9px; z-index: 1; display: grid; place-items: center; width: 1.6em; height: 1.6em; border: 2px solid var(--outline); border-radius: 50%; box-shadow: 2px 2px 0 var(--outline); font-family: var(--font-display); font-size: 0.95em; color: var(--outline); }
 .strip .cell:nth-child(1) .num { background: var(--cyan); }
-.strip .cell:nth-child(2) .num { background: var(--readout-bold-timer-bg); }
+.strip .cell:nth-child(2) .num { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }   /* E33: white, as on the timer (dark was 3.4:1) */
 .strip .cell:nth-child(3) .num { background: var(--gold); }
 .strip .cell:nth-child(4) .num { background: var(--pink); }
 .strip .cell:nth-child(5) .num { background: var(--warp); }

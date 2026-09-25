@@ -380,13 +380,14 @@ export default {
  ".strip .cell:nth-child(2) .num": {
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "rgb(255, 45, 138)",
+  "background-color": "rgb(209, 0, 106)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",
   "background-position-y": "initial",
   "background-repeat": "initial",
-  "background-size": "initial"
+  "background-size": "initial",
+  "color": "rgb(255, 255, 255)"
  },
  ".strip .cell:nth-child(3) .num": {
   "background-attachment": "initial",
@@ -528,7 +529,7 @@ export default {
  ".strip .chip.bold": {
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "rgb(255, 45, 138)",
+  "background-color": "rgb(209, 0, 106)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",
@@ -1697,7 +1698,7 @@ export default {
  "#tip-ready": {
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "rgb(255, 45, 138)",
+  "background-color": "rgb(209, 0, 106)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",
@@ -2737,7 +2738,7 @@ export default {
  ".nest.bold .readout .clock": {
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "rgb(255, 45, 138)",
+  "background-color": "rgb(209, 0, 106)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",

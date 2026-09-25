@@ -519,8 +519,10 @@ try {
   }
   ok(!!r.hit, "the nest reaches its trigger");
   eq(await ev(`getComputedStyle(${q(".readout")}).fontWeight`), "900", "at the trigger the readout goes bold");
-  eq(await boxes(), ["900 rgb(11, 93, 30) rgb(255, 255, 255)", "900 rgb(0, 0, 0) rgb(185, 185, 198)", "900 rgb(255, 255, 255) rgb(255, 45, 138)"],
-    "Refinement 5 §2: at the limit, all three at once: unit bold dark green on white, type bold black on grey, timer bold white on hot pink");
+  eq(await boxes(), ["900 rgb(11, 93, 30) rgb(255, 255, 255)", "900 rgb(0, 0, 0) rgb(185, 185, 198)", "900 rgb(255, 255, 255) rgb(209, 0, 106)"],
+    "Refinement 5 §2: at the limit, all three at once: unit bold dark green on white, type bold black on grey, timer bold white on the ready pink (E33: #d1006a)");
+  eq(await ev(`[".strip .chip.bold", ".strip .cell:nth-child(2) .num"].map(s => { const e = document.querySelector(s), c = getComputedStyle(e); return c.backgroundColor + " " + c.color; })`),
+    ["rgb(209, 0, 106) rgb(255, 255, 255)", "rgb(209, 0, 106) rgb(255, 255, 255)"], "E33: the How To Play strip's pink chip and panel 2's badge are the real timer's pink, white on it");
   const expect = { VS: 10, STR: 10, SS: 15, EOS: 30, MB: 30 }[n.code];
   {
     // the clock as it read at the bold step: one step of play is at most 0.1 s, 3 displayed seconds at base speed
@@ -1133,7 +1135,7 @@ try {
       return out;
     })()`);
     ok(!!run.ready && run.ready.bold && run.ready.text === "Pink = ready! Type RCAV " + run.ready.unit && run.ready.line, `E28: in wave 1 the first egg to go bold gets a tag, with a leader line to it   [${run.ready && run.ready.text}]`);
-    eq(run.ready && run.ready.pink, "rgb(255, 45, 138)", "…in the bold timer's pink");
+    eq(run.ready && run.ready.pink, "rgb(209, 0, 106)", "…in the bold timer's pink (E33)");
     ok(!!run.clock && run.clock.text === "◀ Check the wall clock" && run.clock.line && run.clock.wave === 1, `E28: the first "Clear @" note gets "Check the wall clock", beside the wall clock, with a leader line to the note   [${run.clock && run.clock.text}]`);
     eq(run.hitNest, 0, "E28: neither tag covers a nest or a readout");
     ok(run.after === true && !run.readyAgain && !run.wave2, "E28: the ready tag goes when that egg is cleared, and neither tag comes back that game (wave 2 included)");

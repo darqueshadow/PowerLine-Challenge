@@ -32,7 +32,7 @@
   --readout-type-ink: #000;               /* black */
   --readout-timer-bg: #ffd23a;            /* egg-yolk yellow */
   --readout-timer-ink: #3b0a5c;           /* deep purple */
-  --readout-bold-timer-bg: #ff2d8a;       /* hot pink (at the limit) */
+  --readout-bold-timer-bg: #d1006a;       /* E33: "ready" pink (at the limit), white on it 5.4:1; every "ready / act now" pink */
   --readout-bold-timer-ink: #fff;         /* white (at the limit) */
 
   /* Wall clock and the AD notes */

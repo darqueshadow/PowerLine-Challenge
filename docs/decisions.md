@@ -319,6 +319,15 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E33, the ready pink (Chat ruling)
+
+**Solved:** The bold timer's white-on-pink was 3.5:1; the pink is now `#d1006a` (5.4:1) everywhere it means "ready".
+**Approach:** One token, `--readout-bold-timer-bg`, already fed every "ready" use (nest timer, wave-1 tag, the strip's chip
+and panel 2's badge), so the change is one value; the badge's digit went white (dark ink on the new pink is 3.4:1).
+Decoration pinks (`--hot`, `--pink`) stay. Theme baseline rewritten: exactly those four rules and the badge ink changed.
+**If you touch this again:** a new "ready" cue must use that token, never `--hot` (they look alike but aren't the same).
+Nerva Beacon's cabinet art hard-codes the old `#ff2d8a` (`app.js`), NB's to update.
+
 ## Resolved 2026-09-25 — Egg Timer: the hatchling's legs (Chat ruling)
 
 **Solved:** In a scurry the hatchling's legs shuffle (a slant back and forth) and never vanish; nothing flashes.
