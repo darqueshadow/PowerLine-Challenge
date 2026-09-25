@@ -25,7 +25,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E41**; open: E40);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E41**; none open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -140,7 +140,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   button and **Ctrl+M** mute. Every sound goes through `audio.js`'s one master chain: connect new sounds to `bus()`,
   never to the speakers directly (rig section A2). A background tab stops the title tune and holds every sound.
   **E35:** the sound context is made at boot, so the title track plays as the title appears where autoplay is allowed
-  (Fang Rock); in a browser the first Enter or click on the title only starts it (⏳ **E40** `titleFirstPress`).
+  (Fang Rock); in a browser the first Enter or click on the title only starts it (E40, ruled), and until then the title's prompt
+  reads PRESS ANY KEY (never in Fang Rock: it waits 0.3 s for autoplay behind LOADING…).
   **Music (Chat, 2026-09-25):** `files/audio/` (from `make-music.py`; Andrew's sources in the git-ignored `files/assets/`):
   the title track on the menus (shared), the gameplay loop in play, the game-over track once. 0.5 s fades on every
   change; Esc pauses and resumes; the loops are sample-exact (loop points in `config.js` = `music.json`). **E36:** every

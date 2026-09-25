@@ -1923,7 +1923,9 @@ try {
     if (id) await c.send("Fetch.continueRequest", { requestId: id });
     await c.send("Fetch.disable");
     for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
-    eq(await ev("document.querySelector('#title-prompt').textContent"), "PRESS ENTER", "…the prompt changes once it has loaded");
+    // (E40: LOADING… also covers the prompt's short wait for autoplay, so poll)
+    let pr = ""; for (let i = 0; i < 40 && (pr = await ev("document.querySelector('#title-prompt').textContent")) === "LOADING…"; i++) await wait(50);
+    eq(pr, "PRESS ENTER", "…the prompt changes once it has loaded");
     await press("Enter");
     eq(await ev("__et.screen()"), "setup", "…and then Enter goes on to setup as usual");
 
@@ -1973,8 +1975,17 @@ try {
     const heard = async () => { let r = null; for (let i = 0; i < 60; i++) { r = await ev("({ state: ET.audio.state(), tune: __et.tune(), screen: __et.screen() })"); if (r.state === "running" && r.tune) break; await wait(50); } return r; };
     const q0 = await fresh();
     eq([q0.state, q0.m.playing, q0.screen], ["suspended", "title", "title"], "E35: before any key, the title track is already set going on the title screen, held only by the browser");
+    // E40: until that first press the prompt reads PRESS ANY KEY, blinking as the prompt always has (1 a second)
+    const prompt = () => ev("(() => { const p = document.querySelector('#title-prompt'), cs = getComputedStyle(p); return { text: p.textContent, anim: cs.animationName, secs: parseFloat(cs.animationDuration) }; })()");
+    let p0 = null; for (let i = 0; i < 40; i++) { p0 = await prompt(); if (p0.text === "PRESS ANY KEY") break; await wait(50); }
+    ok(p0.text === "PRESS ANY KEY" && p0.anim === "blink" && p0.secs >= 0.5, `E40: before the first press the title says PRESS ANY KEY, blinking at most 2 a second   [${p0.text}, ${p0.anim} every ${p0.secs} s]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    eq((await prompt()).anim, "none", "E40: …steady under reduced motion");
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
     await press("Enter");
     eq(await heard(), { state: "running", tune: true, screen: "title" }, "E35: the first Enter starts the title music ON the title screen (titleFirstPress \"sound\")");
+    eq((await prompt()).text, "PRESS ENTER", "E40: …and the prompt goes back to PRESS ENTER");
     await press("Enter");
     eq(await ev("__et.screen()"), "setup", "…and the next Enter goes on to the options screen, the music playing on");
     await fresh();
@@ -1985,6 +1996,8 @@ try {
     await tClick();
     eq(await ev("__et.screen()"), "setup", "…and the next click goes on");
     await fresh("ET.CONFIG.titleFirstPress = 'go'; 1");
+    await wait(450);   // past the prompt's wait for autoplay
+    eq((await prompt()).text, "PRESS ENTER", "E40: with \"go\" there's no extra press, so no PRESS ANY KEY");
     await press("Enter");
     const go = await heard();
     eq([go.screen, go.tune], ["setup", true], "E35 (the other value, \"go\"): the first Enter starts the music and goes on, as before");

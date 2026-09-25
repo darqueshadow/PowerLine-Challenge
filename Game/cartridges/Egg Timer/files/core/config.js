@@ -159,8 +159,10 @@
     muteKeyInPlay: "ctrl-m",       // "ctrl-m" | "none"
     // E35 (Chat, 2026-09-25): the title music starts on the title screen. Where the browser allows it (Fang Rock) it
     //   plays as soon as the title appears; a browser that holds sound until the first key or click starts it on that
-    //   press. ⏳ PENDING (E40): does that first press also leave the title? "sound": no, it only starts the music (the
-    //   next Enter or click goes on); "go": yes, as before (the music then starts as the options screen appears).
+    //   press. E40 (ruled 2026-09-25): "sound", as built: that first press only starts the music (the next Enter or click
+    //   goes on); "go" would also leave the title, so the music would start as the options screen appears. Until that
+    //   press the title's prompt reads "PRESS ANY KEY" (blinking, as the prompt always has), then "PRESS ENTER".
+    wakePromptDelay: 0.3,          // [T] seconds: E40's prompt waits this long for autoplay (Fang Rock) before showing
     titleFirstPress: "sound",      // "sound" | "go"
 
     // ── Refinement 2 gaps, ruled 2026-09-22 (E5–E11) ─────────────────────────

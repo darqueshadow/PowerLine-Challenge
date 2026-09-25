@@ -27,6 +27,7 @@
   var muted = readMuted();
   var out = null;         // the live context's master chain, made with the first sound
   var mout = null;        // E36: the music's own gain on the way into the chain, which dips under the loud cues
+  var stateFn = null;     // E40: told when the context starts or stops running
 
   function readMuted() { try { return root.localStorage.getItem(MUTE_KEY) === "1"; } catch (e) { return false; } }
   function saveMuted() { try { root.localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) { /* no storage (a private window): this visit only */ } }
@@ -208,8 +209,11 @@
       if (ctx || !ET.CONFIG.sound) return;
       var AC = root.AudioContext || root.webkitAudioContext;
       if (AC) { try { ctx = new AC(); } catch (e) { ctx = null; } }
+      if (ctx) ctx.onstatechange = function () { if (stateFn) stateFn(ctx.state); };
       if (ctx && music.want) startTrack(music.want, 0, ET.CONFIG.musicFade);   // the track waiting for sound to be allowed
     },
+    /* E40: told whenever the context starts or stops running (the title's prompt follows it). */
+    onState: function (fn) { stateFn = fn; },
     unlock: function () {
       if (!ET.CONFIG.sound) return;
       if (!ctx) { ET.audio.autoplay(); return; }

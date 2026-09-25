@@ -223,7 +223,7 @@
     b.setAttribute("aria-pressed", String(m));
     b.title = (m ? "Sound off" : "Sound on") + (key ? " (" + key + ")" : "");
   }
-  function setMuted(on) { paintMute(ET.audio.setMuted(on)); }
+  function setMuted(on) { paintMute(ET.audio.setMuted(on)); paintPrompt(); }   // muted, there's no music to wake
   function muteKey(ev) {
     if (ev.key !== "m" && ev.key !== "M") return false;
     if (typing() ? !(C.muteKeyInPlay === "ctrl-m" && ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey)
@@ -239,6 +239,8 @@
      keyboard handler, so it runs first. */
   ["keydown", "pointerdown"].forEach(function (t) {
     document.addEventListener(t, function (ev) {
+      app.woken = true;   // E40: the first press ends "PRESS ANY KEY", whatever it was
+      paintPrompt();
       if (!C.sound || !ET.audio.locked()) return;   // every press until the browser lets sound run
       app.wakePress = app.screen === "title" && C.titleFirstPress === "sound" && C.sound && !ET.audio.muted() && ET.audio.locked()
         && !(t === "keydown" && ev.key !== "Enter")   // another key (M, Ctrl+Shift+B) also wakes sound, but has nothing to let pass
@@ -497,13 +499,24 @@
     paintMute(ET.audio.muted());   // show the remembered setting
   }
 
+  /* The title's prompt: LOADING… until the data is in, then PRESS ENTER; but E40: while a browser still holds sound
+     back and no key or click has come, PRESS ANY KEY (that first press only starts the music). It waits
+     wakePromptDelay first, so where autoplay runs (Fang Rock) it never shows. It blinks as the prompt always has. */
+  function paintPrompt() {
+    if (app.screen === "error" || !app.data || !app.wakeGrace) return;   // LOADING… covers the wait, so it never jumps
+    var wait = app.wakeGrace && !app.woken && C.titleFirstPress === "sound" && C.sound && !ET.audio.muted() && ET.audio.locked();
+    $("#title-prompt").textContent = wait ? "PRESS ANY KEY" : "PRESS ENTER";
+  }
+
   wire();
   show("title");
   ET.audio.autoplay();   // E35: the title music plays at once where autoplay is allowed
+  ET.audio.onState(paintPrompt);
+  setTimeout(function () { app.wakeGrace = true; paintPrompt(); }, C.wakePromptDelay * 1000);
   $("#title-prompt").textContent = "LOADING…";
   ET.data.load().then(function (data) {
     app.data = data;
-    $("#title-prompt").textContent = "PRESS ENTER";
+    paintPrompt();
   }).catch(function (err) {
     app.screen = "error";   // nothing on this screen starts a game (Andrew, 2026-09-24)
     var sheet = err && err.sheet;

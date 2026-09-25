@@ -319,6 +319,13 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E40, the first press and PRESS ANY KEY (Chat ruling)
+
+**Solved:** `titleFirstPress` stays "sound"; the title prompt says PRESS ANY KEY until the first press, where needed.
+**Approach:** `paintPrompt()` picks LOADING… / PRESS ANY KEY / PRESS ENTER; it's repainted on the first press, a mute
+change, the context's `statechange` (`ET.audio.onState`) and after `wakePromptDelay`, until which LOADING… stays up.
+**If you touch this again:** the prompt keeps its `.blink` (1 s, steps: one flash a second; stilled under reduced motion).
+
 ## Resolved 2026-09-25 — Egg Timer: E39, a second Time Warp trigger (Chat ruling)
 
 **Solved:** Time Warp now also runs while 2+ running eggs are each over 8:00 (displayed) from their bold mark.

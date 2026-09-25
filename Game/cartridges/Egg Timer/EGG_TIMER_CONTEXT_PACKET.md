@@ -600,7 +600,14 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   changing. A browser holds it until the first key or click; that press now only starts the music, and the next Enter
   or click goes on (⏳ **E40**, below). Headless Chrome holds sound like a normal browser, so the rig checks that case
   directly.)*
-- **E40. Does the first press on the title also leave it?** *(Raised by Code building E35.)* In a normal browser the
+- ~~**E40. Does the first press on the title also leave it?**~~ **Resolved** *(E40, Chat)*: **keep as built: in a normal
+  browser the first press on the title only starts the music. Add: until that press the title shows a blinking "PRESS ANY
+  KEY" (within the 2-a-second rule, steady under reduced motion), gone after the first press; Fang Rock skips it.**
+  *(Code: it is the title's own prompt, which already blinks once a second and holds still under reduced motion: it
+  reads PRESS ANY KEY while sound is held back and no key or click has come, then PRESS ENTER. It waits 0.3 s [T]
+  (`wakePromptDelay`) for autoplay behind LOADING…, so Fang Rock, where sound runs at once, never shows it. Muted, or
+  with `"go"`, there's no extra press, so it doesn't show. Any key ends it; M also mutes, as ever.)* *(Raised by Code
+  building E35.)* In a normal browser the
   first key or click is what lets sound play. Built: ⏳ `titleFirstPress: "sound"`: the first Enter or click on the
   title **only starts the music** and stays on the title; the next one goes to the options screen. The other value,
   `"go"`, starts the music **and** goes on (as before), so the music starts as the options screen appears, which is the
