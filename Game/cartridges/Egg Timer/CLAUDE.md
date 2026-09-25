@@ -172,7 +172,7 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-25
-Everything is live through `ce7d551` (E26–E31 and the refreshed art brief). The brief
+Everything is live through `b1bebdc` (E26–E31, the refreshed art brief, the board lights). The brief
 (`docs/Egg Timer art brief for Gemini.md`) is now **Code's build spec**: its 🔒 sections are Code/Andrew only, and Chat
 writes Gemini's prompts. **Open:** E32 (Andrew picks the board tint) and E33 (for Chat: the bold timer's 3.5:1). Andrew's own `files/assets/`
 (images and three music tracks, added 2026-09-25) is untracked: not Code's to commit or rename. **Waiting on Andrew:**
