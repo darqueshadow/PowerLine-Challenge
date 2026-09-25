@@ -614,9 +614,10 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   bug E35 fixed. Other keys (M, Ctrl+Shift+B) wake sound without being held back, and Fang Rock never needs the extra
   press. Needed: keep `"sound"` (one extra press, in browsers only), or `"go"`?
 
-- **E38. Shell pieces, alien parts, hose, trough.** *(E38, Chat; see the verbatim block.)* **Not built yet:** the block
-  was cut off in its quota section ("Anything left at the end of cleanup carries into the next"), and the pieces are
-  cut from the approved pilot art, still on the hold branch. *(Code, the trough's layout, measured as the ruling asks:
+- **E38. Shell pieces, alien parts, hose, trough.** *(E38, Chat; see the verbatim block.)* **Not built yet:** the
+  ruling is now whole (its rest is in `EGG_TIMER_E38-E40_RULINGS_2026-09-25.md`: quota, performance, reduced motion, the
+  hose tag moved up clear of the trough), but its pieces are cut from the pilot art, still on the hold branch. Order:
+  the pilot art merges, then E38 is built and held for Andrew's screenshot sheet before it goes live. *(Code, the trough's layout, measured as the ruling asks:
   the clear strip between the board's edge and the nearest nest or readout is, left / right / bottom, 149 / 90 / 72 px
   at 1920×1080, 91 / 62 / 54 at 1440×900, 79 / 54 / 36 at 1280×720 and 61 / 41 / 32 at 1024×640. A thin trough (about
   8–10 px) fits on all three edges at every size without moving a nest, readout or Command Line. The only thing already
