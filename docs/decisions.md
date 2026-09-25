@@ -319,6 +319,16 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: the egg-laying sound (Chat ruling)
+
+**Solved:** Laying an egg squeezes (a wet, rubbery squelch on the cord's last stretch) and then pops (the egg into the
+nest), each at a slightly different pitch, never more than 2 of either at once, and well under the game's cue sounds.
+**Approach:** `ET.audio.squeeze()` and `pop()` in audio.js through `bus()`; the squeeze is fired from view.js's render when
+a laying nest passes `laySqueezeAt`, the pop on the "active" event. `ET.audio.measure()` renders one sound offline through
+its own master chain for the rig (section S). Rigs: logic 159/0, browser 446/0.
+**If you touch this again:** an OfflineAudioContext refuses `resume()`, so `ready()` swallows that promise's rejection
+(uncaught, it showed as page errors in rig K).
+
 ## Resolved 2026-09-25 — Egg Timer: board lights and Time Warp dark (Chat ruling)
 
 **Solved:** The board has a faint tint, white lights fade in and out on the gameplay track's beat behind everything, and

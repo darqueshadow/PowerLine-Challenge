@@ -137,6 +137,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Sound (E24/E25):** a mute button top left on every screen, and M (remembered per browser); in play M types, so the
   button and **Ctrl+M** mute. Every sound goes through `audio.js`'s one master chain: connect new sounds to `bus()`,
   never to the speakers directly (rig section A2). A background tab stops the title tune and holds every sound.
+  Laying an egg: a squeeze on the cord's last stretch, then a pop (Chat, 2026-09-25; synthesized, ±8% pitch, at most 2
+  of each at once, kept under THONG, the buzz and the hiss: rig section S measures them offline).
 - **Platform:** a plain browser tab, and Fang Rock (`fangrock://arcade/eggtimer`), which serves the arcade from the
   **local** `(PCL)/Game` folder, not GitHub Pages.
 - **Deferred:** all final art (Gemini: brief slots 0–8, 13, 14, 16–20; Code restyles slots 9–12 and 15), final sounds,

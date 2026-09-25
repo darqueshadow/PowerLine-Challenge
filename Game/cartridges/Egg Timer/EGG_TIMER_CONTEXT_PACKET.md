@@ -1,3 +1,7 @@
+> **FILING NOTE — Claude Code, 2026-09-25 (Lay sound).** Chat's egg-laying sound ruling is merged, tagged *(Lay sound)*,
+> filed verbatim as `Previous Versions/EGG_TIMER_LAY_SOUND_2026-09-25.md` (§7). Built and **pushed live** under the
+> standing rule (both rigs green). The pilot-art ruling that came with it waits for Andrew's approval of screenshots.
+
 > **FILING NOTE — Claude Code, 2026-09-25 (Board lights).** Chat's ruling on board lights and Time Warp dark is merged,
 > tagged *(Board lights)*, and filed verbatim as `Previous Versions/EGG_TIMER_BOARD_LIGHTS_2026-09-25.md`; the packet
 > before it is `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e31.md`. Built and **pushed live** under the standing rule (both
@@ -294,6 +298,13 @@ at once, with no flash.** *(E31)* Andrew's very fast blink isn't allowed (at mos
 **after the 3 flashes, while Time Warp runs, the "TIME WARP" letters wobble and stretch fast** (a 0.36 s [T] squash,
 stretch and skew of the letters only). The sign stays lit and its colours never change. **Under reduced motion: lit,
 no wobble.**
+*(Lay sound)* **Laying an egg sounds: a short wet, rubbery squeeze while the bulge travels the cord's last stretch, then
+a cartoon "finger out of the mouth" pop the moment the egg drops into the nest.** Synthesized for now; each lay nudges
+the pitch (±8% [T]); at most 2 [T] of each sound at once; both clearly under THONG, the buzz and the hiss. Mute covers
+them; pause and a background tab behave as for every sound. *(Code: the squeeze starts at 55% [T] of the lay, read
+from the lay's own progress, so a pause holds it; the pop replaces Refinement 4's squelch on the pop; a VF lays no egg
+on a cord, E16, so it makes neither. The rig renders each sound offline and checks both stay under 60% of the quietest
+cue's peak and loudness.)*
 *(Board lights)* **The board gets a faint, pale tint and stays dark; white lights fade in and out on the gameplay
 music's beat behind everything; while Time Warp runs, the board and its lights fade to dark** (about 0.5 s, a fade),
 leaving the eggs, nests, their text boxes, the clock, the Time Warp sign, its caption and the bolts untouched, and fade
