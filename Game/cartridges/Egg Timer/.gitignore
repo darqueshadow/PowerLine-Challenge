@@ -1,0 +1,4 @@
+# Andrew's full-length source pictures and music (files/assets/): they stay on his machine and OneDrive. The game plays
+# only the files made from them (files/art/, files/audio/), so the sources are never committed and never go live.
+files/assets/
+__pycache__/

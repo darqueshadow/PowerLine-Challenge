@@ -10,8 +10,10 @@
    sound passes untouched; above it the peaks are rounded off, and nothing ever
    leaves louder than CEILING, however many sounds overlap, so it can't clip.
    Mute takes the master level to 0 and is remembered per browser. In a
-   background tab the title tune stops and every sound is held; the tune starts
-   again from the top when the tab comes back.
+   background tab every sound is held, the music included, and carries on where
+   it was when the tab comes back.
+   Music (Chat ruling, 2026-09-25): Andrew's three Suno tracks, from files/audio/
+   (see music.json and make-music.py), replace the old synthesized title tune.
    ========================================================================= */
 (function (root) {
   var ET = (root.ET = root.ET || {});
@@ -108,67 +110,83 @@
     src.start(t);
   }
 
-  /* Refinement 4 §6: the title tune. An ORIGINAL melody, written for Egg Timer (a lullaby-ish
-     chiptune in C major, 3/4), not borrowed from any existing song. The twist: its last bar hides one
-     sour, low note under the sweet ending. MIDI note numbers; 0 is a rest. */
-  var MELODY = [76, 79, 81, 79, 76, 74, 72, 74, 76, 79, 84, 83, 81, 79, 76, 0,
-                77, 81, 83, 81, 79, 76, 74, 76, 77, 76, 74, 71, 72, 0, 72, 0];
-  var BASS = [48, 43, 45, 40, 41, 43, 41, 48];      // one per four melody notes
-  var BEAT = 0.26;                                  // [T] seconds per melody note
-  var tune = { on: false, timer: null, bus: null, held: false };
-  function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
-  function note(type, m, at, len, gain) {
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(hz(m), at);
-    g.gain.setValueAtTime(0.0001, at);
-    g.gain.exponentialRampToValueAtTime(gain, at + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + len);
-    o.connect(g).connect(tune.bus);
-    o.start(at);
-    o.stop(at + len + 0.02);
-  }
-  function phrase() {
-    if (!tune.on) return;
-    if (hidden()) { tune.held = true; return; }      // a background tab: wait for it to come back
-    if (!ctx || ctx.state !== "running") {           // not allowed to sound yet: keep asking, quietly
-      if (ctx) ctx.resume();
-      tune.timer = setTimeout(phrase, 300);
-      return;
-    }
-    if (!tune.bus) { tune.bus = ctx.createGain(); tune.bus.gain.value = 1; tune.bus.connect(bus()); }
-    var t0 = ctx.currentTime + 0.05;
-    MELODY.forEach(function (m, i) { if (m) note("square", m, t0 + i * BEAT, BEAT * 0.9, 0.045); });
-    BASS.forEach(function (m, i) { note("triangle", m, t0 + i * 4 * BEAT, BEAT * 3.6, 0.07); });
-    note("sawtooth", 49, t0 + 28 * BEAT, BEAT * 2.5, 0.018);   // the sour note, under the sweet ending
-    tune.timer = setTimeout(phrase, MELODY.length * BEAT * 1000);
-  }
-  /* Cut the tune off where it is: its notes are already scheduled, so they go with the tune's own bus. */
-  function silenceTune() {
-    clearTimeout(tune.timer);
-    tune.timer = null;
-    if (tune.bus) { tune.bus.gain.setValueAtTime(0, ctx.currentTime); tune.bus.disconnect(); tune.bus = null; }
-  }
-
-  /* E24: a background tab stops the title tune and holds every other sound; coming back resumes them, and the tune
-     starts again from the top (only if it had been cut off, so it never plays twice over). */
-  if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", function () {
-      if (document.hidden) {
-        if (tune.on && (tune.bus || tune.timer)) { silenceTune(); tune.held = true; }
-        if (ctx && ctx.state === "running") ctx.suspend();
-      } else {
-        if (ctx && ET.CONFIG.sound) ctx.resume();
-        if (tune.on && tune.held) { tune.held = false; phrase(); }
-      }
+  /* Music (Chat ruling, 2026-09-25): Andrew's three tracks, one at a time. Each file plays from its start once, then
+     loops between its loop points (sample-exact: the join's crossfade is baked into the file); the game-over track
+     plays once. A change of track fades out and in; the menus share one track, so moving between them doesn't restart
+     it. Esc pauses and resumes where it stopped. Every note goes through bus(), so mute covers it, and a background
+     tab suspends the context (below), which holds the music where it is. The files load when the page does; they
+     decode once sound is allowed (the first key or click). */
+  var music = { raw: {}, buf: {}, cur: null, want: null, paused: false, ended: null, log: [] };
+  function loadMusic() {
+    var M = ET.CONFIG.music;
+    Object.keys(M).forEach(function (k) {
+      if (music.raw[k] || !root.fetch) return;
+      music.raw[k] = fetch(M[k].file).then(function (r) { return r.ok ? r.arrayBuffer() : null; }).catch(function () { return null; });
     });
   }
+  function decodeMusic(k) {
+    if (music.buf[k] || !ctx) return music.buf[k];
+    music.buf[k] = music.raw[k].then(function (ab) {
+      if (!ab) return null;
+      return new Promise(function (ok) { ctx.decodeAudioData(ab.slice(0), ok, function () { ok(null); }); });
+    });
+    return music.buf[k];
+  }
+  function stopTrack(t, fade) {
+    if (!t) return;
+    t.stopped = true;
+    var now = ctx.currentTime;
+    t.gain.gain.cancelScheduledValues(now);
+    t.gain.gain.setValueAtTime(t.gain.gain.value, now);
+    t.gain.gain.linearRampToValueAtTime(0, now + fade);
+    try { t.src.stop(now + fade + 0.02); } catch (e) { /* already stopped */ }
+  }
+  /* Where a track is, in seconds into its file: past the loop's end it wraps back into the loop. */
+  function position(t) {
+    var p = t.from + (ctx.currentTime - t.at), L = ET.CONFIG.music[t.name].loop;
+    if (L && p > L[1]) p = L[0] + ((p - L[0]) % (L[1] - L[0]));
+    return p;
+  }
+  function startTrack(k, from, fade) {
+    var a = ready(), M = ET.CONFIG.music[k];
+    if (!a) return;
+    decodeMusic(k).then(function (b) {
+      if (!b || music.want !== k || music.paused || (music.cur && music.cur.name === k)) return;
+      var src = a.createBufferSource(), g = a.createGain(), now = a.currentTime;
+      src.buffer = b;
+      if (M.loop) { src.loop = true; src.loopStart = M.loop[0]; src.loopEnd = M.loop[1]; }
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(M.level, now + fade);
+      src.connect(g).connect(bus());
+      var t = { name: k, src: src, gain: g, at: now, from: from || 0, stopped: false };
+      src.onended = function () {
+        if (t.stopped || music.cur !== t) return;
+        music.cur = null;
+        music.log.push({ ended: k, t: a.currentTime });
+        if (music.ended) music.ended(k);   // the game-over track, played to its end
+      };
+      src.start(now, from || 0);
+      music.cur = t;
+      music.log.push({ started: k, from: from || 0, t: now });
+    });
+  }
+  /* A background tab holds every sound (E24): suspending the context holds the music where it is, and coming back
+     resumes it. */
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", function () {
+      if (!ctx) return;
+      if (document.hidden) { if (ctx.state === "running") ctx.suspend(); }
+      else if (ET.CONFIG.sound) ctx.resume();
+    });
+  }
+  if (typeof document !== "undefined") loadMusic();
 
   ET.audio = {
     unlock: function () {
       if (ctx || !ET.CONFIG.sound) return;
       var AC = root.AudioContext || root.webkitAudioContext;
       if (AC) { try { ctx = new AC(); } catch (e) { ctx = null; } }
+      if (ctx && music.want) startTrack(music.want, 0, ET.CONFIG.musicFade);   // the track waiting for sound to be allowed
     },
 
     /* The pan on the egg: a bright metallic ring, its pitch nudged each time. */
@@ -252,23 +270,40 @@
 
     buzz: function () { tone("sawtooth", 140, 120, 0.22, 0.18); },
 
-    /* The title tune, on or off. Browsers only let a page make sound after a key press or click, so in a
-       plain tab it waits until then; where sound is allowed straight away it starts at once. E21 (ruled):
-       it keeps playing through the mode-selection screen, so the first key press still gets it heard. */
-    titleTune: function (on) {
-      if (!ET.CONFIG.sound) return;
-      if (!on) {
-        tune.on = false;
-        tune.held = false;
-        silenceTune();
-        return;
-      }
-      if (tune.on) return;
-      tune.on = true;
-      if (!ctx) ET.audio.unlock();
-      phrase();
+    /* Music: which track should play (null for none). The same track carries on; another fades the current one out and
+       itself in. Before sound is allowed it waits, and starts on the first key or click. */
+    music: function (k) {
+      if (!ET.CONFIG.sound || music.want === k) return;
+      music.want = k;
+      music.paused = false;
+      if (!ctx) return;
+      if (music.cur && music.cur.name !== k) { stopTrack(music.cur, ET.CONFIG.musicFade); music.cur = null; }
+      if (k) startTrack(k, 0, ET.CONFIG.musicFade);
     },
-    tunePlaying: function () { return tune.on && !!tune.bus; },
+    /* Esc: the track pauses where it is, and resumes from there. */
+    musicPause: function (on) {
+      if (!ctx || music.paused === on) return;
+      if (on) {
+        if (!music.cur) return;
+        music.paused = true;
+        music.at = position(music.cur);
+        stopTrack(music.cur, ET.CONFIG.musicPauseFade);
+        music.cur = null;
+      } else {
+        music.paused = false;
+        if (music.want) startTrack(music.want, music.at || 0, ET.CONFIG.musicPauseFade);
+      }
+    },
+    /* For rigs: end the playing track now, as if it had played out (its "ended" runs as for a real end). */
+    endMusicForRig: function () { if (!music.cur) return false; try { music.cur.src.stop(); } catch (e) { return false; } return true; },
+    /* Told when a track that plays once (the game-over track) reaches its end. */
+    onMusicEnd: function (fn) { music.ended = fn; },
+    /* For rigs: the music now: the track, where it is (seconds into its file), and the log of starts and ends. */
+    musicState: function () {
+      return { want: music.want, playing: music.cur ? music.cur.name : null, paused: music.paused,
+               at: music.cur && ctx ? position(music.cur) : null, level: music.cur ? music.cur.gain.gain.value : null, log: music.log.slice() };
+    },
+    tunePlaying: function () { return !!music.cur && music.cur.name === "title"; },
 
     /* E24: mute, remembered per browser. The master level fades to 0 (or back) over a few milliseconds, so it
        doesn't click. */
@@ -309,7 +344,12 @@
       return off.startRendering().then(function (buf) {
         var d = buf.getChannelData(0), peak = 0, sum = 0;
         for (var i = 0; i < d.length; i++) { var v = Math.abs(d[i]); if (v > peak) peak = v; sum += d[i] * d[i]; }
-        return { peak: peak, rms: Math.sqrt(sum / d.length) };
+        // `active`: the loudness while the sound sounds (from its first to its last sample above 1% of its peak)
+        var a0 = 0, a1 = d.length - 1, q = 0;
+        while (a0 < d.length && Math.abs(d[a0]) < peak * 0.01) a0++;
+        while (a1 > a0 && Math.abs(d[a1]) < peak * 0.01) a1--;
+        for (var j = a0; j <= a1; j++) q += d[j] * d[j];
+        return { peak: peak, rms: Math.sqrt(sum / d.length), active: Math.sqrt(q / Math.max(1, a1 - a0 + 1)) };
       });
     },
     CEILING: CEILING,

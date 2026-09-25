@@ -1013,6 +1013,8 @@ h2 {
 /* ------------------------------------------------------------ game over */
 .over { font-size: clamp(40px, 8cqw, 96px); color: var(--hot); text-shadow: 6px 6px 0 var(--shadow); }
 #screen-over p { margin: 0; font-family: var(--font-display); font-size: 28px; }
+#screen-over p.hint { font-family: var(--font-ui); font-size: 13px; }
+#over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
   .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }

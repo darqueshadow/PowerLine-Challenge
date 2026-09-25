@@ -3835,6 +3835,13 @@ export default {
   "margin-right": "0px",
   "margin-top": "0px"
  },
+ "#screen-over p.hint": {
+  "font-family": "\"Trebuchet MS\", Verdana, sans-serif",
+  "font-size": "13px"
+ },
+ "#over-buttons": {
+  "margin-top": "12px"
+ },
  "@media (prefers-reduced-motion: reduce) » .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",

@@ -120,7 +120,12 @@
     <p><span class="label">WAVE</span> <span id="over-wave">1</span> &nbsp; <span id="over-mode" class="label"></span></p>
     <!-- playtest stand-in (Timer Refinement §9): spawns lost to a full board, per wave -->
     <p id="over-skipped" class="skip-log"></p>
-    <p class="blink">PRESS ENTER</p>
+    <!-- Chat ruling, 2026-09-25: always a clear way back to the title screen; ← → pick, Enter presses the lit one -->
+    <div id="over-buttons" class="button-bank">
+      <button type="button" data-go="title">TITLE SCREEN</button>
+      <button type="button" data-go="again">PLAY AGAIN</button>
+    </div>
+    <p class="hint">← → PICK &nbsp;·&nbsp; ENTER GO</p>
   </section>
 
   <!-- E24 (Andrew, 2026-09-24): sound on/off, top left on every screen, remembered per browser (⏳ placeholder look).
