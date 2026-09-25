@@ -20,6 +20,7 @@
   var W = 240, H = 280;
   var FW = 1600, FH = 1000;   // the floor canvas, stretched over the whole board
   var COLORS = ["#ffd43a", "#ffc21a", "#fff4d6", "#f2e6c4", "#c98a2b"];
+  var tmp = null;   // E38: scratch canvas for a streak
 
   /* One irregular splotch: uneven radii joined with curves (a blob, not a star), squashed a little
      flat, with a few flung droplets around it. */
@@ -69,6 +70,7 @@
       c.className = "mess";
       c.width = W;
       c.height = H;
+      c.getContext("2d", { willReadFrequently: true });   // E38: the spray reads it back; a GPU canvas makes that slow
       return c;
     },
 
@@ -78,6 +80,7 @@
       c.className = "floor-mess";
       c.width = FW;
       c.height = FH;
+      c.getContext("2d", { willReadFrequently: true });   // E38: as above (a readback from the GPU took seconds)
       return c;
     },
 
@@ -109,6 +112,61 @@
       g.lineTo(x1, y1);
       g.stroke();
       g.restore();
+    },
+
+    /* E38: the spray on liquid (yolk, slime, goo). It isn't pushed like a solid: the patch under the spray is thinned
+       where it was and a fainter copy is laid down further along the spray's direction, so repeated passes streak it
+       that way and wash it out. (x0,y0) → (x1,y1) is the spray's move since the last event, in canvas units; `r` the
+       spray's radius. Returns what was there before (alpha 0–255 and its colour), so the view can start a drip or a
+       trickle from it. */
+    streak: function (canvas, x0, y0, x1, y1, r) {
+      var g = canvas.getContext("2d"), C = ET.CONFIG.liquid;
+      var px = Math.max(0, Math.min(canvas.width - 1, Math.round(x1))), py = Math.max(0, Math.min(canvas.height - 1, Math.round(y1)));
+      var d = g.getImageData(px, py, 1, 1).data, before = { alpha: d[3], color: "rgb(" + d[0] + "," + d[1] + "," + d[2] + ")" };
+      var dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy), size = Math.ceil(2 * r);
+      if (!tmp) { tmp = document.createElement("canvas"); tmp.getContext("2d", { willReadFrequently: true }); }   // in memory, like the mess
+      if (tmp.width < size || tmp.height < size) { tmp.width = Math.max(tmp.width, size); tmp.height = Math.max(tmp.height, size); }
+      var t = tmp.getContext("2d");
+      t.clearRect(0, 0, size, size);
+      t.drawImage(canvas, x1 - r, y1 - r, size, size, 0, 0, size, size);   // what's under the spray, before it washes
+      // thin it where it was (along the whole move, so a fast drag leaves no gaps)
+      g.save();
+      g.globalCompositeOperation = "destination-out";
+      g.globalAlpha = C.thin;
+      g.strokeStyle = "#000";
+      g.lineCap = "round";
+      g.lineWidth = 2 * r;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1 + 0.01, y1); g.stroke();
+      g.restore();
+      // and lay a fainter copy of it down the spray's direction, as a round streak
+      if (len > 0.5) {
+        var push = Math.min(len * C.carry, r), ux = dx / len, uy = dy / len;
+        g.save();
+        g.beginPath(); g.arc(x1 + ux * push, y1 + uy * push, r, 0, Math.PI * 2); g.clip();
+        g.globalAlpha = C.keep;
+        g.drawImage(tmp, 0, 0, size, size, x1 - r + ux * push, y1 - r + uy * push, size, size);
+        g.restore();
+      }
+      return before;
+    },
+
+    /* E38: a thin run of liquid from (x0,y0) to (x1,y1) in canvas units (a drip, running back down). */
+    run: function (canvas, x0, y0, x1, y1, width, color) {
+      var g = canvas.getContext("2d");
+      g.save();
+      g.strokeStyle = color;
+      g.globalAlpha = ET.CONFIG.liquid.dripAlpha;
+      g.lineCap = "round";
+      g.lineWidth = width;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1 + 0.01); g.stroke();
+      g.restore();
+    },
+
+    /* The liquid at one point, in canvas units: its alpha (0–255) and colour. */
+    sample: function (canvas, x, y) {
+      var px = Math.max(0, Math.min(canvas.width - 1, Math.round(x))), py = Math.max(0, Math.min(canvas.height - 1, Math.round(y)));
+      var d = canvas.getContext("2d").getImageData(px, py, 1, 1).data;
+      return { alpha: d[3], color: "rgb(" + d[0] + "," + d[1] + "," + d[2] + ")" };
     },
 
     /* Share of the canvas covered, 0–1, sampled on a coarse grid (for rigs). */

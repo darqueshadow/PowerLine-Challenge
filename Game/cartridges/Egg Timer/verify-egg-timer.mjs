@@ -658,16 +658,18 @@ try {
       const before = __et.floor();
       const r = fcv.getBoundingClientRect(), field = document.querySelector('#field');
       const fire = (type, x, y) => field.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 6, buttons: 1 }));
-      fire('pointerdown', r.left + 10, r.top + 10);
-      fire('pointermove', r.right - 10, r.top + 10);
-      fire('pointerup', r.right - 10, r.top + 10);
+      const pass = () => { fire('pointerdown', r.left + 10, r.top + 10); fire('pointermove', r.right - 10, r.top + 10); fire('pointerup', r.right - 10, r.top + 10); };
+      pass();
       const mid = g.getImageData(800, 14, 1, 1).data[3];
+      pass(); pass();
       const after = __et.floor();
+      const mid3 = g.getImageData(800, 14, 1, 1).data[3];
       ET.mess.clear(fcv);
-      return [before, after, mid];
+      return [before, after, mid, mid3];
     })()`);
-    ok(fl[1] < fl[0] - 0.02, `the hose wipes the board-wide gunk too   [${(fl[0] * 100).toFixed(1)}% → ${(fl[1] * 100).toFixed(1)}%]`);
-    eq(fl[2], 0, "…one pass wipes it clean, not half-way (a clear's splatter used to leave the eraser half-transparent)");
+    ok(fl[1] < fl[0] - 0.02, `the hose washes the board-wide gunk too   [${(fl[0] * 100).toFixed(1)}% → ${(fl[1] * 100).toFixed(1)}%]`);
+    const thin = await ev("ET.CONFIG.liquid.thin");
+    ok(Math.abs(fl[2] - 255 * (1 - thin)) < 8 && fl[3] < 12, `E38: one pass thins the liquid (to ${Math.round(100 * (1 - thin))}%), it isn't erased like a solid; three passes wash it out   [alpha 255 → ${fl[2]} → ${fl[3]}]`);
   }
   ok(await ev("__et.boxes().focused"), "the command box gets the keyboard back after wiping");
 
@@ -1031,7 +1033,7 @@ try {
     }
     ok(lay.spigotOnEdge, "the spigot is fixed on the board's bottom edge");
     const tag = await ev(`(() => { const t = document.querySelector('#hose-tag'), r = t.getBoundingClientRect(), p = document.querySelector('#hose .pipe').getBoundingClientRect(), f = document.querySelector('#board').getBoundingClientRect();
-      return { text: t.textContent.replace(/\\s+/g, ' ').trim(), mouse: !!t.querySelector('svg.mouse'), sink: !!t.querySelector('svg.sink .drain'), shown: r.width > 0, nearTap: r.left - p.right < 30 && r.left >= p.right - 1 && Math.abs(r.bottom - f.bottom) < 8 }; })()`);
+      return { text: t.textContent.replace(/\\s+/g, ' ').trim(), mouse: !!t.querySelector('svg.mouse'), sink: !!t.querySelector('svg.sink .drain'), shown: r.width > 0, nearTap: r.left - p.right < 30 && r.left >= p.right - 1 && f.bottom - r.bottom >= 0 && f.bottom - r.bottom < 22 }; })()`);   // E38: raised just clear of the trough
     ok(tag.shown && tag.text === "CLEANING HOSE: click & drag to spray. Use it any time!" && tag.mouse && tag.sink, `E28: a small sink with a drain beside the spigot carries the hose's instructions   [${tag.text}]`);
     ok(tag.nearTap, "…right by the tap on the board's bottom edge");
     ok(lay.width <= 8, `the hose is thin   [${lay.width}px]`);
@@ -1743,13 +1745,13 @@ try {
     ok(burst.p <= 2 && burst.s <= 2 && (burst.on === "none" || burst.p >= 1), `a burst of lays can't pile up: at most 2 pops and 2 squeezes at once   [${burst.p} pops, ${burst.s} squeezes of 6 each]`);
     // the mix: both clearly under THONG, the error buzz and the hiss
     // the squeeze and the pop are random (pitch, noise): each is measured 5 times and its loudest taken
-    const m = await ev(`Promise.all([['squeeze'], ['pop'], ['thong'], ['buzz'], ['hiss', [0.85, 0.12]]].map(([k, a]) =>
-        Promise.all(Array.from({ length: k === 'squeeze' || k === 'pop' ? 5 : 1 }, () => ET.audio.measure(k, a, 1)))
+    const m = await ev(`Promise.all([['squeeze'], ['pop'], ['thong'], ['buzz'], ['hiss', [0.85, 0.12]], ['squelch'], ['bloop']].map(([k, a]) =>
+        Promise.all(Array.from({ length: ['thong', 'buzz', 'hiss'].includes(k) ? 1 : 5 }, () => ET.audio.measure(k, a, 1)))
           .then(rs => ({ peak: Math.max(...rs.map(x => x.peak)), rms: Math.max(...rs.map(x => x.rms)) }))))
       .then(r => r.map(x => ({ peak: +x.peak.toFixed(3), rms: +x.rms.toFixed(4) })))`);
-    const [msq, mpop, ...cues] = m, quiet = { peak: Math.min(...cues.map((c) => c.peak)), rms: Math.min(...cues.map((c) => c.rms)) };
-    ok([msq, mpop].every((s) => s.peak <= 0.6 * quiet.peak && s.rms <= 0.6 * quiet.rms),
-      `the squeeze and the pop sit clearly under THONG, the buzz and the hiss (under 60% of the quietest cue's peak and loudness)   [squeeze ${msq.peak}/${msq.rms}, pop ${mpop.peak}/${mpop.rms}; cues ${cues.map((c) => c.peak + "/" + c.rms).join(", ")}]`);
+    const [msq, mpop, th, bz, hs, msl, mbl] = m, cues = [th, bz, hs], quiet = { peak: Math.min(...cues.map((c) => c.peak)), rms: Math.min(...cues.map((c) => c.rms)) };
+    ok([msq, mpop, msl, mbl].every((s) => s.peak <= 0.6 * quiet.peak && s.rms <= 0.6 * quiet.rms),
+      `the squeeze and the pop (and E38's squelch and bloop) sit clearly under THONG, the buzz and the hiss (under 60% of the quietest cue's peak and loudness)   [squeeze ${msq.peak}/${msq.rms}, pop ${mpop.peak}/${mpop.rms}, squelch ${msl.peak}/${msl.rms}, bloop ${mbl.peak}/${mbl.rms}; cues ${cues.map((c) => c.peak + "/" + c.rms).join(", ")}]`);
     await ev("__et.start('clear', 2); __et.advance(0.1); 1");
   }
 
@@ -1855,6 +1857,144 @@ try {
   }
 
   /* ------------------------------------------------------- Q. the scary mom face */
+  /* ------------------------------------------------------ E38. pieces, the hose's push, the trough */
+  section("E38. pieces, the hose's push and the trough (Chat, 2026-09-25)");
+  {
+    const escK = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
+    await ev(`(() => { __et.start('clear', 1); __et.advance(0.1); ${escK}; return 1; })()`);   // paused: only the rig moves things
+    for (let i = 0; i < 60 && !(await ev("ET.pieces.state().ready")); i++) await wait(100);
+    // helpers, in board px: a drag as the player makes one, the physics stepped on its own, a row clear of every readout
+    await ev(`(() => {
+      window.__drag = (pts) => { const f = document.querySelector('#field'), b = document.querySelector('#board').getBoundingClientRect();
+        const fire = (t, p) => f.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: b.left + p[0], clientY: b.top + p[1], pointerId: 9, buttons: 1 }));
+        fire('pointerdown', pts[0]); pts.slice(1).forEach((p) => fire('pointermove', p)); fire('pointerup', pts[pts.length - 1]); };
+      window.__steps = (n, still) => { for (let i = 0; i < n; i++) ET.pieces.frame(0.05, !!still); return 1; };
+      window.__row = (m) => { const s = ET.pieces.state(); let best = null;
+        for (let y = 60; y < s.H - 60; y += 4) if (s.walls.every((w) => y < w.y0 - m || y > w.y1 + m)) { if (best === null || Math.abs(y - s.H / 2) < Math.abs(best - s.H / 2)) best = y; }
+        return best; };
+      window.__col = (m) => { const s = ET.pieces.state(); let best = null;
+        for (let x = s.T + 40; x < s.W - s.T - 40; x += 4) if (s.walls.every((w) => x < w.x0 - m || x > w.x1 + m)) { if (best === null || Math.abs(x - s.W / 3) < Math.abs(best - s.W / 3)) best = x; }
+        return best; };
+      window.__floorAt = (x, y) => { const s = ET.pieces.state(), f = ET.view.floor(); return [x / s.W * f.width, y / s.H * f.height]; };
+      window.__p = (id) => ET.pieces.list().find((p) => p.id === id) || null;
+      return 1; })()`);
+
+    // every clear leaves shell pieces; break stages 3-5 add the alien's parts, more the slower
+    const made = await ev(`(() => { ET.pieces.reset(); const svg = document.querySelector('.nest .nest-art'), out = [];
+      for (const t of [1, 2, 3, 4, 5]) { const k0 = ET.pieces.state().kinds; ET.pieces.clear(svg, t); const k1 = ET.pieces.state().kinds;
+        const parts = Object.keys(k1).filter((k) => k !== 'shell').reduce((a, k) => a + k1[k] - (k0[k] || 0), 0);
+        out.push({ t, shell: (k1.shell || 0) - (k0.shell || 0), parts }); }
+      return out; })()`);
+    const PT = await ev("ET.CONFIG.pieces");
+    ok(made.every((m) => m.shell >= PT.shards[0] && m.shell <= PT.shards[1]), `every clear leaves ${PT.shards[0]}-${PT.shards[1]} shell pieces cut from the egg picture   [${made.map((m) => m.shell).join(", ")}]`);
+    eq(made.map((m) => m.parts), [0, 0, 1, 2, 3], "break stages 3, 4 and 5 add 1, 2 and 3 alien parts (antenna, clawed leg, tentacle and goo, eye); 1 and 2 none");
+    await ev("__steps(80)");
+    const settled = await ev(`(() => { const s = ET.pieces.state(), L = ET.pieces.list();
+      const onWall = L.filter((p) => p.state === 'rest' && s.walls.some((w) => p.x > w.x0 + 1 && p.x < w.x1 - 1 && p.y > w.y0 + 1 && p.y < w.y1 - 1)).length;
+      const off = L.filter((p) => p.x < 0 || p.x > s.W || p.y < 0 || p.y > s.H).length;
+      return { n: L.length + s.drained, rest: s.rest, onWall, off }; })()`);
+    ok(settled.rest > 0 && settled.onWall === 0 && settled.off === 0, `they slide, settle and pile round the readouts, never on one, and stay on the board   [${settled.rest} at rest, ${settled.onWall} on a readout]`);
+    await ev("__steps(400)");
+    eq(await ev("ET.pieces.state().count + ET.pieces.state().drained"), settled.n, "…and never fade or vanish on their own (20 s later, every one is still there)");
+
+    // the spray pushes a piece the way it's going, strongly; it slides with friction and tumbles
+    const row = await ev("__row(40)"), W = await ev("ET.pieces.state().W"), T = await ev("ET.pieces.state().T");
+    const pushed = await ev(`(() => { ET.pieces.reset(); const id = ET.pieces.place('shell', ${T} + 70, ${row}); const a0 = __p(id).a;
+      __drag([[${T} + 20, ${row}], [${T} + 40, ${row}], [${T} + 60, ${row}], [${T} + 80, ${row}], [${T} + 100, ${row}], [${T} + 120, ${row}], [${T} + 140, ${row}]]);
+      const mid = __p(id).state; __steps(120); const p = __p(id); return { mid, x: p ? p.x : null, state: p ? p.state : 'gone', turned: p ? Math.abs(p.a - a0) > 0.3 : false }; })()`);
+    ok(pushed.mid === "live" && pushed.x > T + 70 + 0.45 * W, `a sweep of the hose pushes a piece the way it goes, most of the way across the board   [${Math.round(pushed.x - T - 70)} px of ${Math.round(W)}]`);
+    ok(pushed.turned && pushed.state === "rest", "…tumbling as it slides, then settling with friction");
+    // the top edge stops a piece (no trough there)
+    const col = await ev("__col(40)");
+    const top = await ev(`(() => { ET.pieces.reset(); const id = ET.pieces.place('shell', ${col}, 90);
+      __drag([[${col}, 140], [${col}, 120], [${col}, 100], [${col}, 80], [${col}, 60], [${col}, 40]]); __steps(80); const p = __p(id);
+      return { y: p && Math.round(p.y), state: p ? p.state : 'gone', r: p && p.r }; })()`);
+    ok(top.state === "rest" && top.y <= top.r + 2, `pushed up, a piece stops at the top edge (no trough along the top)   [y ${top.y}]`);
+
+    // the trough: in it goes, it rides the flow to the drain under the sink, with a squelch; an eye goes "bloop"
+    await ev(`(() => { window.__snd = { squelch: 0, bloop: 0 }; ['squelch', 'bloop'].forEach((k) => { const f = ET.audio[k]; ET.audio[k] = function () { __snd[k]++; return f.apply(this, arguments); }; ET.audio[k].__orig = f; }); return 1; })()`);
+    const tr = await ev(`(() => { ET.pieces.reset(); const s = ET.pieces.state();
+      ET.pieces.place('eye', s.T + 50, ${row}); ET.pieces.place('shell', s.W - s.T - 50, ${row});
+      __drag([[s.T + 110, ${row}], [s.T + 90, ${row}], [s.T + 70, ${row}], [s.T + 50, ${row}], [s.T + 30, ${row}]]);
+      __drag([[s.W - s.T - 110, ${row}], [s.W - s.T - 90, ${row}], [s.W - s.T - 70, ${row}], [s.W - s.T - 50, ${row}], [s.W - s.T - 30, ${row}]]);
+      __steps(6); const inT = ET.pieces.state().trough; const path = [];
+      for (let i = 0; i < 400 && ET.pieces.state().count; i++) { __steps(1); ET.pieces.list().forEach((p) => { if (p.state === 'trough') path.push([p.x, p.y]); }); }
+      const e = ET.pieces.state(), inside = path.every(([x, y]) => x <= s.T || x >= s.W - s.T || y >= s.H - s.T);
+      return { inT, drained: e.drained, eyes: e.eyesDrained, left: e.count, inside, snd: Object.assign({}, __snd) }; })()`);
+    ok(tr.inT === 2 && tr.inside && tr.drained === 2 && tr.left === 0, `pushed into the trough, a piece rides the flow along the edges to the drain under the sink and goes down it   [${tr.drained} drained]`);
+    ok(tr.snd.squelch >= 1 && tr.eyes === 1 && tr.snd.bloop === 1, `…with a squelch as it drops in, and a "bloop" as an eyeball goes down the drain   [${tr.snd.squelch} squelch, ${tr.snd.bloop} bloop]`);
+    await ev("(() => { ['squelch', 'bloop'].forEach((k) => { ET.audio[k] = ET.audio[k].__orig; }); return 1; })()");
+
+    // liquid: the spray streaks it along and thins it; pushed to the top, it drips back down
+    const streak = await ev(`(() => { const f = ET.view.floor(); ET.mess.clear(f); const y = ${row}, x = ${W} / 2;
+      const c = __floorAt(x, y), r = __floorAt(x + 70, y); ET.mess.blob(f, c[0], c[1], 20);
+      const a0 = ET.mess.sample(f, c[0], c[1]).alpha, b0 = ET.mess.sample(f, r[0], r[1]).alpha;
+      __drag([[x - 40, y], [x - 20, y], [x, y], [x + 20, y], [x + 40, y]]);
+      return [a0, ET.mess.sample(f, c[0], c[1]).alpha, b0, ET.mess.sample(f, r[0], r[1]).alpha]; })()`);
+    ok(streak[1] < streak[0] * 0.6 && streak[3] > streak[2], `the spray streaks yolk the way it goes and thins it where it was, not pushed like a solid   [${streak[0]} → ${streak[1]} here, ${streak[2]} → ${streak[3]} further on]`);
+    const drip = await ev(`(() => { const f = ET.view.floor(); ET.mess.clear(f); ET.pieces.reset(); const x = ${col};
+      const c = __floorAt(x, 30); ET.mess.blob(f, c[0], c[1], 45);
+      __drag([[x, 150], [x, 120], [x, 90], [x, 60], [x, 40], [x, 24], [x, 12]]);
+      const s0 = ET.pieces.state(); const y0 = s0.dripsAt.length ? s0.dripsAt[0][1] : null; __steps(20); const s1 = ET.pieces.state();
+      return { n: s0.drips, y0, y1: s1.dripsAt.length ? s1.dripsAt[0][1] : null }; })()`);
+    ok(drip.n >= 1 && drip.y1 > drip.y0, `yolk pushed to the top edge slowly drips back down   [${drip.n} drip, y ${drip.y0 && drip.y0.toFixed(0)} → ${drip.y1 && drip.y1.toFixed(0)}]`);
+    const around = await ev(`(() => { ET.pieces.reset(); const s = ET.pieces.state(), w = s.walls[0];
+      ET.pieces.drip((w.x0 + w.x1) / 2, w.y0 - 30); let over = 0, n = 0;
+      for (let i = 0; i < 300 && ET.pieces.state().drips; i++) { __steps(1); ET.pieces.state().dripsAt.forEach(([x, y]) => { n++; if (x > w.x0 && x < w.x1 && y > w.y0 && y < w.y1) over++; }); }
+      return { over, n }; })()`);
+    ok(around.n > 0 && around.over === 0, `a drip that meets a readout runs round it, never over it   [${around.n} drip steps, ${around.over} over]`);
+    const ride = await ev(`(() => { const f = ET.view.floor(); ET.mess.clear(f); ET.pieces.reset(); const x = ${col};
+      const c = __floorAt(x, 10); ET.mess.blob(f, c[0], c[1], 40);
+      const id = ET.pieces.place('shell', x, 10); const s0 = ET.pieces.state(), y0 = __p(id).y; __steps(40); const y1 = __p(id).y, riding = ET.pieces.state().riding;
+      __steps(400); const p = __p(id); return { riding0: s0.riding, riding, y0, y1, end: p.state, still: ET.pieces.state().riding }; })()`);
+    ok(ride.riding0 === 1 && ride.riding === 1 && ride.y1 > ride.y0 + 10 && ride.end === "rest" && ride.still === 0, `a piece at the top edge sitting in yolk slowly slides down with its drip, then settles   [y ${ride.y0.toFixed(0)} → ${ride.y1.toFixed(0)}]`);
+    await ev("(ET.mess.clear(ET.view.floor()), 1)");
+
+    // performance: a pile at rest is baked into a still layer and costs nothing a frame; the spray wakes only what it touches
+    const perf = await ev(`(() => { ET.pieces.reset(); ET.pieces.bench(3000); const t0 = performance.now(); for (let i = 0; i < 60; i++) ET.pieces.frame(0.016, false);
+      const frame = (performance.now() - t0) / 60, s = ET.pieces.state(), y = ${row};
+      const t1 = performance.now(); __drag([[s.W * 0.3, y], [s.W * 0.35, y], [s.W * 0.4, y], [s.W * 0.45, y], [s.W * 0.5, y]]); ET.pieces.frame(0.016, false); const sweep = performance.now() - t1;
+      const woke = ET.pieces.state().live; __steps(200); return { frame, sweep, woke, count: ET.pieces.state().count + ET.pieces.state().drained }; })()`);
+    ok(perf.frame < 3 && perf.sweep < 80 && perf.woke > 0 && perf.count === 3000, `a pile of 3000 pieces costs ${perf.frame.toFixed(2)} ms a frame at rest; a sweep through it wakes ${perf.woke} and takes ${perf.sweep.toFixed(1)} ms; nothing disappears`);
+
+    // reduced motion: no tumbling, pieces only slide; the trough's flow is a fade; its water stands still
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const rm = await ev(`(() => { ET.pieces.reset(); const id = ET.pieces.place('shell', ${T} + 70, ${row}), a0 = __p(id).a;
+      __drag([[${T} + 20, ${row}], [${T} + 60, ${row}], [${T} + 100, ${row}], [${T} + 140, ${row}]]); __steps(60, true); const p = __p(id);
+      const s = ET.pieces.state(); const e = ET.pieces.place('shell', s.W - s.T - 50, ${row});
+      __drag([[s.W - s.T - 110, ${row}], [s.W - s.T - 70, ${row}], [s.W - s.T - 30, ${row}]]); __steps(4, true); const q = __p(e);
+      __steps(40, true);
+      return { slid: p.x > ${T} + 150, same: p.a === a0, fading: !!q && q.state === 'trough', gone: !__p(e), anim: getComputedStyle(document.querySelector('#trough .t-left')).animationName }; })()`);
+    ok(rm.slid && rm.same && rm.fading && rm.gone && rm.anim === "none", `SAFETY: with reduced motion pieces slide without tumbling, the trough takes a piece with a fade, and its water stands still   [${JSON.stringify(rm)}]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+
+    // the hose's tag moves up just clear of the trough, still beside the hose and the sink (E28)
+    const tag = await ev(`(() => { const t = document.querySelector('#hose-tag').getBoundingClientRect(), b = document.querySelector('#trough .t-br').getBoundingClientRect(), f = document.querySelector('#field').getBoundingClientRect();
+      return { gap: b.top - t.bottom, off: t.left - (f.left + f.width * ET.CONFIG.hoseSpigotX) }; })()`);
+    ok(tag.gap >= 0 && tag.gap < 8 && tag.off >= 0 && tag.off < 40, `the CLEANING HOSE tag sits just clear of the trough, still beside the hose and the sink   [${tag.gap.toFixed(1)} px above it, ${tag.off.toFixed(0)} px from the spigot]`);
+    // and the trough crowds nothing, at every measured size
+    const fits = [];
+    for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
+      await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+      await wait(150);
+      fits.push(await ev(`(() => { const rs = (q) => [...document.querySelectorAll(q)].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
+        const tr = rs('#trough i'), things = rs('.nest .readout').concat(rs('.nest .nest-art'), rs('#console'));
+        const hit = tr.some((a) => things.some((b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5));
+        return { size: '${w}x${h}', hit, t: Math.round(tr[0].width) }; })()`));
+    }
+    await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await wait(150);
+    ok(fits.every((f) => !f.hit), `the trough (left, right, bottom; none on top) touches no nest, readout or Command Line at any measured size   [${fits.map((f) => f.size + " " + f.t + " px" + (f.hit ? " HIT" : "")).join(", ")}]`);
+    await ev(`(() => { ET.pieces.reset(); ${escK}; return 1; })()`);   // resume
+
+    // what's left at the end of cleanup carries into the next wave: nothing removed
+    const carry = await ev(`(() => { __et.start('clear', 2, { types: ['VS'] }); __et.advance(0.1); ET.pieces.bench(30); const ids = ET.pieces.list().map((p) => p.id);
+      for (let i = 0; i < 20000 && __et.snapshot().wave === 1; i++) { __et.advance(0.05); __et.snapshot().nests.filter((n) => n.state === 'overtime').forEach((n) => __et.submit('RCAV ' + n.unit)); }
+      const now = ET.pieces.list().map((p) => p.id); return { wave: __et.snapshot().wave, kept: ids.every((id) => now.includes(id)), more: now.length > ids.length }; })()`);
+    ok(carry.wave === 2 && carry.kept && carry.more, `pieces left at the end of cleanup carry into the next wave, none removed (and the wave's clears added more)   [wave ${carry.wave}]`);
+  }
+
   section("Q. the scary mom face (Refinement 5 §5)");
   await ev("__et.start('both', 4)");
   await ev("__et.advance(0.1)");

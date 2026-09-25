@@ -15,6 +15,7 @@
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
+  var piecesAt = null;     // E38: the player's seconds at the last frame, for the pieces' step
 
   function $(sel) { return document.querySelector(sel); }
 
@@ -716,6 +717,7 @@
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
       }
+      ET.pieces.build(board, floor);   // E38: the trough and the pieces, over the floor mess and behind the nests
       ET.view.bindWipe();
       buildHose();
       buildBackdrop();
@@ -736,6 +738,8 @@
         v.pan.className = "pan";
       });
       ET.mess.clear(floor);
+      ET.pieces.reset();   // E38: a new game starts clean (between waves nothing is removed)
+      piecesAt = null;
       inCleanup = false;
       field.classList.remove("hose");
       banner.hidden = true;
@@ -774,6 +778,9 @@
       turnHands(snap);
       paintSign(snap);
       paintBackdrop(snap);
+      // E38: the pieces and drips move on the player's seconds, so a pause holds them
+      ET.pieces.frame(piecesAt === null || snap.time < piecesAt ? 0 : snap.time - piecesAt, reducedMotion());
+      piecesAt = snap.time;
       board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the nests with a running clock glow (E22)
 
       snap.nests.forEach(function (s) {
@@ -850,6 +857,7 @@
             break;
           case "wave-start":
             cleanup.el.hidden = true;
+            ET.pieces.layout();   // E38: the readouts the pieces pile round
             // Refinement 5 §5: at most one scary mom face this wave, and sometimes none
             var mw = ET.CONFIG.momFaceWindow;
             momAt = Math.random() < ET.CONFIG.momFaceChance ? game.time + mw[0] + Math.random() * (mw[1] - mw[0]) : null;
@@ -906,6 +914,7 @@
             // E15 (ruled): a small splat on its own nest, the rest evenly across the whole board
             ET.mess.splatter(v.mess, ET.CONFIG.messBlobsOwn, ET.CONFIG.messOwnSize);
             fling(ET.CONFIG.messBlobsField);
+            ET.pieces.clear(v.svg, e.tier);   // E38: shell pieces, and at break stages 3–5 the alien's parts
             popup(v.el, "+" + e.points, "good");
             break;
           case "hatch":
@@ -959,9 +968,16 @@
       }
       function wipe(ev) {
         if (paintHose()) spray(ev.clientX, ev.clientY);
+        // E38: the spray pushes the pieces it passes the way it's going…
+        var br = board.getBoundingClientRect(), bx = ev.clientX - br.left, by = ev.clientY - br.top, prev = last.board || { x: bx, y: by };
+        ET.pieces.spray(prev.x, prev.y, bx, by);
+        var mv = Math.hypot(bx - prev.x, by - prev.y), ux = mv ? (bx - prev.x) / mv : 0, uy = mv ? (by - prev.y) / mv : 0;
+        last.board = { x: bx, y: by };
+        // …and streaks and thins the liquid under it (E14's gunk on a nest, and the floor's)
         at(ev).forEach(function (h) {
           var from = last[h.id] || h;
-          ET.mess.wipe(h.mess, from.x, from.y, h.x, h.y, ET.CONFIG.wipeRadius * h.sx);
+          var before = ET.mess.streak(h.mess, from.x, from.y, h.x, h.y, ET.CONFIG.wipeRadius * h.sx);
+          if (h.id === "floor") ET.pieces.washed(bx, by, ux, uy, before);
           last[h.id] = { x: h.x, y: h.y };
         });
       }

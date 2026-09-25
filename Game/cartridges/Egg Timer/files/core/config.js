@@ -94,6 +94,30 @@
     messBlobsField: 10,      // [T] the rest, evenly across the board (on whichever nest or floor it lands)
     messBlobPx: [8, 20],     // [T] an ordinary blob's radius on screen, px
     wipeRadius: 22,          // px, click-and-drag eraser
+    // E38 (Chat, 2026-09-25): the spray on liquid. It isn't pushed like a solid: each pass thins the patch under it to
+    // (1 - thin) and lays `keep` of it down further along the spray's way (up to `carry` × the move), so it streaks and
+    // washes out. Liquid pushed up to the board's top edge drips back down, and the last of a wash trickles toward the trough.
+    liquid: { thin: 0.7, keep: 0.4, carry: 0.9, dripAlpha: 0.7, minAlpha: 40 },   // [T]
+    // E38: the pieces a clear leaves (core/pieces.js). Sizes and speeds are in board heights (bh), so every window size
+    // plays the same. `parts`: alien parts by break stage (the clear's tier, E26), more the slower.
+    pieces: {
+      shards: [6, 8],              // [T] shell pieces from every clear
+      parts: { 3: 1, 4: 2, 5: 3 }, // [T] alien parts at break stages 3, 4 and 5
+      fling: [0.25, 0.6],          // [T] bh/s: how hard a clear throws them
+      friction: 1.4,               // [T] bh/s²: how fast they slow down
+      push: 0.9,                   // [T] bh/s a spray event adds (a decent sweep takes one most of the way to the edge)
+      maxSpeed: 2.2,               // [T] bh/s
+      sprayRadius: 0.045,          // [T] bh: how wide the spray catches pieces
+      wallPad: 0.004,              // [T] bh: the gap pieces keep round a readout
+      flow: 0.28,                  // [T] bh/s: the trough's flow to the drain
+      troughShrink: 0.6,           // [T] a piece in the trough is drawn this size (it's down in the channel)
+      fadeSeconds: 0.6,            // [T] reduced motion: a piece in the trough fades out instead of riding the flow
+      topBand: 0.06,               // [T] bh: "at the top edge"
+      drip: 0.035,                 // [T] bh/s: a drip's slow run back down
+      dripLength: [0.08, 0.22],    // [T] bh
+      dripGap: 0.03,               // [T] bh: no two drips start closer than this
+      trickleChance: 0.25          // [T] per washed spray event
+    },
 
     // ── Build questions, ruled 2026-09-17 (Draft 9, packet §11) ─────────────
     // The other value of each switch still works, but it isn't the design.

@@ -456,7 +456,7 @@ h2 {
 #hose-tag {
   position: absolute;
   left: calc(50% + 16px);            /* the spigot sits at hoseSpigotX (0.5) */
-  bottom: 3px;
+  bottom: calc(var(--trough) + 3px); /* E38: just clear of the trough, still beside the hose and the sink */
   z-index: 26;
   display: flex;
   align-items: center;
@@ -489,6 +489,13 @@ h2 {
 #hose-tag .sink .grate { stroke: var(--sink-steel); stroke-width: 1.2; }
 #hose-tag .mouse rect, #hose-tag .mouse path { fill: var(--white); stroke: var(--outline); stroke-width: 2; }
 #hose-tag .mouse .btn { fill: var(--hot); }
+/* E38: on a short window the tag is more compact, so, raised clear of the trough, it still clears the bottom row's
+   readouts (the strip under them is only ~32 px at 1024 × 640) */
+@media (max-height: 700px) {
+  #hose-tag { padding: 0 6px 0 3px; }
+  #hose-tag .mouse { width: 0.85em; height: 1.2em; }
+  #hose-tag .sink { width: 1.9em; height: 1.1em; }
+}
 
 /* Refinement 2 §1: how to play, down one side. Refinement 5 §3: a cartoon look (⏳ placeholder): a cream card
    with a thick wobbly outline and a hard offset shadow, dark ink type, the labels as tilted chips, and goofy
@@ -816,6 +823,25 @@ h2 {
 .mess { position: absolute; left: -6%; top: 6%; width: 112%; height: 100%; pointer-events: none; z-index: 5; }
 .readout { position: relative; z-index: 3; }
 .floor-mess { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* E38: the pieces a clear leaves, over the floor mess and behind every nest (still ones baked below, moving ones above) */
+.pieces { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* E38: the trough along the board's left, right and bottom edges (none along the top), running to the drain under
+   the sink. Its water's stripes move toward the drain; under reduced motion they hold still. --drain is set by
+   pieces.js to the sink's place. */
+#field { --trough: clamp(7px, 1.2vh, 11px); }
+#trough { position: absolute; inset: 0; pointer-events: none; }
+#trough i { position: absolute; background-color: var(--trough-bed); box-shadow: inset 0 0 0 1px var(--trough-edge); }
+#trough .t-left, #trough .t-right { top: 0; bottom: 0; width: var(--trough);
+  background-image: repeating-linear-gradient(180deg, var(--trough-water) 0 5px, transparent 5px 12px); animation: trough-down 0.8s linear infinite; }
+#trough .t-left { left: 0; }
+#trough .t-right { right: 0; }
+#trough .t-bl, #trough .t-br { bottom: 0; height: var(--trough);
+  background-image: repeating-linear-gradient(90deg, var(--trough-water) 0 5px, transparent 5px 12px); }
+#trough .t-bl { left: 0; width: var(--drain, 50%); animation: trough-right 0.8s linear infinite; }
+#trough .t-br { left: var(--drain, 50%); right: 0; animation: trough-left 0.8s linear infinite; }
+@keyframes trough-down { from { background-position: 0 0; } to { background-position: 0 12px; } }
+@keyframes trough-right { from { background-position: 0 0; } to { background-position: 12px 0; } }
+@keyframes trough-left { from { background-position: 0 0; } to { background-position: -12px 0; } }
 
 /* Refinement 5 §5: the scary mom face (⏳ placeholder art). #mom is a clipping box laid exactly over its zone
    (the space over the HUD bar and the band above the board, or the how-to panel), above both, so the face can
@@ -1021,7 +1047,7 @@ h2 {
 #over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   #title-scene .note, #setup-critter .note { opacity: 1; }
   /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24) */
   .nest[data-state="trigger"] .readout > span { border-color: var(--cyan); }

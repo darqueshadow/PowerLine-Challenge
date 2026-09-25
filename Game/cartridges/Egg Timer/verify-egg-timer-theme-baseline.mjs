@@ -2028,7 +2028,7 @@ export default {
   "border-top-right-radius": "7px",
   "border-top-style": "solid",
   "border-top-width": "2px",
-  "bottom": "3px",
+  "bottom": "RAW calc(<--trough> + 3px)",
   "box-shadow": "rgb(0, 0, 0) 2px 2px 0px",
   "color": "rgb(26, 13, 46)",
   "column-gap": "5px",
@@ -2103,6 +2103,20 @@ export default {
  },
  "#hose-tag .mouse .btn": {
   "fill": "rgb(255, 61, 127)"
+ },
+ "@media (max-height: 700px) » #hose-tag": {
+  "padding-bottom": "0px",
+  "padding-left": "3px",
+  "padding-right": "6px",
+  "padding-top": "0px"
+ },
+ "@media (max-height: 700px) » #hose-tag .mouse": {
+  "height": "1.2em",
+  "width": "0.85em"
+ },
+ "@media (max-height: 700px) » #hose-tag .sink": {
+  "height": "1.1em",
+  "width": "1.9em"
  },
  "#howto": {
   "background-attachment": "initial",
@@ -3177,6 +3191,111 @@ export default {
   "top": "0px",
   "width": "100%"
  },
+ ".pieces": {
+  "bottom": "0px",
+  "height": "100%",
+  "left": "0px",
+  "pointer-events": "none",
+  "position": "absolute",
+  "right": "0px",
+  "top": "0px",
+  "width": "100%"
+ },
+ "#trough": {
+  "bottom": "0px",
+  "left": "0px",
+  "pointer-events": "none",
+  "position": "absolute",
+  "right": "0px",
+  "top": "0px"
+ },
+ "#trough i": {
+  "background-color": "rgb(74, 82, 96)",
+  "box-shadow": "rgb(26, 13, 46) 0px 0px 0px 1px inset",
+  "position": "absolute"
+ },
+ "#trough .t-left, #trough .t-right": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.8s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "infinite",
+  "animation-name": "trough-down",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "linear",
+  "background-image": "repeating-linear-gradient(rgba(120, 200, 255, 0.55) 0px, rgba(120, 200, 255, 0.55) 5px, transparent 5px, transparent 12px)",
+  "bottom": "0px",
+  "top": "0px",
+  "width": "RAW <--trough>"
+ },
+ "#trough .t-left": {
+  "left": "0px"
+ },
+ "#trough .t-right": {
+  "right": "0px"
+ },
+ "#trough .t-bl, #trough .t-br": {
+  "background-image": "repeating-linear-gradient(90deg, rgba(120, 200, 255, 0.55) 0px, rgba(120, 200, 255, 0.55) 5px, transparent 5px, transparent 12px)",
+  "bottom": "0px",
+  "height": "RAW <--trough>"
+ },
+ "#trough .t-bl": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.8s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "infinite",
+  "animation-name": "trough-right",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "linear",
+  "left": "0px",
+  "width": "50%"
+ },
+ "#trough .t-br": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.8s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "infinite",
+  "animation-name": "trough-left",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "linear",
+  "left": "50%",
+  "right": "0px"
+ },
+ "@keyframes trough-down » 0%": {
+  "background-position-x": "0px",
+  "background-position-y": "0px"
+ },
+ "@keyframes trough-down » 100%": {
+  "background-position-x": "0px",
+  "background-position-y": "12px"
+ },
+ "@keyframes trough-right » 0%": {
+  "background-position-x": "0px",
+  "background-position-y": "0px"
+ },
+ "@keyframes trough-right » 100%": {
+  "background-position-x": "12px",
+  "background-position-y": "0px"
+ },
+ "@keyframes trough-left » 0%": {
+  "background-position-x": "0px",
+  "background-position-y": "0px"
+ },
+ "@keyframes trough-left » 100%": {
+  "background-position-x": "-12px",
+  "background-position-y": "0px"
+ },
  "#mom": {
   "overflow-x": "hidden",
   "overflow-y": "hidden",
@@ -3829,7 +3948,7 @@ export default {
  "#over-buttons": {
   "margin-top": "12px"
  },
- "@media (prefers-reduced-motion: reduce) » .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",

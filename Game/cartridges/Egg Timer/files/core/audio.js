@@ -33,8 +33,9 @@
   function saveMuted() { try { root.localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) { /* no storage (a private window): this visit only */ } }
   function hidden() { return typeof document !== "undefined" && document.hidden; }
 
-  /* Egg-laying sounds: at most layMaxOverlap of each kind sounding at once (Chat ruling, 2026-09-25). */
-  var sounding = { squeeze: [], pop: [] };
+  /* Egg-laying sounds: at most layMaxOverlap of each kind sounding at once (Chat ruling, 2026-09-25). E38: the
+     trough's squelch and the drain's bloop share the same cap. */
+  var sounding = { squeeze: [], pop: [], squelch: [], bloop: [] };
   function capped(kind, now, seconds) {
     var live = sounding[kind].filter(function (end) { return end > now; });
     if (live.length >= ET.CONFIG.layMaxOverlap) { sounding[kind] = live; return true; }
@@ -270,6 +271,32 @@
       return j;
     },
 
+    /* E38 (⏳ synthesized, goofy and cheap): a wet squelch as a piece drops into the trough, and a "bloop" as an eyeball
+       goes down the drain. Both under THONG, the buzz and the hiss, on the egg-laying sounds' overlap cap, and neither
+       dips the music. They return the pitch used, or false when capped or silent. */
+    squelch: function () {
+      var a = ready();
+      if (!a || capped("squelch", a.currentTime, 0.18)) return false;
+      var j = 1 + (Math.random() * 2 - 1) * ET.CONFIG.layPitchJitter, t = a.currentTime, n = Math.floor(a.sampleRate * 0.16);
+      var buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = a.createBufferSource(), bp = a.createBiquadFilter(), g = a.createGain();
+      src.buffer = buf;
+      bp.type = "bandpass"; bp.Q.value = 4;
+      bp.frequency.setValueAtTime(700 * j, t); bp.frequency.exponentialRampToValueAtTime(260 * j, t + 0.15);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.1, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      src.connect(bp).connect(g).connect(bus());
+      src.start(t);
+      return j;
+    },
+    bloop: function () {
+      var a = ready();
+      if (!a || capped("bloop", a.currentTime, 0.2)) return false;
+      var j = 1 + (Math.random() * 2 - 1) * ET.CONFIG.layPitchJitter;
+      tone("sine", 620 * j, 150 * j, 0.18, 0.06);   // down the drain it goes
+      return j;
+    },
+
     /* ⏳ placeholder: the scary mom face's creepy hiss and wet gurgle, not a scream (Refinement 5 §5). */
     hiss: function (seconds, volume) {
       var a = ready();
@@ -372,7 +399,7 @@
       var OAC = root.OfflineAudioContext || root.webkitOfflineAudioContext;
       var off = new OAC(1, Math.ceil(44100 * (seconds || 1)), 44100);
       var live = { ctx: ctx, out: out, sounding: sounding, muted: muted };
-      ctx = off; out = chain(off, 1); sounding = { squeeze: [], pop: [] }; muted = false;
+      ctx = off; out = chain(off, 1); sounding = { squeeze: [], pop: [], squelch: [], bloop: [] }; muted = false;
       try { ET.audio[name].apply(null, args || []); } finally { ctx = live.ctx; out = live.out; sounding = live.sounding; muted = live.muted; }
       return off.startRendering().then(function (buf) {
         var d = buf.getChannelData(0), peak = 0, sum = 0;
