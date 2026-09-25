@@ -561,8 +561,9 @@
         var mr = nests[k].mess.getBoundingClientRect();
         if (x >= mr.left && x <= mr.right && y >= mr.top && y <= mr.bottom) { into = nests[k].mess; cr = mr; break; }
       }
-      var u = into.width / cr.width;
-      ET.mess.blob(into, (x - cr.left) * u, (y - cr.top) * into.height / cr.height, r * u);
+      // a nest's canvas is drawn scaled while the nest grows in (its 0.4 s unlock): place the blob by the drawn box, but
+      // size it by the canvas's own layout width, or a blob landing then comes out ~5× too big once the nest is full size
+      ET.mess.blob(into, (x - cr.left) * into.width / cr.width, (y - cr.top) * into.height / cr.height, r * into.width / (into.offsetWidth || cr.width));
     }
   }
 
