@@ -630,6 +630,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   the second egg comes within 8:00, so the warp stops there to the frame. The E39 rule doesn't wait on a placement
   still waiting, since the ruling's only guard is a bold egg; E18's condition stays with the last-CAV rule. The logic
   rig tests the rule, its exact stop and the guard; the browser rig sees the panel light for it early in a wave.)*
+  *(E39 follow-up, Chat, 2026-09-25: Time Warp while a placement is waiting is allowed; no change; the caption stays.)*
 - ~~**E36. Music level.**~~ **Resolved** *(E36, Chat)*: **the same music loudness as the other PLC cartridges; a feature,
   not background; no clipping or distortion; the music dips briefly under THONG, the error buzz and the hiss, and small
   sounds ride under it with no dip; the gameplay track's ~3 dB ramp and every loop point unchanged.** *(Code: measured
