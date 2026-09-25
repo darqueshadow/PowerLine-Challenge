@@ -1728,7 +1728,7 @@ try {
         let turns = 0, rising = true, jump = 0, peak = 0;
         for (let i = 1; i < s.length; i++) { const d = s[i][1] - s[i - 1][1]; jump = Math.max(jump, Math.abs(d)); peak = Math.max(peak, s[i][1]); if (rising && d < 0) { rising = false; turns++; } else if (!rising && d > 0) turns += 10; }
         // only a light seen from its start to its end counts for its life (one born near the end of the run is cut off)
-        return { life: s[s.length - 1][0] - s[0][0], whole: s.length >= 3 && s[0][1] < 0.01 && s[s.length - 1][1] < 0.01, turns, jump, peak: Math.max(peak, s[0][1]) };
+        return { life: s[s.length - 1][0] - s[0][0], whole: s.length >= 3 && s[0][1] < 0.01 && s[s.length - 1][1] < 0.01 && Math.max(...s.map(q => q[1])) > 0.9 * ET.CONFIG.lightsPeak, turns, jump, peak: Math.max(peak, s[0][1]) };
       });
       const starts = ET.view.backdrop().starts, beats = starts.map(t => Math.round(t / beat));
       return { most, n: lights.length, lights, starts: starts.length, oneABeat: new Set(beats).size === beats.length };
