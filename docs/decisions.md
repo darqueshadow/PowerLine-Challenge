@@ -319,6 +319,14 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Pruned 2026-09-25 — Egg Timer's CLAUDE.md, on parking
+
+The State and Locked-design sections were rewritten from the E26–E31 sessions' running notes into the current rules only.
+Dropped as history (each is already in the entries below or in the packet): E27's "Time Accelerator" rename and its undoing
+by E28; the how-to panel's line-by-line history (Switch, F12 and Cleanup moving out under E28, the panel leaving play under
+E30); the four-step title card and the old hose step; the mom face's panel zone. Added as rules: find snapshot nests by id,
+the taken class names (`error`, `bubble`), and the paused page still drawing.
+
 ## Resolved 2026-09-24 — Egg Timer: Time Warp's sign wobbles (E31)
 
 **Solved:** Andrew wanted Time Warp's sign to blink very fast, which the flash rule forbids. The sign keeps its 3 flashes,
