@@ -319,6 +319,11 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E32, the board tint (Chat ruling)
+
+**Solved:** Lilac, as built. **Approach:** no change; the ⏳ marks came off `config.js` and `theme.css`. Mint and cream
+stay as unused tokens behind `?tint=` (Chat said no change, so they weren't dropped).
+
 ## Resolved 2026-09-25 — Egg Timer: E34, the game-over default and its Enter guard (Chat ruling)
 
 **Solved:** TITLE SCREEN stays the default; Enter on game over now waits 1 s, so a hammered Enter can't skip the result.

@@ -85,7 +85,7 @@
   --line-4: #7dff3d;                      /* line 4, lime */
   --comic-bubble: #fff;                   /* E29: a speech bubble */
 
-  /* The board's tint (three swatches for Andrew to pick from, ⏳ E32), its beat lights and Time Warp's dark veil */
+  /* The board's tint (E32: lilac; mint and cream stay for `?tint=` previews), its beat lights and Time Warp's dark veil */
   --board-tint-lilac: rgba(199, 155, 255, 0.07);   /* a pale lilac haze */
   --board-tint-mint: rgba(160, 255, 210, 0.06);    /* a pale mint haze */
   --board-tint-cream: rgba(255, 244, 214, 0.06);   /* a pale cream haze */

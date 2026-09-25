@@ -597,7 +597,9 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
 
 ### Raised by Code building the board lights (2026-09-25) — E32 and E33 open
 
-- **E32. The board's tint.** *(Board lights: "Offer Andrew 2–3 swatches to pick from in playtest.")* Three are in
+- ~~**E32. The board's tint.**~~ **Resolved** *(E32, Chat, 2026-09-25)*: **lilac, as built. No change.** *(Code: the
+  switch stays `boardTint: "lilac"`; the mint and cream tokens stay too, since Chat asked for no change, and `?tint=`
+  still previews them.)* *(Original question follows.)* *(Board lights: "Offer Andrew 2–3 swatches to pick from in playtest.")* Three are in
   `theme.css`: **lilac** (`--board-tint-lilac`, a pale lilac haze), **mint** and **cream**, each 6–7% over the dark board.
   Built as ⏳ `boardTint: "lilac"` in `config.js`; adding `?tint=mint` or `?tint=cream` to the game's address tries
   another without changing it. Needed: **Andrew's pick**; then set the switch and drop the other two tokens.

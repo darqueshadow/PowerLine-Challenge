@@ -266,8 +266,8 @@
     // A faint, pale tint on the board (it stays dark), white lights that fade in and out on the music's beat behind
     // everything, and, while Time Warp runs, the board and its lights fade to dark. All in view.js's backdrop layer,
     // which sits behind the cord, the bolts and the whole board, so nothing in front of it is ever darkened.
-    // ⏳ PENDING (E32): Andrew picks the tint in playtest from three swatches (theme.css --board-tint-*); `?tint=` in the
-    //   address tries another one without changing this.
+    // E32 (ruled 2026-09-25): lilac, as built. The other two swatches (theme.css --board-tint-*) stay, unused: `?tint=`
+    //   in the address still previews one without changing this.
     boardTint: "lilac",            // "lilac" | "mint" | "cream"
     // The beat clock reads the gameplay track's BPM (music.gameplay.bpm, below). It runs on the player's seconds: mute
     // doesn't stop the lights, pause freezes them.
