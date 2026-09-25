@@ -93,7 +93,7 @@
     o.stop(t + seconds + 0.02);
   }
 
-  /* A short burst of noise, for the clunk's thud. */
+  /* A short burst of noise (THONG's scrape, the pop's click). */
   function noise(seconds, gain, cutoff, delay) {
     var a = ready();
     if (!a) return;
@@ -198,9 +198,6 @@
     },
 
     ding: function () { tone("sine", 1568, 0, 0.35, 0.18, 0.08); tone("sine", 2093, 0, 0.3, 0.1, 0.14); },
-
-    /* The pan on an empty nest after a hatch: dull, low, no ring. */
-    clunk: function (delay) { tone("square", 110, 60, 0.18, 0.2, delay); noise(0.12, 0.5, 500, delay); },
 
     /* Egg-laying (Chat ruling, 2026-09-25; ⏳ synthesized until recorded sounds replace them). The squeeze: a short
        wet, rubbery squelch as the bulge travels the cord's last stretch. The pop: a cartoon "finger out of the mouth"

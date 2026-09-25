@@ -115,7 +115,6 @@
     // ── Refinement 2 (2026-09-22): pan, ERROR, hose (its switcher is retired by Refinement 3)
     panSeconds: 0.32,        // [T] the frying pan's slam, well under 0.5 s; never holds the keyboard
     // (Refinement 2's fried eggs by overtime third are replaced by the egg ladder, Refinement 3 rulings, below.)
-    hatchPanDelay: 0.35,     // [T] on a hatch the pan comes down this late, on the empty nest
     thongPitchJitter: 0.06,  // [T] ±6% pitch on each THONG so repeats don't grate
     errorSeconds: 1.0,       // [T] how long the red ERROR shows under the Command Line
     sound: true,            // ⏳ placeholder sounds, synthesised; the real ones are Gemini's

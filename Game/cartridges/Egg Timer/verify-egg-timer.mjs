@@ -265,9 +265,9 @@ try {
     await press("m");   // also the first key, so sound unlocks here
     const l1 = await levelTo(0), m1 = await m();
     ok(m1.pressed === "true" && m1.muted && m1.saved === "1" && l1 !== null && l1 < 0.002, `M mutes: the button shows it, the browser remembers it, and the master level goes to 0   [${l1}]`);
-    await ev("ET.audio.thong(); ET.audio.buzz(); ET.audio.clunk(0); 1");
+    await ev("ET.audio.thong(); ET.audio.buzz(); ET.audio.hiss(ET.CONFIG.momFaceSeconds, ET.CONFIG.momFaceVolume); 1");
     const quiet = await loudest(700);
-    ok(quiet < 1e-4 && (await ev("__et.tune()")), `muted, nothing leaves the speakers: not the title tune, nor a pan, buzz and clunk played together   [peak ${quiet.toExponential(1)}]`);
+    ok(quiet < 1e-4 && (await ev("__et.tune()")), `muted, nothing leaves the speakers: not the title tune, nor a pan, buzz and hiss played together   [peak ${quiet.toExponential(1)}]`);
     await press("M");   // Shift or Caps Lock: the same key
     const l2 = await levelTo(ET_LEVEL), m2 = await m();
     await ev("ET.audio.thong(); 1");
@@ -665,12 +665,18 @@ try {
   /* ------------------------------------------------------ E. hatch, pool */
   section("E. a hatch drains the pool");
   await ev("__et.start('clear', 1)");                       // fresh: nothing has hatched yet
+  // E37: count every THONG, and every pan that comes down, from here to the hatch
+  await ev(`(() => { window.__e37 = { thong: 0, pan: 0 }; const f = ET.audio.thong; ET.audio.thong = function () { __e37.thong++; return f.apply(this, arguments); };
+    ET.audio.thong.__orig = f; new MutationObserver((ms) => ms.forEach((m) => { if (m.target.classList && m.target.classList.contains('pan') && m.target.className !== 'pan') __e37.pan++; }))
+      .observe(document.querySelector('#field') || document.body, { subtree: true, attributes: true, attributeFilter: ['class'] }); return 1; })()`);
   const h = await until((x) => x.stats.hatched >= 1, 120, 0.1);
   ok(!!h.hit, "leaving a CAV alone lets it hatch");
   eq(await ev("document.querySelector('#hud-pool').textContent"), "●●○", "the pool shows 2 of 3");
   eq(await ev("document.querySelector('#hud-pool-label').textContent"), "POOL", "the pool is shown by its placeholder key only");
   ok(await ev("!!document.querySelector('.nest.scurry, .nest.lunge')"), "the creature does an escape flourish (scurry or lunge)");
-  ok(await ev("!!document.querySelector('.nest.scurry .pan.late, .nest.lunge .pan.late')"), "the pan comes down late on the empty nest");
+  await wait(600);   // longer than the old late pan's delay plus its slam
+  eq(await ev("(() => { const r = [__e37.thong, __e37.pan, document.querySelectorAll('.pan:not([class=\"pan\"])').length]; ET.audio.thong = ET.audio.thong.__orig; return r; })()"), [0, 0, 0],
+    "E37: a hatch shows the hatch only: no THONG and no pan (counted from the start to after the hatch)");
   await shot("05-escape");
   {
     // Refinement 5 §4: the hatchling is horrific (⏳ placeholder): many red eyes, fangs, eight legs

@@ -2808,7 +2808,7 @@ export default {
   "stroke": "rgb(0, 0, 0)",
   "stroke-width": "3"
  },
- ".pan.hit, .pan.late": {
+ ".pan.hit": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "0.32s",

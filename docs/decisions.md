@@ -319,6 +319,13 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E37, no pan on a hatch (Chat ruling from Andrew's playtest)
+
+**Solved:** The frying pan came down (with a clunk) when an egg hatched; now it comes down only on a clear.
+**Approach:** It was Refinement 2's "the pan comes down late on the empty nest" (0.35 s after the hatch). Removed the
+`late` slam, `ET.audio.clunk` and `hatchPanDelay`; `slam()` has one kind now. Theme baseline: only `.pan.late` left.
+**If you touch this again:** rig section E counts THONGs and pans through a whole hatch; both must stay 0.
+
 ## Resolved 2026-09-25 — Egg Timer: E32, the board tint (Chat ruling)
 
 **Solved:** Lilac, as built. **Approach:** no change; the ⏳ marks came off `config.js` and `theme.css`. Mint and cream
