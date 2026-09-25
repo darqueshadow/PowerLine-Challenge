@@ -1888,12 +1888,19 @@ try {
         for (let y = 60; y < s.H - 60; y += 4) if (s.walls.every((w) => y < w.y0 - m || y > w.y1 + m)) { if (best === null || Math.abs(y - s.H / 2) < Math.abs(best - s.H / 2)) best = y; }
         return best; };
       window.__col = (m) => { const s = ET.pieces.state(); let best = null;
-        for (let x = s.T + 40; x < s.W - s.T - 40; x += 4) if (s.walls.every((w) => x < w.x0 - m || x > w.x1 + m)) { if (best === null || Math.abs(x - s.W / 3) < Math.abs(best - s.W / 3)) best = x; }
+        for (let x = s.T + 40; x < s.W - s.T - 40; x += 4) if (s.walls.every((w) => w.y0 > 220 || x < w.x0 - m || x > w.x1 + m)) { if (best === null || Math.abs(x - s.W / 3) < Math.abs(best - s.W / 3)) best = x; }
         return best; };
       window.__floorAt = (x, y) => { const s = ET.pieces.state(), f = ET.view.floor(); return [x / s.W * f.width, y / s.H * f.height]; };
       window.__p = (id) => ET.pieces.list().find((p) => p.id === id) || null;
       return 1; })()`);
 
+    // the walls pieces pile round are the readouts where they're drawn (measured by layout, so an unlock can't skew them)
+    await wait(600);
+    const wallsOk = await ev(`(() => { ET.pieces.layout(); const s = ET.pieces.state(), b = document.querySelector('#board').getBoundingClientRect(), pad = ET.CONFIG.pieces.wallPad * s.H;
+      const drawn = [...document.querySelectorAll('.nest .readout')].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
+      let worst = 0; drawn.forEach((r) => { const best = Math.min(...s.walls.map((w) => Math.abs(w.x0 + pad - (r.left - b.left)) + Math.abs(w.y0 + pad - (r.top - b.top)) + Math.abs(w.x1 - pad - (r.right - b.left)) + Math.abs(w.y1 - pad - (r.bottom - b.top)))); worst = Math.max(worst, best); });
+      return { n: drawn.length, walls: s.walls.length, worst }; })()`);
+    ok(wallsOk.n === 12 && wallsOk.walls === 12 && wallsOk.worst < 4, `the pieces' walls are the 12 readouts, where they're drawn   [worst ${wallsOk.worst.toFixed(1)} px out]`);
     // every clear leaves shell pieces; break stages 3-5 add the alien's parts, more the slower
     const made = await ev(`(() => { ET.pieces.reset(); const svg = document.querySelector('.nest .nest-art'), out = [];
       for (const t of [1, 2, 3, 4, 5]) { const k0 = ET.pieces.state().kinds; ET.pieces.clear(svg, t); const k1 = ET.pieces.state().kinds;
@@ -1921,6 +1928,7 @@ try {
     ok(pushed.turned && pushed.state === "rest", "…tumbling as it slides, then settling with friction");
     // the top edge stops a piece (no trough there)
     const col = await ev("__col(40)");
+    ok(col !== null, `(a column near the top clear of every readout, for the next checks   [x ${col}])`);
     const top = await ev(`(() => { ET.pieces.reset(); const id = ET.pieces.place('shell', ${col}, 90);
       __drag([[${col}, 140], [${col}, 120], [${col}, 100], [${col}, 80], [${col}, 60], [${col}, 40]]); __steps(80); const p = __p(id);
       return { y: p && Math.round(p.y), state: p ? p.state : 'gone', r: p && p.r }; })()`);
@@ -2233,6 +2241,7 @@ try {
     eq(await ev("__et.screen()"), "setup", "…and the next click goes on");
     await fresh("ET.CONFIG.titleFirstPress = 'go'; 1");
     await wait(450);   // past the prompt's wait for autoplay
+    await ev("__et.prompt()");   // (the switch changed after the page painted it)
     eq((await prompt()).text, "PRESS ENTER", "E40: with \"go\" there's no extra press, so no PRESS ANY KEY");
     await press("Enter");
     const go = await heard();

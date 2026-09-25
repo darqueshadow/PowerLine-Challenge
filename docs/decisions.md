@@ -319,6 +319,20 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Built 2026-09-25 (held) — Egg Timer: E38, pieces, the hose's push, drips and the trough (Chat ruling)
+
+**Solved:** Clears leave shell pieces (and alien parts at break stages 3–5) that pile up, get pushed by the hose, and
+drain through a trough at the board's left, right and bottom edges. Held on `et-e38-hold` for Andrew's screenshot sheet.
+**Approach:** `core/pieces.js` owns two canvases (baked still layer + live layer) inserted after the floor mess, so they
+sit behind the nests. A uniform grid (64 px cells) finds resting pieces; waking one redraws only its patch of the still
+layer. Positions are board px, speeds in board heights. Walls are the readouts, measured with the nest's unlock scale
+undone about its centre (layout offsets miss the translate(-50%) on each nest and readout; drawn boxes mid-unlock are
+20% size). Liquid: `ET.mess.streak()` replaces the eraser; the mess canvases are `willReadFrequently` (a GPU readback made
+one streak take 2.4 s). Sounds `squelch`/`bloop` share `capped()`.
+**If you touch this again:** rig section E38 steps the physics with `ET.pieces.frame()` while the game is paused; its
+`__col`/`__row` helpers need a column/row clear of the readouts (none spans the whole board at every size). E41 (no
+cleanup quota exists) is open with Chat.
+
 ## Resolved 2026-09-25 — Egg Timer: a clear's gunk blown up ~5× on a nest growing in (bug, found building E38)
 
 **Solved:** A blob a clear flung onto a nest during its 0.4 s unlock (scaled from 20%) came out about 5× too big.

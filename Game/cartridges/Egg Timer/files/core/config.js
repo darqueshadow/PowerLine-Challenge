@@ -110,7 +110,7 @@
       sprayRadius: 0.045,          // [T] bh: how wide the spray catches pieces
       wallPad: 0.004,              // [T] bh: the gap pieces keep round a readout
       flow: 0.28,                  // [T] bh/s: the trough's flow to the drain
-      troughShrink: 0.6,           // [T] a piece in the trough is drawn this size (it's down in the channel)
+      troughShrink: 0.8,           // [T] a piece in the trough is drawn this size (it's down in the channel)
       fadeSeconds: 0.6,            // [T] reduced motion: a piece in the trough fades out instead of riding the flow
       topBand: 0.06,               // [T] bh: "at the top edge"
       drip: 0.035,                 // [T] bh/s: a drip's slow run back down

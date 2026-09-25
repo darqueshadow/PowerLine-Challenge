@@ -627,14 +627,31 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   bug E35 fixed. Other keys (M, Ctrl+Shift+B) wake sound without being held back, and Fang Rock never needs the extra
   press. Needed: keep `"sound"` (one extra press, in browsers only), or `"go"`?
 
-- **E38. Shell pieces, alien parts, hose, trough.** *(E38, Chat; see the verbatim block.)* **Not built yet:** the
-  ruling is now whole (its rest is in `EGG_TIMER_E38-E40_RULINGS_2026-09-25.md`: quota, performance, reduced motion, the
-  hose tag moved up clear of the trough), but its pieces are cut from the pilot art, still on the hold branch. Order:
-  the pilot art merges, then E38 is built and held for Andrew's screenshot sheet before it goes live. *(Code, the trough's layout, measured as the ruling asks:
-  the clear strip between the board's edge and the nearest nest or readout is, left / right / bottom, 149 / 90 / 72 px
-  at 1920×1080, 91 / 62 / 54 at 1440×900, 79 / 54 / 36 at 1280×720 and 61 / 41 / 32 at 1024×640. A thin trough (about
-  8–10 px) fits on all three edges at every size without moving a nest, readout or Command Line. The only thing already
-  in that strip is the sink's "CLEANING HOSE" tag at the bottom centre, which would sit over the trough there.)*
+- ~~**E38. Shell pieces, alien parts, hose, trough.**~~ **Built, held off the live site for Andrew's sheet** *(E38, Chat;
+  verbatim in `EGG_TIMER_E35-E39_RULINGS_2026-09-25.md` and `EGG_TIMER_E38-E40_RULINGS_2026-09-25.md`)*. On branch
+  `et-e38-hold`; the sheet is `~/Downloads/Egg Timer E38 - pieces, hose and trough.png`. *(Code, `core/pieces.js`: every
+  clear throws 6–8 shell pieces cut as jagged polygons out of the approved egg picture (their cut edges outlined), and
+  break stages 3, 4 and 5 add 1, 2 and 3 of the pilot's alien parts (antenna, clawed leg, tentacle and goo, eye). They
+  live on two canvases over the floor mess and behind the nests and eggs; resting ones are baked into the lower one, so
+  a pile costs nothing a frame (3000 pieces: 0.15 ms a frame; a sweep through them ~25 ms), and nothing ever fades or is
+  removed except down the drain. The readouts are walls they pile round. The spray pushes every piece its move passes,
+  the way it's going (a sweep carries one ~80% across), with friction; shell tumbles, a leg flops, an eye rolls. Liquid
+  is no longer erased: a pass thins it to 30% and lays a fainter copy further along, so it streaks and washes out in
+  about three passes; pushed to the top it drips slowly back down, round any readout, and a piece resting at the top in
+  yolk rides its drip down. The top edge stops pieces; the left, right and bottom edges are a thin trough (7–11 px,
+  measured to touch nothing at all four sizes) running to the drain under the sink; a piece in it squelches, rides the
+  flow and goes down the drain (an eye with a "bloop"); both sounds share the lay sounds' overlap cap and sit under
+  THONG, the buzz and the hiss. The CLEANING HOSE tag sits just above the trough (more compact on short windows, so it
+  still clears the bottom row's readouts at 1024 × 640). Leftovers carry into the next wave. Reduced motion: no tumble,
+  the trough takes a piece with a fade, its water stands still. All numbers [T] in `config.js` (`pieces`, `liquid`).)*
+  *(Original entry follows.)* *(Code, the trough's layout, measured before building: the clear strip between the board's
+  edge and the nearest nest or readout is, left / right / bottom, 149 / 90 / 72 px at 1920×1080, 91 / 62 / 54 at 1440×900,
+  79 / 54 / 36 at 1280×720 and 61 / 41 / 32 at 1024×640.)*
+- **E41. The cleanup "quota" E38 refers to doesn't exist.** *(Raised by Code building E38.)* E38 says "Cleanup quota size
+  unchanged. A piece counts as cleaned when it enters the trough; liquid counts as it does today when washed out." But
+  cleanup today is a timed window (the banner's countdown); nothing counts what's cleaned and nothing needs cleaning to
+  go on. Built: nothing counted, so a piece entering the trough is simply gone down the drain, and liquid washes out as
+  it does. Needed: is that right (no quota), or was a cleanup quota meant, and if so, what should it count?
 - ~~**E39. A second Time Warp trigger.**~~ **Resolved** *(E39, Chat)*: **Time Warp also starts when 2 or more eggs are
   each more than 8:00 (displayed time) from their bold mark. The existing trigger stays (the last CAV started and nothing
   bold); it never starts while any egg is bold; no random trigger; everything else about it unchanged.** *(Code:

@@ -89,13 +89,21 @@
   }
 
   /* ---------------------------------------------------------------- layout */
-  /* Where an element sits on the board, by layout, not by its drawn box: a nest scales in from 20% as it unlocks
-     and tilts, and a measurement mid-animation would make every piece or wall tiny. */
+  /* Where an element sits on the board, as drawn, but at its nest's full size: a nest scales in from 20% as it
+     unlocks (about its own centre), and a measurement mid-animation would make every piece or wall tiny, so that
+     scale is undone about the nest's centre. (Layout offsets alone miss the translate(-50%) that centres each nest
+     and each readout.) */
   function boardBox(el) {
-    var x = 0, y = 0, e = el;
-    while (e && e !== board) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; }
-    if (e !== board) { var r = el.getBoundingClientRect(), b = board.getBoundingClientRect(); return { x: r.left - b.left, y: r.top - b.top, w: r.width, h: r.height }; }
-    return { x: x, y: y, w: el.offsetWidth, h: el.offsetHeight };
+    var r = el.getBoundingClientRect(), b = board.getBoundingClientRect();
+    var n = el.closest ? el.closest(".nest") : null;
+    if (n && n.offsetWidth) {
+      var nr = n.getBoundingClientRect(), k = nr.width / n.offsetWidth;
+      if (k > 0.01 && Math.abs(k - 1) > 0.01) {
+        var cx = nr.left + nr.width / 2, cy = nr.top + nr.height / 2;
+        return { x: cx + (r.left - cx) / k - b.left, y: cy + (r.top - cy) / k - b.top, w: r.width / k, h: r.height / k };
+      }
+    }
+    return { x: r.left - b.left, y: r.top - b.top, w: r.width, h: r.height };
   }
   function sizeCanvas(c) {
     c.width = Math.max(1, Math.round(W * dpr)); c.height = Math.max(1, Math.round(H * dpr));
@@ -236,8 +244,9 @@
           if (p.alpha <= 0) drain(p);
           continue;
         }
-        var bottom = H - T / 2;
-        if (p.y < bottom - 1 && (p.x < T || p.x > W - T)) { p.x = p.x < T ? T / 2 : W - T / 2; p.y = Math.min(bottom, p.y + flow * dt); }
+        // it rides in the channel, drawn fully inside the board (not half cut off by its edge)
+        var inset = Math.min(T, Math.max(T / 2, radius(p) * (p.shrink || 1) * 0.7)), bottom = H - inset;
+        if (p.y < bottom - 1 && (p.x < T || p.x > W - T)) { p.x = p.x < T ? inset : W - inset; p.y = Math.min(bottom, p.y + flow * dt); }
         else {
           p.y = bottom;
           var to = drainX - p.x, move = flow * dt;
@@ -281,7 +290,7 @@
       var w = blocked(nx, ny);
       if (w) nx = (nx - w.x0 < w.x1 - nx) ? w.x0 - 2 : w.x1 + 2;          // round a readout, never over it
       var a = floorPt(d.x, d.y), b = floorPt(nx, ny);
-      ET.mess.run(floor, a[0], a[1], b[0], b[1], 3 * floor.width / W, d.color);
+      ET.mess.run(floor, a[0], a[1], b[0], b[1], 5 * floor.width / W, d.color);   // about 5 px wide
       d.x = nx; d.y = ny;
       if (d.y >= d.end) d.done = true;
     });
@@ -312,7 +321,7 @@
     drips.forEach(function (d) {
       if (d.done) return;
       g.save(); g.fillStyle = d.color; g.globalAlpha = 0.9;
-      g.beginPath(); g.ellipse(d.x, d.y + 2, 3.2, 4.2, 0, 0, Math.PI * 2); g.fill(); g.restore();
+      g.beginPath(); g.ellipse(d.x, d.y + 3, 4.5, 6, 0, 0, Math.PI * 2); g.fill(); g.restore();
     });
   }
 

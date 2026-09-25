@@ -551,6 +551,7 @@
     music: function () { return ET.audio.musicState(); },
     show: function (name) { show(name); return name; },
     overEnterIn: function () { return overEnterIn(); },
+    prompt: function () { paintPrompt(); return $("#title-prompt").textContent; },   // rig-only: repaint the title's prompt now
     endMusic: function () { return ET.audio.endMusicForRig(); },
     nestClass: function (id) { var v = ET.view.nest(id); return v.el.className + " state=" + v.el.dataset.state; }
   };
