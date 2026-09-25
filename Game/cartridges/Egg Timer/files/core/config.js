@@ -236,6 +236,28 @@
     signsAllSeconds: 1.2,          // [T] all three together
     signsMinChange: 0.5,           // the guard (never below 0.5 s: 2 changes a second)
 
+    // ── Board lights and Time Warp dark (Chat ruling, 2026-09-25) ────────────
+    // A faint, pale tint on the board (it stays dark), white lights that fade in and out on the music's beat behind
+    // everything, and, while Time Warp runs, the board and its lights fade to dark. All in view.js's backdrop layer,
+    // which sits behind the cord, the bolts and the whole board, so nothing in front of it is ever darkened.
+    // ⏳ PENDING (E32): Andrew picks the tint in playtest from three swatches (theme.css --board-tint-*); `?tint=` in the
+    //   address tries another one without changing this.
+    boardTint: "lilac",            // "lilac" | "mint" | "cream"
+    // The beat clock: a BPM stored with each gameplay track (no beat detection). ⏳ There's no gameplay music yet, so
+    // this is a placeholder track. It runs on the player's seconds: mute doesn't stop it, pause freezes it.
+    gameplayTracks: [{ name: "placeholder (no gameplay music yet)", bpm: 100 }],
+    // 🚨 SAFETY: each light fades in and out over lightsBeats beats (never snaps); at most one new light a beat; at most
+    //   lightsMax at once; faint (lightsPeak). None flashes: one slow rise and fall each, seconds long.
+    lightsBeatChance: 0.5,         // [T] the chance a beat starts a new light
+    lightsMax: 3,                  // [T]
+    lightsBeats: 8,                // [T] one light's whole life, in beats (4.8 s at 100 BPM)
+    lightsPeak: 0.05,              // [T] its brightest: white at 5% (at 7% the dim Time Warp caption fell under 4.5:1)
+    lightsSize: [0.12, 0.34],      // [T] its diameter, as a share of the board's height
+    // Time Warp dark: a fade, not a flash. 🚨 The veil changes at most once in warpDarkMinChange (never below 0.5 s).
+    warpDarkSeconds: 0.5,          // [T] the fade
+    warpDarkOpacity: 0.8,          // [T] how dark the veil gets over the tint and the lights
+    warpDarkMinChange: 0.5,
+
     // ── E28 (ruled 2026-09-24): first-game tags ─────────────────────────────
     // In wave 1 only, and then never again that game: a tag for the first egg to go bold ("Pink = ready! Type RCAV
     // <unit>"), and one for the first "Clear @" note ("Check the wall clock"). They sit in the band above the board, so

@@ -11,7 +11,7 @@
 (function (root) {
   var ET = (root.ET = root.ET || {});
 
-  var field, board, floor, hud, banner, popups, wall, cleanup, warp, hands, sign, tips;
+  var field, board, floor, hud, banner, popups, wall, cleanup, warp, hands, sign, tips, back;
   var nests = [];          // index = logical cell id
   var bannerTimer = null;
   var noTypesShown = false;
@@ -284,6 +284,82 @@
       cords.svg.appendChild(p);
       tips[k].line = p;
     });
+  }
+
+  /* Board lights and Time Warp dark (Chat ruling, 2026-09-25). One layer behind everything on the play screen (under
+     the cord and the bolts too): the board's faint tint, white lights that fade in and out on the gameplay track's beat,
+     and a veil that fades the board and its lights to dark while Time Warp runs. Nothing in front of it is touched.
+     The beat clock runs on the player's seconds, so mute doesn't stop it and pause freezes it. 🚨 SAFETY: a light only
+     ever rises and falls once, slowly, over several beats; at most one starts a beat; the veil's changes go through
+     setDark()'s guard. Under reduced motion there are no lights, and the veil still fades. */
+  function buildBackdrop() {
+    var screen = field.closest(".screen");
+    var el = document.createElement("div");
+    el.id = "backdrop";
+    el.setAttribute("aria-hidden", "true");
+    var veil = document.createElement("div");
+    veil.className = "veil";
+    el.appendChild(veil);
+    screen.insertBefore(el, screen.firstChild);
+    var pick = (/[?&]tint=(lilac|mint|cream)\b/.exec(location.search) || [])[1] || ET.CONFIG.boardTint;
+    el.style.setProperty("--board-tint", "var(--board-tint-" + pick + ")");
+    el.style.setProperty("--dark", ET.CONFIG.warpDarkSeconds + "s");
+    el.style.setProperty("--dark-opacity", ET.CONFIG.warpDarkOpacity);
+    back = { el: el, veil: veil, tint: pick, lights: [], beat: null, dark: false, darkAt: -Infinity, darkLog: [], starts: [], ids: 0 };
+  }
+  function track() { return ET.CONFIG.gameplayTracks[0]; }
+  function setDark(on, t) {
+    if (back.dark === on) return false;
+    if (t - back.darkAt < Math.max(0.5, ET.CONFIG.warpDarkMinChange)) return false;   // 🚨 the veil's guard
+    back.dark = on;
+    back.darkAt = t;
+    back.veil.classList.toggle("dark", on);
+    back.darkLog.push({ t: t, on: on });
+    if (back.darkLog.length > 400) back.darkLog.splice(0, 200);
+    return true;
+  }
+  function paintBackdrop(snap) {
+    var C = ET.CONFIG, sr = back.el.parentNode.getBoundingClientRect(), f = field.getBoundingClientRect();
+    back.el.style.left = (f.left - sr.left) + "px"; back.el.style.top = (f.top - sr.top) + "px";
+    back.el.style.width = f.width + "px"; back.el.style.height = f.height + "px";
+    setDark(!!snap.warp, snap.time);
+    var still = reducedMotion(), beatLen = 60 / track().bpm, life = C.lightsBeats * beatLen, t = snap.time;
+    if (still) { back.lights.forEach(function (l) { l.el.remove(); }); back.lights = []; back.beat = null; return; }
+    // a new beat: maybe start a light (at most one a beat, at most lightsMax showing)
+    var beat = Math.floor(t / beatLen);
+    if (back.beat === null) back.beat = beat;
+    if (beat !== back.beat) {
+      back.beat = beat;
+      if (back.lights.length < C.lightsMax && Math.random() < C.lightsBeatChance) {
+        var d = f.height * (C.lightsSize[0] + Math.random() * (C.lightsSize[1] - C.lightsSize[0]));
+        var el = document.createElement("i");
+        el.className = "light";
+        el.style.width = el.style.height = d.toFixed(0) + "px";
+        el.style.left = (Math.random() * f.width - d / 2).toFixed(0) + "px";
+        el.style.top = (Math.random() * f.height - d / 2).toFixed(0) + "px";
+        back.el.insertBefore(el, back.veil);
+        back.lights.push({ id: ++back.ids, el: el, born: beat * beatLen });
+        back.starts.push(beat * beatLen);
+        if (back.starts.length > 400) back.starts.splice(0, 200);
+      }
+    }
+    // each light rises and falls once, smoothly, over its life
+    back.lights = back.lights.filter(function (l) {
+      var u = (t - l.born) / life;
+      if (u >= 1 || u < 0) { l.el.remove(); return false; }
+      l.el.style.opacity = (C.lightsPeak * Math.sin(Math.PI * u)).toFixed(4);
+      return true;
+    });
+  }
+  function resetBackdrop() {
+    back.lights.forEach(function (l) { l.el.remove(); });
+    back.lights = [];
+    back.beat = null;
+    back.starts = [];
+    back.dark = false;
+    back.darkAt = -Infinity;
+    back.darkLog = [];
+    back.veil.classList.remove("dark");
   }
 
   /* E28: Time Warp's sign. When it kicks in it flashes warpSignFlashes times, then stays lit; it goes dark when Time
@@ -609,6 +685,7 @@
       }
       ET.view.bindWipe();
       buildHose();
+      buildBackdrop();
       buildCords();
       buildLightning();
       buildMom();
@@ -633,6 +710,7 @@
       warp.classList.remove("lit", "still");
       board.classList.remove("warp");
       resetHands();
+      resetBackdrop();
       sign.was = false;
       sign.t0 = null;
       sign.lit = false;
@@ -662,6 +740,7 @@
       warp.classList.toggle("lit", !!snap.warp);
       turnHands(snap);
       paintSign(snap);
+      paintBackdrop(snap);
       board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the nests with a running clock glow (E22)
 
       snap.nests.forEach(function (s) {
@@ -884,6 +963,12 @@
     /* For rigs: the grandfather clock's hands (degrees from 12) and whether its face shows the "5×". */
     clockHands: function () {
       return { hour: hands.at[0], minute: hands.at[1], fivex: getComputedStyle(warp.querySelector(".fivex")).display !== "none" };
+    },
+
+    /* For rigs: the backdrop: its tint, the lights showing (id and opacity), when each started, and the veil. */
+    backdrop: function () {
+      return { tint: back.tint, bpm: track().bpm, dark: back.dark, darkLog: back.darkLog.slice(), starts: back.starts.slice(),
+               lights: back.lights.map(function (l) { return { id: l.id, o: Number(l.el.style.opacity) }; }) };
     },
 
     /* For rigs: Time Warp's sign (lit now, and its change log) and the first-game tags. */

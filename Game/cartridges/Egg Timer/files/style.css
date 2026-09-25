@@ -414,6 +414,13 @@ h2 {
 #hose .hose-body { fill: none; stroke: var(--hose); stroke-linecap: round; }
 /* Refinement 3 §7: the egg-laying cord, in the hose's layer, under every piece of text (⏳ placeholder) */
 #cords { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible; }
+/* Board lights (Chat ruling, 2026-09-25): the backmost layer, under the cord, the bolts and the whole board (z 0). It
+   holds the board's faint tint, the beat lights (view.js sets each one's opacity every frame) and Time Warp's veil,
+   which fades (never snaps) to dark. view.js lays it over the board's area. */
+#backdrop { position: absolute; z-index: 0; pointer-events: none; overflow: hidden; background: var(--board-tint, transparent); }
+#backdrop .light { position: absolute; border-radius: 50%; background: var(--board-light); opacity: 0; }
+#backdrop .veil { position: absolute; inset: 0; background: var(--warp-dark); opacity: 0; transition: opacity var(--dark, 0.5s) linear; }
+#backdrop .veil.dark { opacity: var(--dark-opacity, 0.8); }
 /* Refinement 6 §4 (⏳ placeholder): thick [T], striped blood red and purple, deeply ribbed. The stripes creep
    slowly down the cord (movement, not a flash); timing and layering are unchanged. */
 #cords path[class^="cord-"] { fill: none; stroke-linejoin: round; }

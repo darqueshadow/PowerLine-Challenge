@@ -1538,6 +1538,107 @@ try {
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
 
+  /* ------------------------------------------------------- U. board lights and Time Warp dark */
+  section("U. board lights and Time Warp dark (Chat ruling, 2026-09-25)");
+  {
+    const esc = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
+    await ev("__et.start('clear', 2); __et.advance(0.1); 1");
+    // colours: WCAG relative luminance and contrast, compositing an rgba colour over an opaque one
+    const colours = await ev(`(() => {
+      const rgba = (s) => { const m = s.match(/[\\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m.length > 3 ? m[3] : 1 }; };
+      const over = (top, bot) => ({ r: top.r * top.a + bot.r * (1 - top.a), g: top.g * top.a + bot.g * (1 - top.a), b: top.b * top.a + bot.b * (1 - top.a), a: 1 });
+      const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+      const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+      const root = getComputedStyle(document.documentElement), hex = (h) => { h = h.trim().slice(1); if (h.length === 3) h = h.split('').map(x => x + x).join(''); return rgba('rgb(' + [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(',') + ')'); };
+      const base = hex(root.getPropertyValue('--bg-2')), tint = rgba(getComputedStyle(document.querySelector('#backdrop')).backgroundColor);
+      const light = Object.assign(hex(root.getPropertyValue('--board-light')), { a: ET.CONFIG.lightsPeak });
+      const board = over(tint, base);
+      // the brightest spot on the board, under whichever of the three tints Andrew picks: a light at its peak
+      const lits = ['lilac', 'mint', 'cream'].map(k => over(light, over(rgba(root.getPropertyValue('--board-tint-' + k)), base)));
+      const lit = lits.reduce((a, b) => lum(a) > lum(b) ? a : b);
+      // text drawn straight on the board: Time Warp's caption, both ways; readouts have opaque boxes of their own
+      const cap = document.querySelector('#warp .caption'), capOff = rgba(getComputedStyle(cap).color);
+      document.querySelector('#warp').classList.add('lit'); const capOn = rgba(getComputedStyle(cap).color); document.querySelector('#warp').classList.remove('lit');
+      const boxes = [...document.querySelectorAll('.nest .readout > span')].map(s => rgba(getComputedStyle(s).backgroundColor).a);
+      const inks = ['--readout-timer', '--readout-bold-timer', '--readout-unit', '--readout-type'].map(k => ratio(hex(root.getPropertyValue(k + (k === '--readout-unit' ? '-ink' : '-ink'))), hex(root.getPropertyValue(k + '-bg')))).map(x => +x.toFixed(2));
+      return { tint: ET.view.backdrop().tint, dark: lum(board), litLum: lum(lit), capOff: +ratio(capOff, lit).toFixed(2), capOn: +ratio(capOn, lit).toFixed(2), opaque: boxes.every(a => a === 1), inks,
+               z: ['#backdrop', '#cords', '#field'].map(q => Number(getComputedStyle(document.querySelector(q)).zIndex)) };
+    })()`);
+    ok(colours.tint === (await ev("ET.CONFIG.boardTint")) && colours.dark < 0.05, `the board gets its faint tint and stays dark   [${colours.tint}, luminance ${colours.dark.toFixed(3)}]`);
+    ok(colours.z[0] < colours.z[1] && colours.z[1] < colours.z[2], `the tint, lights and veil sit behind everything: the cord and bolts, then the board   [z ${colours.z.join(" < ")}]`);
+    ok(colours.opaque, `readouts stay legible over a light: every box is opaque, so a light behind it never changes its contrast   [ink on box: timer ${colours.inks[0]}, bold timer ${colours.inks[1]}, unit ${colours.inks[2]}, type ${colours.inks[3]}]`);
+    ok(colours.capOff >= 4.5 && colours.capOn >= 4.5, `…and text drawn straight on the board (Time Warp's caption) keeps 4.5:1 over a light at its brightest, under any of the three tints   [${colours.capOff}, ${colours.capOn}]`);
+    // the beat lights, over 60 s of the player's seconds, in one evaluation
+    const run = await ev(`(() => {
+      __et.start('clear', 2); __et.advance(0.1);
+      const seen = {}, beat = 60 / ET.view.backdrop().bpm; let most = 0;
+      for (let i = 0; i < 1200; i++) {
+        __et.advance(0.05);
+        __et.snapshot().nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit));
+        const b = ET.view.backdrop(), t = __et.snapshot().time;
+        most = Math.max(most, b.lights.length);
+        b.lights.forEach(l => (seen[l.id] = seen[l.id] || []).push([t, l.o]));
+      }
+      const lights = Object.values(seen).map(s => {
+        let turns = 0, rising = true, jump = 0, peak = 0;
+        for (let i = 1; i < s.length; i++) { const d = s[i][1] - s[i - 1][1]; jump = Math.max(jump, Math.abs(d)); peak = Math.max(peak, s[i][1]); if (rising && d < 0) { rising = false; turns++; } else if (!rising && d > 0) turns += 10; }
+        // only a light seen from its start to its end counts for its life (one born near the end of the run is cut off)
+        return { life: s[s.length - 1][0] - s[0][0], whole: s[0][1] < 0.01 && s[s.length - 1][1] < 0.01, turns, jump, peak: Math.max(peak, s[0][1]) };
+      });
+      const starts = ET.view.backdrop().starts, beats = starts.map(t => Math.round(t / beat));
+      return { most, n: lights.length, lights, starts: starts.length, oneABeat: new Set(beats).size === beats.length };
+    })()`);
+    const max = await ev("ET.CONFIG.lightsMax"), peak = await ev("ET.CONFIG.lightsPeak");
+    ok(run.n >= 3 && run.oneABeat && run.most <= max, `white lights come and go on the beat: at most one new light a beat, at most ${max} at once   [${run.n} lights in 60 s, most ${run.most} at once]`);
+    ok(run.lights.every((l) => l.turns <= 1 && l.peak <= peak + 1e-6), `…each fading in and out once, no brighter than ${peak * 100}% white   [peaks ${run.lights.map((l) => l.peak.toFixed(3)).join(" ")}]`);
+    const whole = run.lights.filter((l) => l.whole);
+    ok(run.lights.every((l) => l.jump < 0.01) && whole.length >= 3 && whole.every((l) => l.life >= 2),
+      `SAFETY: no light snaps on or off or flashes more than 2 times a second (each rises and falls once over seconds)   [biggest step ${Math.max(...run.lights.map((l) => l.jump)).toFixed(4)}, shortest whole life ${Math.min(...whole.map((l) => l.life)).toFixed(1)} s]`);
+    // pause freezes them; mute doesn't stop them
+    const frozen = await ev(`new Promise((done) => { const a = JSON.stringify(ET.view.backdrop().lights); ${esc};
+      setTimeout(() => { const b = JSON.stringify(ET.view.backdrop().lights); ${esc}; done({ same: a === b, any: a !== '[]' }); }, 1000); })`);
+    ok(frozen.same, `pause freezes the lights   [${frozen.any ? "lights showing" : "none showing"}]`);
+    const muted = await ev(`(() => { __et.start('clear', 2); __et.advance(0.1); const was = ET.audio.muted(); if (!was) document.querySelector('#mute').click(); const n0 = ET.view.backdrop().starts.length;
+      for (let i = 0; i < 400; i++) { __et.advance(0.05); __et.snapshot().nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit)); }
+      const n1 = ET.view.backdrop().starts.length; const m = ET.audio.muted(); if (!was) document.querySelector('#mute').click(); return { m, more: n1 - n0 }; })()`);
+    ok(muted.m && muted.more > 0, `mute doesn't stop the lights (they follow the beat clock)   [${muted.more} new while muted]`);
+    // Time Warp dark: a steady Time Warp drawn frame by frame (all in one evaluation)
+    const dark = await ev(`(() => {
+      __et.start('clear', 2); __et.advance(0.1);
+      const s = __et.snapshot(), t0 = s.time;
+      const keep = ['.nest .nest-art', '.nest .readout > span', '#warp svg.clock-art', '#warp .plaque', '#warp .caption', '#cords .lightning'];
+      const look = () => keep.map(q => [...document.querySelectorAll(q)].slice(0, 3).map(e => { const c = getComputedStyle(e); return c.opacity + '|' + (c.filter.includes('brightness') ? 'dim' : '') + '|' + !!e.closest('#backdrop'); }).join(','));
+      ET.view.render(Object.assign({}, s, { warp: false, time: t0 }));
+      const before = look();
+      ET.view.render(Object.assign({}, s, { warp: true, time: t0 + 0.05 }));
+      const veil = document.querySelector('#backdrop .veil'), cs = getComputedStyle(veil);
+      const on = { dark: ET.view.backdrop().dark, cls: veil.classList.contains('dark'), fade: cs.transitionDuration, prop: cs.transitionProperty };
+      const during = look();
+      ET.view.render(Object.assign({}, s, { warp: false, time: t0 + 0.7 }));
+      const off = ET.view.backdrop().dark;
+      // rapid Time Warp on and off, every 0.1 s: the veil's guard
+      for (let i = 0; i < 40; i++) ET.view.render(Object.assign({}, s, { warp: i % 2 === 0, time: t0 + 1.5 + i * 0.1 }));
+      const log = ET.view.backdrop().darkLog.filter(e => e.t >= t0 + 1.5);
+      __et.start('clear', 2); __et.advance(0.1);
+      return { on, off, same: JSON.stringify(before) === JSON.stringify(during), gaps: log.slice(1).map((e, i) => +(e.t - log[i].t).toFixed(2)) };
+    })()`);
+    ok(dark.on.dark && dark.on.cls && dark.on.fade === "0.5s" && dark.on.prop === "opacity" && !dark.off,
+      `when Time Warp starts, the board and its lights fade to dark over half a second, and fade back when it ends   [${dark.on.fade} ${dark.on.prop}]`);
+    ok(dark.same, "…leaving the nests, eggs, text boxes, the clock, its sign and caption and the bolts untouched");
+    ok(dark.gaps.length > 0 && dark.gaps.every((g) => g >= 0.5 - 1e-6), `SAFETY: the dark changes at most once in half a second, however fast Time Warp flips   [gaps ${dark.gaps.slice(0, 6).join(" ")} s]`);
+    // reduced motion: no lights; the Time Warp dark still happens, as a fade
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const rm = await ev(`(() => { __et.start('clear', 2); __et.advance(0.1); let most = 0;
+      for (let i = 0; i < 200; i++) { __et.advance(0.05); most = Math.max(most, ET.view.backdrop().lights.length); }
+      const s = __et.snapshot(); ET.view.render(Object.assign({}, s, { warp: true, time: s.time + 0.05 }));
+      const v = getComputedStyle(document.querySelector('#backdrop .veil'));
+      const out = { most, starts: ET.view.backdrop().starts.length, dark: ET.view.backdrop().dark, fade: v.transitionDuration };
+      __et.start('clear', 2); __et.advance(0.1); return out; })()`);
+    ok(rm.most === 0 && rm.starts === 0 && rm.dark && rm.fade === "0.5s", `SAFETY: with reduced motion there are no lights, and the Time Warp dark is still a fade   [${rm.starts} lights, ${rm.fade}]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+  }
+
   /* ------------------------------------------------------- Q. the scary mom face */
   section("Q. the scary mom face (Refinement 5 §5)");
   await ev("__et.start('both', 4)");

@@ -1,5 +1,5 @@
 /* verify-egg-timer-theme-baseline.mjs: section T's record of every rule of the game's stylesheets, resolved
-   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-24.
+   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-25.
    Rewrite it ONLY when a style is changed on purpose, in the same commit. Never published (verify-*.mjs). */
 export default {
  "@font-face": {
@@ -1812,6 +1812,64 @@ export default {
   "top": "0px",
   "width": "100%",
   "z-index": "1"
+ },
+ "#backdrop": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "transparent",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "overflow-x": "hidden",
+  "overflow-y": "hidden",
+  "pointer-events": "none",
+  "position": "absolute",
+  "z-index": "0"
+ },
+ "#backdrop .light": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(255, 255, 255)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "border-bottom-left-radius": "50%",
+  "border-bottom-right-radius": "50%",
+  "border-top-left-radius": "50%",
+  "border-top-right-radius": "50%",
+  "opacity": "0",
+  "position": "absolute"
+ },
+ "#backdrop .veil": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(2, 1, 6)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "bottom": "0px",
+  "left": "0px",
+  "opacity": "0",
+  "position": "absolute",
+  "right": "0px",
+  "top": "0px",
+  "transition-behavior": "normal",
+  "transition-delay": "0s",
+  "transition-duration": "0.5s",
+  "transition-property": "opacity",
+  "transition-timing-function": "linear"
+ },
+ "#backdrop .veil.dark": {
+  "opacity": "0.8"
  },
  "#cords path[class^=\"cord-\"]": {
   "fill": "none",

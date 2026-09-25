@@ -85,6 +85,13 @@
   --line-4: #7dff3d;                      /* line 4, lime */
   --comic-bubble: #fff;                   /* E29: a speech bubble */
 
+  /* The board's tint (three swatches for Andrew to pick from, ⏳ E32), its beat lights and Time Warp's dark veil */
+  --board-tint-lilac: rgba(199, 155, 255, 0.07);   /* a pale lilac haze */
+  --board-tint-mint: rgba(160, 255, 210, 0.06);    /* a pale mint haze */
+  --board-tint-cream: rgba(255, 244, 214, 0.06);   /* a pale cream haze */
+  --board-light: #fff;                    /* white (the lights; their faintness is their opacity) */
+  --warp-dark: #020106;                   /* near black (Time Warp's veil) */
+
   /* E27: the options screen's HOW / TO / PLAY signs (lit, they use --gold) */
   --sign-off-bg: #2a1640;                 /* unlit sign, dark plum */
   --sign-off-ink: #7d6a96;                /* unlit sign lettering, dusty lilac */
