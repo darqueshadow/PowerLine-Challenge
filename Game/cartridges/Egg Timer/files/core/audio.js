@@ -35,7 +35,9 @@
 
   /* Egg-laying sounds: at most layMaxOverlap of each kind sounding at once (Chat ruling, 2026-09-25). E38: the
      trough's squelch and the drain's bloop share the same cap. */
-  var sounding = { squeeze: [], pop: [], squelch: [], bloop: [] };
+  var sounding = { squeeze: [], pop: [], squelch: [], bloop: [], blast: [] };
+  var blasting = null;    // E42: the hose's blast while it sounds…
+  var fading = null;      // …and the last one while it fades out
   function capped(kind, now, seconds) {
     var live = sounding[kind].filter(function (end) { return end > now; });
     if (live.length >= ET.CONFIG.layMaxOverlap) { sounding[kind] = live; return true; }
@@ -297,6 +299,55 @@
       return j;
     },
 
+    /* E42 (Chat, 2026-09-25; ⏳ synthesized): the hose's pressure-washer blast, from the press to the release. A hard
+       hiss of water with a pump's fast chug in it. It sits under the music with no dip, under THONG, the buzz and the
+       hiss, and on the egg-laying sounds' overlap cap. blast(true) starts it (true, or false when capped or silent),
+       blast(false) lets it go over a tenth of a second. */
+    blast: function (on) {
+      var a = ready();
+      if (!a) return false;
+      var t = a.currentTime;
+      if (!on) {
+        if (!blasting) return false;
+        var b = blasting;
+        blasting = null;
+        b.g.gain.cancelScheduledValues(t);
+        b.g.gain.setValueAtTime(b.g.gain.value, t);
+        b.g.gain.linearRampToValueAtTime(0, t + 0.1);
+        b.src.stop(t + 0.12); b.lfo.stop(t + 0.12);
+        b.end = t + 0.12;
+        fading = b;
+        sounding.blast = sounding.blast.map(function (end) { return end === Infinity ? b.end : end; });
+        return true;
+      }
+      if (blasting) return true;
+      // a quick re-press cuts the last blast's fade short, so the player's own taps never use up the cap
+      if (fading) {
+        var f = fading;
+        fading = null;
+        try { f.src.stop(t); f.lfo.stop(t); } catch (e) { /* already ended */ }
+        sounding.blast = sounding.blast.filter(function (end) { return end !== f.end; });
+      }
+      if (capped("blast", t, Infinity)) return false;
+      var n = Math.floor(a.sampleRate * 2), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = a.createBufferSource(), hp = a.createBiquadFilter(), pk = a.createBiquadFilter(), chug = a.createGain(), g = a.createGain();
+      src.buffer = buf; src.loop = true;
+      hp.type = "highpass"; hp.frequency.value = 700;                          // water, not rumble
+      pk.type = "peaking"; pk.frequency.value = 2600; pk.Q.value = 1.4; pk.gain.value = 6;   // the jet's hard edge
+      var lfo = a.createOscillator(), depth = a.createGain();                // the pump's chug
+      lfo.type = "triangle"; lfo.frequency.value = 26; depth.gain.value = 0.3;
+      chug.gain.value = 0.7;
+      lfo.connect(depth).connect(chug.gain);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(ET.CONFIG.hoseBlastGain, t + 0.04);
+      src.connect(hp).connect(pk).connect(chug).connect(g).connect(bus());
+      src.start(t); lfo.start(t);
+      blasting = { src: src, lfo: lfo, g: g };
+      return true;
+    },
+    blasting: function () { return !!blasting; },
+
     /* ⏳ placeholder: the scary mom face's creepy hiss and wet gurgle, not a scream (Refinement 5 §5). */
     hiss: function (seconds, volume) {
       var a = ready();
@@ -394,13 +445,14 @@
     chain: function (a, level) { return chain(a, level === undefined ? LEVEL : level); },
 
     /* For rigs: play one sound (`name`, with `args`) alone into a silent offline context, through its own master chain at
-       level 1, and measure its peak and loudness (RMS) over the first `seconds`. The live context is untouched. */
+       level 1, and measure its peak and loudness (RMS) over the first `seconds`. The live context is untouched. A sound
+       that runs until told to stop (the blast) runs through the whole render. */
     measure: function (name, args, seconds) {
       var OAC = root.OfflineAudioContext || root.webkitOfflineAudioContext;
       var off = new OAC(1, Math.ceil(44100 * (seconds || 1)), 44100);
-      var live = { ctx: ctx, out: out, sounding: sounding, muted: muted };
-      ctx = off; out = chain(off, 1); sounding = { squeeze: [], pop: [], squelch: [], bloop: [] }; muted = false;
-      try { ET.audio[name].apply(null, args || []); } finally { ctx = live.ctx; out = live.out; sounding = live.sounding; muted = live.muted; }
+      var live = { ctx: ctx, out: out, sounding: sounding, muted: muted, blasting: blasting, fading: fading };
+      ctx = off; out = chain(off, 1); sounding = { squeeze: [], pop: [], squelch: [], bloop: [], blast: [] }; muted = false; blasting = null; fading = null;
+      try { ET.audio[name].apply(null, args || []); } finally { ctx = live.ctx; out = live.out; sounding = live.sounding; muted = live.muted; blasting = live.blasting; fading = live.fading; }
       return off.startRendering().then(function (buf) {
         var d = buf.getChannelData(0), peak = 0, sum = 0;
         for (var i = 0; i < d.length; i++) { var v = Math.abs(d[i]); if (v > peak) peak = v; sum += d[i] * d[i]; }
@@ -409,7 +461,8 @@
         while (a0 < d.length && Math.abs(d[a0]) < peak * 0.01) a0++;
         while (a1 > a0 && Math.abs(d[a1]) < peak * 0.01) a1--;
         for (var j = a0; j <= a1; j++) q += d[j] * d[j];
-        return { peak: peak, rms: Math.sqrt(sum / d.length), active: Math.sqrt(q / Math.max(1, a1 - a0 + 1)) };
+        // `span`: how long it sounds, in seconds; `buffer`: the render itself, for a rig to measure further
+        return { peak: peak, rms: Math.sqrt(sum / d.length), active: Math.sqrt(q / Math.max(1, a1 - a0 + 1)), span: (a1 - a0) / buf.sampleRate, buffer: buf };
       });
     },
     CEILING: CEILING,

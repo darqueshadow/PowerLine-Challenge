@@ -567,25 +567,91 @@
     }
   }
 
-  /* ⏳ placeholder: water from the hose while a drag is wiping. */
-  var water = null;
-  function spray(x, y) {
-    if (!water) {   // Refinement 4 §2: the water draws with the hose, above the board
-      var screen = field.closest(".screen");
-      water = document.createElement("div");
-      water.id = "water";
-      screen.appendChild(water);
+  /* E42 (Chat, 2026-09-25): the hose blasts, not trickles (⏳ placeholder look). From the press to the release, moving
+     or not, a thick, fast jet leaves the nozzle's tip (the cursor's hotspot) and reaches hoseJet.length ahead, with a
+     burst at the nozzle, mist thrown off along it and a splash where it hits; the blast sounds all that time. The jet
+     points the way the drag goes, or the nozzle's own aim until it moves (hoseJet.aim, ⏳ E44). Refinement 4 §2: the
+     water draws with the hose, above the board. Reduced motion: the jet only, standing still. */
+  var water = null, stopWipe = null;
+  var NOZZLE = [-Math.SQRT1_2, -Math.SQRT1_2];   // the cursor picture's nozzle points up-left
+  function jetSize() {
+    var J = ET.CONFIG.hoseJet, h = board.getBoundingClientRect().height;
+    return { len: J.length * h, w: Math.max(J.minWidth, J.width * h) };
+  }
+  function buildWater() {
+    var el = document.createElement("div");
+    el.id = "water";
+    var jet = document.createElement("div");
+    jet.className = "jet";
+    jet.hidden = true;
+    ["core", "burst"].forEach(function (k) { var i = document.createElement("i"); i.className = k; jet.appendChild(i); });
+    el.appendChild(jet);
+    field.closest(".screen").appendChild(el);
+    water = { el: el, jet: jet, on: false, x: 0, y: 0, ux: NOZZLE[0], uy: NOZZLE[1], splashAt: -Infinity, timer: null };
+  }
+  function placeJet() {
+    var f = water.el.getBoundingClientRect(), s = jetSize(), j = water.jet;
+    j.style.left = (water.x - f.left) + "px";
+    j.style.top = (water.y - f.top - s.w / 2) + "px";
+    j.style.width = s.len + "px";
+    j.style.height = s.w + "px";
+    j.style.transform = "rotate(" + Math.atan2(water.uy, water.ux) + "rad)";
+    j.classList.toggle("still", reducedMotion());
+  }
+  function particle(cls, x, y, dx, dy, size, seconds) {
+    var d = document.createElement("i");
+    d.className = cls;
+    d.style.left = x + "px";
+    d.style.top = y + "px";
+    if (size) { d.style.width = d.style.height = size + "px"; }
+    d.style.setProperty("--dx", dx + "px");
+    d.style.setProperty("--dy", dy + "px");
+    water.el.appendChild(d);
+    setTimeout(function () { d.remove(); }, seconds * 1000);
+  }
+  // mist off the jet, and (every splashEvery seconds) a splash where it hits; never under reduced motion
+  function puff() {
+    if (!water.on || reducedMotion()) return;
+    var J = ET.CONFIG.hoseJet, s = jetSize(), f = water.el.getBoundingClientRect(), x = water.x - f.left, y = water.y - f.top;
+    var ux = water.ux, uy = water.uy;
+    for (var i = 0; i < J.mist; i++) {
+      var k = 0.15 + Math.random() * 0.8, side = (Math.random() < 0.5 ? -1 : 1) * (s.w * 0.6 + Math.random() * s.w * 1.6);
+      particle("drop", x + ux * s.len * k, y + uy * s.len * k, -uy * side + ux * s.w, ux * side + uy * s.w, 0, 0.35);
     }
-    var f = water.getBoundingClientRect();
-    for (var i = 0; i < 3; i++) {
-      var d = document.createElement("i");
-      d.className = "drop";
-      d.style.left = (x - f.left + (Math.random() * 16 - 8)) + "px";
-      d.style.top = (y - f.top + (Math.random() * 10 - 5)) + "px";
-      d.style.setProperty("--dx", (Math.random() * 30 - 15) + "px");
-      water.appendChild(d);
-      setTimeout(function (el) { el.remove(); }.bind(null, d), 450);
+    var now = performance.now() / 1000;
+    if (now - water.splashAt < J.splashEvery) return;
+    water.splashAt = now;
+    var ex = x + ux * s.len, ey = y + uy * s.len;
+    particle("splash", ex, ey, 0, 0, s.w * 2.8, 0.3);
+    for (var n = 0; n < 3; n++) {
+      var a = Math.atan2(uy, ux) + Math.PI + (Math.random() - 0.5) * 2.4, r = s.w * (1.5 + Math.random() * 1.5);
+      particle("drop", ex, ey, Math.cos(a) * r, Math.sin(a) * r, 0, 0.35);
     }
+  }
+  function sprayOn(x, y) {
+    if (!water) buildWater();
+    water.x = x; water.y = y;
+    if (!water.on) {
+      water.on = true;
+      water.ux = NOZZLE[0]; water.uy = NOZZLE[1];
+      water.jet.hidden = false;
+      water.timer = setInterval(puff, 60);   // it keeps blasting while the pointer is held still
+      if (ET.audio) ET.audio.blast(true);
+    }
+    placeJet();
+    puff();
+  }
+  // the drag moved by (ux, uy): the jet swings to point that way (hoseJet.aim "travel")
+  function sprayAim(ux, uy) {
+    if (!water || !water.on || ET.CONFIG.hoseJet.aim !== "travel" || (!ux && !uy)) return;
+    water.ux = ux; water.uy = uy;
+  }
+  function sprayOff() {
+    if (!water || !water.on) return;
+    water.on = false;
+    water.jet.hidden = true;
+    clearInterval(water.timer);
+    if (ET.audio) ET.audio.blast(false);
   }
 
   /* Refinement 5 §5: the scary mom face. Each wave draws once whether it gets one (momFaceChance) and when
@@ -968,11 +1034,12 @@
         return hits;
       }
       function wipe(ev) {
-        if (paintHose()) spray(ev.clientX, ev.clientY);
-        // E38: the spray pushes the pieces it passes the way it's going…
         var br = board.getBoundingClientRect(), bx = ev.clientX - br.left, by = ev.clientY - br.top, prev = last.board || { x: bx, y: by };
-        ET.pieces.spray(prev.x, prev.y, bx, by);
         var mv = Math.hypot(bx - prev.x, by - prev.y), ux = mv ? (bx - prev.x) / mv : 0, uy = mv ? (by - prev.y) / mv : 0;
+        var jet = paintHose();
+        if (jet) { sprayAim(ux, uy); sprayOn(ev.clientX, ev.clientY); }
+        // E38: the spray pushes the pieces it passes the way it's going (E42: and those its jet reaches ahead of it)…
+        ET.pieces.spray(prev.x, prev.y, bx, by, jet && ET.CONFIG.hoseJet.aim === "travel" ? jetSize().len : 0);
         last.board = { x: bx, y: by };
         // …and streaks and thins the liquid under it (E14's gunk on a nest, and the floor's)
         at(ev).forEach(function (h) {
@@ -997,18 +1064,23 @@
       function end(ev) {
         if (!field.classList.contains("wiping")) return;
         field.classList.remove("wiping");
+        sprayOff();
         paintHose();
         last = {};
         if (ET.boxes) ET.boxes.focus();
       }
       field.addEventListener("pointerup", end);
       field.addEventListener("pointercancel", end);
+      window.addEventListener("blur", end);   // the window losing focus pauses the game: the blast stops with it
+      stopWipe = end;
     },
+    /* E42: stop spraying now (a pause, or the play screen closing): the jet and its blast end with it. */
+    stopSpray: function () { if (stopWipe) stopWipe(); sprayOff(); },
 
     canWipe: function () { return true; },
 
     /* Redraw the hose where the pointer last was (a screen change may have moved the board). */
-    hose: function () { drawHose(); return hose && !hose.svg.hidden ? hose.body.getAttribute("d") : null; },
+    hose: function () { if (hose && hose.screen.hidden) ET.view.stopSpray(); drawHose(); return hose && !hose.svg.hidden ? hose.body.getAttribute("d") : null; },
 
     /* For rigs: drop `count` blobs evenly over the board, as a clear does. */
     fling: function (count) { fling(count); },

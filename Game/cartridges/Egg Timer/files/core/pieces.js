@@ -370,10 +370,14 @@
       return made;
     },
 
-    /* The spray's move from (x0,y0) to (x1,y1), board px: every piece it passes is pushed the way it's going. */
-    spray: function (x0, y0, x1, y1) {
+    /* The spray's move from (x0,y0) to (x1,y1), board px: every piece it passes is pushed the way it's going. E42:
+       `reach` (px) is the jet's length ahead of the nozzle when it points the way the drag goes: what the jet touches
+       is pushed too. */
+    spray: function (x0, y0, x1, y1, reach) {
+      var mx = x1 - x0, my = y1 - y0, move = Math.hypot(mx, my);
+      if (move < 1) return 0;
+      if (reach > 0) { x1 += mx / move * reach; y1 += my / move * reach; }
       var dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
-      if (len < 1) return 0;
       var C = ET.CONFIG.pieces, ux = dx / len, uy = dy / len, R = C.sprayRadius * H, hit = 0;
       var near = [];
       cells({ x0: Math.min(x0, x1) - R, y0: Math.min(y0, y1) - R, x1: Math.max(x0, x1) + R, y1: Math.max(y0, y1) + R }, function (k) {

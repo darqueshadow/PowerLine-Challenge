@@ -97,7 +97,9 @@
     // E38 (Chat, 2026-09-25): the spray on liquid. It isn't pushed like a solid: each pass thins the patch under it to
     // (1 - thin) and lays `keep` of it down further along the spray's way (up to `carry` × the move), so it streaks and
     // washes out. Liquid pushed up to the board's top edge drips back down, and the last of a wash trickles toward the trough.
-    liquid: { thin: 0.7, keep: 0.4, carry: 0.9, dripAlpha: 0.7, minAlpha: 40 },   // [T]
+    // E42 (Chat, 2026-09-25): the blast washes liquid out faster, in about 2 passes, not 3 (thin was 0.7: 30%, 9%, 3%;
+    // now 18%, then 3%).
+    liquid: { thin: 0.82, keep: 0.4, carry: 0.9, dripAlpha: 0.7, minAlpha: 40 },   // [T]
     // E38: the pieces a clear leaves (core/pieces.js). Sizes and speeds are in board heights (bh), so every window size
     // plays the same. `parts`: alien parts by break stage (the clear's tier, E26), more the slower.
     pieces: {
@@ -105,8 +107,11 @@
       parts: { 3: 1, 4: 2, 5: 3 }, // [T] alien parts at break stages 3, 4 and 5
       fling: [0.25, 0.6],          // [T] bh/s: how hard a clear throws them
       friction: 1.4,               // [T] bh/s²: how fast they slow down
-      push: 0.9,                   // [T] bh/s a spray event adds (a decent sweep takes one most of the way to the edge)
-      maxSpeed: 2.2,               // [T] bh/s
+      // E42 (Chat, 2026-09-25): one good sweep carries a piece all the way into the trough. At 0.9 and 2.2 it went ~80%
+      // of the way (measured: a piece at top speed slid 1.7 bh, and the board is 2.25-2.74 bh wide); at top speed one
+      // now slides maxSpeed² / (2 × friction) = 3.0 bh, past the widest board, and two spray events reach it.
+      push: 1.6,                   // [T] bh/s a spray event adds (was 0.9)
+      maxSpeed: 2.9,               // [T] bh/s (was 2.2)
       sprayRadius: 0.045,          // [T] bh: how wide the spray catches pieces
       wallPad: 0.004,              // [T] bh: the gap pieces keep round a readout
       flow: 0.28,                  // [T] bh/s: the trough's flow to the drain
@@ -200,6 +205,16 @@
     hoseWhen: "always",            // "always" | "wiping" | "cleanup" (the older rulings, kept as switch values)
     hoseWidth: 6,                  // [T] px, kept thin: it draws above the whole board (Refinement 4 §2), across nests and readouts
     hoseSpigotX: 0.5,              // [T] where the spigot sits along the board's bottom edge (0 left … 1 right)
+    // E42 (Chat, 2026-09-25): a blast, not a trickle. While a drag sprays, a thick, fast jet leaves the nozzle's tip with
+    // a burst there, mist along it and a splash where it hits; the pieces the jet reaches are pushed (it catches them
+    // along its length, not only under the nozzle). Liquid still washes where the nozzle passes. Reduced motion: the jet
+    // only, standing still (no burst, mist or splash). Sizes in board heights (bh).
+    // ⏳ PENDING (E44): which way the jet points. "travel": the way the drag is going (the way it pushes), and the
+    //   nozzle's own aim (up-left) until the drag moves; "nozzle": always the nozzle's aim, like the cursor picture.
+    hoseJet: { aim: "travel", length: 0.14, width: 0.018, minWidth: 7, mist: 4, splashEvery: 0.07 },   // [T]
+    // E42: the pressure-washer blast while spraying (audio.js): under the music, with no dip, under THONG, the buzz and
+    // the hiss, on the egg-laying sounds' overlap cap. `gain` is its level into the master chain.
+    hoseBlastGain: 0.032,          // [T]
     // E6: an Enter on an EMPTY Command Line does nothing (no ERROR, no buzz).
     errorOnEmpty: false,
 

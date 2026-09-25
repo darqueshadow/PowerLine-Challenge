@@ -153,6 +153,8 @@
   --tap-valve: #d0342c;                   /* tap red */
   --water: #6fd3ff;                       /* water blue */
   --water-edge: #0a4a7a;                  /* deep water blue */
+  --water-core: #eafaff;                  /* E42: the jet's hard white core */
+  --water-mist: rgba(190, 236, 255, 0.8); /* E42: the mist and splash */
 
   /* Frying pan and the egg ladder dishes */
   --pan-rim: #2b2b33;                     /* charcoal */

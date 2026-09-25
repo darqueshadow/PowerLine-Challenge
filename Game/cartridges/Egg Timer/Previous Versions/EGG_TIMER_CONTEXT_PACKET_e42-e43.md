@@ -1,8 +1,3 @@
-> **FILING NOTE — Claude Code, 2026-09-25 (E42–E43).** Chat's rulings are filed verbatim as
-> `Previous Versions/EGG_TIMER_E42-E43_2026-09-25.md`; the packet before them is
-> `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e42-e43.md`. Each is struck in §11, built, and **pushed live** in its own
-> commit. **E44 raised** (which way the hose's jet points). The Gemini reference sheets change no code.
-
 > **FILING NOTE — Claude Code, 2026-09-25 (E38–E40).** The rest of E38, E39 and E40 are filed verbatim as
 > `Previous Versions/EGG_TIMER_E38-E40_RULINGS_2026-09-25.md`. E39 and E40 are built and pushed live, each in its own
 > commit; E38 waits for the pilot art to merge, then a screenshot sheet for Andrew before it goes live.
@@ -685,32 +680,6 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   had the pan come down late, 0.35 s after a hatch, on the empty nest, with a dull clunk. The late pan, the clunk and
   `hatchPanDelay` are gone. The browser rig counts every THONG and every pan from a game's start to past its first hatch:
   none.)*
-
-### Ruled by Chat (2026-09-25) — E42 and E43; E44 raised building E42
-
-- ~~**E42. Hose: blast, not trickle.**~~ **Resolved** *(E42, Chat, 2026-09-25; verbatim in
-  `EGG_TIMER_E42-E43_2026-09-25.md`)*: **a thicker, faster, longer-reaching stream, with a burst at the nozzle, mist
-  along the stream and a splash where it hits; reduced motion shows the stream only. A stronger push: one good sweep
-  carries a piece all the way into the trough (it went ~80% of the way), and liquid washes out in about 2 passes, not 3.
-  A pressure-washer blast while spraying, under the music with no dip, under THONG, the buzz and the hiss, on the
-  overlap cap.** *(Code: from the press to the release, moving or not, a jet 0.14 board heights long and 0.018 thick
-  (at least 7 px; 11.5 at 1440 × 900, where the old drops were 6) leaves the nozzle's tip, its core streaming; a burst
-  flares at the nozzle, mist flies off along it and a splash rings at its end. It points the way the drag goes, and the
-  nozzle's own way (up-left) until the drag moves (⏳ **E44**, below). The jet pushes what it reaches, not only what the
-  nozzle passes over; liquid still washes where the nozzle passes. Measured before building: a piece at top speed slid
-  1.7 board heights, and the board is 2.25–2.74 board heights wide (70–85% of the way, as Andrew saw); now `push` 1.6 and
-  `maxSpeed` 2.9 slide one 3.0, past the widest board, and the rig sweeps one into the far trough at all four sizes.
-  `liquid.thin` 0.82: one pass leaves 18%, two about 3%. The blast is synthesized (a hard hiss with a pump's chug) at
-  about −35 LUFS, 15 dB under the music, and under 60% of the quietest loud cue's peak and loudness; a pause, the window
-  losing focus or leaving the play screen ends it, and a quick re-press cuts the last blast's fade so a tap never finds
-  the cap used up. Reduced motion: the jet only, standing still. All [T] in `config.js` (`hoseJet`, `hoseBlastGain`,
-  `pieces`, `liquid`).)*
-- ⏳ **E44. Which way does the hose's jet point?** *(Raised by Code building E42.)* The nozzle cursor is a fixed picture
-  pointing up-left, and the wash happens at its tip. **Built** (`hoseJet.aim: "travel"`): the jet points the way the drag
-  is going (the way it pushes), so the splash lands just ahead of where the nozzle is heading, and before the drag moves
-  it points the nozzle's way. The other value, `"nozzle"`, always points it up-left like the picture (then the jet no
-  longer pushes what it reaches, since it isn't pointing the way the pieces are pushed). Needed: keep "travel", or
-  "nozzle", or something else?
 
 ### Raised by Code building the music (2026-09-25) — E34 ruled
 

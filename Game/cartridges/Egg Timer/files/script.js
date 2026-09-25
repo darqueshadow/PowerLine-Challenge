@@ -190,6 +190,7 @@
     app.paused = on;
     $("#pause").hidden = !on;
     ET.audio.musicPause(on);   // the gameplay music pauses and resumes where it stopped
+    if (on) ET.view.stopSpray();   // E42: a pause ends the hose's blast
     if (!on) ET.boxes.focus();
     paintMute(ET.audio.muted());   // paused, M mutes again
   }

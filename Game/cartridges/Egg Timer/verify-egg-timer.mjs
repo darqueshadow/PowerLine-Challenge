@@ -661,15 +661,15 @@ try {
       const pass = () => { fire('pointerdown', r.left + 10, r.top + 10); fire('pointermove', r.right - 10, r.top + 10); fire('pointerup', r.right - 10, r.top + 10); };
       pass();
       const mid = g.getImageData(800, 14, 1, 1).data[3];
-      pass(); pass();
+      pass();
+      const mid2 = g.getImageData(800, 14, 1, 1).data[3];
       const after = __et.floor();
-      const mid3 = g.getImageData(800, 14, 1, 1).data[3];
       ET.mess.clear(fcv);
-      return [before, after, mid, mid3];
+      return [before, after, mid, mid2];
     })()`);
     ok(fl[1] < fl[0] - 0.02, `the hose washes the board-wide gunk too   [${(fl[0] * 100).toFixed(1)}% → ${(fl[1] * 100).toFixed(1)}%]`);
     const thin = await ev("ET.CONFIG.liquid.thin");
-    ok(Math.abs(fl[2] - 255 * (1 - thin)) < 8 && fl[3] < 12, `E38: one pass thins the liquid (to ${Math.round(100 * (1 - thin))}%), it isn't erased like a solid; three passes wash it out   [alpha 255 → ${fl[2]} → ${fl[3]}]`);
+    ok(Math.abs(fl[2] - 255 * (1 - thin)) < 8 && fl[3] < 12, `E38: one pass thins the liquid (to ${Math.round(100 * (1 - thin))}%), it isn't erased like a solid; E42: two passes wash it out (it took three)   [alpha 255 → ${fl[2]} → ${fl[3]}]`);
   }
   ok(await ev("__et.boxes().focused"), "the command box gets the keyboard back after wiping");
   {
@@ -1919,13 +1919,26 @@ try {
     await ev("__steps(400)");
     eq(await ev("ET.pieces.state().count + ET.pieces.state().drained"), settled.n, "…and never fade or vanish on their own (20 s later, every one is still there)");
 
-    // the spray pushes a piece the way it's going, strongly; it slides with friction and tumbles
+    // E42: one good sweep of the hose carries a piece all the way across the board into the trough on the far side (it
+    // went ~80% of the way), at every measured size (the board is 2.25-2.74 board heights wide)
+    const sweeps = [];
+    for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
+      await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+      await wait(200);
+      sweeps.push(await ev(`(() => { ET.pieces.layout(); const s = ET.pieces.state(), row = __row(40); ET.pieces.reset(); const id = ET.pieces.place('shell', s.T + 70, row);
+        __drag([0, 1, 2, 3, 4, 5, 6].map((i) => [s.T + 20 + 20 * i, row])); const mid = __p(id).state; let at = null;
+        for (let i = 0; i < 400 && at === null; i++) { __steps(1); const p = __p(id); if (!p || p.state === 'trough') at = p ? p.x : 'gone'; }
+        return { size: '${w}x${h}', mid, at, far: s.W - s.T }; })()`));
+    }
+    await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await wait(200);
+    ok(sweeps.every((q) => q.mid === "live" && typeof q.at === "number" && q.at >= q.far - 2), `E42: one good sweep of the hose carries a piece all the way across the board into the trough on the far side, at every measured size   [${sweeps.map((q) => q.size + (typeof q.at === "number" ? " in at x " + Math.round(q.at) + " of " + Math.round(q.far) : " " + q.at)).join(", ")}]`);
+    // a flick (one spray event) sends it sliding the way it goes; it tumbles, then settles with friction
     const row = await ev("__row(40)"), W = await ev("ET.pieces.state().W"), T = await ev("ET.pieces.state().T");
-    const pushed = await ev(`(() => { ET.pieces.reset(); const id = ET.pieces.place('shell', ${T} + 70, ${row}); const a0 = __p(id).a;
-      __drag([[${T} + 20, ${row}], [${T} + 40, ${row}], [${T} + 60, ${row}], [${T} + 80, ${row}], [${T} + 100, ${row}], [${T} + 120, ${row}], [${T} + 140, ${row}]]);
+    const pushed = await ev(`(() => { ET.pieces.layout(); ET.pieces.reset(); const id = ET.pieces.place('shell', ${T} + 70, ${row}); const a0 = __p(id).a;
+      __drag([[${T} + 50, ${row}], [${T} + 70, ${row}]]);
       const mid = __p(id).state; __steps(120); const p = __p(id); return { mid, x: p ? p.x : null, state: p ? p.state : 'gone', turned: p ? Math.abs(p.a - a0) > 0.3 : false }; })()`);
-    ok(pushed.mid === "live" && pushed.x > T + 70 + 0.45 * W, `a sweep of the hose pushes a piece the way it goes, most of the way across the board   [${Math.round(pushed.x - T - 70)} px of ${Math.round(W)}]`);
-    ok(pushed.turned && pushed.state === "rest", "…tumbling as it slides, then settling with friction");
+    ok(pushed.mid === "live" && pushed.x > T + 70 + 0.2 * W && pushed.turned && pushed.state === "rest", `a flick of the hose sends a piece sliding the way it goes, tumbling, then settling with friction   [${Math.round(pushed.x - T - 70)} px of ${Math.round(W)}]`);
     // the top edge stops a piece (no trough there)
     const col = await ev("__col(40)");
     ok(col !== null, `(a column near the top clear of every readout, for the next checks   [x ${col}])`);
@@ -1984,7 +1997,7 @@ try {
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const rm = await ev(`(() => { ET.pieces.reset(); const id = ET.pieces.place('shell', ${T} + 70, ${row}), a0 = __p(id).a;
-      __drag([[${T} + 20, ${row}], [${T} + 60, ${row}], [${T} + 100, ${row}], [${T} + 140, ${row}]]); __steps(60, true); const p = __p(id);
+      __drag([[${T} + 50, ${row}], [${T} + 70, ${row}]]); __steps(60, true); const p = __p(id);
       const s = ET.pieces.state(); const e = ET.pieces.place('shell', s.W - s.T - 50, ${row});
       __drag([[s.W - s.T - 110, ${row}], [s.W - s.T - 70, ${row}], [s.W - s.T - 30, ${row}]]); __steps(4, true); const q = __p(e);
       __steps(40, true);
@@ -2016,6 +2029,88 @@ try {
       for (let i = 0; i < 20000 && __et.snapshot().wave === 1; i++) { __et.advance(0.05); __et.snapshot().nests.filter((n) => n.state === 'overtime').forEach((n) => __et.submit('RCAV ' + n.unit)); }
       const now = ET.pieces.list().map((p) => p.id); return { wave: __et.snapshot().wave, kept: ids.every((id) => now.includes(id)), more: now.length > ids.length }; })()`);
     ok(carry.wave === 2 && carry.kept && carry.more, `pieces left at the end of cleanup carry into the next wave, none removed (and the wave's clears added more)   [wave ${carry.wave}]`);
+  }
+
+  /* ------------------------------------------------------ E42. the hose's blast */
+  section("E42. the hose's blast: a jet, not a trickle (Chat, 2026-09-25)");
+  {
+    const escK = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
+    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    if (await ev("__et.paused()")) await ev(`(() => { ${escK}; return 1; })()`);
+    const fireJs = "const f = document.querySelector('#field'), b = document.querySelector('#board').getBoundingClientRect(); const fire = (t, x, y) => f.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: b.left + x, clientY: b.top + y, pointerId: 11, buttons: 1 }));";
+    // press, drag right, hold still 0.4 s, release: all in one evaluation, timed in the page
+    const held = await ev(`new Promise((done) => { ${fireJs}
+      document.querySelectorAll('#water .drop, #water .splash').forEach((d) => d.remove());
+      fire('pointerdown', 400, 300);
+      const j = document.querySelector('#water .jet'), m0 = new DOMMatrix(getComputedStyle(j).transform);
+      const r0 = { shown: !j.hidden, blasting: ET.audio.blasting(), aim: [+m0.a.toFixed(3), +m0.b.toFixed(3)] };
+      fire('pointermove', 430, 300); fire('pointermove', 460, 300);
+      const jr = j.getBoundingClientRect(), m1 = new DOMMatrix(getComputedStyle(j).transform);
+      const r1 = { w: parseFloat(j.style.height), len: parseFloat(j.style.width), H: b.height, aim: [+m1.a.toFixed(3), +m1.b.toFixed(3)], left: jr.left - b.left,
+        anim: getComputedStyle(j.querySelector('.core')).animationName + '/' + getComputedStyle(j.querySelector('.burst')).animationName, drops: document.querySelectorAll('#water .drop').length };
+      setTimeout(() => {
+        const r2 = { drops: document.querySelectorAll('#water .drop').length, splash: document.querySelectorAll('#water .splash').length, shown: !j.hidden, blasting: ET.audio.blasting() };
+        fire('pointerup', 460, 300);
+        done({ r0, r1, r2, r3: { shown: !j.hidden, blasting: ET.audio.blasting() } });
+      }, 400); })`);
+    const J = await ev("ET.CONFIG.hoseJet");
+    ok(held.r0.shown && held.r0.blasting && Math.abs(held.r0.aim[0] + Math.SQRT1_2) < 0.01 && Math.abs(held.r0.aim[1] + Math.SQRT1_2) < 0.01,
+      `pressing starts the jet at once, pointing the nozzle's way (up-left), and the blast with it   [${JSON.stringify(held.r0)}]`);
+    ok(held.r1.aim[0] > 0.99 && Math.abs(held.r1.left - 460) <= held.r1.w && Math.abs(held.r1.len - J.length * held.r1.H) < 1,
+      `dragging, the jet runs from the nozzle the way the drag goes (hoseJet.aim "${J.aim}", ⏳ E44), ${J.length} board heights long   [${Math.round(held.r1.len)} px, from x ${Math.round(held.r1.left)}]`);
+    ok(held.r1.w >= 10 && held.r1.anim === "jet-flow/jet-burst" && held.r1.drops > 0,
+      `it's a thick, fast jet (${held.r1.w.toFixed(1)} px; the old drops were 6), streaming, with a burst at the nozzle and mist along it   [${held.r1.anim}, ${held.r1.drops} mist]`);
+    ok(held.r2.shown && held.r2.blasting && held.r2.drops > 0 && held.r2.splash > 0, `held still, it keeps blasting: mist, a splash where it hits, the sound   [${JSON.stringify(held.r2)}]`);
+    ok(!held.r3.shown && !held.r3.blasting, "letting go ends the jet and the blast");
+    // the jet pushes what it reaches ahead of the nozzle (the old spray caught only what the nozzle passed)
+    const reach = await ev(`(() => { ET.pieces.layout(); ET.pieces.reset(); const s = ET.pieces.state(), row = __row(40), x = s.W / 2, L = ET.CONFIG.hoseJet.length * s.H;
+      const id = ET.pieces.place('shell', x + 0.7 * L, row); __drag([[x - 20, row], [x, row]]); const st = __p(id).state; ET.pieces.reset(); return st; })()`);
+    eq(reach, "live", "the jet pushes a piece it reaches ahead of the nozzle");
+    const taps = await ev(`(() => { ${fireJs} const r = []; for (let i = 0; i < 4; i++) { fire('pointerdown', 400, 300); r.push(ET.audio.blasting()); fire('pointerup', 400, 300); } return r; })()`);
+    eq(taps, [true, true, true, true], "quick taps blast every time (the last blast's fade never uses up the cap)");
+    // a pause, and the play screen closing, end the blast
+    const paused = await ev(`(() => { ${fireJs} fire('pointerdown', 400, 300); const a = ET.audio.blasting(); ${escK}; const r = { a, b: ET.audio.blasting(), shown: !document.querySelector('#water .jet').hidden }; ${escK}; return r; })()`);
+    ok(paused.a && !paused.b && !paused.shown, `Esc mid-spray pauses the game and ends the jet and its blast   [${JSON.stringify(paused)}]`);
+    const gone = await ev(`(() => { ${fireJs} fire('pointerdown', 400, 300); const a = ET.audio.blasting(); __et.show('over'); const z = ET.audio.blasting(); return { a, b: z }; })()`);
+    ok(gone.a && !gone.b, "leaving the play screen mid-spray ends the blast");
+    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    if (await ev("__et.paused()")) await ev(`(() => { ${escK}; return 1; })()`);
+
+    // the sound: under the music with no dip; under THONG, the buzz and the hiss; on the overlap cap; muted with the rest
+    const dip = await ev("new Promise((done) => { ET.audio.blast(true); setTimeout(() => { const d = __et.music().duck; ET.audio.blast(false); done(d); }, 150); })");
+    ok(dip > 0.999, `the blast doesn't dip the music   [music at ${dip}]`);
+    const loud = await ev(`(async () => {
+      // BS.1770's K-weighting (a shelf and a high-pass), then its loudness: -0.691 + 10 log10(mean square)
+      const kw = async (buf) => { const o = new OfflineAudioContext(1, buf.length, buf.sampleRate), s = o.createBufferSource(), a = o.createBiquadFilter(), b = o.createBiquadFilter();
+        s.buffer = buf; a.type = 'highshelf'; a.frequency.value = 1681; a.gain.value = 4; b.type = 'highpass'; b.frequency.value = 38; b.Q.value = 0.5; s.connect(a).connect(b).connect(o.destination); s.start();
+        const r = await o.startRendering(), d = r.getChannelData(0); let q = 0; for (let i = 0; i < d.length; i++) q += d[i] * d[i]; return -0.691 + 10 * Math.log10(q / d.length); };
+      const out = {};
+      for (const [k, a] of [['thong'], ['buzz'], ['hiss', [0.85, 0.12]], ['blast', [true]]]) { const r = await ET.audio.measure(k, a, 1); out[k] = { peak: +r.peak.toFixed(3), active: +r.active.toFixed(4) }; if (k === 'blast') out.lufs = +(await kw(r.buffer) + 20 * Math.log10(ET.audio.LEVEL)).toFixed(1); }
+      return out; })()`);
+    const target = await ev("ET.CONFIG.musicLufs"), cues = [loud.thong, loud.buzz, loud.hiss];
+    ok(loud.lufs <= target - 6, `the blast sits under the music: ${loud.lufs} LUFS at the master level, the music ${target}`);
+    ok(loud.blast.peak <= 0.6 * Math.min(...cues.map((q) => q.peak)) && loud.blast.active <= 0.6 * Math.min(...cues.map((q) => q.active)),
+      `…and clearly under THONG, the buzz and the hiss (under 60% of the quietest one's peak and loudness while it sounds)   [blast ${loud.blast.peak}/${loud.blast.active}; cues ${cues.map((q) => q.peak + "/" + q.active).join(", ")}]`);
+    const cap = await ev("(() => { const n = ET.CONFIG.layMaxOverlap; ET.CONFIG.layMaxOverlap = 0; const r = ET.audio.blast(true); ET.CONFIG.layMaxOverlap = n; if (r) ET.audio.blast(false); return r; })()");
+    eq(cap, false, "it shares the egg-laying sounds' overlap cap");
+    const heard = await ev("new Promise((done) => { ET.audio.blast(true); setTimeout(() => { let p = 0; for (let i = 0; i < 5; i++) p = Math.max(p, ET.audio.peak()); ET.audio.blast(false); done(p); }, 200); })");
+    await ev("ET.audio.setMuted(true)");
+    await wait(100);
+    const hush = await ev("new Promise((done) => { ET.audio.blast(true); setTimeout(() => { let p = 0; for (let i = 0; i < 5; i++) p = Math.max(p, ET.audio.peak()); ET.audio.blast(false); done(p); }, 200); })");
+    await ev("ET.audio.setMuted(false)");
+    ok(heard > 1e-3 && hush < 1e-4, `muting silences it with everything else   [${heard.toFixed(4)} → ${hush.toExponential(1)}]`);
+
+    // SAFETY: with reduced motion, the jet only, standing still: no burst, mist or splash
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const rm = await ev(`new Promise((done) => { ${fireJs}
+      document.querySelectorAll('#water .drop, #water .splash').forEach((d) => d.remove());
+      fire('pointerdown', 400, 300); fire('pointermove', 430, 300);
+      setTimeout(() => { const j = document.querySelector('#water .jet');
+        const r = { shown: !j.hidden, core: getComputedStyle(j.querySelector('.core')).animationName, burst: getComputedStyle(j.querySelector('.burst')).display, bits: document.querySelectorAll('#water .drop, #water .splash').length };
+        fire('pointerup', 430, 300); done(r); }, 300); })`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+    ok(rm.shown && rm.core === "none" && rm.burst === "none" && rm.bits === 0, `SAFETY: with reduced motion the jet shows standing still: no burst, no mist, no splash   [${JSON.stringify(rm)}]`);
   }
 
   section("Q. the scary mom face (Refinement 5 §5)");

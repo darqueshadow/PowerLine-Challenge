@@ -363,6 +363,20 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E42, the hose blasts instead of trickling (Chat ruling)
+
+**Solved:** The hose's water was three falling drops per move; Andrew's pushed pieces stopped ~80% of the way across.
+Now a jet (burst, mist, splash) shows from press to release with a pressure-washer blast; one sweep carries a piece into
+the far trough; liquid washes out in ~2 passes. E44 raised: which way the jet points (built: the drag's way).
+**Approach:** Measured first: pieces hit `maxSpeed` (2.2 bh/s → slides 1.7 bh) and the board is 2.25–2.74 bh wide. Raised
+`push` 0.9 → 1.6 and `maxSpeed` → 2.9 (slides 3.0 bh); `liquid.thin` 0.7 → 0.82. The jet is DOM in `#water` (`.jet`
+with `.core`/`.burst`, `.drop` mist, `.splash`), placed by `sprayOn/sprayAim/sprayOff` in view.js; `ET.pieces.spray()`
+takes a `reach` that extends its capsule along the jet. `ET.audio.blast(on)`: looped noise, high-pass + peak + a 26 Hz
+chug, gain 0.032 (≈ −35 LUFS, K-weighted in the rig), on the `capped()` cap.
+**If you touch this again:** a released blast's 0.12 s fade counts on the cap, and in headless Chrome the audio clock is
+suspended so it never expires: a re-press must cut the fading tail (`fading` in audio.js) or quick taps go silent.
+`ET.view.stopSpray()` ends it on pause (script.js), window blur and leaving play (`ET.view.hose()`). Rig section E42.
+
 ## 2026-09-25 — Egg Timer: CLAUDE.md pruned at park (204 → ~155 lines)
 
 **Dropped (stale):** the pilot art "held on `et-pilot-art-hold`" note and the State paragraph about two hold branches
