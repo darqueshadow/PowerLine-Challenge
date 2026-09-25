@@ -319,6 +319,18 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E36, the music level and its dip (Chat ruling from Andrew's playtest)
+
+**Solved:** Egg Timer's music was far quieter than the other cartridges' (gameplay −48.6 LUFS heard); now all three
+tracks play at −19.8 LUFS, and dip under THONG, the buzz and the hiss.
+**Approach:** Measured integrated loudness with ffmpeg ebur128 (`imageio-ffmpeg`'s binary). Asteroid Command and the
+Aquanaut play music through an `<audio>` at volume 0.5 and nothing else, so heard = file LUFS − 6.02 dB; the median of
+their nine tracks is −19.8. Egg Timer's heard = file LUFS + 20·log10(level × 0.8 master). Levels 0.762 / 0.826 / 0.762.
+Tracks now connect to one music gain (`musicBus()`) whose `duck()` the three loud cues call; offline renders skip it.
+**If you touch this again:** re-measure with ebur128 if a music file changes, and update `lufs` in `config.js`; the rig
+checks the sum, not the files. Music peaks 0.41 against the ceiling's 0.75 knee: raising it past ~1.8× would start
+rounding it off.
+
 ## Resolved 2026-09-25 — Egg Timer: E35, the title music starts on the title (Chat ruling from Andrew's playtest)
 
 **Solved:** The title track began on the options screen; now it begins on the title.

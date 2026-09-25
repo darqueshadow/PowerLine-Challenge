@@ -125,14 +125,24 @@
     // has its volume ramp baked in. loop = [start, end] in seconds inside the file; the file plays from 0 once, then loops.
     // The tempo is exact: each loop is a whole number of bars (Chat's "about 144" and "about 129" measure 141.02 and
     // 131.15). The numbers are make-music.py's files/audio/music.json, repeated here.
+    // E36 (Chat, 2026-09-25): the music is a feature, as loud as the other PLC cartridges' music. Measured with ffmpeg's
+    // ebur128 (integrated loudness) and each cartridge's own playback volume: Asteroid Command's seven tracks (volume 0.5)
+    // play at -16.0 to -20.1 LUFS, the Aquanaut's two (0.5) at -20.9 and -22.3; the median of the nine, -19.8 LUFS, is
+    // the target. `lufs` is each file's own loudness; its level = 10^((musicLufs - lufs + 1.94) / 20), 1.94 dB being the
+    // master level's 0.8. Before E36 they played at -31.4 (title, game over) and -48.6 LUFS (gameplay). The files peak at
+    // about -4 dBFS, so at these levels music alone stays well under the master ceiling's knee: never rounded off.
+    musicLufs: -19.8,
     music: {
-      title: { file: "audio/title-screens-loop.mp3", loop: [34.668005, 92.531995], bpm: 141.02, level: 0.2 },   // title, mode selection, options
-      gameplay: { file: "audio/ticking-clock-loop.mp3", loop: [9.198005, 151.940431], bpm: 131.15, level: 0.03 }, // first wave to game over
-      over: { file: "audio/game-over.mp3", loop: null, bpm: 113.45, level: 0.2, seconds: 121.4 }                 // plays once
+      title: { file: "audio/title-screens-loop.mp3", loop: [34.668005, 92.531995], bpm: 141.02, lufs: -15.5, level: 0.762 },   // title, mode selection, options
+      gameplay: { file: "audio/ticking-clock-loop.mp3", loop: [9.198005, 151.940431], bpm: 131.15, lufs: -16.2, level: 0.826 }, // first wave to game over
+      over: { file: "audio/game-over.mp3", loop: null, bpm: 113.45, lufs: -15.5, level: 0.762, seconds: 121.4 }                 // plays once
     },
     // [T] levels before the master: the menus have no sound effects to protect; in play the music sits at least 6 dB
     // under the quietest effect (the egg-laying squeeze), which rig section M measures.
     musicFade: 0.5,                // [T] seconds: every change of screen fades out and in; so does leaving game over
+    // E36: the music dips under THONG, the error buzz and the hiss, then comes back; every other sound (the egg-laying
+    // squeeze and pop, the ding) rides under it with no dip.
+    musicDuck: { depth: 0.4, attack: 0.015, release: 0.3 },   // [T] to 40% (-8 dB) in 15 ms, back over 0.3 s once it ends
     musicPauseFade: 0.05,          // [T] seconds: Esc pauses and resumes the gameplay music where it stopped, without a click
     // E34 (ruled 2026-09-25): TITLE SCREEN is picked first ("again" would pick PLAY AGAIN, what Enter did before).
     overDefault: "title",

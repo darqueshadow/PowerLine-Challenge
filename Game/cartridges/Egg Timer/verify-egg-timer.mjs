@@ -1613,6 +1613,7 @@ try {
           // the loud parts: the 90th percentile of 400 ms windows
           const W = Math.round(0.4 * sr), r = []; for (let a = 0; a + W < b.length; a += W) { let q = 0; for (let i = a; i < a + W; i += 4) q += m(i) * m(i); r.push(Math.sqrt(q / (W / 4))); }
           r.sort((x, y) => x - y); out.p90 = r[Math.floor(r.length * 0.9)];
+          let pk = 0; for (let i = 0; i < b.length; i++) pk = Math.max(pk, Math.abs(d0[i]), Math.abs(d1[i])); out.peak = pk;
           return out; }); }))))`);
     const fm = Object.fromEntries(files.map((f) => [f.k, f]));
     ok(files.length === 3 && files.every((f) => f.kb < 2600 && f.same && Math.abs(f.seconds - f.want) < 0.01),
@@ -1620,11 +1621,14 @@ try {
     ok(fm.title.step < 0.02 && fm.gameplay.step < 0.02, `each loop's join has no click: the jump from its end to its start is a tiny step   [title ${fm.title.step}, gameplay ${fm.gameplay.step}]`);
     ok(Math.abs(fm.gameplay.joinDb) <= 0.5, `the gameplay loop's volume ramp is baked in: its end matches its start within 0.5 dB   [${fm.gameplay.joinDb} dB]`);
     eq(await ev("ET.view.backdrop().bpm"), await ev("ET.CONFIG.music.gameplay.bpm"), "the board lights keep time to the gameplay track's BPM, measured from the file");
-    // the mix: the gameplay music, at its level, sits at least 6 dB under every sound effect (measured while each sounds)
-    const cues = await ev(`Promise.all([['thong'], ['buzz'], ['hiss', [0.85, 0.12]], ['squeeze'], ['pop']].map(([k, a]) => ET.audio.measure(k, a, 1).then(x => ({ k, active: x.active }))))`);
-    const quietest = cues.reduce((a, b) => (a.active < b.active ? a : b)), musicRms = fm.gameplay.p90 * (await ev("ET.CONFIG.music.gameplay.level"));
-    const under = 20 * Math.log10(quietest.active / musicRms);
-    ok(under >= 6, `in play the music sits at least 6 dB under every sound effect (THONG, buzz, hiss, the egg-laying squeeze and pop)   [${under.toFixed(1)} dB under the quietest, the ${quietest.k}]`);
+    // E36: every track plays at the other PLC cartridges' music loudness (its file's own loudness, measured with ffmpeg
+    // and recorded in config.js, plus its level and the master level), and at that level music alone never reaches the
+    // master ceiling's knee, so it is never rounded off (no distortion)
+    const mix = await ev("({ M: ET.CONFIG.music, target: ET.CONFIG.musicLufs, LEVEL: ET.audio.LEVEL, KNEE: 0.75 })");
+    const heardAt = Object.fromEntries(Object.entries(mix.M).map(([k, t]) => [k, +(t.lufs + 20 * Math.log10(t.level * mix.LEVEL)).toFixed(2)]));
+    ok(Object.values(heardAt).every((v) => Math.abs(v - mix.target) <= 0.2), `E36: each track plays at ${mix.target} LUFS, the median of Asteroid Command's and the Aquanaut's music   [${Object.entries(heardAt).map(([k, v]) => k + " " + v).join(", ")}]`);
+    const tops = Object.fromEntries(files.map((f) => [f.k, +(f.peak * mix.M[f.k].level * mix.LEVEL).toFixed(3)]));
+    ok(Object.values(tops).every((v) => v < mix.KNEE), `E36: at those levels the music's loudest sample stays under the ceiling's knee (${mix.KNEE}): never rounded off   [${Object.entries(tops).map(([k, v]) => k + " " + v).join(", ")}]`);
     // the menus share one track: title → options doesn't restart it; into play it fades over to the gameplay track
     await ev("__et.start('clear', 1); 1");
     if (await ev("__et.paused()")) await ev(`(() => { ${esc}; return 1; })()`);   // start unpaused
@@ -1638,6 +1642,24 @@ try {
     await wait(700);
     const full = (await ev("__et.music()")).level, lvl = await ev("ET.CONFIG.music.gameplay.level");
     ok(g0.playing === "gameplay" && early < lvl * 0.9 && Math.abs(full - lvl) < 1e-4, `changing screens fades the music out and the next in, about half a second, no hard cut   [gameplay level ${early.toFixed(4)} → ${full.toFixed(4)}]`);
+    {
+      // E36: the music dips under THONG, the error buzz and the hiss, then comes back; the small sounds don't dip it
+      const D = await ev("ET.CONFIG.musicDuck");
+      const dip = async (call) => {
+        for (let i = 0; i < 60 && (await ev("__et.music().duck")) < 0.999; i++) await wait(50);   // back to full first
+        const r = await ev(`new Promise((done) => { ${call}; setTimeout(() => done(__et.music().duck), 120); })`);
+        let back = 0; for (let i = 0; i < 60; i++) { await wait(50); back = await ev("__et.music().duck"); if (back > 0.999) break; }
+        return [+r.toFixed(3), +back.toFixed(3)];
+      };
+      const dips = {
+        thong: await dip("ET.audio.thong()"), buzz: await dip("ET.audio.buzz()"),
+        hiss: await dip("ET.audio.hiss(ET.CONFIG.momFaceSeconds, ET.CONFIG.momFaceVolume)"),
+        squeeze: await dip("ET.audio.squeeze()"), pop: await dip("ET.audio.pop()")
+      };
+      ok(["thong", "buzz", "hiss"].every((k) => Math.abs(dips[k][0] - D.depth) < 0.02 && dips[k][1] > 0.999),
+        `E36: the music dips (to ${D.depth}) under THONG, the error buzz and the hiss, then comes back   [${["thong", "buzz", "hiss"].map((k) => k + " " + dips[k].join(" → ")).join("; ")}]`);
+      ok(dips.squeeze[0] > 0.999 && dips.pop[0] > 0.999, `…and the egg-laying squeeze and pop ride under it with no dip   [${dips.squeeze[0]}, ${dips.pop[0]}]`);
+    }
     // Time Warp leaves the music alone
     const tw = await ev("(() => { const s = __et.snapshot(), a = ET.audio.musicState(); ET.view.render(Object.assign({}, s, { warp: true, time: s.time + 0.05 })); const b = ET.audio.musicState(); ET.view.render(Object.assign({}, s, { warp: false, time: s.time + 0.7 })); return [a.playing, b.playing, a.level === b.level]; })()");
     eq(tw, ["gameplay", "gameplay", true], "Time Warp doesn't change the music");

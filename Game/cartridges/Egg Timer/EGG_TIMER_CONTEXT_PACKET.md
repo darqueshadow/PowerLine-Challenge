@@ -324,16 +324,17 @@ options screens (one track: moving between them doesn't restart it), "Ticking Cl
 first wave to game over, and "Game Over" once on the game-over screen. Each loop plays its intro once, then loops with no
 gap or click (an 80 ms equal-power crossfade baked in at the join); the gameplay loop's last minute is ramped down so its
 end matches its start. **Every change of screen fades out and in (0.5 s [T]); Esc pauses the gameplay music and resumes
-where it stopped; a background tab holds all music; mute covers it; Time Warp doesn't change it.** The gameplay music sits
-clearly under every sound effect. **The game-over screen** has TITLE SCREEN and PLAY AGAIN buttons (← → pick, Enter
+where it stopped; a background tab holds all music; mute covers it; Time Warp doesn't change it.** ~~The gameplay music sits
+clearly under every sound effect.~~ *(E36)* **The music is a feature: as loud as the other PLC cartridges' music, dipping
+briefly under THONG, the error buzz and the hiss; small sounds ride under it.** **The game-over screen** has TITLE SCREEN and PLAY AGAIN buttons (← → pick, Enter
 presses the lit one; leaving fades the music out; *(E34)* TITLE SCREEN is lit first, and Enter does nothing for the
 screen's first second [T] or on a held key's auto-repeat); left alone, the game-over track plays to its end and the game returns
 to the title screen and its music. *(Code: `make-music.py` prepares the files in `files/audio/` from Andrew's MP3s (no
 WAVs), with provenance in `files/audio/README.md`. Chat's loop points were checked on the files: the joins were matched by
 waveform and both points moved together onto the beat (up to ~50 ms). The tempos measure **141.02** (title; Chat: about
 144) and **131.15** BPM (gameplay; Chat: about 129), each loop a whole number of bars (34 and 78); the board lights use
-131.15. The ramp measured 3.07 dB and leaves the join within 0.2 dB. Levels [T]: menus 0.2, play 0.03, which puts the
-gameplay music 6.8 dB under the quietest effect, the egg-laying squeeze. Andrew's full-length sources in
+131.15. The ramp measured 3.07 dB and leaves the join within 0.2 dB. ~~Levels [T]: menus 0.2, play 0.03, which puts the
+gameplay music 6.8 dB under the quietest effect, the egg-laying squeeze.~~ *(E36: levels 0.762 / 0.826 / 0.762.)* Andrew's full-length sources in
 `files/assets/` are git-ignored: never committed, so never published.)*
 *(Lay sound)* **Laying an egg sounds: a short wet, rubbery squeeze while the bulge travels the cord's last stretch, then
 a cartoon "finger out of the mouth" pop the moment the egg drops into the nest.** Synthesized for now; each lay nudges
@@ -602,6 +603,17 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   bug E35 fixed. Other keys (M, Ctrl+Shift+B) wake sound without being held back, and Fang Rock never needs the extra
   press. Needed: keep `"sound"` (one extra press, in browsers only), or `"go"`?
 
+- ~~**E36. Music level.**~~ **Resolved** *(E36, Chat)*: **the same music loudness as the other PLC cartridges; a feature,
+  not background; no clipping or distortion; the music dips briefly under THONG, the error buzz and the hiss, and small
+  sounds ride under it with no dip; the gameplay track's ~3 dB ramp and every loop point unchanged.** *(Code: measured
+  with ffmpeg's ebur128 at each cartridge's own playback volume (both play music at 0.5): **Asteroid Command** Title
+  Screen −19.1, Menus −16.0, Game Play 1/2/3 −19.8/−20.1/−19.8, High Score −19.1, Region Lost −19.1 LUFS; **the
+  Aquanaut** Jelly Fish Bop −20.9, its menu bed −22.3. Target: their median, **−19.8 LUFS** (`musicLufs`). Egg Timer
+  **before**: title and game over −31.4, gameplay **−48.6** LUFS (levels 0.2 / 0.03). **After**: all three −19.8 (levels
+  0.762 title and game over, 0.826 gameplay). The files peak about −4 dBFS, so music alone tops out at 0.41 against the
+  master ceiling's knee of 0.75: never rounded off. The dip: to 40% (−8 dB) in 15 ms, held for the cue, back over 0.3 s
+  [T] (`musicDuck`). The files, the ramp and the loop points are untouched. The rig checks the loudness sum, the
+  headroom, the dip under each loud cue and no dip under the squeeze and pop.)*
 - ~~**E37. The frying pan comes down when an egg hatches.**~~ **Resolved** *(E37, Chat)*: **the pan and THONG only on a
   successful `RCAV` clear; a hatch shows the hatch only.** *(Code: the cause was deliberate, not a glitch: Refinement 2
   had the pan come down late, 0.35 s after a hatch, on the empty nest, with a dull clunk. The late pan, the clunk and
@@ -621,7 +633,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   click went to the mode selection. Built: **TITLE SCREEN** and **PLAY AGAIN** (to the mode selection), ← → pick, Enter
   presses the lit one, ⏳ `overDefault: "title"` (the other value, `"again"`, keeps Enter going where it used to).
   Needed: which one is the default?
-- *(A note, not a question.)* The gameplay music follows the rule "clearly under the sound effects", and the quietest
+- *(A note, not a question; overtaken by E36, which made the music a feature.)* The gameplay music follows the rule "clearly under the sound effects", and the quietest
   effect is the soft egg-laying squeeze, so the music plays at 0.03 of full (6.8 dB under it). If it feels too quiet in
   playtest, the fix is to raise the effects and the music together, not the music alone.
 

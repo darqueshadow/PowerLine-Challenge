@@ -142,8 +142,9 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   (Fang Rock); in a browser the first Enter or click on the title only starts it (⏳ **E40** `titleFirstPress`).
   **Music (Chat, 2026-09-25):** `files/audio/` (from `make-music.py`; Andrew's sources in the git-ignored `files/assets/`):
   the title track on the menus (shared), the gameplay loop in play, the game-over track once. 0.5 s fades on every
-  change; Esc pauses and resumes; the loops are sample-exact (loop points in `config.js` = `music.json`). The gameplay
-  level keeps it ≥ 6 dB under the quietest effect (rig section M). Game over: TITLE SCREEN / PLAY AGAIN (TITLE SCREEN
+  change; Esc pauses and resumes; the loops are sample-exact (loop points in `config.js` = `music.json`). **E36:** every
+  track plays at −19.8 LUFS (the other cartridges' median; `lufs` + `level` in `config.js`) and dips to 40% under
+  THONG, the buzz and the hiss (`musicDuck`); small sounds ride under it. Re-measure with ebur128 if a file changes. Game over: TITLE SCREEN / PLAY AGAIN (TITLE SCREEN
   lit first, E34; Enter does nothing for 1 s [T] or on auto-repeat), and at the track's end it returns to the title.
   Laying an egg: a squeeze on the cord's last stretch, then a pop (Chat, 2026-09-25; synthesized, ±8% pitch, at most 2
   of each at once, kept under THONG, the buzz and the hiss: rig section S measures them offline).

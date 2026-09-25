@@ -26,6 +26,7 @@
   var MUTE_KEY = "eggtimer.muted";
   var muted = readMuted();
   var out = null;         // the live context's master chain, made with the first sound
+  var mout = null;        // E36: the music's own gain on the way into the chain, which dips under the loud cues
 
   function readMuted() { try { return root.localStorage.getItem(MUTE_KEY) === "1"; } catch (e) { return false; } }
   function saveMuted() { try { root.localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) { /* no storage (a private window): this visit only */ } }
@@ -69,6 +70,23 @@
   function bus() {
     if (!out) out = chain(ctx, muted ? 0 : LEVEL);
     return out.input;
+  }
+
+  /* E36: every track goes through this one gain into the master chain, so a loud cue can dip the music (duck()). */
+  function musicBus() {
+    if (!mout) { mout = ctx.createGain(); mout.connect(bus()); }
+    return mout;
+  }
+  /* E36: dip the music for `seconds` (a loud cue's length), then bring it back. Nothing to dip before any music, and
+     never on a rig's offline render. */
+  function duck(seconds) {
+    if (!mout || mout.context !== ctx) return;
+    var D = ET.CONFIG.musicDuck, g = mout.gain, t = ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(D.depth, t + D.attack);
+    g.setValueAtTime(D.depth, t + seconds);
+    g.linearRampToValueAtTime(1, t + seconds + D.release);
   }
 
   function ready() {
@@ -158,7 +176,7 @@
       if (M.loop) { src.loop = true; src.loopStart = M.loop[0]; src.loopEnd = M.loop[1]; }
       g.gain.setValueAtTime(0, now);
       g.gain.linearRampToValueAtTime(M.level, now + fade);
-      src.connect(g).connect(bus());
+      src.connect(g).connect(musicBus());
       var t = { name: k, src: src, gain: g, at: now, from: from || 0, stopped: false };
       src.onended = function () {
         if (t.stopped || music.cur !== t) return;
@@ -203,6 +221,7 @@
     /* The pan on the egg: a bright metallic ring, its pitch nudged each time. */
     thong: function () {
       var j = 1 + (Math.random() * 2 - 1) * ET.CONFIG.thongPitchJitter;
+      duck(0.45);   // E36
       tone("triangle", 660 * j, 520 * j, 0.45, 0.35);
       tone("sine", 1720 * j, 1500 * j, 0.3, 0.12);
       noise(0.05, 0.25, 3000);
@@ -251,6 +270,7 @@
     hiss: function (seconds, volume) {
       var a = ready();
       if (!a) return;
+      duck(seconds);   // E36
       var t = a.currentTime, n = Math.floor(a.sampleRate * seconds);
       var buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
       for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
@@ -276,7 +296,7 @@
       o.stop(t + seconds + 0.05); lfo.stop(t + seconds + 0.05);
     },
 
-    buzz: function () { tone("sawtooth", 140, 120, 0.22, 0.18); },
+    buzz: function () { duck(0.22); tone("sawtooth", 140, 120, 0.22, 0.18); },   // E36: the music dips under it
 
     /* Music: which track should play (null for none). The same track carries on; another fades the current one out and
        itself in. Before sound is allowed it waits, and starts on the first key or click. */
@@ -309,7 +329,8 @@
     /* For rigs: the music now: the track, where it is (seconds into its file), and the log of starts and ends. */
     musicState: function () {
       return { want: music.want, playing: music.cur ? music.cur.name : null, paused: music.paused,
-               at: music.cur && ctx ? position(music.cur) : null, level: music.cur ? music.cur.gain.gain.value : null, log: music.log.slice() };
+               at: music.cur && ctx ? position(music.cur) : null, level: music.cur ? music.cur.gain.gain.value : null,
+               duck: mout ? mout.gain.value : 1, log: music.log.slice() };
     },
     tunePlaying: function () { return !!music.cur && music.cur.name === "title"; },
 
