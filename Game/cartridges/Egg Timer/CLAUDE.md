@@ -25,7 +25,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E32**);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E34**; E32 and E33 are open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -91,6 +91,12 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   at most 2 a second (`setSign()`'s 0.25 s guard), then stays lit while its **letters wobble** (E31: a transform only,
   never a brightness change; no fast blink, the flash rule forbids it). Running nests glow green (E22) and green
   **lightning** chains to them under every readout; 🚨 it re-jags 2/s [T], guard-capped at 2.5 (`rejag()`).
+- **Board lights (Chat, 2026-09-25):** one backmost layer (`#backdrop`, behind the cord, the bolts and the board) holds
+  the board's faint tint (⏳ **E32**: Andrew picks lilac, mint or cream; `?tint=` previews), white lights on the gameplay
+  track's BPM (a placeholder until the music is in; the player's seconds: mute doesn't stop them, pause freezes them),
+  and Time Warp's dark veil, a 0.5 s fade that can't touch anything in front of it. 🚨 Lights rise and fall once over
+  8 beats, one start a beat at most, 3 at once, **5% white at most** (7% dropped the dim caption under 4.5:1); the veil
+  changes at most once in 0.5 s. Reduced motion: no lights, the veil still fades.
 - **Placement:** 10 points, no penalty for waiting, but **an ignored trigger auto-opens** after 20 s (−1 s a wave,
   floor 8 s). **Any rejected Enter** clears the line, shows a red ERROR under it for ~1 s and buzzes, with no score
   or pool penalty. An empty Enter does nothing (E6).
@@ -168,7 +174,9 @@ the PLC root index instead, because it keys to the git root.
 ## State 2026-09-25
 Everything is live through `ce7d551` (E26–E31 and the refreshed art brief). The brief
 (`docs/Egg Timer art brief for Gemini.md`) is now **Code's build spec**: its 🔒 sections are Code/Andrew only, and Chat
-writes Gemini's prompts. **Waiting on Andrew:** the rest of Chat's review item 4 (the hatchling's legs must stay visible
+writes Gemini's prompts. **Open:** E32 (Andrew picks the board tint) and E33 (for Chat: the bold timer's 3.5:1). Andrew's own `files/assets/`
+(images and three music tracks, added 2026-09-25) is untracked: not Code's to commit or rename. **Waiting on Andrew:**
+the rest of Chat's review item 4 (the hatchling's legs must stay visible
 in the scurry: it arrived cut off; see the ⏸ handoff). **Next:** the Gemini pilot (nest + egg with its three hints),
 then the art-slot batch. Left from the audit, by Andrew's choice: moving the JavaScript colours into `theme.css`, dead
 code, and the other test gaps.

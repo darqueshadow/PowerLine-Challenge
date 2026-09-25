@@ -319,6 +319,20 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: board lights and Time Warp dark (Chat ruling)
+
+**Solved:** The board has a faint tint, white lights fade in and out on the gameplay track's beat behind everything, and
+Time Warp fades the board and its lights to dark while leaving the eggs, nests, text boxes, clock, sign, caption and bolts
+untouched. Reduced motion: no lights, the dark still fades.
+**Approach:** A backmost `#backdrop` layer (z 0, under `#cords` z 1 and `#field` z 2), laid over the board's area by
+`paintBackdrop()` in view.js each frame. Lights run on the player's seconds and a BPM from `gameplayTracks` (placeholder
+100). The veil is a CSS opacity transition behind `setDark()`'s 0.5 s guard. Rigs: logic 159/0, browser 439/0 (new
+section U; a new theme baseline with the four `#backdrop` rules).
+**If you touch this again:**
+- **Keep the lights at 5% or less**: at 7% the dim Time Warp caption fell to 4.41:1 over a light (rig section U checks
+  4.5:1 under all three tints).
+- **E32** (the tint) and **E33** (the bold timer's 3.5:1) are open.
+
 ## Pruned 2026-09-25 — Egg Timer's CLAUDE.md, on parking
 
 The State and Locked-design sections were rewritten from the E26–E31 sessions' running notes into the current rules only.

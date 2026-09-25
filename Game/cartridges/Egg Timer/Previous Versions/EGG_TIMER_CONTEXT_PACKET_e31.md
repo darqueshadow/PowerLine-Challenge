@@ -1,9 +1,3 @@
-> **FILING NOTE — Claude Code, 2026-09-25 (Board lights).** Chat's ruling on board lights and Time Warp dark is merged,
-> tagged *(Board lights)*, and filed verbatim as `Previous Versions/EGG_TIMER_BOARD_LIGHTS_2026-09-25.md`; the packet
-> before it is `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e31.md`. Built and **pushed live** under the standing rule (both
-> rigs green) (§7). **Open:** **E32** (Andrew picks the board tint from three swatches in playtest) and **E33** (for
-> Chat: the bold timer's white on hot pink is 3.5:1, a design that predates this ruling).
-
 > **FILING NOTE — Claude Code, 2026-09-24 (E31).** Chat's E31 (ruled) is filed verbatim as
 > `Previous Versions/EGG_TIMER_E31_2026-09-24.md`; the packet before it is `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e30.md`.
 > Time Warp's sign keeps its 3 flashes, then its letters wobble and stretch while it runs (§7). Built and **pushed live**
@@ -293,18 +287,7 @@ refuses a change within 0.25 s; timed in the player's seconds, so a pause holds 
 at once, with no flash.** *(E31)* Andrew's very fast blink isn't allowed (at most 2 flashes a second), so instead:
 **after the 3 flashes, while Time Warp runs, the "TIME WARP" letters wobble and stretch fast** (a 0.36 s [T] squash,
 stretch and skew of the letters only). The sign stays lit and its colours never change. **Under reduced motion: lit,
-no wobble.**
-*(Board lights)* **The board gets a faint, pale tint and stays dark; white lights fade in and out on the gameplay
-music's beat behind everything; while Time Warp runs, the board and its lights fade to dark** (about 0.5 s, a fade),
-leaving the eggs, nests, their text boxes, the clock, the Time Warp sign, its caption and the bolts untouched, and fade
-back when it ends. The beat is a BPM stored with each gameplay track (a placeholder 100 BPM until the music is in); it
-runs on the player's seconds, so **mute doesn't stop the lights and pause freezes them**. Each light fades in and out
-once over 8 beats [T] (4.8 s at 100 BPM); at most one starts a beat (a 50% chance [T]), at most 3 [T] at once, at most
-5% white [T]. **Under reduced motion there are no lights; the Time Warp dark still happens, as a fade.** *(Code: one
-backmost layer (`#backdrop`) behind the cord, the bolts and the whole board holds the tint, the lights and a dark veil,
-so nothing in front of it can be darkened; the veil changes at most once in 0.5 s, however fast Time Warp flips. At a
-7% peak the dim Time Warp caption fell to 4.41:1 over a light, so the peak is 5%: 4.55:1 or better under any of the three
-tints. Every readout box is opaque, so a light behind it never changes its contrast.)* *(Code: the rig holds a real Time Warp on pause and samples the sign for 2 s: the letters change shape, the
+no wobble.** *(Code: the rig holds a real Time Warp on pause and samples the sign for 2 s: the letters change shape, the
 brightness doesn't change at all.)* The clock is now 17% of the board's height, to leave room for the caption.
 *(E28)* **Wave 1's first-game tags.** In wave 1 only, and never again that game: the **first egg to go bold** gets
 "**Pink = ready! Type RCAV <unit>**" (the unit filled in), in the bold timer's pink, for as long as that egg is bold;
@@ -534,17 +517,6 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
 
 - ~~**E24. No way to turn the sound off.**~~ **Resolved** *(Andrew, 2026-09-24, audit fixes A)*: **a mute button plus the M key, remembered per browser; the title tune pauses in a background tab; a master level so overlapping sounds can't clip. No volume slider.** *(Code: the button sits top left on every screen, above every overlay, so it works while paused too; in play the HUD makes room for it, it keeps the hose-nozzle cursor, and pressing it never takes the keyboard from a Command Line. Every sound goes through one master level (0.8 [T]) and then a soft ceiling: untouched below its knee, and nothing ever leaves louder than 0.95 of full scale, however many sounds overlap. A background tab stops the title tune and holds every sound; the tune starts again from the top when the tab comes back. The setting is kept in the browser's own storage, so a private window forgets it. The browser rig checks each part.)* *(The gap, from the audit)* There was no mute or volume control, overlapping sounds could pass full scale and clip, and the title tune played on in a background tab.
 - ~~**E25. The M key during play.**~~ **Resolved** *(Andrew, 2026-09-24)*: **keep as built, with Ctrl+M on for play**: M mutes on the menus and while paused, the mute button any time, and **Ctrl+M during play** (`muteKeyInPlay: "ctrl-m"`). Andrew confirmed Ctrl+M does nothing in VisiCAD, so it teaches no wrong habit. *(Original question follows.)* M is a letter players type (the MB code), and during play a Command Line always has the keys, so M can't mute there without breaking typing. **Built** (`muteKeyInPlay: "none"`): M mutes on the title, mode-selection and game-over screens and while paused; during play the mute button does it. The other value, `"ctrl-m"`, also lets **Ctrl+M** mute mid-game (Chrome has no Ctrl+M shortcut of its own). Needed: keep it as built, or give play a mute key such as Ctrl+M.
-
-### Raised by Code building the board lights (2026-09-25) — E32 and E33 open
-
-- **E32. The board's tint.** *(Board lights: "Offer Andrew 2–3 swatches to pick from in playtest.")* Three are in
-  `theme.css`: **lilac** (`--board-tint-lilac`, a pale lilac haze), **mint** and **cream**, each 6–7% over the dark board.
-  Built as ⏳ `boardTint: "lilac"` in `config.js`; adding `?tint=mint` or `?tint=cream` to the game's address tries
-  another without changing it. Needed: **Andrew's pick**; then set the switch and drop the other two tokens.
-- **E33. The bold timer's contrast.** *(For Chat.)* Checking the readouts for this ruling showed the bold timer (white
-  on hot pink `#ff2d8a`, at the limit) is **3.5:1**, under the 4.5:1 that normal-size text needs (3:1 is enough only
-  for large bold text). The lights can't touch it (the box is opaque), and it predates this ruling. Needed: keep it,
-  or darken the pink (e.g. `#d1006a` gives white about 5:1)?
 
 ### Raised by Chat (2026-09-24) — E26 to E31 ruled
 
