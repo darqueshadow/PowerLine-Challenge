@@ -705,6 +705,13 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   losing focus or leaving the play screen ends it, and a quick re-press cuts the last blast's fade so a tap never finds
   the cap used up. Reduced motion: the jet only, standing still. All [T] in `config.js` (`hoseJet`, `hoseBlastGain`,
   `pieces`, `liquid`).)*
+- ~~**E43. Time Warp sound.**~~ **Resolved** *(E43, Chat, 2026-09-25; verbatim in `EGG_TIMER_E42-E43_2026-09-25.md`)*:
+  **a rising zap/warp sound when Time Warp starts, a falling one when it ends, no continuous sound while it runs; under
+  THONG, the buzz and the hiss, no dip; muted with everything else.** *(Code: synthesized, ⏳ until recorded sounds: a
+  warbling saw-and-square sweep, 180 → 1400 Hz as it starts and 1400 → 180 Hz as it ends, 0.55 s each [T] (`warpZap`),
+  fired as the board draws the change, so a pause holds it and a new game starts silent. Both sit under 60% of the
+  quietest loud cue's peak and loudness, through the master chain like every sound; the rig checks the direction of each
+  sweep, that nothing sounds while it runs, no dip, and mute.)*
 - ⏳ **E44. Which way does the hose's jet point?** *(Raised by Code building E42.)* The nozzle cursor is a fixed picture
   pointing up-left, and the wash happens at its tip. **Built** (`hoseJet.aim: "travel"`): the jet points the way the drag
   is going (the way it pushes), so the splash lands just ahead of where the nozzle is heading, and before the drag moves

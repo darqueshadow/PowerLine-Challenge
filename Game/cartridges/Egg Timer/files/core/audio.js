@@ -348,6 +348,31 @@
     },
     blasting: function () { return !!blasting; },
 
+    /* E43 (Chat, 2026-09-25; ⏳ synthesized): Time Warp's zap. warp(true), as it starts: a warbling sweep rising;
+       warp(false), as it ends: the same sweep falling. Nothing sounds while it runs (the grandfather clock and the music
+       fill that). Under THONG, the buzz and the hiss, with no dip; muted with everything else. */
+    warp: function (on) {
+      var a = ready();
+      if (!a) return false;
+      var W = ET.CONFIG.warpZap, t = a.currentTime, s = W.seconds, f0 = on ? W.low : W.high, f1 = on ? W.high : W.low;
+      var o = a.createOscillator(), o2 = a.createOscillator(), lfo = a.createOscillator(), depth = a.createGain();
+      var lp = a.createBiquadFilter(), g = a.createGain(), g2 = a.createGain();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + s);
+      o2.type = "square"; o2.frequency.setValueAtTime(f0 * 1.5, t); o2.frequency.exponentialRampToValueAtTime(f1 * 1.5, t + s);
+      lfo.type = "sine"; lfo.frequency.value = 17; depth.gain.value = 0.06 * (f0 + f1) / 2;   // the warble
+      lfo.connect(depth); depth.connect(o.frequency); depth.connect(o2.frequency);
+      lp.type = "lowpass"; lp.frequency.value = 3200;
+      g2.gain.value = 0.5;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(W.gain, t + 0.03);
+      g.gain.setValueAtTime(W.gain, t + s * 0.6);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + s);
+      o.connect(lp); o2.connect(g2).connect(lp); lp.connect(g).connect(bus());
+      o.start(t); o2.start(t); lfo.start(t);
+      o.stop(t + s + 0.02); o2.stop(t + s + 0.02); lfo.stop(t + s + 0.02);
+      return true;
+    },
+
     /* ⏳ placeholder: the scary mom face's creepy hiss and wet gurgle, not a scream (Refinement 5 §5). */
     hiss: function (seconds, volume) {
       var a = ready();

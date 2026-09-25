@@ -2113,6 +2113,40 @@ try {
     ok(rm.shown && rm.core === "none" && rm.burst === "none" && rm.bits === 0, `SAFETY: with reduced motion the jet shows standing still: no burst, no mist, no splash   [${JSON.stringify(rm)}]`);
   }
 
+  /* ------------------------------------------------------ E43. Time Warp's sound */
+  section("E43. Time Warp's sound (Chat, 2026-09-25)");
+  {
+    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    if (await ev("__et.paused()")) await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })), 1)");
+    // every zap, as the board draws: warp off, on (and 3 s of frames), off again (one evaluation: nothing steps between)
+    const z = await ev(`(() => { const log = [], o = ET.audio.warp; ET.audio.warp = function (on) { log.push(on); return o(on); };
+      const s = __et.snapshot(); let t = s.time; const r = (w) => { t += 0.05; ET.view.render(Object.assign({}, s, { warp: w, time: t })); };
+      r(false); const a = log.slice(); r(true); const b = log.slice(); for (let i = 0; i < 60; i++) r(true); const c = log.slice();
+      r(false); const d = log.slice(); for (let i = 0; i < 20; i++) r(false); const e = log.slice();
+      ET.audio.warp = o; return [a, b, c, d, e]; })()`);
+    eq(z, [[], [true], [true], [true, false], [true, false]], "a zap as Time Warp starts, nothing while it runs (3 s of frames), another as it ends, nothing after");
+    // rising, then falling: the waveform's crossings get closer together, or further apart; each is over in under a second
+    const m = await ev(`Promise.all([['thong'], ['buzz'], ['hiss', [0.85, 0.12]], ['warp', [true]], ['warp', [false]]].map(([k, a]) => ET.audio.measure(k, a, 1).then((r) => {
+      const d = r.buffer.getChannelData(0), sr = r.buffer.sampleRate, cross = (t0, t1) => { let n = 0; for (let i = Math.floor(t0 * sr) + 1; i < t1 * sr; i++) if ((d[i - 1] < 0) !== (d[i] < 0)) n++; return n; };
+      return { peak: +r.peak.toFixed(3), rms: +r.rms.toFixed(4), span: +r.span.toFixed(2), early: cross(0.03, 0.18), late: cross(0.33, 0.48) }; })))`);
+    const [th, bz, hs, up, down] = m, cues = [th, bz, hs];
+    ok(up.late > 1.5 * up.early && down.early > 1.5 * down.late, `the start's zap rises and the end's falls   [crossings early → late: ${up.early} → ${up.late}, ${down.early} → ${down.late}]`);
+    ok(up.span < 0.8 && down.span < 0.8, `each is one short zap, no continuous sound   [${up.span} s, ${down.span} s]`);
+    ok([up, down].every((q) => q.peak <= 0.6 * Math.min(...cues.map((x) => x.peak)) && q.rms <= 0.6 * Math.min(...cues.map((x) => x.rms))),
+      `both sit clearly under THONG, the buzz and the hiss (under 60% of the quietest one's peak and loudness)   [${up.peak}/${up.rms}, ${down.peak}/${down.rms}; cues ${cues.map((q) => q.peak + "/" + q.rms).join(", ")}]`);
+    for (let i = 0; i < 60 && (await ev("__et.music().duck")) < 0.999; i++) await wait(50);
+    const dip = await ev("new Promise((done) => { ET.audio.warp(true); setTimeout(() => done(__et.music().duck), 120); })");
+    ok(dip > 0.999, `they don't dip the music   [music at ${dip}]`);
+    const loudest = "new Promise((done) => { ET.audio.warp(true); let p = 0; const iv = setInterval(() => { p = Math.max(p, ET.audio.peak()); }, 20); setTimeout(() => { clearInterval(iv); done(p); }, 400); })";
+    await wait(700);
+    const heard = await ev(loudest);
+    await ev("ET.audio.setMuted(true)");
+    await wait(100);
+    const hush = await ev(loudest);
+    await ev("ET.audio.setMuted(false)");
+    ok(heard > 1e-3 && hush < 1e-4, `muting silences them with everything else   [${heard.toFixed(4)} → ${hush.toExponential(1)}]`);
+  }
+
   section("Q. the scary mom face (Refinement 5 §5)");
   await ev("__et.start('both', 4)");
   await ev("__et.advance(0.1)");

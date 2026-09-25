@@ -91,7 +91,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   egg bold; the step splits exactly where it ends; overtime never warps. A **grandfather clock** in the board's centre
   over a "TIME WARP" sign and caption (E27, E28). 🚨 The sign flashes 3 times at most 2 a second (`setSign()`'s 0.25 s
   guard), then stays lit while its **letters wobble** (E31: a transform, never a brightness change). Running nests glow
-  (E22) and green **lightning** chains to them; 🚨 it re-jags 2/s, guard-capped at 2.5 (`rejag()`).
+  (E22) and green **lightning** chains to them; 🚨 it re-jags 2/s, guard-capped at 2.5 (`rejag()`). **E43:** a rising
+  zap as it starts, a falling one as it ends, nothing while it runs (`ET.audio.warp()`, fired from `paintSign()`).
 - **Board lights:** `#backdrop`, behind everything on the board: the **lilac** tint (E32), white lights on the gameplay
   track's BPM (🚨 5% white at most, one start a beat, 3 at once) and Time Warp's dark veil (a 0.5 s fade).
 - **Placement:** 10 points, no penalty for waiting, but **an ignored trigger auto-opens** after 20 s (−1 s a wave,

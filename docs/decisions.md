@@ -363,6 +363,16 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E43, Time Warp's sound (Chat ruling)
+
+**Solved:** Time Warp starting and ending were silent. Now a rising zap as it starts and a falling one as it ends; nothing
+sounds while it runs.
+**Approach:** `ET.audio.warp(on)` in audio.js: a saw + square sweep (180 ↔ 1400 Hz, 0.55 s) with a 17 Hz warble through a
+low-pass, level `warpZap.gain` 0.014 (0.02 measured over the buzz's loudness limit). Fired from `paintSign()` in view.js
+on the change of `snap.warp`; `reset()` clears `sign.was` silently, so a new game never zaps down.
+**If you touch this again:** rig section E43 renders fabricated snapshots to count the calls, and reads each sweep's
+direction from zero crossings in the offline render (`measure()` now returns `span` and the `buffer`).
+
 ## Resolved 2026-09-25 — Egg Timer: E42, the hose blasts instead of trickling (Chat ruling)
 
 **Solved:** The hose's water was three falling drops per move; Andrew's pushed pieces stopped ~80% of the way across.

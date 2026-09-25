@@ -244,6 +244,9 @@
     warpSignFlashes: 3,            // [T]
     warpSignFlashSeconds: 0.6,     // [T] one flash, on and off
     warpSignMinChange: 0.25,       // the guard (never below 0.25 s: 2 flashes a second)
+    // E43 (Chat, 2026-09-25): a rising zap as Time Warp starts, a falling one as it ends, nothing while it runs (audio.js).
+    // Under THONG, the buzz and the hiss, no dip. Hz, seconds, and its level into the master chain.
+    warpZap: { low: 180, high: 1400, seconds: 0.55, gain: 0.014 },   // [T]
     accelMinuteTurns: 1,           // [T] the minute hand's turns a player second while it runs (the hour hand: 1/12 of that)
     accelHandsAt: [305, 60],       // [T] where the hour and minute hands start, in degrees from 12 (about 10:10)
     // §7 egg-laying: when a CAV starts, a cord drops from the top of the screen (layDrop), lowers the egg

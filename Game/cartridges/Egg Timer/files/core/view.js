@@ -413,6 +413,7 @@
   function paintSign(snap) {
     var C = ET.CONFIG, on = !!snap.warp;
     if (on && !sign.was) sign.t0 = snap.time;   // it just kicked in
+    if (on !== sign.was && ET.audio) ET.audio.warp(on);   // E43: a rising zap as it starts, a falling one as it ends
     sign.was = on;
     var want = on, wobble = false;
     if (on && !reducedMotion()) {
