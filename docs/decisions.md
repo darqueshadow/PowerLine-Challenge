@@ -330,8 +330,8 @@ undone about its centre (layout offsets miss the translate(-50%) on each nest an
 20% size). Liquid: `ET.mess.streak()` replaces the eraser; the mess canvases are `willReadFrequently` (a GPU readback made
 one streak take 2.4 s). Sounds `squelch`/`bloop` share `capped()`.
 **If you touch this again:** rig section E38 steps the physics with `ET.pieces.frame()` while the game is paused; its
-`__col`/`__row` helpers need a column/row clear of the readouts (none spans the whole board at every size). E41 (no
-cleanup quota exists) is open with Chat.
+`__col`/`__row` helpers need a column/row clear of the readouts (none spans the whole board at every size). E41 (Chat):
+no cleanup quota, as built; cleanup is a timed window and nothing is counted.
 
 ## Resolved 2026-09-25 — Egg Timer: a clear's gunk blown up ~5× on a nest growing in (bug, found building E38)
 

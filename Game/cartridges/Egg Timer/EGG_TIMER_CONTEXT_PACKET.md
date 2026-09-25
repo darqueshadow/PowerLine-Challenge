@@ -647,7 +647,10 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   *(Original entry follows.)* *(Code, the trough's layout, measured before building: the clear strip between the board's
   edge and the nearest nest or readout is, left / right / bottom, 149 / 90 / 72 px at 1920×1080, 91 / 62 / 54 at 1440×900,
   79 / 54 / 36 at 1280×720 and 61 / 41 / 32 at 1024×640.)*
-- **E41. The cleanup "quota" E38 refers to doesn't exist.** *(Raised by Code building E38.)* E38 says "Cleanup quota size
+- ~~**E41. The cleanup "quota" E38 refers to doesn't exist.**~~ **Resolved** *(E41, Chat, 2026-09-25; verbatim in
+  `EGG_TIMER_E41_2026-09-25.md`)*: **no cleanup quota; keep as built.** Cleanup stays a timed window with a countdown and
+  nothing is counted; a piece entering the trough simply drains. E38's "Quota" lines are struck (Chat's error: there
+  was never a quota), except that leftovers still carry into the next wave. *(Original question follows.)* E38 says "Cleanup quota size
   unchanged. A piece counts as cleaned when it enters the trough; liquid counts as it does today when washed out." But
   cleanup today is a timed window (the banner's countdown); nothing counts what's cleaned and nothing needs cleaning to
   go on. Built: nothing counted, so a piece entering the trough is simply gone down the drain, and liquid washes out as
