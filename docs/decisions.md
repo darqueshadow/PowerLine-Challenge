@@ -319,6 +319,15 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E39, a second Time Warp trigger (Chat ruling)
+
+**Solved:** Time Warp now also runs while 2+ running eggs are each over 8:00 (displayed) from their bold mark.
+**Approach:** `warping()` = in a wave, no egg bold, and (the last-CAV rule OR `farEggs() >= warpFar.eggs`). `step()`
+splits on each running egg's `boldClock - 480` as well as its `boldClock`, so the warp ends exactly on the mark
+(`farEggs()` allows 1e-9 so a split step landing on the mark counts as there).
+**If you touch this again:** most rig scenes run with the rule off (`withoutFarWarp()` in the logic rig; `farWarpOff()`
+after every page load in the browser rig), because long eggs now warp early and those scenes test other things.
+
 ## Resolved 2026-09-25 — Egg Timer: E36, the music level and its dip (Chat ruling from Andrew's playtest)
 
 **Solved:** Egg Timer's music was far quieter than the other cartridges' (gameplay −48.6 LUFS heard); now all three

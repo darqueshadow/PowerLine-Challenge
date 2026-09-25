@@ -187,6 +187,9 @@
     // §4 "Time Warp": once the wave has spawned its last egg and no egg is bold, every clock (nests and the
     // wall clock) runs this many times the wave's speed, until an egg goes bold. Overtime is untouched.
     warpFactor: 5,                 // [T]
+    // E39 (Chat, 2026-09-25): Time Warp ALSO runs while at least `eggs` eggs are each more than `seconds` of displayed
+    // time from their bold mark (both as ruled), whether or not the wave's last CAV has started. Never while an egg is bold.
+    warpFar: { eggs: 2, seconds: 480 },   // 2 eggs, 8:00
     // E27 (ruled 2026-09-24): the centre panel is a grandfather clock whose hands spin while it runs; with reduced motion
     // they hold still and the face reads "5×". E28 (ruled 2026-09-24) keeps the name "Time Warp" (E27's rename is undone)
     // and puts a caption under its sign. When it kicks in, the sign flashes warpSignFlashes times, then stays lit.

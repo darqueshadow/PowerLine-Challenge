@@ -1,3 +1,7 @@
+> **FILING NOTE — Claude Code, 2026-09-25 (E38–E40).** The rest of E38, E39 and E40 are filed verbatim as
+> `Previous Versions/EGG_TIMER_E38-E40_RULINGS_2026-09-25.md`. E39 and E40 are built and pushed live, each in its own
+> commit; E38 waits for the pilot art to merge, then a screenshot sheet for Andrew before it goes live.
+
 > **FILING NOTE — Claude Code, 2026-09-25 (E35–E39).** Chat's rulings from Andrew's playtest are filed verbatim as
 > `Previous Versions/EGG_TIMER_E35-E39_RULINGS_2026-09-25.md`; the packet before them is
 > `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e35-e39.md`. **The block arrived cut off** (mid-E38, no E39): what's
@@ -610,7 +614,14 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   at 1920×1080, 91 / 62 / 54 at 1440×900, 79 / 54 / 36 at 1280×720 and 61 / 41 / 32 at 1024×640. A thin trough (about
   8–10 px) fits on all three edges at every size without moving a nest, readout or Command Line. The only thing already
   in that strip is the sink's "CLEANING HOSE" tag at the bottom centre, which would sit over the trough there.)*
-- **E39.** Missing: the block ended before it.
+- ~~**E39. A second Time Warp trigger.**~~ **Resolved** *(E39, Chat)*: **Time Warp also starts when 2 or more eggs are
+  each more than 8:00 (displayed time) from their bold mark. The existing trigger stays (the last CAV started and nothing
+  bold); it never starts while any egg is bold; no random trigger; everything else about it unchanged.** *(Code:
+  `warpFar: { eggs: 2, seconds: 480 }` in `config.js`, and `warping()` checks either rule under the one bold guard. Only
+  running eggs count (an egg still being laid has no clock yet). As with a bold, the step splits on the exact instant
+  the second egg comes within 8:00, so the warp stops there to the frame. The E39 rule doesn't wait on a placement
+  still waiting, since the ruling's only guard is a bold egg; E18's condition stays with the last-CAV rule. The logic
+  rig tests the rule, its exact stop and the guard; the browser rig sees the panel light for it early in a wave.)*
 - ~~**E36. Music level.**~~ **Resolved** *(E36, Chat)*: **the same music loudness as the other PLC cartridges; a feature,
   not background; no clipping or distortion; the music dips briefly under THONG, the error buzz and the hiss, and small
   sounds ride under it with no dip; the gameplay track's ~3 dB ramp and every loop point unchanged.** *(Code: measured

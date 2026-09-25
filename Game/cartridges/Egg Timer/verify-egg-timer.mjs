@@ -69,7 +69,12 @@ async function reload(url = URL_GAME) {
   carried.push(...c.errors());
   c.drain();
   await c.goto(url);
+  await farWarpOff();
 }
+/* E39's second Time Warp trigger (2+ eggs over 8:00 from bold) would warp most scenes here early; they test other
+   things, so the rig runs without it, and section P turns it on once to see the panel light for it (the logic rig
+   tests the rule itself). */
+const farWarpOff = () => ev("(window.ET && ET.CONFIG ? (ET.CONFIG.warpFar.eggs = Infinity) : 0, 1)");
 /* Wait (in real time) for a request the rig is holding back with the Fetch domain. */
 async function held(pattern) {
   for (let i = 0; i < 200; i++) {
@@ -205,6 +210,7 @@ async function typeAndEnter(text) {
 try {
   await c.goto(URL_GAME);
   for (let i = 0; i < 60 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(100);
+  await farWarpOff();
 
   /* ------------------------------------------------------------- A. boot */
   section("A. boot and data");
@@ -1420,6 +1426,23 @@ try {
       await ev("__et.advance(0.25)");
     }
     ok(!!lit && lit.spawned === lit.quota, "the clocks warp once the wave's last egg has spawned");
+    {
+      // E39: with its rule on, two eggs each over 8:00 from bold light Time Warp early in a wave (one ev: nothing between)
+      const e39 = await ev(`(() => { ET.CONFIG.warpFar.eggs = 2; __et.start('clear', 1, { types: ['MB'] }); let s = null;
+        for (let i = 0; i < 4000; i++) { __et.advance(0.02); s = __et.snapshot(); if (s.nests.filter(n => n.state === 'active').length >= 2) break; }
+        __et.advance(0.02); s = __et.snapshot();
+        const r = { warp: s.warp, early: s.spawned < s.quota, lit: document.querySelector('#warp').classList.contains('lit') };
+        ET.CONFIG.warpFar.eggs = Infinity; return r; })()`);
+      eq(e39, { warp: true, early: true, lit: true }, "E39: two eggs each over 8:00 from bold light Time Warp, before the wave's last CAV has spawned");
+      await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+      lit = null;
+      for (let t = 0; t < 300 && !lit; t += 0.25) {
+        const x = await snap();
+        if (x.warp) { lit = x; break; }
+        for (const y of x.nests.filter((z) => z.state === "overtime")) await ev(`__et.submit('RCAV ${y.unit}')`);
+        await ev("__et.advance(0.25)");
+      }
+    }
     eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp .plaque').textContent")], [true, "TIME WARP"], "…and Time Warp lights up");
     {
       // E27: the hands spin fast while it runs (one evaluation, so the live page can't end it in between)

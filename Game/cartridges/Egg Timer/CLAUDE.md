@@ -85,7 +85,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   green** (`#39ff14`, no glow) in the bundled **DSEG7** face; fonts are OFL in `files/fonts/` with their licences.
 - **Timer and Time Warp:** timers count **up** in displayed time, MM:SS, through overtime; the 24-hour wall clock is at
   the top centre. Once the wave's last CAV has *started* and no egg is bold, every clock runs 5× [T] until an egg goes
-  bold (the step splits there; E18); overtime never warps. **Time Warp** (that name, E28) is a **grandfather clock** in
+  bold (the step splits there; E18); overtime never warps. **E39:** it also runs while 2+ running eggs are each over 8:00 from bold (`warpFar`), never with an
+  egg bold; the rigs run most scenes with that rule off. **Time Warp** (that name, E28) is a **grandfather clock** in
   the centre of the board, 17% of its height (about 27% is free between nests), hands spinning while it runs ("5×" on
   the face under reduced motion), over a "TIME WARP" sign and a caption. 🚨 The sign flashes 3 times as it kicks in,
   at most 2 a second (`setSign()`'s 0.25 s guard), then stays lit while its **letters wobble** (E31: a transform only,
