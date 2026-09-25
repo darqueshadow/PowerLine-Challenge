@@ -321,7 +321,8 @@ gap or click (an 80 ms equal-power crossfade baked in at the join); the gameplay
 end matches its start. **Every change of screen fades out and in (0.5 s [T]); Esc pauses the gameplay music and resumes
 where it stopped; a background tab holds all music; mute covers it; Time Warp doesn't change it.** The gameplay music sits
 clearly under every sound effect. **The game-over screen** has TITLE SCREEN and PLAY AGAIN buttons (← → pick, Enter
-presses the lit one; leaving fades the music out); left alone, the game-over track plays to its end and the game returns
+presses the lit one; leaving fades the music out; *(E34)* TITLE SCREEN is lit first, and Enter does nothing for the
+screen's first second [T] or on a held key's auto-repeat); left alone, the game-over track plays to its end and the game returns
 to the title screen and its music. *(Code: `make-music.py` prepares the files in `files/audio/` from Andrew's MP3s (no
 WAVs), with provenance in `files/audio/README.md`. Chat's loop points were checked on the files: the joins were matched by
 waveform and both points moved together onto the beat (up to ~50 ms). The tempos measure **141.02** (title; Chat: about
@@ -579,7 +580,13 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
 
 ### Raised by Code building the music (2026-09-25) — E34 open
 
-- **E34. The game-over screen's default button.** *(Music: "a clear way back to the title screen: a button, with Enter
+- ~~**E34. The game-over screen's default button.**~~ **Resolved** *(E34, Chat, 2026-09-25)*: **TITLE SCREEN is picked
+  first (as built). Add: game over ignores Enter until about 1 s after it appears, so a player hammering Enter sees the
+  result; arrows and mute unaffected; the music-end return to the title unchanged.** *(Code: both of Chat's options at
+  once, as the title's own guard is a condition too: Enter is ignored for `overEnterDelay` 1 s [T] after the screen
+  appears, and a held Enter's auto-repeat is ignored at any time, so leaving always takes a fresh press. Clicks are
+  unaffected. The browser rig dispatches Enter in the screen's first instant and a repeat after it.)* *(Original
+  question follows.)* *(Music: "a clear way back to the title screen: a button, with Enter
   as its key if it's the default. If there is also a Play Again, keep it.")* Before, the screen had no buttons: Enter or a
   click went to the mode selection. Built: **TITLE SCREEN** and **PLAY AGAIN** (to the mode selection), ← → pick, Enter
   presses the lit one, ⏳ `overDefault: "title"` (the other value, `"again"`, keeps Enter going where it used to).

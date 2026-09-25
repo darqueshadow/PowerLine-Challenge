@@ -1197,6 +1197,17 @@ try {
     await press("ArrowLeft");
   }
   eq(await ev("__et.music().want"), "over", "the game-over track plays on the game-over screen");
+  {
+    // E34: Enter does nothing in the screen's first second (dispatched in the same ev() as the screen appearing), nor
+    // on a held key's auto-repeat after it; then a fresh press works (below)
+    const key = (rep) => `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', repeat: ${rep}, bubbles: true, cancelable: true }))`;
+    const arrow = (k) => `document.dispatchEvent(new KeyboardEvent('keydown', { key: '${k}', code: '${k}', bubbles: true, cancelable: true }))`;
+    eq(await ev(`(() => { __et.show('over'); ${key(false)}; const early = __et.overEnterIn() > 0.9; ${arrow("ArrowRight")};
+      const lit = document.querySelector('#over-buttons .selected').dataset.go; ${arrow("ArrowLeft")}; return [__et.screen(), early, lit]; })()`),
+      ["over", true, "again"], "E34: game over ignores Enter in its first second, while ← → pick straight away");
+    for (let i = 0; i < 40 && (await ev("__et.overEnterIn()")) > 0; i++) await wait(100);
+    eq(await ev(`(() => { ${key(true)}; return __et.screen(); })()`), "over", "…and a held Enter's auto-repeat after it");
+  }
   await press("Enter");
   eq(await ev("__et.screen()"), (await ev("ET.CONFIG.overDefault")) === "again" ? "setup" : "title", "Enter presses the lit button: back to the title screen");
   eq(await ev("__et.music().want"), "title", "…and the title music takes over");

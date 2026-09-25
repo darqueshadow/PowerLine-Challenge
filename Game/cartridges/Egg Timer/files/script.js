@@ -67,7 +67,7 @@
     // Music (Chat ruling, 2026-09-25): the menu screens share the title track (E21: heard once the first key or click
     // has unlocked sound), play has the gameplay track, game over its own, played once. A change fades out and in.
     ET.audio.music(name === "play" ? "gameplay" : name === "over" ? "over" : "title");
-    if (name === "over") paintOver(C.overDefault === "again" ? "again" : "title");
+    if (name === "over") { paintOver(C.overDefault === "again" ? "again" : "title"); app.overAt = performance.now(); }
     // with no sound at all the game-over track can't end, so its length stands in for it
     clearTimeout(app.overAuto);
     if (name === "over" && ET.audio.state() === "none") app.overAuto = setTimeout(function () { if (app.screen === "over") show("title"); }, C.music.over.seconds * 1000);
@@ -183,6 +183,8 @@
     document.querySelectorAll("#over-buttons [data-go]").forEach(function (b) { b.classList.toggle("selected", b.dataset.go === which); });
   }
   function leaveOver(which) { show(which === "again" ? "setup" : "title"); }
+  // E34: seconds until game over takes Enter
+  function overEnterIn() { return Math.max(0, C.overEnterDelay - (performance.now() - (app.overAt || 0)) / 1000); }
 
   function setPaused(on) {
     app.paused = on;
@@ -244,7 +246,8 @@
       case "over":
         // two buttons (Chat ruling, 2026-09-25): ← → pick, Enter presses the lit one (the default: E34)
         if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") { ev.preventDefault(); paintOver(app.over === "title" ? "again" : "title"); }
-        if (ev.key === "Enter") { ev.preventDefault(); leaveOver(app.over); }
+        // E34: not in the screen's first second, and never on a held key's auto-repeat: a fresh press is needed
+        if (ev.key === "Enter") { ev.preventDefault(); if (!ev.repeat && overEnterIn() === 0) leaveOver(app.over); }
         return;
       case "setup":
         setupKey(ev);
@@ -513,6 +516,7 @@
     // rig-only: the music now, a screen change as a button would make it, and a track's end as if it had played out
     music: function () { return ET.audio.musicState(); },
     show: function (name) { show(name); return name; },
+    overEnterIn: function () { return overEnterIn(); },
     endMusic: function () { return ET.audio.endMusicForRig(); },
     nestClass: function (id) { var v = ET.view.nest(id); return v.el.className + " state=" + v.el.dataset.state; }
   };

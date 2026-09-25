@@ -319,6 +319,13 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E34, the game-over default and its Enter guard (Chat ruling)
+
+**Solved:** TITLE SCREEN stays the default; Enter on game over now waits 1 s, so a hammered Enter can't skip the result.
+**Approach:** `show("over")` stamps `app.overAt`; the key handler ignores Enter while `overEnterIn()` > 0 and any
+`ev.repeat` Enter (so after the second a fresh press is still needed). `overEnterDelay: 1` [T] in `config.js`.
+**If you touch this again:** the rig dispatches its early Enter in the same `ev()` as `__et.show('over')`; keep it there.
+
 ## Resolved 2026-09-25 — Egg Timer: E33, the ready pink (Chat ruling)
 
 **Solved:** The bold timer's white-on-pink was 3.5:1; the pink is now `#d1006a` (5.4:1) everywhere it means "ready".

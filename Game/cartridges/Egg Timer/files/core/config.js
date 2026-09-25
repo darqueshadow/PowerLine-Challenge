@@ -135,9 +135,11 @@
     // under the quietest effect (the egg-laying squeeze), which rig section M measures.
     musicFade: 0.5,                // [T] seconds: every change of screen fades out and in; so does leaving game over
     musicPauseFade: 0.05,          // [T] seconds: Esc pauses and resumes the gameplay music where it stopped, without a click
-    // ⏳ PENDING (E34): the game-over screen's default button (Enter). "title" (a clear way back to the title screen,
-    //   Chat's ruling) or "again" (play again, what Enter did before).
+    // E34 (ruled 2026-09-25): TITLE SCREEN is picked first ("again" would pick PLAY AGAIN, what Enter did before).
     overDefault: "title",
+    // E34: game over ignores Enter for this long after it appears, and a held Enter (auto-repeat) at any time, so a
+    // player still hammering Enter at the end of a game sees the result first. ← →, mute and clicks are unaffected.
+    overEnterDelay: 1,             // [T] seconds
 
     // ── E24 (Andrew, 2026-09-24): sound on and off ──────────────────────────
     // A mute button on every screen and the M key, remembered per browser. The title tune pauses in a background tab,
