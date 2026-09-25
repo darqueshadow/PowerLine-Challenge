@@ -186,6 +186,50 @@ archived outside the repo at `~/.claude/projects/C--Users-darqu-OneDrive--PCL-/m
   upstream `git clone`, a public `npm install`, and repo-relative paths only — no tokens, no absolute
   paths, no unlock phrases. Do not re-triage it as a security item.
 
+## Resolved 2026-09-25 — the C64 corner's Full Screen, Pause and eject lever
+
+**Solved:** The corner C64 has a **Full Screen** mode and a **Pause** button, and its Eject is drawn as the
+1541's door lever. Full Screen fills the window with the machine's screen and puts a breadbin strip under
+it with Power, both ports, the keyboard, Eject, the side swap, Pause, Exit Full Screen and the hub's
+one-line message. Pause freezes the machine with nothing typed getting in, and resumes it exactly where it
+was with the keyboard back in BASIC. Chat's handoff, Andrew's rulings, and he ran the checklist on
+2026-09-25. Built with it, on his approval: the Fast Load cartridge no longer covers the deck's note line,
+and verify-c64's opening screen hunt waits 60s instead of 20s.
+
+**Approach:** Full Screen is a LAYOUT, `#cat.is-full`, and never the browser's Fullscreen API (his ruling):
+Fang Rock's Arcade window is already full screen, so Esc (RUN/STOP) is never at risk. The strip is
+`#c64-side` itself, and `setFull()` MOVES Eject and `#side-swap` into it and back home to comment-node
+markers in `#crates`. Pause is `cat:pause` / `cat:resume` in emu.js, which call EmulatorJS's own
+`pause(true)` / `play(true)` (the core's main loop), and the hub paints from the machine's answer.
+Measured on the real core in verify-c64 §P and §P2.
+
+**If you touch this again:**
+- **Never the Fullscreen API.** On Firefox and Safari Esc always leaves full screen and the page never sees
+  it, so RUN/STOP would be lost; Chrome/Edge's `keyboard.lock` was never measured through the emulator's
+  iframe. The layout mode sidesteps all of it, and it lets the book reader stay on top.
+- **The strip is MOVED parts, never copies.** The rigs read these ids and `paintSide()` paints these exact
+  nodes; a copy is a second panel that can disagree with the first. Eject in full screen leaves full screen
+  first, so the disks show.
+- **While paused, KEYDOWN is blocked on window capture in emu.js and KEYUP is let through.** A key held when
+  Pause was clicked and released while paused would otherwise stay held in the core on resume — measured by
+  the C64's own key scan, `$CB` 60 → 64. The hub blocks keys too, except Tab and Enter/Space on a button.
+- **Pause is refused while `busy` and while emu.js's `relayBusy()`.** Typing and loading are paced in
+  EMULATED frames, so a pause mid-command stalls it until it times out. Every `busy =` in cat.js now goes
+  through `setBusy()`, which repaints the button, so a new busy path that writes `busy` directly will leave
+  Pause looking available when it is not.
+- **What a paused machine refuses is ONE list, `PAUSE_LOCKED`, in one capture click guard.** Load, Insert,
+  Reset, Fast Load, the side swap, the ports and the keyboard (his approval covered the last four). Power,
+  Eject and Full Screen still work. emu.js also fails insert/type/reset/swap/awaitready/warp at once while
+  paused, as a second lock. Eject is not locked: it is one slot switch with no frames in it.
+- **`#deck-note` is the strip's message line in full screen** — the same element, not a second spot.
+- **The Fast Load fix is ROOM, not the cartridge.** Standing out it hangs below the panel on purpose (the
+  travel into the slot is the on/off signal), so `#c64-side` keeps a 26px bottom margin while it is shown.
+- **verify-c64's opening hunt takes 12–17s here** and failed 3 runs in 6 under load at 20s, the committed
+  code the same as the new. On a failure the rig now shoots `%TEMP%/verify-c64-noram.png`. A run that starts
+  at ~16 fps and sticks at `SEARCHING FOR *` cascades into a dozen failures: check the load before the code.
+- 📌 Not done: the "PAUSED" sign is a plain placeholder he may restyle; the "CAT computer / Tommodore" name
+  is still a placeholder.
+
 ## Resolved 2026-09-22 — Egg Timer's launch, and its cabinet in Nerva Beacon's Arcade
 
 **Solved:** Egg Timer is live for players on the public site, and its table in NB's Rec-Bay 4 now fires

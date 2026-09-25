@@ -353,9 +353,21 @@ async function runRig() {
     const f0 = await frameNow(); await wait(1000); const f1 = await frameNow();
     ok(f1 - f0 > 20, `[control] the machine is running, not frozen   [${f1 - f0} frames in 1s]`);
     const tRam = await (async () => { const t0 = Date.now();
-      while (Date.now() - t0 < 20000) { RAM = await locateRam(); if (RAM >= 0) return Date.now() - t0; await wait(300); } return -1; })();
+      /* 🔄 2026-09-25 — 20s -> 60s (his approval). The hunt takes 12-17s on this
+         machine and failed 3 runs in 6 while other sessions were busy, the
+         committed code the same as new. Only the WAIT grew: it still has to be
+         found exactly once, and the time is still printed. */
+      while (Date.now() - t0 < 60000) { RAM = await locateRam(); if (RAM >= 0) return Date.now() - t0; await wait(300); } return -1; })();
     ok(tRam >= 0, `[control] the C64's screen memory was found, exactly once   [${took(tRam)}, ${RAM}]`);
-    if (RAM < 0) throw new Error("no screen to read; nothing below can be judged");
+    if (RAM < 0) {
+      /* 🆕 2026-09-25 — say WHAT was on the glass when the hunt failed, rather than
+         leave the next person to guess between "slow machine" and "broken boot".
+         The shot goes to the OS temp folder, never under Game/ (a public root). */
+      const f = join(tmpdir(), "verify-c64-noram.png");
+      await wc.capturePage().then((img) => writeFileSync(f, img.toPNG())).catch(() => {});
+      say(`        (shot of the glass when the hunt failed: ${f}; ${await frameNow()} frames run)`);
+      throw new Error("no screen to read; nothing below can be judged");
+    }
 
     /* --- A. boot ----------------------------------------------------------- */
     section("A. booting inside Fang Rock shows the REAL C64 boot screen");
@@ -935,6 +947,196 @@ async function runRig() {
       return { t: e.textContent, w: s.fontWeight, cap: s.backgroundImage.indexOf("gradient") >= 0 }; }))`));
     ok(caps.every((c) => c.w === "700" && c.cap) && caps.map((c) => c.t).join(" ") === "F2 F9 F12",
        `the F-key hints are bold keycaps and their text is still bare   [${caps.map((c) => c.t).join(" ")}]`);
+
+    /* --- P. Pause and Full Screen (2026-09-25) ---------------------------------
+       Chat's handoff, his rulings the same day. Pause is MEASURED here on the
+       running core before anything relies on it: the frame counter must stop,
+       nothing typed while paused may reach the machine (the C64's own keyboard
+       buffer at $C6 must stay empty), F2/F9/F12 and the port clicks must do
+       nothing, and the machine must come back exactly where it was, with the
+       keyboard in BASIC and no click needed.
+       ⭐ THE HELD-KEY CHECK READS THE C64's OWN KEY SCAN. $CB is the matrix code
+       of the key down right now (64 = none; Space = 60). A key held when Pause
+       was clicked and let go while paused must read 64 after resume — if the
+       release were swallowed with the presses, it would read 60 forever.
+       📌 Sits before §L for the same reason §L does: §K throws this window away. */
+    section("P. Pause: the machine freezes, takes no key, and comes back exactly where it was");
+    const peek = async (a) => Number(await ev(`(() => { try { return ${FRAME}.EJS_emulator.gameManager.Module.HEAPU8[${RAM} + ${a}]; } catch (e) { return -1; } })()`));
+    const PAUSE_LOOK = `JSON.stringify((function () {
+      var b = document.getElementById("c64-pause"), s = document.getElementById("screen-paused");
+      var f = document.getElementById("machine-frame").getBoundingClientRect();
+      var hit = document.elementFromPoint(Math.round(f.left + f.width / 2), Math.round(f.top + f.height / 2));
+      return { lit: b.classList.contains("is-lit"), pressed: b.getAttribute("aria-pressed"), disabled: b.disabled,
+               sign: !s.hidden && getComputedStyle(s).display !== "none", text: s.textContent.trim(),
+               glass: hit ? hit.id : null, paused: __cat.machine().paused }; })())`;
+    await click("#machine-frame");
+    await press("Home", true);
+    await type("X=7\n");
+    await untilScreen((r) => toReady(after(r, /^X=7$/))[0] === "READY.", 5000);
+    const pm0 = await ev("__cat.machine()");
+    ok(pm0.pauseAvailable && !pm0.paused, `[control] Pause is available on an idle machine, and it is running   [available ${pm0.pauseAvailable}, paused ${pm0.paused}]`);
+    await click("#c64-pause");
+    const tPause = await until("__cat.machine().paused === true", 5000);
+    const fA = await frameNow(); await wait(1500); const fB = await frameNow();
+    ok(tPause >= 0 && fB === fA, `the clock stops: no frames pass while paused   [${took(tPause)}, ${fB - fA} frames in 1.5s]`);
+    ok((await inMachine("CAT_EMU.machine().paused")) === true && (await inMachine("EJS_emulator.paused")) === true,
+       "the machine page and the core both say paused (painted from the machine's answer)");
+    const pl = JSON.parse(await ev(PAUSE_LOOK));
+    ok(pl.lit && pl.pressed === "true" && pl.sign && pl.text === "PAUSED",
+       `the button is lit and PAUSED shows over the frozen screen   [${JSON.stringify(pl)}]`);
+    ok(pl.glass === "machine-frame", `the PAUSED sign cannot take a click meant for the glass   [hit ${pl.glass}]`);
+    const screenBefore = text(await screen());
+    const sideBefore = await ev(SIDE);
+    await press("Z");
+    await type("P1\n");
+    await press("F9");
+    await press("F2");
+    await press("F12");
+    await click("#c64-port1");
+    await click("#c64-keys");
+    await click("#btn-list");
+    await wait(800);
+    ok(text(await screen()) === screenBefore && (await peek(198)) === 0,
+       `keys typed while paused reach nothing: the screen is unchanged and the C64's key buffer is empty   [$C6 ${await peek(198)}]`);
+    const sideDuring = await ev(SIDE);
+    ok(sideDuring.mode === sideBefore.mode && sideDuring.port === sideBefore.port,
+       `F9, F2 and clicks on the ports and keyboard change nothing while paused   [${sideBefore.mode}/${sideBefore.port} -> ${sideDuring.mode}/${sideDuring.port}]`);
+    ok(!(await ev("__cat.machine().busy")) && (await frameNow()) === fB,
+       "Load does not start, and F12 does not reset: the clock never moved");
+    /* resume with the MOUSE, then type straight away — no click on the glass first */
+    await click("#c64-pause");
+    const tRes = await until("__cat.machine().paused === false", 5000);
+    await frames(5);
+    const fC = await frameNow();
+    ok(tRes >= 0 && fC > fB, `Pause again resumes it: the clock runs on from where it stopped   [${took(tRes)}, ${fB} -> ${fC}]`);
+    ok(!JSON.parse(await ev(PAUSE_LOOK)).sign, "and the PAUSED sign is gone");
+    await type("PRINT X*6\n");
+    ok((await untilScreen((r) => toReady(after(r, /^PRINT X\*6$/))[0] === " 42", 6000)) >= 0,
+       `the very next keys go into BASIC, and X is still 7: nothing was lost and nothing reset   [${(await screen()).filter(Boolean).slice(-2).join(" | ")}]`);
+    /* the held key */
+    wc.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await frames(10);
+    const held0 = await peek(203);
+    await click("#c64-pause");
+    await until("__cat.machine().paused === true", 5000);
+    wc.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    await wait(300);
+    await click("#c64-pause");
+    await until("__cat.machine().paused === false", 5000);
+    await frames(20);
+    const held1 = await peek(203);
+    ok(held0 === 60 && held1 === 64,
+       `a key held when Pause was clicked, and let go while paused, is not stuck down on resume   [$CB ${held0} -> ${held1}]`);
+    await press("Enter");
+    /* refused while the machine is busy */
+    await ev(`__cat.execute('PRINT "PAUSE WAITS FOR THE TYPING"')`);
+    await until("__cat.machine().busy", 3000, 20);
+    const busyLook = await ev("__cat.machine()");
+    await click("#c64-pause");
+    await wait(150);
+    const busyAfter = await ev("__cat.machine()");
+    ok(busyLook.pauseHeld && !busyLook.pauseAvailable && !busyAfter.paused,
+       `while a typed command is going in, Pause shows unavailable and a click does not pause   [held ${busyLook.pauseHeld}, paused ${busyAfter.paused}]`);
+    await idle();
+    ok((await untilScreen((r) => r.includes("PAUSE WAITS FOR THE TYPING"), 5000)) >= 0 && (await ev("__cat.machine()")).pauseAvailable,
+       "the command went in whole, and Pause is available again once it has");
+
+    section("P2. Full Screen: the monitor fills the window, the strip sits under it, and the same parts work there");
+    await ev(`__cat.select(${JSON.stringify(DISK.id)})`);
+    await click("#btn-insert");
+    await until(`__cat.inserted() === ${JSON.stringify(DISK.id)}`, 60000);
+    await idle();
+    /* shots for a human eye — in the OS temp folder, NEVER under Game/ (a public
+       Pages root) */
+    const shot = async (name) => { const f = join(tmpdir(), name); await wc.capturePage().then((img) => writeFileSync(f, img.toPNG())); say(`        (shot: ${f})`); };
+    await shot("verify-c64-corner.png");
+    /* 🆕 2026-09-25 — the fast loader standing OUT must not sit on the note line */
+    const over = JSON.parse(await ev(`JSON.stringify((function () {
+      var f = document.getElementById("btn-fastload").getBoundingClientRect(), n = document.getElementById("deck-note").getBoundingClientRect();
+      return { fast: [Math.round(f.top), Math.round(f.bottom)], note: [Math.round(n.top), Math.round(n.bottom)],
+               seated: document.getElementById("btn-fastload").classList.contains("is-seated") }; })())`));
+    ok(!over.seated && over.fast[1] <= over.note[0],
+       `the fast-load cartridge, standing out, clears the deck's note line   [cart ${over.fast.join("-")}, note ${over.note.join("-")}]`);
+    await click("#c64-full");
+    await until("__cat.machine().full === true", 3000);
+    await wait(400);
+    await shot("verify-c64-full.png");
+    const FULL_LOOK = `JSON.stringify((function () {
+      var r = function (id) { var b = document.getElementById(id).getBoundingClientRect(); return { t: Math.round(b.top), b: Math.round(b.bottom), w: Math.round(b.width), h: Math.round(b.height) }; };
+      var d = function (id) { return getComputedStyle(document.getElementById(id)).display; };
+      return { win: { w: innerWidth, h: innerHeight }, frame: r("machine-frame"), side: r("c64-side"), crates: r("crates"),
+               ejectIn: document.getElementById("btn-eject").parentNode.id, swapIn: document.getElementById("side-swap").parentNode.id,
+               insertIn: document.getElementById("btn-insert").parentNode.id,
+               cart: d("c64-cart"), iec: d("c64-iec"), deckTop: d("deck-top"),
+               label: document.getElementById("c64-full-label").textContent,
+               ids: ["c64-power", "c64-port1", "c64-port2", "c64-keys", "c64-pause", "c64-full", "btn-eject", "side-swap"]
+                 .map(function (id) { return document.querySelectorAll("#" + id).length; }).join("") }; })())`;
+    const L = JSON.parse(await ev(FULL_LOOK));
+    ok(L.crates.w === 0 && L.frame.w >= L.win.w - 2 && L.frame.h >= L.win.h * 0.8,
+       `the screen fills the window and the disks step aside   [frame ${L.frame.w}x${L.frame.h} of ${L.win.w}x${L.win.h}, crates ${L.crates.w}px]`);
+    ok(L.side.t >= L.frame.b - 1 && L.side.b <= L.win.h + 1,
+       `the strip sits UNDER the screen, not over it   [screen ends ${L.frame.b}, strip ${L.side.t}-${L.side.b}]`);
+    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.ids === "11111111",
+       `Eject and the side swap MOVED into the strip, and nothing was copied   [eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
+    ok(L.cart === "none" && L.iec === "none" && L.deckTop === "none",
+       `the cartridge port, the drive port, Load and Reset stay out of the strip   [${L.cart}/${L.iec}/${L.deckTop}]`);
+    ok(L.label === "Exit Full Screen", `the Full Screen part reads Exit Full Screen   [${L.label}]`);
+    /* 🆕 2026-09-25 — his change: errors must not be invisible in full screen */
+    const noteFull = JSON.parse(await ev(`JSON.stringify((function () {
+      var n = document.getElementById("deck-note"), b = n.getBoundingClientRect(), f = document.getElementById("machine-frame").getBoundingClientRect();
+      return { shown: !n.hidden && getComputedStyle(n).display !== "none" && b.height > 0, t: Math.round(b.top), b: Math.round(b.bottom),
+               screenEnds: Math.round(f.bottom), H: innerHeight, text: n.textContent, api: __cat.note() }; })())`));
+    ok(noteFull.shown && noteFull.t >= noteFull.screenEnds && noteFull.b <= noteFull.H && noteFull.text !== "" && noteFull.text === noteFull.api,
+       `the hub's message line is in the strip, under the screen, and says what the hub last said   [${noteFull.t}-${noteFull.b}, "${noteFull.text}"]`);
+    /* ⚠️ The frame's OWN document and window: an unqualified `document` in an
+       ev() is the hub's, which has no canvas (the first run said "no canvas"). */
+    const pic = JSON.parse(await ev(`(function () { try { var w = ${FRAME}, c = w.document.querySelector("canvas"); if (!c) return "null";
+      var b = c.getBoundingClientRect(); return JSON.stringify({ w: b.width, h: b.height, W: w.innerWidth, H: w.innerHeight }); } catch (e) { return "null"; } })()`));
+    ok(pic && Math.max(pic.w / pic.W, pic.h / pic.H) > 0.95,
+       `the C64's picture scales up to fit the space above the strip   [${pic ? Math.round(pic.w) + "x" + Math.round(pic.h) + " in " + pic.W + "x" + pic.H : "no canvas"}]`);
+    await click("#c64-port1");
+    await until("document.getElementById('c64-side').dataset.mode === 'joystick' && document.getElementById('c64-side').dataset.port === '1'", 5000);
+    let fs = await ev(SIDE);
+    ok(fs.p1 === "lit" && fs.p2 === "grey" && fs.keys === "grey", `in the strip, clicking Port 1 lights it and greys the rest   [${JSON.stringify(fs)}]`);
+    await press("F9");
+    await until("document.getElementById('c64-side').dataset.port === '2'", 5000);
+    fs = await ev(SIDE);
+    ok(fs.p2 === "lit" && fs.p1 === "grey" && fs.keys === "grey", `F9 swaps to Port 2 in the strip   [${JSON.stringify(fs)}]`);
+    await click("#c64-keys");
+    await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
+    fs = await ev(SIDE);
+    ok(fs.keys === "lit" && fs.p1 === "grey" && fs.p2 === "grey", `and the keyboard lights, greying both ports   [${JSON.stringify(fs)}]`);
+    await type("PRINT X\n");
+    ok((await untilScreen((r) => toReady(after(r, /^PRINT X$/))[0] === " 7", 6000)) >= 0,
+       "the machine carried on through the change of view: X is still 7");
+    /* Eject, paused, in full screen: his ruling is that Eject works WITHOUT
+       unpausing, and in full screen it also leaves full screen */
+    await click("#c64-pause");
+    await until("__cat.machine().paused === true", 5000);
+    await wait(300);
+    await shot("verify-c64-full-paused.png");
+    await click("#btn-eject");
+    const tEj = await until("__cat.inserted() === null && __cat.machine().full === false", 20000);
+    const E = JSON.parse(await ev(FULL_LOOK));
+    ok(tEj >= 0 && E.crates.w > 100 && E.ejectIn === "crates" && E.swapIn === "crates" && E.insertIn === "crates",
+       `Eject in full screen ejects AND leaves full screen: the disks are back, Eject and the swap are home   [${took(tEj)}, crates ${E.crates.w}px, eject ${E.ejectIn}]`);
+    ok((await ev("__cat.machine().paused")) === true && (await inMachine("CAT_EMU.machine().medium")) === null,
+       "and it worked without unpausing: still paused, and the machine's drive is empty");
+    ok(E.label === "Full Screen", `the part reads Full Screen again   [${E.label}]`);
+    await click("#c64-pause");
+    await until("__cat.machine().paused === false", 5000);
+    /* Exit Full Screen leaves full screen only */
+    await click("#c64-full");
+    await until("__cat.machine().full === true", 3000);
+    const fD = await frameNow();
+    await click("#c64-full");
+    const tOut = await until("__cat.machine().full === false", 3000);
+    await frames(10);
+    ok(tOut >= 0 && (await frameNow()) > fD && !(await ev("__cat.machine().paused")),
+       "Exit Full Screen goes back to the whole corner, and the machine keeps running");
+    await type("PRINT X+1\n");
+    ok((await untilScreen((r) => toReady(after(r, /^PRINT X\+1$/))[0] === " 8", 6000)) >= 0,
+       "with the keyboard straight back in BASIC, and nothing lost: X is still 7");
 
     /* --- L. the book reader ---------------------------------------------------
        His ruling, 2026-09-16/17: the shelf in the room opens a reader, and the

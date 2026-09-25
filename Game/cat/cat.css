@@ -1830,6 +1830,14 @@ html.cat-link #cat { visibility: hidden; }
 .c64-cart__fast:disabled { cursor: not-allowed; filter: brightness(.55) grayscale(.6); }
 /* the port has to be tall enough to hold a cartridge standing below it */
 .c64-cart { padding-bottom: 34px; }
+/* 🔄 2026-09-25 — AND THE DECK HAS TO LEAVE ROOM FOR IT (his approval of the fix).
+   Standing OUT, the cartridge hangs ~22px below the side panel — on purpose, it
+   is the whole state signal — but nothing reserved that space, so it sat on top
+   of the deck's note line ("DISK INSERTED: …"). The panel now keeps a margin
+   the height of the overhang whenever the fast loader is shown. 🚫 The fix is
+   the ROOM, not the cartridge: moving it up into the panel would shrink its
+   travel into the slot, and the travel is what says on or off. */
+#c64-side:has(#btn-fastload:not([hidden])) { margin-bottom: 26px; }
 
 /* ---- the C64 badge on the monitor's chin --------------------------------
    🔄 2026-09-17 — this said TOMMODORE CAT until his call. The rainbow bar and
@@ -1871,3 +1879,178 @@ html.cat-link #cat { visibility: hidden; }
   .c64-keys.is-lit .c64-keys__row i { animation: none; }
   .c64-rocker__paddle { transition: none; }
 }
+
+/* ==========================================================================
+   🆕 2026-09-25 — PAUSE, THE EJECT LEVER, AND FULL SCREEN (Chat's handoff; his
+   rulings the same day). The behaviour is in cat.js, PAUSE AND FULL SCREEN.
+   ========================================================================== */
+
+/* ---- "PAUSED" over the frozen picture --------------------------------------
+   A plain sign for now; he may restyle it later. Reverse-video on the C64's own
+   blues, which is how the machine itself says something on its screen.
+   🚨 pointer-events: none — it must never take a click meant for the glass. */
+#screen-paused {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .35);
+  pointer-events: none;
+}
+#screen-paused[hidden] { display: none; }
+#screen-paused span {
+  padding: .35em .9em;
+  background: #6c5eb5;
+  color: #352879;
+  font: 700 clamp(18px, 4vh, 40px) var(--mono);
+  letter-spacing: .3em;
+  text-indent: .3em;   /* the letter-spacing after the last letter, balanced */
+  box-shadow: 0 0 0 4px #352879;
+}
+
+/* ---- the Pause part ---------------------------------------------------------
+   Lit like a live port while the machine is frozen. While a load or a typed
+   command is going it is HELD: visibly there, and visibly not available. */
+.c64-pause__key {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 26px;
+  border-radius: 4px;
+  background: linear-gradient(#5b5246, #3d362d);
+  box-shadow: inset 0 1px 0 #7a6f60, 0 2px 0 #241f19;
+}
+.c64-pause__key i { width: 5px; height: 12px; border-radius: 1px; background: #e9dfc6; }
+.c64-pause.is-lit .c64-pause__key i { background: #ffd479; box-shadow: 0 0 6px rgba(255, 212, 121, .8); }
+.c64-part:disabled { cursor: not-allowed; }
+.c64-pause.is-held { opacity: .42; filter: grayscale(1); cursor: progress; }
+
+/* ---- the Full Screen part: four corners of a frame -------------------------- */
+.c64-full__glyph {
+  width: 30px; height: 22px;
+  margin: 2px 0;
+  background:
+    linear-gradient(#2c2418, #2c2418) 0 0 / 9px 3px no-repeat,
+    linear-gradient(#2c2418, #2c2418) 0 0 / 3px 8px no-repeat,
+    linear-gradient(#2c2418, #2c2418) 100% 0 / 9px 3px no-repeat,
+    linear-gradient(#2c2418, #2c2418) 100% 0 / 3px 8px no-repeat,
+    linear-gradient(#2c2418, #2c2418) 0 100% / 9px 3px no-repeat,
+    linear-gradient(#2c2418, #2c2418) 0 100% / 3px 8px no-repeat,
+    linear-gradient(#2c2418, #2c2418) 100% 100% / 9px 3px no-repeat,
+    linear-gradient(#2c2418, #2c2418) 100% 100% / 3px 8px no-repeat;
+}
+
+/* ---- Eject, drawn as the 1541's door lever ----------------------------------
+   His ruling: the existing button, restyled — no second control. On a 1541 the
+   lever turned DOWN across the slot shuts the door on the disk; turned FLAT,
+   along the slot, the door is open. So: a disk in = the lever upright and the
+   button live; empty = flat and disabled. Clicking turns it flat. */
+.btn--lever {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .7em;
+}
+.eject-lever {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px; height: 22px;
+}
+.eject-lever::before {            /* the drive's mouth */
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 2px;
+  background: #1c1813;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .8), 0 1px 0 rgba(255, 247, 220, .5);
+}
+.eject-lever i {                  /* the lever, pivoting at its middle */
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 9px; height: 22px;
+  margin: -11px 0 0 -4.5px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #6d6352, #4a4236 55%, #3a342a);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+  transition: transform 220ms cubic-bezier(.3, .8, .4, 1);
+}
+.btn--lever:disabled .eject-lever i,
+.btn--lever:active:not(:disabled) .eject-lever i { transform: rotate(90deg); }
+#crates > #btn-eject.btn--lever { flex: 0 0 auto; width: 100%; }
+@media (prefers-reduced-motion: reduce) { .eject-lever i { transition: none; } }
+
+/* ---- what a paused machine does not take -------------------------------------
+   The same list as PAUSE_LOCKED in cat.js. Dimmed, so it is plain why a click
+   on them does nothing. */
+#cat.is-paused #deck-top .btn,
+#cat.is-paused #btn-insert,
+#cat.is-paused #side-swap .btn,
+#cat.is-paused #btn-fastload,
+#cat.is-paused #c64-keys,
+#cat.is-paused #c64-port1,
+#cat.is-paused #c64-port2 { opacity: .4; cursor: not-allowed; animation: none; }
+
+/* ---- FULL SCREEN: a layout, not the Fullscreen API (his ruling) ---------------
+   The monitor takes the window; the side panel becomes the strip UNDER it — the
+   picture scales to what is left above, and nothing sits over the glass. The
+   bezel and its chin step aside, because the screen is the point now.
+   🚨 #cat.is-full outranks the narrow-window @media rules above on purpose. */
+#cat.is-full {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  padding: 0;
+  gap: 0;
+}
+#cat.is-full #crates { display: none; }
+#cat.is-full #machine { grid-column: 1; grid-row: 1; gap: 0; }
+#cat.is-full #screen-shell.is-monitor {
+  border-radius: 0;
+  padding: 0;
+  background: #000;
+  box-shadow: none;
+}
+#cat.is-full #screen-shell.is-monitor::before,
+#cat.is-full #screen-shell.is-monitor #monitor-chin { display: none; }
+#cat.is-full #screen-shell.is-monitor > #screen { border-radius: 0; box-shadow: none; }
+/* the strip is the breadbin's own colour, edge to edge */
+#cat.is-full #deck {
+  border-radius: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+#cat.is-full #deck-top,
+#cat.is-full #c64-cart,
+#cat.is-full #c64-iec { display: none; }
+/* 🔄 2026-09-25 — THE HUB'S ONE-LINE VOICE STAYS, IN THE STRIP (his change): in
+   full screen an error like "could not eject" must not be invisible. It is the
+   same #deck-note, not a second message spot, so nothing can say one thing in one
+   view and another in the other. The deck wears the strip's colour behind it, so
+   the line reads as the strip's bottom edge rather than a bar of its own. */
+#cat.is-full #deck {
+  gap: 0;
+  background: linear-gradient(#968971, #85785f);
+}
+#cat.is-full #deck-note {
+  padding: 0 12px 4px;
+  text-align: center;
+  color: #231d12;
+}
+#cat.is-full #deck-note.warn { color: #5c3f00; }
+#cat.is-full #deck-note.err  { color: #7a1d0f; }
+/* the cartridge is not in the strip, so neither is the room kept for it */
+#cat.is-full #c64-side { margin-bottom: 0; }
+#cat.is-full #c64-side {
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  border-radius: 0;
+  padding: 6px clamp(8px, 1.4vw, 18px);
+}
+#cat.is-full #c64-side > #btn-eject { align-self: center; }
+#cat.is-full #c64-side > #side-swap { align-self: center; }
+#cat.is-full #c64-side > #side-swap[hidden] { display: none; }

@@ -80,6 +80,13 @@
            typing goes to BASIC. The transcript above stays in the page, hidden,
            for the tooling surface. Elsewhere this stays blank and hidden. -->
       <iframe id="machine-frame" title="C64" src="about:blank" hidden></iframe>
+
+      <!-- 🆕 2026-09-25 — "PAUSED", over the frozen picture while the Pause
+           button is lit. A plain sign for now; he may restyle it later.
+           🚨 pointer-events: none (cat.css), so it can never take the click the
+           rig lands on #machine-frame, or the book reader's elementFromPoint —
+           the reason the bezel note below keeps everything else off the glass. -->
+      <div id="screen-paused" aria-hidden="true" hidden><span>PAUSED</span></div>
     </div>
 
     <!-- 🆕 2026-09-17 — THE MONITOR'S CHIN (his ask for a C64 monitor bezel).
@@ -143,7 +150,10 @@
       <button class="btn" id="btn-listing" type="button" data-cmd="LIST" hidden>List</button>
       <button class="btn" id="btn-run" type="button" data-cmd="RUN" hidden>Run</button>
       <button class="btn" id="btn-insert" type="button" disabled>Insert&nbsp;Disk</button>
-      <button class="btn" id="btn-eject" type="button" disabled>Eject</button>
+      <!-- 🔄 2026-09-25 — in the corner this is drawn as the 1541's door LEVER
+           (his ruling: restyle it, no second control). Upright = the door is
+           shut on a disk; turned flat = open, and the drive is empty. -->
+      <button class="btn" id="btn-eject" type="button" disabled><span class="eject-lever" aria-hidden="true"><i></i></span><span class="eject-word">Eject</span></button>
       <!-- the real C64's way back to READY. — his word, Reset. Cracked mode only. -->
       <button class="btn" id="btn-reset" type="button" hidden>Reset<span class="btn__hint" id="btn-reset-hint" aria-hidden="true"></span></button>
 
@@ -281,6 +291,24 @@
           <span class="c64-keys__row"><i class="space"></i></span>
         </span>
         <span class="c64-part__label">Keyboard<span class="c64-part__hint" id="c64-keys-hint"></span></span>
+      </button>
+
+      <!-- 🆕 2026-09-25 — PAUSE and FULL SCREEN (Chat's handoff, his rulings).
+           🚫 MOUSE ONLY, NO KEY: Esc stays RUN/STOP, and every free key is a key
+           a game might want. Pause lights while the machine is frozen and is
+           unavailable while a load or a typed command is still going.
+           Full Screen is a LAYOUT, not the browser's Fullscreen API (his ruling):
+           the monitor grows to fill the window and this panel becomes the strip
+           under it. Inside Fang Rock the window is already full screen. -->
+      <button type="button" class="c64-part c64-pause" id="c64-pause" aria-pressed="false"
+              title="Pause the C64">
+        <span class="c64-pause__key" aria-hidden="true"><i></i><i></i></span>
+        <span class="c64-part__label" id="c64-pause-label">Pause</span>
+      </button>
+      <button type="button" class="c64-part c64-full" id="c64-full" aria-pressed="false"
+              title="Fill the window with the C64's screen">
+        <span class="c64-full__glyph" aria-hidden="true"></span>
+        <span class="c64-part__label" id="c64-full-label">Full&nbsp;Screen</span>
       </button>
       <!-- what is live, for a screen reader; the parts above carry aria-pressed -->
       <span class="sr-only" id="c64-side-status" aria-live="polite"></span>

@@ -238,6 +238,26 @@
      port key and was too easy to hit by accident. 🚫 Not F4, and not any of
      F1..F8: those are REAL C64 keys that games read. See cat.js HOTKEY_EXIT. */
   var HOTKEY_EXIT = "F12";
+
+  /* 🆕 2026-09-25 — PAUSE (Chat's handoff, his rulings the same day). Mouse only:
+     the hub's Pause button asks, and cat:pause / cat:resume below do it. While
+     the machine is paused NO KEY PRESS REACHES IT — not the C64's keys, and not
+     F2, F9 or F12 either (his ruling: they do nothing while paused).
+     🚨 ON WINDOW, IN CAPTURE, REGISTERED FIRST. Every other key handler in this
+     page is on the document, and the hub's forwarded keys (cat:key) are
+     dispatched on the core's element, so this one listener sits ahead of all of
+     them, real and forwarded alike.
+     ⭐ A KEYUP IS LET THROUGH, ON PURPOSE. A key held when Pause was clicked and
+     released while paused would otherwise stay HELD in the core, and the machine
+     would repeat it forever on resume. A release is not a keystroke; it can only
+     let go of something. */
+  var paused = false;
+  window.addEventListener("keydown", function (e) {
+    if (!paused) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
+
   document.addEventListener("keydown", function (e) {
     /* 🆕 2026-09-17 — remember the player's own Shift, by code. It is NOT claimed
        here: it has to reach the core, because Shift is a real C64 key. relayKey
@@ -1254,7 +1274,40 @@
       toHub({ type: "cat:machinefailed", reason: machine.failed });
       return;
     }
+    /* 🆕 2026-09-25 — while paused, nothing that needs the machine's frames is
+       taken. The hub already refuses these; this is the second lock, so a
+       command that slips past it fails at once instead of timing out. Eject is
+       NOT here: it is one file-slot switch with no frames in it, and his ruling
+       is that Eject works while paused. So are the input and port requests
+       below, refused rather than failed, because F2 and F9 do nothing. */
+    if (paused && /^cat:(insert|type|reset|swap|awaitready|warp)$/.test(m.type)) {
+      var kind = { "cat:insert": "cat:insertfailed", "cat:type": "cat:typefailed", "cat:reset": "cat:resetfailed",
+                   "cat:swap": "cat:swapnote", "cat:awaitready": "cat:atready", "cat:warp": "cat:warpfailed" }[m.type];
+      toHub({ type: kind, reason: "the c64 is paused", note: "could not swap: the c64 is paused", ready: false });
+      return;
+    }
+    if (paused && /^cat:(key|input|port|joystick|keyboard)$/.test(m.type)) return;
     switch (m.type) {
+      /* 🆕 2026-09-25 — PAUSE and RESUME. EmulatorJS's own pause()/play(), which
+         stop and restart the core's main loop (GameManager.toggleMainLoop). The
+         answer carries the frame counter, so the hub and the rig can see the
+         clock really stopped rather than trust that it did.
+         🚫 REFUSED while anything is being typed, the player's own translated
+         keys included (relayBusy): typing is paced in EMULATED frames, so a
+         pause in the middle of it would stall the queue until it timed out. */
+      case "cat:pause":
+        if (!window.EJS_emulator || !window.EJS_emulator.pause) { toHub({ type: "cat:pausefailed", reason: "this build cannot pause" }); break; }
+        if (relayBusy()) { toHub({ type: "cat:pausefailed", reason: "the c64 is still typing" }); break; }
+        window.EJS_emulator.pause(true);
+        paused = !!window.EJS_emulator.paused;
+        toHub({ type: paused ? "cat:paused" : "cat:pausefailed", frame: frameNow(), reason: "the core did not stop" });
+        break;
+      case "cat:resume":
+        if (window.EJS_emulator && window.EJS_emulator.play) window.EJS_emulator.play(true);
+        paused = !!(window.EJS_emulator && window.EJS_emulator.paused);
+        toHub({ type: paused ? "cat:resumefailed" : "cat:resumed", frame: frameNow(), reason: "the core did not start again" });
+        if (!paused && keyTarget()) keyTarget().focus();
+        break;
       case "cat:insert":
         enqueue(function () { return insertMedia(m.files); })
           .then(function (medium) { toHub({ type: "cat:inserted", medium: medium, sides: machine.sides.length }); }, fail("cat:insertfailed"));
@@ -1559,7 +1612,7 @@
     /* the machine's own view of itself, for the rig. 🚫 read-only */
     machine: function () {
       return { on: MACHINE, started: machine.started, failed: machine.failed, slot: machine.slot,
-               medium: machine.medium, side: machine.side, keyboard: kbdMode, port: port };
+               medium: machine.medium, side: machine.side, keyboard: kbdMode, port: port, paused: paused };
     },
     /* how many live keystrokes are still working their way through the
        translator's queue (see relayKey). 🚫 read-only, and rig-only: it exists

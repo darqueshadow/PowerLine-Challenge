@@ -103,6 +103,11 @@
   var driveBay   = document.getElementById("drive-bay");
   var btnFast    = document.getElementById("btn-fastload");
   var fastLoad   = false;   /* what the MACHINE last confirmed, not what was asked */
+  /* 🆕 2026-09-25 — Pause and Full Screen (see PAUSE AND FULL SCREEN below) */
+  var catEl      = document.getElementById("cat");
+  var sidePause  = document.getElementById("c64-pause");
+  var sideFull   = document.getElementById("c64-full");
+  var pausedSign = document.getElementById("screen-paused");
 
   /* the two crates and the detail panel, 2026-09-11 */
   var stackPlc  = document.querySelector("#crate-plc .crate__stack");
@@ -787,7 +792,7 @@
   /* The load theatre. Deliberately the same on-screen sequence whether the
      command was typed or came off a button. */
   function theatre(disk, entry) {
-    busy = true;
+    setBusy(true);
     line.classList.add("idle");
     led.classList.add("on");
 
@@ -809,7 +814,7 @@
         return introThenLaunch(disk);
       })
       .then(function () {
-        busy = false;
+        setBusy(false);
         line.classList.remove("idle");
       });
   }
@@ -984,6 +989,7 @@
     screen.classList.add("is-machine");
     machineFrame.hidden = false;
     machineFrame.src = "emulator/index.html?machine=1&title=CAT";
+    paintPause();
   }
 
   /* 🚨 FOCUS GOES INTO THE MACHINE, ALL THE WAY. Focusing the iframe alone puts
@@ -1035,6 +1041,7 @@
       machineFailed = String(m.reason || "the machine could not start");
       waiters.splice(0).forEach(function (w) { clearTimeout(w.timer); w.reject(new Error(machineFailed)); });
       write("the c64 could not start: " + machineFailed, "err");
+      forgetPause();
       return true;
     }
     if (m.type === "cat:machine") return true;
@@ -1062,7 +1069,7 @@
   function machineInsert(disk) {
     if (busy) return;
     if (machineOff) { write("the c64 is switched off. power it on first.", "warn"); return; }
-    busy = true;
+    setBusy(true);
     led.classList.add("on");
     /* 🆕 2026-09-17 — the drive's red lamp comes on SOLID for the access, and a
        cartridge never lights it at all: a cart is read by the CPU on power-up,
@@ -1099,7 +1106,7 @@
       .then(function () {
         led.classList.remove("on");
         if (!driveBay.classList.contains("is-failed")) paintDrive(null);
-        busy = false;
+        setBusy(false);
         ready();
         renderBox();
         focusMachine();
@@ -1108,7 +1115,7 @@
 
   function machineEject() {
     if (busy) return;
-    busy = true;
+    setBusy(true);
     var was = inserted.displayName.toUpperCase();
     machineCall({ type: "cat:eject" }, ["cat:ejected", "cat:ejectfailed"], 20000)
       .then(function (m) {
@@ -1120,31 +1127,31 @@
         write("removed: " + was, "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not eject: " + err.message, "err"); })
-      .then(function () { busy = false; ready(); renderBox(); focusMachine(); });
+      .then(function () { setBusy(false); ready(); renderBox(); focusMachine(); });
   }
 
   /* A command button on the real C64: TYPE the string, then RETURN. */
   function machineType(cmd) {
     if (busy) return;
-    busy = true;
+    setBusy(true);
     machineCall({ type: "cat:type", text: String(cmd) + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
       .then(function (m) {
         if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not type " + String(cmd) + ": " + err.message, "err"); })
-      .then(function () { busy = false; focusMachine(); });
+      .then(function () { setBusy(false); focusMachine(); });
   }
 
   function machineReset() {
     if (busy || !machineStarted) return;
-    busy = true;
+    setBusy(true);
     machineCall({ type: "cat:reset" }, ["cat:resetdone", "cat:resetfailed"], 20000)
       .then(function (m) {
         if (m.type !== "cat:resetdone") throw new Error(String(m.reason || "no reason given"));
         write("reset." + (inserted ? " " + inserted.displayName.toUpperCase() + " is still in." : ""), "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not reset: " + err.message, "err"); })
-      .then(function () { busy = false; ready(); focusMachine(); });
+      .then(function () { setBusy(false); ready(); focusMachine(); });
   }
 
   /* ---- the sides of a multi-disk game ------------------------------------
@@ -1190,7 +1197,7 @@
   function machineSwap(index) {
     var disk = inserted;
     if (busy || !disk || !disk.files || !disk.files[index] || index === (disk.side || 0)) return;
-    busy = true;
+    setBusy(true);
     led.classList.add("on");
     machineCall({ type: "cat:swap", index: index }, ["cat:swapped", "cat:swapnote"], 60000)
       .then(function (m) {
@@ -1201,7 +1208,7 @@
       .catch(function (err) { if (!err.byPowerOff) write("could not swap sides: " + err.message, "err"); })
       .then(function () {
         led.classList.remove("on");
-        busy = false;
+        setBusy(false);
         renderSides(inserted);
         focusMachine();
       });
@@ -1220,7 +1227,7 @@
      READY. on screen, so the drive is asked too, via the lamp state. */
   function loadThenRun(cmd) {
     if (busy) return;
-    busy = true;
+    setBusy(true);
     paintDrive("loading");
     machineCall({ type: "cat:type", text: String(cmd) + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
       .then(function (m) {
@@ -1232,7 +1239,7 @@
         return machineCall({ type: "cat:type", text: "RUN\n" }, ["cat:typed", "cat:typefailed"], 30000);
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not load: " + err.message, "err"); })
-      .then(function () { paintDrive(null); busy = false; focusMachine(); });
+      .then(function () { paintDrive(null); setBusy(false); focusMachine(); });
   }
 
   /* One entry point for every command button and for the tooling surface. */
@@ -1442,16 +1449,132 @@
       side.keyboard = side.port = null;
       paintSide();
       paintPower(false);
+      forgetPause();
       write("power off.", "dim");
     } else {
       machineOff = false;
       machineFailed = null;
       machineFrame.src = "emulator/index.html?machine=1&title=CAT";
       paintPower(true);
+      forgetPause();
       write("power on.", "dim");
       focusMachine();
     }
     renderBox();
+  }
+
+  /* =======================================================================
+     🆕 2026-09-25 — PAUSE AND FULL SCREEN (Chat's handoff; his rulings of the
+     same day, after the findings were accepted).
+
+     PAUSE. A button on the side panel, MOUSE ONLY — no key, because Esc is
+     RUN/STOP and every free key is one a game may want. Click to freeze the
+     machine, click again to go on.
+       - 🚫 REFUSED while a Load, a typed command or the auto-RUN is still going
+         (`busy`), and the button shows it is unavailable for that time. Typing
+         and loading are paced in EMULATED frames, so a pause in the middle
+         would stall them until they timed out. emu.js also refuses while the
+         player's own translated keys are still going in.
+       - WHILE PAUSED: the machine takes no key at all, in either document —
+         F2, F9 and F12 included. Load, Insert, Reset, the fast loader, the side
+         swap and the input/port parts do nothing (one click guard, below).
+         Power, Eject and Full Screen still work WITHOUT unpausing, his ruling.
+       - RESUME = the machine's play(), then focusMachine(), so the very next
+         key goes into BASIC.
+       - ⭐ PAINTED FROM THE MACHINE'S ANSWER (cat:paused / cat:resumed), never
+         from the click, the same contract the ports keep.
+
+     FULL SCREEN. 🚫 NOT the browser's Fullscreen API, his ruling: it is a
+     LAYOUT. The monitor grows to fill the window, and this side panel becomes
+     the strip UNDER it (never over it). Inside Fang Rock the window is already
+     full screen, so this is the whole of it, and Esc is never at risk.
+       - 🚨 THE STRIP IS THE SAME ELEMENTS, MOVED — never copied. The rigs read
+         these ids, and paintSide() paints exactly these nodes; a copy would be
+         a second panel that can disagree with the first. The cartridge port
+         (and so the fast loader), the drive port, Load and Reset stay out of
+         it (F12 still resets). His exception: the SIDE SWAP comes along, so a
+         two-sided game can be turned over without leaving full screen.
+       - Eject in full screen also LEAVES full screen, so the disks show.
+       - 🔄 His change after the first build: errors must not be invisible in
+         full screen. #deck-note (the hub's one-line voice, write()) stays shown
+         as the strip's bottom line — the same element, not a second spot.
+     ===================================================================== */
+  var paused    = false;   /* what the MACHINE last confirmed */
+  var pauseAsk  = false;   /* a pause or resume is on its way */
+  var fullView  = false;
+  var ejectHome = document.createComment(" Eject's place in the crates ");
+  var swapHome  = document.createComment(" the side swap's place in the crates ");
+  /* the parts a paused machine does not take; Power, Eject and Full Screen are
+     deliberately not in it */
+  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-keys, #c64-port1, #c64-port2";
+
+  function setBusy(on) {
+    busy = on;
+    paintPause();
+  }
+
+  function paintPause() {
+    if (!sidePause) return;
+    var can = !!(MACHINE && machineStarted && !machineOff && !machineFailed);
+    var held = !paused && (busy || pauseAsk);
+    sidePause.classList.toggle("is-lit", paused);
+    sidePause.classList.toggle("is-held", can && held);
+    sidePause.disabled = !can || held;
+    sidePause.setAttribute("aria-pressed", String(paused));
+    sidePause.title = paused ? "Resume the C64"
+      : held ? "The C64 is busy: wait for the load or the typing to finish"
+      : "Pause the C64";
+    pausedSign.hidden = !paused;
+    catEl.classList.toggle("is-paused", paused);
+  }
+
+  function pressPause() {
+    if (!MACHINE || !machineStarted || machineOff || pauseAsk) return;
+    if (!paused && busy) return;
+    var want = !paused;
+    pauseAsk = true;
+    paintPause();
+    machineCall({ type: want ? "cat:pause" : "cat:resume" },
+                want ? ["cat:paused", "cat:pausefailed"] : ["cat:resumed", "cat:resumefailed"], 5000)
+      .then(function (m) {
+        if (m.type === "cat:paused") paused = true;
+        else if (m.type === "cat:resumed") paused = false;
+        else write((want ? "could not pause: " : "could not resume: ") + String(m.reason || "no reason given"), "warn");
+      })
+      .catch(function (err) {
+        if (!err.byPowerOff) write((want ? "could not pause: " : "could not resume: ") + err.message, "warn");
+      })
+      .then(function () {
+        pauseAsk = false;
+        paintPause();
+        if (!paused) focusMachine();
+      });
+  }
+
+  /* the machine went away (power off, or it failed) — a switched-off C64 is
+     not paused, and the next one boots running */
+  function forgetPause() {
+    paused = false;
+    pauseAsk = false;
+    paintPause();
+  }
+
+  function setFull(on) {
+    on = !!on;
+    if (!MACHINE || on === fullView) return;
+    fullView = on;
+    if (on) {
+      sidePanel.insertBefore(btnEject, sidePause);
+      sidePanel.insertBefore(sideSwap, sidePause);
+    } else {
+      ejectHome.parentNode.insertBefore(btnEject, ejectHome);
+      swapHome.parentNode.insertBefore(sideSwap, swapHome);
+    }
+    catEl.classList.toggle("is-full", on);
+    sideFull.setAttribute("aria-pressed", String(on));
+    document.getElementById("c64-full-label").textContent = on ? "Exit Full Screen" : "Full Screen";
+    sideFull.title = on ? "Back to the disks and the whole corner" : "Fill the window with the C64's screen";
+    focusMachine();
   }
 
   function setupMachineDeck() {
@@ -1493,6 +1616,13 @@
     var cratesEl = document.getElementById("crates");
     cratesEl.insertBefore(btnInsert, sideSwap);   /* the side swap sits right under it */
     cratesEl.insertBefore(btnEject, sideSwap);    /* and Eject right beside it */
+    /* 🆕 2026-09-25 — where the two go home to when full screen ends (setFull) */
+    cratesEl.insertBefore(ejectHome, sideSwap);
+    cratesEl.insertBefore(swapHome, sideSwap.nextSibling);
+    btnEject.classList.add("btn--lever");
+    sidePause.addEventListener("click", pressPause);
+    sideFull.addEventListener("click", function () { setFull(!fullView); });
+    paintPause();
     /* 🚨 EJECT MUST BE IN THIS SELECTOR TOO. The #deck guard below does not reach
        it any more, and a button that keeps focus after a click sends the player's
        next keystroke into the button instead of into BASIC — measured in §G, and
@@ -2092,6 +2222,18 @@
       return;
     }
 
+    /* 🆕 2026-09-25 — A PAUSED MACHINE TAKES NO KEY, and F2, F9 and F12 do
+       nothing (his ruling). The one thing let through is Tab, and Enter/Space
+       on a button someone tabbed to, which is how a keyboard user reaches
+       Pause again to resume. Key RELEASES still go on (the keyup handler), so
+       nothing held when Pause was clicked is left stuck down. */
+    if (MACHINE && paused) {
+      if (e.key === "Tab") return;
+      if (e.target && e.target.tagName === "BUTTON" && (e.key === "Enter" || e.key === " ")) return;
+      e.preventDefault();
+      return;
+    }
+
     /* 🆕 2026-09-16 — THE REAL C64 OWNS THE KEYBOARD. The hub only sees a key
        when focus is on the hub's side (a crate was clicked); its own hotkeys
        act here exactly as they do inside the frame, and anything else is passed
@@ -2194,7 +2336,24 @@
     });
   });
   btnInsert.addEventListener("click", function () { if (!busy) insertSelected(); });
-  btnEject.addEventListener("click", function () { if (!busy) ejectDisk(); });
+  /* 🔄 2026-09-25 — in full screen, Eject also leaves it, so the disks show */
+  btnEject.addEventListener("click", function () {
+    if (busy) return;
+    if (fullView) setFull(false);
+    ejectDisk();
+  });
+  /* 🆕 2026-09-25 — WHILE PAUSED these parts do nothing (see PAUSE AND FULL
+     SCREEN). One guard in CAPTURE, ahead of every one of their own handlers,
+     rather than a paused-check threaded through each of them. Their own
+     `disabled` states are left alone: renderBox and setDrive own those, and a
+     second writer would fight them. */
+  document.addEventListener("click", function (e) {
+    if (!paused || !e.target.closest) return;
+    var b = e.target.closest(PAUSE_LOCKED);
+    if (!b || b === btnEject || b === btnPower) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
   btnExit.addEventListener("click", exitGame);
   btnReset.addEventListener("click", exitGame);
   /* Power Off, on the disk screen inside Fang Rock only: a browser tab cannot
@@ -2293,10 +2452,10 @@
     blank();
     select(disk);
     insertSelected();
-    busy = true;
+    setBusy(true);
     line.classList.add("idle");
     introThenLaunch(disk).then(function () {
-      busy = false;
+      setBusy(false);
       line.classList.remove("idle");
     });
     return "launched";
@@ -2359,7 +2518,10 @@
     /* 🆕 2026-09-16 — the real C64, as the hub sees it */
     machine: function () {
       return { on: MACHINE, started: machineStarted, failed: machineFailed, medium: medium,
-               busy: busy, src: machineStarted ? machineFrame.getAttribute("src") : null };
+               busy: busy, src: machineStarted ? machineFrame.getAttribute("src") : null,
+               /* 🆕 2026-09-25 */
+               paused: paused, full: fullView, pauseAvailable: !sidePause.disabled,
+               pauseHeld: sidePause.classList.contains("is-held") };
     },
     note: function () { return deckNote.hidden ? null : deckNote.textContent; },
     /* 🆕 2026-09-17 — the measured key map, which OUTLIVED the card that showed
@@ -2399,6 +2561,9 @@
       };
     },
     reset: machineReset,
+    /* 🆕 2026-09-25 — the same entry points as the two buttons */
+    pause: pressPause,
+    full: setFull,
     disks: function () { return DISKS.slice(); },
     visible: function () { return visibleDisks().map(function (d) { return d.id; }); },
     select: function (id) {
