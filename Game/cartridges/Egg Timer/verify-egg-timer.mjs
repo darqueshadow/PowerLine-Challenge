@@ -1736,6 +1736,68 @@ try {
     await ev(`(() => { const c0 = ${C0}; ET.CONFIG.momFaceChance = c0[0]; ET.CONFIG.momFaceWindow = c0[1]; return 1; })()`);
   }
 
+  /* ------------------------------------------------ Z. the pilot art (slot 0: nest + egg) */
+  section("Z. the pilot art: nest + egg, a hybrid of pictures and vector cracks (Chat ruling, 2026-09-25)");
+  {
+    // every layer loads, and each part stays inside its bounds (read from the picture's own pixels, in viewBox units)
+    const layers = await ev(`(() => {
+      const names = ['nest--twigs-back', 'nest--twigs-front', 'nest--twigs-back-inactive', 'nest--twigs-front-inactive', 'nest--tendril-1', 'nest--tendril-2',
+        'nest--tendril-3', 'egg--shell', 'egg--hint-3', 'egg--hint-4', 'egg--hint-5', 'egg--hint-eye'];
+      return Promise.all(names.map(n => new Promise((done) => { const im = new Image(); im.onload = () => {
+        const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+        const d = g.getImageData(0, 0, im.width, im.height).data; let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+        for (let y = 0; y < im.height; y++) for (let x = 0; x < im.width; x++) if (d[(y * im.width + x) * 4 + 3] > 24) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+        const ux = (p) => +(-60 + p * 120 / im.width).toFixed(1), uy = (p) => +(-62 + p * 110 / im.height).toFixed(1);
+        done({ n, w: im.width, h: im.height, box: [ux(x0), uy(y0), ux(x1 + 1), uy(y1 + 1)] }); };
+        im.onerror = () => done({ n, err: true }); im.src = 'art/' + n + '@2x.png'; })));
+    })()`);
+    const bad = layers.filter((l) => l.err || l.w !== 404 || l.h !== 374);
+    ok(bad.length === 0, `all 12 pilot layers load, each on the whole 404 × 374 slot canvas   ${bad.length ? JSON.stringify(bad) : ""}`);
+    const inside = (b, [x0, y0, x1, y1]) => b[0] >= x0 - 0.3 && b[1] >= y0 - 0.3 && b[2] <= x1 + 0.3 && b[3] <= y1 + 0.3;
+    const BOUNDS = { "nest--twigs": [-48, -40, 48, 37], "egg--shell": [-22, -38, 22, 20], "egg--hint": [-30, -44, 30, 20], "nest--tendril": [-60, -62, 60, 48] };
+    const out = layers.filter((l) => !l.err && !inside(l.box, BOUNDS[Object.keys(BOUNDS).find((k) => l.n.startsWith(k))]));
+    ok(out.length === 0, `every part stays inside its bounds: the nest in x −48…48, y −40…37; the egg on its base at y 20; each hint in x −30…30, y −44…20   ${out.length ? JSON.stringify(out.map((l) => [l.n, l.box])) : ""}`);
+    // the states, drawn one at a time on one nest at the largest and smallest nest sizes
+    const draw = (st) => `(() => {
+      const s = JSON.parse(JSON.stringify(__et.snapshot())); s.warp = false;
+      const n = s.nests[0], el = document.querySelector('.nest[data-id="' + n.id + '"]');
+      el.classList.remove('unlock'); el.classList.toggle('inactive', ${!!st.inactive}); el.classList.toggle('mirrored', ${!!st.mirror}); el.classList.toggle('has-eye', ${!!st.eye});
+      if (${!st.inactive}) Object.assign(n, { state: '${st.state || "idle"}', grow: ${st.grow ?? 0}, crack: ${st.crack ?? 0}, elapsed: 600, hidden: false, lay: null, retract: null, note: null }); else n.state = 'idle';
+      ET.view.render(s);
+      const art = el.querySelector('.nest-art').getBoundingClientRect(), seen = (q) => { const e = el.querySelector(q); return !!e && e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== 'none'; };
+      const hints = ['hint-3', 'hint-4', 'hint-5', 'hint-eye'].filter(h => seen('.' + h));
+      const within = [...el.querySelectorAll('.egg .hint, .egg .shell')].filter(e => e.getBoundingClientRect().width > 0).every(e => { const r = e.getBoundingClientRect(); return r.left >= art.left - 1 && r.right <= art.right + 1 && r.top >= art.top - 1 && r.bottom <= art.bottom + 1; });
+      return { egg: seen('.egg .shell'), live: seen('.twigs.back .look-live') && seen('.twigs.front .look-live'), slate: seen('.twigs.back .look-slate') && seen('.twigs.front .look-slate'),
+               ooze: seen('.ooze .tendril'), hints, within, mirror: getComputedStyle(el.querySelector('.egg .mirror')).transform, w: Math.round(art.width) };
+    })()`;
+    const STATES = [
+      ["not in play", { inactive: true }, (r) => !r.live && r.slate && !r.ooze && !r.egg],
+      ["a fresh egg at 35%", { state: "active", grow: 0 }, (r) => r.live && !r.slate && r.ooze && r.egg && r.hints.length === 0],
+      ["40%: the antenna", { state: "overtime", grow: 1, crack: 0.42 }, (r) => r.hints.join() === "hint-3"],
+      ["60%: the leg too", { state: "overtime", grow: 1, crack: 0.62 }, (r) => r.hints.join() === "hint-3,hint-4"],
+      ["80%: the tentacle too", { state: "overtime", grow: 1, crack: 0.85 }, (r) => r.hints.join() === "hint-3,hint-4,hint-5"],
+      ["the eye, from 50%, on an egg that has it", { state: "overtime", grow: 1, crack: 0.52, eye: true }, (r) => r.hints.join() === "hint-3,hint-eye"],
+      ["mirrored", { state: "overtime", grow: 1, crack: 0.85, eye: true, mirror: true }, (r) => r.mirror === "matrix(-1, 0, 0, 1, 0, 0)" && r.hints.length === 4],
+    ];
+    // (each state is drawn and measured inside one evaluation, so the page's own drawing can't get in between)
+    await ev(`(() => { __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1); ${"document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))"}; return 1; })()`);
+    for (const [w, h] of [[1920, 1080], [1024, 640]]) {
+      await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+      await wait(200);
+      const res = [];
+      for (const [name, st, pass] of STATES) { const r = await ev(draw(st)); res.push([name, pass(r), r]); }
+      const failed = res.filter((x) => !x[1]);
+      ok(failed.length === 0, `every state draws right, with its own parts showing (their bounds are the pixel check above): ${STATES.map((s) => s[0]).join("; ")}   [${w}×${h}, nest ${res[0][2].w} px wide] ${failed.length ? JSON.stringify(failed.map((f) => [f[0], f[2]])) : ""}`);
+    }
+    await c.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    // the odds, rolled as laying does: half mirrored, about 1 in 6 with the eye
+    const odds = await ev("(() => { let m = 0, e = 0; for (let i = 0; i < 3000; i++) { const r = ET.view.rollEgg(0); m += r.mirrored; e += r.eye; } return { m: m / 3000, e: e / 3000, want: ET.CONFIG.eggEyeChance }; })()");
+    ok(Math.abs(odds.m - 0.5) < 0.04 && Math.abs(odds.e - odds.want) < 0.03, `each egg is mirrored 50/50 and gets the eye about 1 time in 6 (a config value)   [${odds.m.toFixed(3)} mirrored, ${odds.e.toFixed(3)} with the eye]`);
+    eq(await ev("[...document.querySelectorAll('.nest[data-id=\"0\"] .crack')].map(c => [c.getAttribute('pathLength'), getComputedStyle(c).strokeWidth, (c.getAttribute('d').match(/M/g) || []).length])"),
+      [["1", "3.5px", 1], ["1", "3.5px", 1], ["1", "3.5px", 1]], "the three cracks stay vector: single unbranched lines, pathLength 1, 3.5 units bold");
+    await ev(`(() => { ${"document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))"}; __et.start('clear', 2); __et.advance(0.1); return 1; })()`);
+  }
+
   /* ------------------------------------------------ V. while the data loads */
   section("V. loading: nothing starts before the data is in (Andrew, 2026-09-24)");
   {

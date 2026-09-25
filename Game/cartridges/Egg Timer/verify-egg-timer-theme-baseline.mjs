@@ -2447,17 +2447,11 @@ export default {
   "stroke": "rgb(26, 143, 85)",
   "stroke-width": "2"
  },
- ".ooze .tendril": {
-  "fill": "none",
-  "stroke": "rgb(176, 77, 255)",
-  "stroke-linecap": "round",
-  "stroke-width": "4"
- },
  ".nest.inactive .ooze": {
   "display": "none"
  },
- ".nest.inactive .twigs path, .nest.inactive .twigs.back path": {
-  "stroke": "rgb(58, 49, 80)"
+ ".nest.inactive .twigs .look-live, .nest:not(.inactive) .twigs .look-slate": {
+  "display": "none"
  },
  ".nest.inactive .readout": {
   "visibility": "hidden"
@@ -2469,20 +2463,6 @@ export default {
   "transform": "RAW rotate(<--tilt>)",
   "width": "100%"
  },
- ".twigs path": {
-  "fill": "none",
-  "stroke": "rgb(155, 101, 50)",
-  "stroke-linecap": "square",
-  "stroke-width": "7"
- },
- ".twigs.back path": {
-  "stroke": "rgb(74, 43, 18)",
-  "stroke-width": "9"
- },
- ".twigs.front path + path": {
-  "stroke": "rgb(74, 43, 18)",
-  "stroke-width": "3"
- },
  ".egg": {
   "display": "none"
  },
@@ -2492,21 +2472,22 @@ export default {
  ".nest.hide-egg .egg": {
   "display": "none"
  },
- ".shell": {
-  "fill": "rgb(125, 255, 106)",
-  "stroke": "rgb(26, 13, 46)",
-  "stroke-width": "3"
- },
- ".speckle": {
-  "fill": "rgb(122, 44, 255)"
- },
  ".crack": {
   "fill": "none",
   "stroke": "rgb(26, 13, 46)",
   "stroke-dasharray": "1",
   "stroke-dashoffset": "1",
   "stroke-linejoin": "miter",
-  "stroke-width": "3"
+  "stroke-width": "3.5"
+ },
+ ".nest.mirrored .egg .mirror": {
+  "transform": "scaleX(-1)"
+ },
+ ".egg .hint": {
+  "display": "none"
+ },
+ ".nest.show-hint-3 .hint-3, .nest.show-hint-4 .hint-4, .nest.show-hint-5 .hint-5, .nest.show-hint-eye .hint-eye": {
+  "display": "inline"
  },
  ".shells, .creature": {
   "display": "none"

@@ -286,6 +286,23 @@
     });
   }
 
+  /* Pilot art (Chat ruling, 2026-09-25): each egg is mirrored left/right at random, and about 1 in 6 gets the rare eye
+     hint. Decided once per egg, as it's laid; the next egg on the nest rolls again. */
+  function rollEgg(v) {
+    var C = ET.CONFIG;
+    v.el.classList.toggle("mirrored", Math.random() < C.eggMirrorChance);
+    v.el.classList.toggle("has-eye", Math.random() < C.eggEyeChance);
+    v.rolled = true;
+  }
+  /* The waiting egg's hints (E26, pilot art): each shows from its share of the way from bold to hatch and stays. */
+  function paintHints(v, s) {
+    var at = ET.CONFIG.eggHintsAt, on = s.state === "overtime";
+    for (var h in at) {
+      var show = on && s.crack >= at[h] && (h !== "hint-eye" || v.el.classList.contains("has-eye"));
+      if (v.el.classList.contains("show-" + h) !== show) v.el.classList.toggle("show-" + h, show);
+    }
+  }
+
   /* Board lights and Time Warp dark (Chat ruling, 2026-09-25). One layer behind everything on the play screen (under
      the cord and the bolts too): the board's faint tint, white lights that fade in and out on the gameplay track's beat,
      and a veil that fades the board and its lights to dark while Time Warp runs. Nothing in front of it is touched.
@@ -780,6 +797,7 @@
         v.egg.setAttribute("transform", "translate(0 20) rotate(" + wobble.toFixed(2) + ") scale(" + scale.toFixed(3) + ") translate(0 -20)");
         var off = String(1 - s.crack);
         for (var k = 0; k < v.cracks.length; k++) v.cracks[k].style.strokeDashoffset = off;
+        paintHints(v, s);
       });
 
       drawLightning(snap);   // Refinement 6 §2
@@ -834,12 +852,16 @@
             cleanup.el.hidden = false;
             break;
           case "trigger":
+            v.el.classList.remove("scurry", "lunge");
+            break;
           case "laying":
             v.el.classList.remove("scurry", "lunge");
+            rollEgg(v);   // pilot art: this egg's mirror and eye, decided as it's laid
             break;
           case "active":
             // the pop: the egg is in and the clock starts (Refinement 3 §7); egg-laying's pop (Chat, 2026-09-25), not for VF
             v.el.classList.remove("scurry", "lunge");
+            if (!v.rolled) rollEgg(v);   // a VF lays no egg on a cord (E16): its egg is decided here
             if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.pop();
             break;
           case "bold":
@@ -881,6 +903,7 @@
             hud.pool.classList.add("hit");
             break;
           case "idle":
+            v.rolled = false;
             v.bubble.hidden = true;
             v.el.classList.remove("scurry", "lunge");
             break;
@@ -969,6 +992,9 @@
     clockHands: function () {
       return { hour: hands.at[0], minute: hands.at[1], fivex: getComputedStyle(warp.querySelector(".fivex")).display !== "none" };
     },
+
+    /* For rigs: roll a nest's egg again (mirror and eye), as laying does. */
+    rollEgg: function (id) { rollEgg(nests[id]); return { mirrored: nests[id].el.classList.contains("mirrored"), eye: nests[id].el.classList.contains("has-eye") }; },
 
     /* For rigs: the backdrop: its tint, the lights showing (id and opacity), when each started, and the veil. */
     backdrop: function () {

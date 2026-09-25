@@ -203,32 +203,42 @@
     },
     FLOURISHES: ["scurry", "lunge"],
 
-    /* One nest's picture: twigs, the egg (grows, then cracks), a splat slot,
-       broken shell halves and a creature for the escape. */
+    /* One nest's picture: the nest, the egg (grows, then cracks), a splat slot, broken shell halves and a creature
+       for the escape. Slot 0 is the pilot art (Chat ruling, 2026-09-25): a HYBRID. The look is Andrew's approved
+       pictures, one 404 × 374 layer per part on the whole viewBox (files/art/, see its README); the cracks stay vector.
+       Every layer keeps the brief's class names, which the view, style.css and the rigs hook onto. */
     nestSvg: function () {
       var svg = el("svg", { class: "nest-art", viewBox: "-60 -62 120 110", "aria-hidden": "true" });
+      function layer(name, cls, parent) {
+        return el("image", { class: cls || "", href: "art/" + name + "@2x.png", x: -60, y: -62, width: 120, height: 110,
+                             preserveAspectRatio: "none" }, parent);
+      }
 
-      // ⏳ placeholder: the "alien nest" touch an ACTIVE nest gets (Refinement 3 §8): a glowing ooze pool
-      // and a few tendrils. An inactive nest shows plain twigs only.
+      // the "alien nest" touch an ACTIVE nest gets (Refinement 3 §8): an ooze puddle (vector, a little wider than the
+      // nest so its rim shows) and three tendrils, behind the back rim. An inactive nest shows the nest alone.
       var ooze = el("g", { class: "ooze" }, svg);
-      el("ellipse", { class: "pool", cx: 0, cy: 20, rx: 50, ry: 13 }, ooze);
-      el("path", { class: "tendril", d: "M-46 16 C-56 6 -52 -8 -60 -14 M46 16 C58 8 52 -6 60 -12 M-30 28 C-34 38 -26 42 -32 48" }, ooze);
+      el("ellipse", { class: "pool", cx: 0, cy: 25, rx: 52, ry: 12 }, ooze);
+      [1, 2, 3].forEach(function (i) { layer("nest--tendril-" + i, "tendril", ooze); });
 
+      // the nest's back rim, in its two looks: brown in play, slate when not (the brief's raster route)
       var twigsBack = el("g", { class: "twigs back" }, svg);
-      el("path", { d: "M-46 18 C-40 4 -20 -2 0 -2 C20 -2 40 4 46 18" }, twigsBack);
+      layer("nest--twigs-back", "look-live", twigsBack);
+      layer("nest--twigs-back-inactive", "look-slate", twigsBack);
 
+      // the egg. `mirror` flips it left/right about x = 0 (view.js decides, 50/50, when it's laid): the shell, the
+      // cracks and the hints flip together. Each hint is its own group, shown by view.js as the egg nears hatching.
       var egg = el("g", { class: "egg" }, svg);
-      el("ellipse", { class: "shell", cx: 0, cy: -8, rx: 22, ry: 28 }, egg);
-      [[-9, -20, 3], [7, -26, 2.2], [10, -8, 3.2], [-6, 2, 2.4], [2, -14, 1.8], [-13, -6, 1.6]].forEach(function (s) {
-        el("circle", { class: "speckle", cx: s[0], cy: s[1], r: s[2] }, egg);
-      });
-      el("path", { class: "crack", pathLength: 1, d: "M-4 -36 L2 -24 L-6 -14 L4 -4 L-2 8" }, egg);
-      el("path", { class: "crack", pathLength: 1, d: "M16 -24 L8 -16 L14 -6 L6 2" }, egg);
-      el("path", { class: "crack", pathLength: 1, d: "M-20 -12 L-11 -8 L-15 2" }, egg);
+      var mirror = el("g", { class: "mirror" }, egg);
+      layer("egg--shell", "shell", mirror);
+      el("path", { class: "crack", pathLength: 1, d: "M-3 -36.5 L0 -31 L-3 -27 L1 -23" }, mirror);                          // the top: hint-3
+      el("path", { class: "crack", pathLength: 1, d: "M21.5 -14 L16 -11 L18 -5 L12 -1 L13 3 L10 5" }, mirror);              // the right: hint-4, then the eye
+      el("path", { class: "crack", pathLength: 1, d: "M-21.5 -5 L-16 -2 L-17 3 L-11 5 L-8 9" }, mirror);                    // the left: hint-5
+      ["hint-3", "hint-4", "hint-5", "hint-eye"].forEach(function (h) { layer("egg--" + h, "", el("g", { class: "hint " + h }, mirror)); });
 
+      // the front rim covers the egg's base at (0, 20)
       var twigsFront = el("g", { class: "twigs front" }, svg);
-      el("path", { d: "M-50 16 C-38 34 38 34 50 16" }, twigsFront);
-      el("path", { d: "M-44 22 L-30 14 M-20 30 L-8 18 M4 32 L16 20 M26 28 L40 18 M-36 28 L-24 34 M30 32 L44 24" }, twigsFront);
+      layer("nest--twigs-front", "look-live", twigsFront);
+      layer("nest--twigs-front-inactive", "look-slate", twigsFront);
 
       var shells = el("g", { class: "shells" }, svg);
       el("path", { class: "shell half", d: "M-22 6 C-24 -8 -16 -18 -6 -18 L-10 -10 L-4 -4 L-12 4 Z" }, shells);

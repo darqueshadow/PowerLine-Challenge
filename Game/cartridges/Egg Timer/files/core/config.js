@@ -80,6 +80,11 @@
 
     // ── Presentation (not rules; placeholders until art direction) ──────────
     eggMinScale: 0.35,       // egg size when a CAV starts; grows to 1.0 at the trigger
+    // Pilot art (Chat ruling, 2026-09-25): the waiting egg's hints (E26) show at these shares of the way from bold to
+    // hatch, and each stays until the egg is cleared or hatches. The eye is a rare extra: about 1 egg in 6 [T] gets it.
+    eggHintsAt: { "hint-3": 0.4, "hint-eye": 0.5, "hint-4": 0.6, "hint-5": 0.8 },
+    eggEyeChance: 1 / 6,     // [T]
+    eggMirrorChance: 0.5,    // each egg is mirrored left/right at random when it's laid
     splatSeconds: 1.1,       // how long a smooshed nest stays busy before idling
     escapeSeconds: 1.4,      // how long an escape flourish keeps the nest busy
     // Refinement 3 rulings (E15): a clear leaves a small splat on its own nest, and the rest of its gunk
