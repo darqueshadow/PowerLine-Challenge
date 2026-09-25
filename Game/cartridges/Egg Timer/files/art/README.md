@@ -8,8 +8,8 @@
 - **Date:** 2026-09-25 (the pictures were made, approved and prepared that day).
 - **Source pictures** (Andrew's, in `files/assets/imgages/`, git-ignored, never published): `fresh_egg.jpg`,
   `tendrils.jpg` and `alien_bits.jpg` (from session 2 below) and `empty_nest.jpg` (from session 1). All on white.
-- **Approval:** Andrew approved the four source pictures (Chat ruling, 2026-09-25). ⏳ **In-game look approved by Andrew
-  on:** *(the day he OKs "Egg Timer pilot art - every state (updated).png")*.
+- **Approval:** Andrew approved the four source pictures (Chat ruling, 2026-09-25). **In-game look approved by Andrew
+  on 2026-09-25** (the sheet "Egg Timer pilot art - every state (updated).png", with the mid-growth frames).
 - **Prepared by Claude Code** with `make-pilot-art.py` (next to the rigs; never published): each picture cut out of
   its white background (the background is the white joined to the picture's edge; a thin band round it is un-blended
   from white, so the dark outlines stay crisp), the tendrils and the bits split into their parts, and every part laid
