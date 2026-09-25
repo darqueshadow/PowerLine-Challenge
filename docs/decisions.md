@@ -230,6 +230,35 @@ Measured on the real core in verify-c64 §P and §P2.
 - 📌 Not done: the "PAUSED" sign is a plain placeholder he may restyle; the "CAT computer / Tommodore" name
   is still a placeholder.
 
+## Resolved 2026-09-25 — the C64 corner's screen hunt never gives up, and auto-RUN never fails silently
+
+**Solved:** On a slow boot the corner's own screen hunt used to give up (~22 s after the core started),
+leaving the page blind for the whole session: auto-RUN could never see `READY.` and typed nothing, saying
+nothing. Now the hunt keeps going until it finds the screen, costs the C64 no measurable speed while it
+looks, and can find the screen long after the boot banner is gone. Every time auto-RUN does not type RUN,
+the message line says why. verify-c64 now looks every 2 s instead of every 0.3 s and stops at its opening
+control, with the real reason, if the corner has not found its own screen. Andrew's rulings of 2026-09-25.
+
+**Approach:** `emu.js` hunts in SLICES — 2 MB of the wasm heap with native `indexOf`, one slice every
+100 ms, until one full pass finds exactly one candidate. It hunts TWO landmarks: the boot banner, and the
+BASIC + KERNAL RAM vectors at `$0300-$030B` and `$0314-$0333` taken together. `waitReady()` answers why
+(`ready`, `started`, `error`, `noscreen`, `timeout`) and `cat.js` `loadThenRun()` says each one but
+`ready`. Measured in verify-c64 §P3 and the new opening control; three rounds 155/0, the last at 97% CPU.
+
+**If you touch this again:**
+- **Never scan the whole heap in a JS loop on the machine's thread.** Measured: 736 ms per 128 MB pass,
+  which starved the core to ~12 fps on a boot and pushed the banner past the old hunt's last look. Native
+  `indexOf` does the same walk in ~84 ms; in 2 MB slices the worst slice measured 5–15 ms quiet, 31 ms at
+  97% CPU, and the C64 held 50 fps while hunting.
+- **The vector landmark is the PAIR, never either half.** Each half alone occurs 7 and 9 times in the heap
+  (the ROM images carry the default tables); the two 0x14 bytes apart occur once, where the banner says.
+  A game that rewrites the IRQ vector hides this landmark until a reset; the hunt just keeps looking.
+- **`CAT_EMU.rehunt()` / `holdHunt()` are RIG-ONLY hooks.** Nothing in the hub calls them. With the hunt
+  held, `waitReady()` answers `noscreen` at once so §P3 can prove the message without a 2-minute wait.
+- **verify-cat cannot start its second browser above roughly 75% CPU** ("Chrome never opened a debug
+  port", in §B3's `crateOn`), measured with 4 and 6 CPU burners. That is NB's `cdp.mjs` launch timeout, not
+  the hub. The C64 rig, which runs under Electron, ran clean at 97%.
+
 ## Resolved 2026-09-22 — Egg Timer's launch, and its cabinet in Nerva Beacon's Arcade
 
 **Solved:** Egg Timer is live for players on the public site, and its table in NB's Rec-Bay 4 now fires
