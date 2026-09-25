@@ -319,6 +319,22 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: music (Chat ruling)
+
+**Solved:** Andrew's three Suno tracks play: the title track on the menus, the gameplay loop in play, the game-over track
+once, then back to the title. Loops are seamless; screens fade; Esc pauses; a background tab holds; mute covers it.
+The game-over screen has TITLE SCREEN and PLAY AGAIN buttons (E34: which is the default).
+**Approach:** No ffmpeg on the machine, so `pip install --user imageio-ffmpeg` (a self-contained ffmpeg) drives
+`make-music.py`. Only MP3 sources exist; Chrome's `decodeAudioData` decodes the LAME-encoded files sample-exact (checked:
+same length, zero offset), so MP3 is safe for in-file loop points. The player is one AudioBufferSource per track with
+`loopStart`/`loopEnd`, through `bus()`. Rigs: logic 159/0, browser 460/0 (new section M).
+**If you touch this again:**
+- **Loop points:** my first beat-phase snap made the gameplay loop ~100 ms short; waveform matching at the join is what
+  works. Keep Chat's start, match the end, move both onto the beat together.
+- **An AudioParam's value reads back as the old value in the instant before a scheduled ramp starts:** a rig reading a
+  fade must wait ~100 ms.
+- **`files/assets/` is git-ignored** (the deploy publishes everything committed under `Game/` that isn't excluded).
+
 ## Resolved 2026-09-25 — Egg Timer: the egg-laying sound (Chat ruling)
 
 **Solved:** Laying an egg squeezes (a wet, rubbery squelch on the cord's last stretch) and then pops (the egg into the
