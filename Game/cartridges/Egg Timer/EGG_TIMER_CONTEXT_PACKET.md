@@ -334,7 +334,9 @@ gameplay music 6.8 dB under the quietest effect, the egg-laying squeeze. Andrew'
 hints as pictures coming out of its cracks. **Each egg is mirrored left/right at random (50/50) when it's laid**, and
 **about 1 egg in 6 [T] gets a rare eye hint** from 50% of the way to hatching, beside the others, staying until the egg is
 cleared or hatches (a still picture, no blink). *(Code: the layers are in `files/art/`, built by `make-pilot-art.py`;
-the eye sits in the right crack below the leg; the cord's egg is still the plain oval, the brief's next code item.)*
+the eye sits in the right crack below the leg.)* *(Chat's answers, 2026-09-25)* **The egg on the laying cord is the nest's
+own egg picture**, with the same random mirror, ending at 35% with its base on (0, 20), tilted with the nest: no swap and
+no drop when it lands. *(Code: from the pop, the nest's egg itself slides from the cord's tip; the cord draws no egg.)*
 *(Lay sound)* **Laying an egg sounds: a short wet, rubbery squeeze while the bulge travels the cord's last stretch, then
 a cartoon "finger out of the mouth" pop the moment the egg drops into the nest.** Synthesized for now; each lay nudges
 the pitch (±8% [T]); at most 2 [T] of each sound at once; both clearly under THONG, the buzz and the hiss. Mute covers

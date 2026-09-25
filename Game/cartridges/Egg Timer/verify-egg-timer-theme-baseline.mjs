@@ -2466,7 +2466,7 @@ export default {
  ".egg": {
   "display": "none"
  },
- ".nest[data-state=\"active\"] .egg, .nest[data-state=\"overtime\"] .egg": {
+ ".nest[data-state=\"laying\"].popping .egg, .nest[data-state=\"active\"] .egg, .nest[data-state=\"overtime\"] .egg": {
   "display": "inline"
  },
  ".nest.hide-egg .egg": {

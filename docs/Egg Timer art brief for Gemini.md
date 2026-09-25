@@ -337,10 +337,9 @@ y= 48 └───────────────────────�
 > 🔒 **Code and Andrew only. Not for Gemini.** Leave this section out of anything Gemini sees.
 
 
-- **The cord egg.** The egg on the laying cord is drawn by code as a plain oval in the egg's colours. It lands
-  centred on (0, −8), but the nest egg appears centred on (0, 10.2), so the egg drops 18 viewBox units at that moment
-  (about 30 px on the largest nest). The cord also ignores the nest's tilt. When the new egg goes in, the cord's egg
-  should use the same picture and end at 35% size with its base on (0, 20), tilted with the nest.
+- ~~**The cord egg.**~~ **Done (Chat's answers, 2026-09-25):** from the pop, the egg coming out of the cord is the nest's
+  own egg picture at 35%, with the mirror it was laid with, tilted with the nest, sliding from the cord's tip to its base
+  on (0, 20): no swap and no drop when it lands (rig section Z checks it lands on the exact pixels of the 35% egg).
 - **Class names are code hooks.** The code writes the egg's `transform` itself and reads the `crack` paths by class;
   style.css, the inactive-twig recolour and the rigs select `.ooze`, `.twigs.back`, `.twigs.front`, `.egg`, `.crack`,
   `.speckle`, `.shells`, `.creature`, `.legs`, `.eye` and `.fangs`; E28's wave-1 tag aims its leader line at `.egg`.
@@ -348,7 +347,7 @@ y= 48 └───────────────────────�
 - ~~**The stylesheet will override the art.**~~ **Done with the pilot (2026-09-25):** the placeholder rules for the twigs,
   the tendrils, the egg's shell and its speckles are gone; the pictures carry their own colours. What's left styles the
   vector parts (the puddle, the cracks at 3.5 units) and switches the pictures (the slate look, the mirror, the hints).
-  The theme baseline was rewritten with it. The cord egg (above) is still a plain oval: it's the next code item.
+  The theme baseline was rewritten with it. The cord egg (above) is done too.
 
 ---
 

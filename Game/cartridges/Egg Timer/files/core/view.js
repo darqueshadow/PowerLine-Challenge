@@ -258,7 +258,23 @@
     d += " L" + (x + twitch).toFixed(1) + " " + Math.max(0, tip).toFixed(1);
     c.lines.forEach(function (l) { l.setAttribute("d", d); });
     ell(c.bulge, x + twitch * (bulgeY || 0) / Math.max(1, end), bulgeY || 0, Math.max(eggRx * 1.4, C.cordWidth * 0.85), eggRy * 1.3, bulgeY !== null);   // still a bulge on the thicker cord
-    ell(c.egg, x, eggY === null ? 0 : eggY, eggRx * eggK, eggRy * eggK, eggY !== null);
+    // Chat's answers (2026-09-25): the cord's egg is the nest's own egg picture (see eggDrop()): no oval here, so no swap
+    ell(c.egg, x, 0, 0, 0, false);
+  }
+
+  /* Chat's answers (2026-09-25), the cord egg: at the pop, the egg that comes out of the cord's tip IS the nest's egg
+     picture, at 35% (its size when its clock starts), with the mirror it was given as it was laid, tilted with the nest.
+     It slides from the tip down to its base on (0, 20), in the nest's own units, so there's no swap and no drop when it
+     lands. Returns how far above its resting place it is (viewBox units), or null outside the pop. */
+  function eggDrop(s) {
+    if (s.state !== "laying" || s.lay === null || s.hidden) return null;
+    var C = ET.CONFIG, t = s.lay * (C.layDrop + C.layPop);
+    if (t < C.layDrop) return null;
+    var u = Math.min(1, (t - C.layDrop) / C.layPop);
+    // the cord's tip hangs at y -8 - 2.2 × (the egg's half-height at 35%) (drawCord's `end`); the egg starts with its
+    // top there, and its base ends on (0, 20)
+    var half = 28 * C.eggMinScale, tip = -8 - 2.2 * half, start = tip + 2 * half - 20;
+    return start * (1 - u);
   }
 
   /* Refinement 6 §2: the Time Warp lightning. While the warp runs, a jagged bolt runs from the centre panel to
@@ -794,7 +810,9 @@
 
         var scale = C.eggMinScale + (1 - C.eggMinScale) * s.grow;
         var wobble = s.state === "overtime" && !reducedMotion() ? Math.sin(snap.time * 38) * (3 + 6 * s.crack) : 0;   // still under reduced motion
-        v.egg.setAttribute("transform", "translate(0 20) rotate(" + wobble.toFixed(2) + ") scale(" + scale.toFixed(3) + ") translate(0 -20)");
+        var drop = eggDrop(s);
+        if (el.classList.contains("popping") !== (drop !== null)) el.classList.toggle("popping", drop !== null);
+        v.egg.setAttribute("transform", "translate(0 " + (20 + (drop || 0)).toFixed(2) + ") rotate(" + wobble.toFixed(2) + ") scale(" + scale.toFixed(3) + ") translate(0 -20)");
         var off = String(1 - s.crack);
         for (var k = 0; k < v.cracks.length; k++) v.cracks[k].style.strokeDashoffset = off;
         paintHints(v, s);

@@ -449,7 +449,8 @@ try {
     await ev("document.querySelector('#pause').hidden = false");
     await ev("__et.advance(0.5)");
     const popping = await ev(`ET.view.cord(${lay.id})`);
-    ok(!!popping && popping.egg && !popping.bulge && (await snap()).nests.find((x) => x.id === lay.id).state === "laying", "…and squeezes out of the tip into the nest (the pop), before the clock starts");
+    const eggOut = await ev(`(() => { const n = document.querySelector('.nest[data-id="${lay.id}"]'); return n.classList.contains('popping') && getComputedStyle(n.querySelector('.egg')).display !== 'none'; })()`);
+    ok(!!popping && eggOut && !popping.egg && !popping.bulge && (await snap()).nests.find((x) => x.id === lay.id).state === "laying", "…and squeezes out of the tip into the nest (the pop), before the clock starts: the nest's own egg, not an oval of the cord's (Chat's answers, 2026-09-25)");
     await ev("__et.advance(0.3)");
     const after = (await snap()).nests.find((x) => x.id === lay.id);
     ok(after.state === "active" && after.elapsed < 30, `the egg pops off and the clock starts from 00:00   [${after.state}, ${after.elapsed.toFixed(1)} displayed s]`);
@@ -1728,7 +1729,7 @@ try {
         let turns = 0, rising = true, jump = 0, peak = 0;
         for (let i = 1; i < s.length; i++) { const d = s[i][1] - s[i - 1][1]; jump = Math.max(jump, Math.abs(d)); peak = Math.max(peak, s[i][1]); if (rising && d < 0) { rising = false; turns++; } else if (!rising && d > 0) turns += 10; }
         // only a light seen from its start to its end counts for its life (one born near the end of the run is cut off)
-        return { life: s[s.length - 1][0] - s[0][0], whole: s.length >= 3 && s[0][1] < 0.01 && s[s.length - 1][1] < 0.01, turns, jump, peak: Math.max(peak, s[0][1]) };
+        return { life: s[s.length - 1][0] - s[0][0], whole: s.length >= 3 && s[0][1] < 0.01 && s[s.length - 1][1] < 0.01 && Math.max(...s.map(q => q[1])) > 0.9 * ET.CONFIG.lightsPeak, turns, jump, peak: Math.max(peak, s[0][1]) };
       });
       const starts = ET.view.backdrop().starts, beats = starts.map(t => Math.round(t / beat));
       return { most, n: lights.length, lights, starts: starts.length, oneABeat: new Set(beats).size === beats.length };
@@ -1898,6 +1899,24 @@ try {
     ok(Math.abs(odds.m - 0.5) < 0.04 && Math.abs(odds.e - odds.want) < 0.03, `each egg is mirrored 50/50 and gets the eye about 1 time in 6 (a config value)   [${odds.m.toFixed(3)} mirrored, ${odds.e.toFixed(3)} with the eye]`);
     eq(await ev("[...document.querySelectorAll('.nest[data-id=\"0\"] .crack')].map(c => [c.getAttribute('pathLength'), getComputedStyle(c).strokeWidth, (c.getAttribute('d').match(/M/g) || []).length])"),
       [["1", "3.5px", 1], ["1", "3.5px", 1], ["1", "3.5px", 1]], "the three cracks stay vector: single unbranched lines, pathLength 1, 3.5 units bold");
+    // the cord egg (Chat's answers, 2026-09-25): from the pop, the egg coming out of the cord is the nest's own egg picture,
+    // mirrored as laid, tilted with the nest; at the landing it is exactly the 35% egg that then starts its clock
+    const lay = await ev(`(() => {
+      const C = ET.CONFIG, pop = (u) => (C.layDrop + u * C.layPop) / (C.layDrop + C.layPop);
+      const frame = (patch, mirror) => { const s = JSON.parse(JSON.stringify(__et.snapshot())); s.warp = false; const n = s.nests[0];
+        Object.assign(n, { hidden: false, note: null, crack: 0, elapsed: 0, grow: 0, retract: null }, patch);
+        const el = document.querySelector('.nest[data-id="' + n.id + '"]'); el.classList.remove('inactive', 'unlock'); el.classList.toggle('mirrored', mirror);
+        ET.view.render(s);
+        const egg = el.querySelector('.egg'), shell = el.querySelector('.egg .shell'), r = shell.getBoundingClientRect(), cord = ET.view.cord(n.id);
+        return { shown: getComputedStyle(egg).display !== 'none' && r.width > 0, box: [r.left, r.top, r.width, r.height].map(v => +v.toFixed(1)),
+                 mirror: getComputedStyle(el.querySelector('.egg .mirror')).transform, oval: cord ? cord.egg : null, tilt: getComputedStyle(el.querySelector('.nest-art')).transform }; };
+      return { drop: frame({ state: 'laying', lay: pop(0) * 0.8 }, true), mid: frame({ state: 'laying', lay: pop(0.5) }, true),
+               land: frame({ state: 'laying', lay: pop(1) }, true), start: frame({ state: 'active', lay: null, retract: 0.01 }, true) };
+    })()`);
+    ok(!lay.drop.shown && lay.mid.shown && lay.mid.oval === false && lay.mid.mirror === "matrix(-1, 0, 0, 1, 0, 0)" && lay.mid.box[1] < lay.land.box[1] - 5,
+      `the cord egg: from the pop the egg coming out of the cord is the nest's own egg picture (mirrored as laid), above its resting place, with no oval of the cord's own   [${lay.mid.box[1]} px → ${lay.land.box[1]} px]`);
+    ok(lay.land.box.every((v, i) => Math.abs(v - lay.start.box[i]) < 0.6) && lay.land.tilt === lay.start.tilt,
+      `…it lands exactly as the 35% egg that starts its clock: no swap and no drop, tilted with the nest   [${lay.land.box.join(",")} vs ${lay.start.box.join(",")}]`);
     await ev(`(() => { ${"document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))"}; __et.start('clear', 2); __et.advance(0.1); return 1; })()`);
   }
 

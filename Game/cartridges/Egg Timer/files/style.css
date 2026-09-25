@@ -586,6 +586,7 @@ h2 {
 .nest-art { display: block; width: 100%; overflow: visible; transform: rotate(var(--tilt)); }
 
 .egg { display: none; }
+.nest[data-state="laying"].popping .egg,   /* the cord egg (Chat's answers, 2026-09-25): the nest's own egg, coming out of the cord */
 .nest[data-state="active"] .egg,
 .nest[data-state="overtime"] .egg { display: inline; }
 .nest.hide-egg .egg { display: none; }
