@@ -363,6 +363,16 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## 2026-09-25 — Egg Timer: CLAUDE.md pruned at park (204 → ~155 lines)
+
+**Dropped (stale):** the pilot art "held on `et-pilot-art-hold`" note and the State paragraph about two hold branches
+(both merged and live, branches deleted); "break stages and alien hints: art not built yet" (built: pilot hints, E38 parts).
+**Condensed out (all still in the packet):** Time Warp's clock size (17% of the board's height, ~27% free between nests);
+the board lights' 8-beat rise and fall and why 5% (7% dropped the dim caption under 4.5:1); the Command Lines' hint
+styling (grey, 0.8 size) and the Tab / F12 / Esc hint row; the strip's signs all lit under reduced motion; the music
+batch's file notes. **Added:** E38 (pieces, push, drips, trough), E41 (no cleanup quota), the unlock-scale and E39
+rig traps, and the rule that sheet-gated work waits on its own branch until Andrew's OK.
+
 ## Built 2026-09-25 (held) — Egg Timer: E38, pieces, the hose's push, drips and the trough (Chat ruling)
 
 **Solved:** Clears leave shell pieces (and alien parts at break stages 3–5) that pile up, get pushed by the hose, and
