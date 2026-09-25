@@ -213,8 +213,8 @@
     e.setAttribute("rx", Math.max(0, rx).toFixed(1)); e.setAttribute("ry", Math.max(0, ry).toFixed(1));
   }
   /* Refinement 4 §1: slower and creepier. The cord drops (the first part of the drop), then a bulge, the
-     egg, travels down inside it; at the pop the egg squeezes out of the tip into the nest with a wet
-     squelch (the sound is on the "active" event); then the cord snakes slowly back up. It twitches the
+     egg, travels down inside it (a squeeze sounds on its last stretch); at the pop the egg squeezes out of the tip
+     into the nest (the pop sounds on the "active" event); then the cord snakes slowly back up. It twitches the
      whole time. `now` is the game's own time, so all of it freezes on pause. */
   function drawCord(i, s, now) {
     var c = cords.list[i];
@@ -747,6 +747,11 @@
         var v = nests[s.id];
         var el = v.el;
         if (el.dataset.state !== s.state) el.dataset.state = s.state;
+        // egg-laying's squeeze (Chat, 2026-09-25): once, as the bulge reaches the cord's last stretch (the lay's own
+        // progress, so a pause holds it)
+        if (s.state === "laying") {
+          if (!v.squeezed && s.lay >= C.laySqueezeAt) { v.squeezed = true; if (ET.audio) ET.audio.squeeze(); }
+        } else if (v.squeezed) v.squeezed = false;
 
         var shows = s.state === "trigger" || s.state === "laying" || s.state === "active" || s.state === "overtime";
         v.unit.textContent = shows ? s.unit : (C.unitAssignment === "per-nest" && s.unit ? s.unit : "----");
@@ -833,9 +838,9 @@
             v.el.classList.remove("scurry", "lunge");
             break;
           case "active":
-            // the pop: the egg is in and the clock starts (Refinement 3 §7)
+            // the pop: the egg is in and the clock starts (Refinement 3 §7); egg-laying's pop (Chat, 2026-09-25), not for VF
             v.el.classList.remove("scurry", "lunge");
-            if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.squelch();
+            if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.pop();
             break;
           case "bold":
             // E28: wave 1's first egg to go bold gets the "Pink = ready!" tag, once a game

@@ -170,6 +170,11 @@
     layPop: 0.4,                   // [T] (was 0.3)
     layRetract: 1.5,               // [T] a slow snaking retract (was 0.45)
     cordDropShare: 0.45,           // [T] of the drop, the empty cord coming down; the rest, the bulge travelling down it
+    // Egg-laying sound (Chat ruling, 2026-09-25): a squeeze while the bulge travels the cord's last stretch, then a pop as
+    // the egg drops into the nest. Synthesized for now (audio.js). Mixed clearly under THONG, the buzz and the hiss.
+    laySqueezeAt: 0.55,            // [T] the share of the lay (drop + pop) where the squeeze starts: the bulge's last stretch
+    layPitchJitter: 0.08,          // [T] ±8% pitch on each lay, so repeats don't sound identical
+    layMaxOverlap: 2,              // [T] at most this many squeezes (and pops) sounding at once
     cordWidth: 10,                 // [T] Refinement 6 §4: thicker (was 4 px), striped blood red and purple, deeply ribbed
 
     // ── Refinement 3 rulings (2026-09-23): the egg ladder ───────────────────

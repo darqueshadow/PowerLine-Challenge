@@ -1538,6 +1538,48 @@ try {
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
 
+  /* ------------------------------------------------------- S. egg-laying sound */
+  section("S. egg-laying sound (Chat ruling, 2026-09-25)");
+  {
+    const esc = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
+    // log every squeeze and pop with the game's moment, the laying nest's progress, and the pitch it used
+    await ev(`(() => { window.__lay = []; ['squeeze', 'pop'].forEach(k => { const f = ET.audio[k]; if (f.__wrapped) return;
+      const w = function () { const s = __et.snapshot(), n = s.nests.find(x => x.state === 'laying'); const j = f.apply(this, arguments);
+        window.__lay.push({ k, t: s.time, lay: n ? n.lay : null, j }); return j; }; w.__wrapped = true; ET.audio[k] = w; }); return 1; })()`);
+    const lays = await ev(`(() => { window.__lay = []; __et.start('clear', 1, { types: ['VS'] }); __et.advance(0.1); const starts = [];
+      for (let i = 0; i < 2400 && starts.length < 3; i++) { const b = __et.snapshot(); __et.advance(0.02); const a = __et.snapshot();
+        a.nests.forEach(n => { const was = b.nests.find(x => x.id === n.id); if (n.state === 'active' && was && was.state === 'laying') starts.push(a.time); });
+        a.nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit)); }
+      return { log: window.__lay.slice(), starts }; })()`);
+    const sq = lays.log.filter((x) => x.k === "squeeze"), pops = lays.log.filter((x) => x.k === "pop");
+    const at = await ev("ET.CONFIG.laySqueezeAt");
+    ok(lays.starts.length === 3 && sq.length === 3 && sq.every((x) => x.lay !== null && x.lay >= at && x.lay < at + 0.05),
+      `each lay squeezes once, as the bulge travels the cord's last stretch   [at ${sq.map((x) => x.lay && x.lay.toFixed(2)).join(", ")} of the lay]`);
+    ok(pops.length === 3 && pops.every((p, i) => Math.abs(p.t - lays.starts[i]) < 0.03 && p.t > sq[i].t), "…then pops once, the moment the egg drops into the nest");
+    const pitches = lays.log.map((x) => x.j).filter((j) => typeof j === "number");
+    ok(pitches.length >= 4 && new Set(pitches.map((j) => j.toFixed(4))).size === pitches.length && pitches.every((j) => Math.abs(j - 1) <= 0.08 + 1e-9),
+      `…each at its own small pitch shift, so repeats don't sound identical   [${pitches.map((j) => j.toFixed(3)).join(" ")}]`);
+    const vf = await ev(`(() => { window.__lay = []; __et.start('clear', 1, { types: ['VF'] }); __et.advance(0.1);
+      for (let i = 0; i < 1500; i++) { __et.advance(0.02); __et.snapshot().nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit)); }
+      return window.__lay.length; })()`);
+    eq(vf, 0, "a VF lays no egg on a cord (E16), so it makes neither sound");
+    // pause holds the squeeze: stop just before it, wait, see nothing
+    const held = await ev(`new Promise((done) => { window.__lay = []; __et.start('clear', 1, { types: ['VS'] }); __et.advance(0.1);
+      for (let i = 0; i < 2000; i++) { const n = __et.snapshot().nests.find(x => x.state === 'laying'); if (n && n.lay > ${at} - 0.1) break; __et.advance(0.02); }
+      ${esc}; const n0 = window.__lay.length; setTimeout(() => { const n1 = window.__lay.length; ${esc}; done({ n0, n1 }); }, 1200); })`);
+    ok(held.n0 === 0 && held.n1 === 0, "pause holds the squeeze (it follows the lay's own progress)");
+    // a burst of lays: at most 2 pops (and 2 squeezes) sounding at once
+    const burst = await ev("(() => { const p = [], s = []; for (let i = 0; i < 6; i++) { p.push(ET.audio.pop()); s.push(ET.audio.squeeze()); } return { p: p.filter(x => x !== false).length, s: s.filter(x => x !== false).length, on: ET.audio.state() }; })()");
+    ok(burst.p <= 2 && burst.s <= 2 && (burst.on === "none" || burst.p >= 1), `a burst of lays can't pile up: at most 2 pops and 2 squeezes at once   [${burst.p} pops, ${burst.s} squeezes of 6 each]`);
+    // the mix: both clearly under THONG, the error buzz and the hiss
+    const m = await ev(`Promise.all([['squeeze'], ['pop'], ['thong'], ['buzz'], ['hiss', [0.85, 0.12]]].map(([k, a]) => ET.audio.measure(k, a, 1)))
+      .then(r => r.map(x => ({ peak: +x.peak.toFixed(3), rms: +x.rms.toFixed(4) })))`);
+    const [msq, mpop, ...cues] = m, quiet = { peak: Math.min(...cues.map((c) => c.peak)), rms: Math.min(...cues.map((c) => c.rms)) };
+    ok([msq, mpop].every((s) => s.peak <= 0.6 * quiet.peak && s.rms <= 0.6 * quiet.rms),
+      `the squeeze and the pop sit clearly under THONG, the buzz and the hiss (under 60% of the quietest cue's peak and loudness)   [squeeze ${msq.peak}/${msq.rms}, pop ${mpop.peak}/${mpop.rms}; cues ${cues.map((c) => c.peak + "/" + c.rms).join(", ")}]`);
+    await ev("__et.start('clear', 2); __et.advance(0.1); 1");
+  }
+
   /* ------------------------------------------------------- U. board lights and Time Warp dark */
   section("U. board lights and Time Warp dark (Chat ruling, 2026-09-25)");
   {
@@ -1583,7 +1625,7 @@ try {
         let turns = 0, rising = true, jump = 0, peak = 0;
         for (let i = 1; i < s.length; i++) { const d = s[i][1] - s[i - 1][1]; jump = Math.max(jump, Math.abs(d)); peak = Math.max(peak, s[i][1]); if (rising && d < 0) { rising = false; turns++; } else if (!rising && d > 0) turns += 10; }
         // only a light seen from its start to its end counts for its life (one born near the end of the run is cut off)
-        return { life: s[s.length - 1][0] - s[0][0], whole: s[0][1] < 0.01 && s[s.length - 1][1] < 0.01, turns, jump, peak: Math.max(peak, s[0][1]) };
+        return { life: s[s.length - 1][0] - s[0][0], whole: s.length >= 3 && s[0][1] < 0.01 && s[s.length - 1][1] < 0.01, turns, jump, peak: Math.max(peak, s[0][1]) };
       });
       const starts = ET.view.backdrop().starts, beats = starts.map(t => Math.round(t / beat));
       return { most, n: lights.length, lights, starts: starts.length, oneABeat: new Set(beats).size === beats.length };

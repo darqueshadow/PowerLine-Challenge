@@ -28,6 +28,16 @@
   function saveMuted() { try { root.localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) { /* no storage (a private window): this visit only */ } }
   function hidden() { return typeof document !== "undefined" && document.hidden; }
 
+  /* Egg-laying sounds: at most layMaxOverlap of each kind sounding at once (Chat ruling, 2026-09-25). */
+  var sounding = { squeeze: [], pop: [] };
+  function capped(kind, now, seconds) {
+    var live = sounding[kind].filter(function (end) { return end > now; });
+    if (live.length >= ET.CONFIG.layMaxOverlap) { sounding[kind] = live; return true; }
+    live.push(now + seconds);
+    sounding[kind] = live;
+    return false;
+  }
+
   /* The soft ceiling: straight through up to KNEE, then rounded off towards CEILING. A WaveShaper holds anything past
      its ends at the end value, so no input, however loud, gets out above CEILING. */
   function ceilingCurve(n) {
@@ -60,7 +70,7 @@
 
   function ready() {
     if (!ET.CONFIG.sound || !ctx) return null;
-    if (ctx.state === "suspended" && !hidden()) ctx.resume();
+    if (ctx.state === "suspended" && !hidden()) { var p = ctx.resume(); if (p && p.catch) p.catch(function () {}); }   // a refused resume is fine: it waits for the next
     return ctx;
   }
 
@@ -174,11 +184,41 @@
     /* The pan on an empty nest after a hatch: dull, low, no ring. */
     clunk: function (delay) { tone("square", 110, 60, 0.18, 0.2, delay); noise(0.12, 0.5, 500, delay); },
 
-    /* ⏳ placeholder: the wet squelch as the egg pops out of its cord (Refinement 4 §1). */
-    squelch: function () {
-      noise(0.16, 0.45, 700);
-      tone("sine", 260, 70, 0.22, 0.28);
-      tone("triangle", 520, 180, 0.12, 0.1, 0.05);
+    /* Egg-laying (Chat ruling, 2026-09-25; ⏳ synthesized until recorded sounds replace them). The squeeze: a short
+       wet, rubbery squelch as the bulge travels the cord's last stretch. The pop: a cartoon "finger out of the mouth"
+       pop as the egg drops into the nest. Each lay nudges the pitch; at most layMaxOverlap of each sound at once, so a
+       burst of lays can't pile up. Both sit clearly under THONG, the buzz and the hiss. They return the pitch used, or
+       false when they didn't sound. */
+    squeeze: function () {
+      var a = ready();
+      if (!a || capped("squeeze", a.currentTime, 0.26)) return false;
+      var j = 1 + (Math.random() * 2 - 1) * ET.CONFIG.layPitchJitter, t = a.currentTime, n = Math.floor(a.sampleRate * 0.24);
+      var buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = a.createBufferSource(), bp = a.createBiquadFilter(), g = a.createGain();
+      src.buffer = buf;
+      bp.type = "bandpass"; bp.Q.value = 3;
+      bp.frequency.setValueAtTime(320 * j, t); bp.frequency.exponentialRampToValueAtTime(950 * j, t + 0.22);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+      src.connect(bp).connect(g).connect(bus());
+      src.start(t);
+      // the rubber: a low tone that wobbles as it squeezes
+      var o = a.createOscillator(), lfo = a.createOscillator(), depth = a.createGain(), og = a.createGain();
+      o.type = "triangle"; o.frequency.setValueAtTime(150 * j, t); o.frequency.exponentialRampToValueAtTime(260 * j, t + 0.22);
+      lfo.type = "sine"; lfo.frequency.value = 23; depth.gain.value = 18 * j;
+      lfo.connect(depth).connect(o.frequency);
+      og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.05, t + 0.04); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+      o.connect(og).connect(bus());
+      o.start(t); lfo.start(t); o.stop(t + 0.26); lfo.stop(t + 0.26);
+      return j;
+    },
+    pop: function () {
+      var a = ready();
+      if (!a || capped("pop", a.currentTime, 0.12)) return false;
+      var j = 1 + (Math.random() * 2 - 1) * ET.CONFIG.layPitchJitter;
+      tone("sine", 240 * j, 1100 * j, 0.09, 0.09);   // the cheek's pop: a quick upward sweep
+      noise(0.012, 0.06, 2400);                         // the lips' tiny click
+      return j;
     },
 
     /* ⏳ placeholder: the scary mom face's creepy hiss and wet gurgle, not a scream (Refinement 5 §5). */
@@ -257,6 +297,21 @@
       return m;
     },
     chain: function (a, level) { return chain(a, level === undefined ? LEVEL : level); },
+
+    /* For rigs: play one sound (`name`, with `args`) alone into a silent offline context, through its own master chain at
+       level 1, and measure its peak and loudness (RMS) over the first `seconds`. The live context is untouched. */
+    measure: function (name, args, seconds) {
+      var OAC = root.OfflineAudioContext || root.webkitOfflineAudioContext;
+      var off = new OAC(1, Math.ceil(44100 * (seconds || 1)), 44100);
+      var live = { ctx: ctx, out: out, sounding: sounding, muted: muted };
+      ctx = off; out = chain(off, 1); sounding = { squeeze: [], pop: [] }; muted = false;
+      try { ET.audio[name].apply(null, args || []); } finally { ctx = live.ctx; out = live.out; sounding = live.sounding; muted = live.muted; }
+      return off.startRendering().then(function (buf) {
+        var d = buf.getChannelData(0), peak = 0, sum = 0;
+        for (var i = 0; i < d.length; i++) { var v = Math.abs(d[i]); if (v > peak) peak = v; sum += d[i] * d[i]; }
+        return { peak: peak, rms: Math.sqrt(sum / d.length) };
+      });
+    },
     CEILING: CEILING,
     LEVEL: LEVEL
   };
