@@ -190,5 +190,8 @@ ready pink, the game-over Enter guard. No E-item is open. The brief (`docs/Egg T
 **Held:** the Gemini pilot art (nest + egg, hints, the cord egg) and its art README are on branch `et-pilot-art-hold`,
 waiting for Andrew's OK of `~/Downloads/Egg Timer pilot art - every state (updated).png`. On his OK: set that day as the
 approval date in `files/art/README.md`, merge the branch into `main`, run both rigs, push (see the ⏸ handoff).
+**Chat's E35–E39 (Andrew's playtest):** E35, E36, E37 built and live. **E38** (shell pieces, alien parts, hose physics,
+trough) arrived **cut off** in its quota section, and **E39 is missing**: waiting on the rest. E38 also needs the approved
+pilot art (its pieces are cut from it), so it follows the hold-branch merge. Trough layout checked: fits (see packet).
 **Next:** the art-slot batch. Left from the audit, by Andrew's choice: moving the JavaScript colours into `theme.css`,
 dead code, and the other test gaps.
