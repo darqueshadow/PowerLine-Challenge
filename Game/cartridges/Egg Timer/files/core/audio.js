@@ -2,8 +2,9 @@
    EGG TIMER — SOUND (placeholders)
    ⏳ Every sound here is a stand-in, synthesised with Web Audio so it needs no
    files. The real sounds are Gemini's once art and audio direction start.
-   The browser keeps audio locked until the player presses a key or clicks, so
-   the context is made on the first one (unlock()) and anything before is silent.
+   A browser may keep audio locked until the player presses a key or clicks: the
+   context is made as the page opens (autoplay(), E35) and runs as soon as it's
+   allowed, at once in Fang Rock, else on the first key or click (unlock()).
 
    E24 (Andrew, 2026-09-24): every sound goes through ONE master chain: a master
    level, then a soft ceiling, then the speakers. Below the ceiling's knee a
@@ -182,12 +183,22 @@
   if (typeof document !== "undefined") loadMusic();
 
   ET.audio = {
-    unlock: function () {
+    /* E35: make the context as the page opens. Where autoplay is allowed (Fang Rock's Electron allows it by default)
+       it runs at once and the waiting track plays; elsewhere it stays suspended, the track waits at its start, and the
+       first key or click (unlock) lets it play. */
+    autoplay: function () {
       if (ctx || !ET.CONFIG.sound) return;
       var AC = root.AudioContext || root.webkitAudioContext;
       if (AC) { try { ctx = new AC(); } catch (e) { ctx = null; } }
       if (ctx && music.want) startTrack(music.want, 0, ET.CONFIG.musicFade);   // the track waiting for sound to be allowed
     },
+    unlock: function () {
+      if (!ET.CONFIG.sound) return;
+      if (!ctx) { ET.audio.autoplay(); return; }
+      if (ctx.state === "suspended" && !hidden()) { var p = ctx.resume(); if (p && p.catch) p.catch(function () {}); }
+    },
+    /* E35: true while the browser still holds sound back (no key or click yet, and no autoplay). */
+    locked: function () { return !ctx || ctx.state !== "running"; },
 
     /* The pan on the egg: a bright metallic ring, its pitch nudged each time. */
     thong: function () {
@@ -232,7 +243,7 @@
       if (!a || capped("pop", a.currentTime, 0.12)) return false;
       var j = 1 + (Math.random() * 2 - 1) * ET.CONFIG.layPitchJitter;
       tone("sine", 240 * j, 1100 * j, 0.09, 0.09);   // the cheek's pop: a quick upward sweep
-      noise(0.012, 0.06, 2400);                         // the lips' tiny click
+      noise(0.012, 0.04, 2400);                         // the lips' tiny click (0.06 could peak it past its limit)
       return j;
     },
 

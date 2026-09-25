@@ -233,6 +233,23 @@
     return true;
   }
 
+  /* Browsers hold audio until the player presses or clicks something. E35: the first press or click is heard as
+     "sound on". If it lands on the title while sound is still held back, it only starts the title music there
+     (titleFirstPress "sound", ⏳ E40), and the title's Enter and click handlers let it pass. Registered before the
+     keyboard handler, so it runs first. */
+  ["keydown", "pointerdown"].forEach(function (t) {
+    document.addEventListener(t, function (ev) {
+      if (!C.sound || !ET.audio.locked()) return;   // every press until the browser lets sound run
+      app.wakePress = app.screen === "title" && C.titleFirstPress === "sound" && C.sound && !ET.audio.muted() && ET.audio.locked()
+        && !(t === "keydown" && ev.key !== "Enter")   // another key (M, Ctrl+Shift+B) also wakes sound, but has nothing to let pass
+        && !(t === "pointerdown" && ev.target.closest && !ev.target.closest("#screen-title"))   // e.g. the mute button
+        ? t : false;
+      ET.audio.unlock();
+    }, { capture: true });
+  });
+  // a waking click has passed once its click is done (a click follows its pointerup in the same task)
+  document.addEventListener("pointerup", function () { if (app.wakePress === "pointerdown") setTimeout(function () { app.wakePress = false; }, 0); }, true);
+
   /* ------------------------------------------------------------- keyboard */
   document.addEventListener("keydown", function (ev) {
     if (ET.devmode.key(ev)) return;              // Ctrl+Shift+B, from any screen
@@ -241,7 +258,11 @@
     switch (app.screen) {
       case "title":
         // like a click on the title: nothing goes on until the data has loaded (Andrew, 2026-09-24)
-        if (ev.key === "Enter") { ev.preventDefault(); if (app.data) show("setup"); }
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          if (app.wakePress === "keydown") { app.wakePress = false; return; }   // E35: this press starts the music
+          if (app.data) show("setup");
+        }
         return;
       case "over":
         // two buttons (Chat ruling, 2026-09-25): ← → pick, Enter presses the lit one (the default: E34)
@@ -273,10 +294,6 @@
   window.addEventListener("blur", pauseOnFocusLoss);
   document.addEventListener("visibilitychange", function () { if (document.hidden) pauseOnFocusLoss(); });
 
-  /* Browsers hold audio until the player presses or clicks something. */
-  ["keydown", "pointerdown"].forEach(function (t) {
-    document.addEventListener(t, function () { ET.audio.unlock(); }, { capture: true, once: true });
-  });
 
   /* the active box keeps the keyboard during play */
   document.addEventListener("focusout", function () {
@@ -453,7 +470,10 @@
       closed: function () { if (app.screen === "play") ET.boxes.focus(); }
     });
 
-    $("#screen-title").addEventListener("click", function () { if (app.data) show("setup"); });
+    $("#screen-title").addEventListener("click", function () {
+      if (app.wakePress === "pointerdown") { app.wakePress = false; return; }   // E35: this click starts the music
+      if (app.data) show("setup");
+    });
     document.querySelectorAll("#over-buttons [data-go]").forEach(function (b) {
       b.addEventListener("click", function () { leaveOver(b.dataset.go); });
     });
@@ -479,6 +499,7 @@
 
   wire();
   show("title");
+  ET.audio.autoplay();   // E35: the title music plays at once where autoplay is allowed
   $("#title-prompt").textContent = "LOADING…";
   ET.data.load().then(function (data) {
     app.data = data;

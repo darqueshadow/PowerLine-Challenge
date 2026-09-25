@@ -264,6 +264,8 @@ try {
     eq([m0.pressed, m0.muted, m0.saved], ["false", false, null], "sound starts on: a fresh browser has nothing remembered");
     await press("m");   // also the first key, so sound unlocks here
     const l1 = await levelTo(0), m1 = await m();
+    // E35: the title track is queued from the start now, so let the mute's fade finish before measuring silence
+    for (let i = 0; i < 40 && (await ev("ET.audio.level()")) > 1e-5; i++) await wait(25);
     ok(m1.pressed === "true" && m1.muted && m1.saved === "1" && l1 !== null && l1 < 0.002, `M mutes: the button shows it, the browser remembers it, and the master level goes to 0   [${l1}]`);
     await ev("ET.audio.thong(); ET.audio.buzz(); ET.audio.hiss(ET.CONFIG.momFaceSeconds, ET.CONFIG.momFaceVolume); 1");
     const quiet = await loudest(700);
@@ -984,7 +986,7 @@ try {
     const blurs = (sh) => sh === "none" ? [] : [...sh.matchAll(/(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px/g)].map((m) => +m[3]).filter((b) => b > 0);
     eq([blurs(w.text), blurs(w.box)], [[], []], "…with no glow: its shadows are hard offsets, no blur");
   }
-  ok((await ev("ET.audio.state()")) !== "none", `sound is unlocked by the first key press   [${await ev("ET.audio.state()")}]`);
+  eq(await ev("ET.audio.state()"), "running", "sound is unlocked by the first key press");
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");
   {
@@ -1694,7 +1696,10 @@ try {
     const burst = await ev("(() => { const p = [], s = []; for (let i = 0; i < 6; i++) { p.push(ET.audio.pop()); s.push(ET.audio.squeeze()); } return { p: p.filter(x => x !== false).length, s: s.filter(x => x !== false).length, on: ET.audio.state() }; })()");
     ok(burst.p <= 2 && burst.s <= 2 && (burst.on === "none" || burst.p >= 1), `a burst of lays can't pile up: at most 2 pops and 2 squeezes at once   [${burst.p} pops, ${burst.s} squeezes of 6 each]`);
     // the mix: both clearly under THONG, the error buzz and the hiss
-    const m = await ev(`Promise.all([['squeeze'], ['pop'], ['thong'], ['buzz'], ['hiss', [0.85, 0.12]]].map(([k, a]) => ET.audio.measure(k, a, 1)))
+    // the squeeze and the pop are random (pitch, noise): each is measured 5 times and its loudest taken
+    const m = await ev(`Promise.all([['squeeze'], ['pop'], ['thong'], ['buzz'], ['hiss', [0.85, 0.12]]].map(([k, a]) =>
+        Promise.all(Array.from({ length: k === 'squeeze' || k === 'pop' ? 5 : 1 }, () => ET.audio.measure(k, a, 1)))
+          .then(rs => ({ peak: Math.max(...rs.map(x => x.peak)), rms: Math.max(...rs.map(x => x.rms)) }))))
       .then(r => r.map(x => ({ peak: +x.peak.toFixed(3), rms: +x.rms.toFixed(4) })))`);
     const [msq, mpop, ...cues] = m, quiet = { peak: Math.min(...cues.map((c) => c.peak)), rms: Math.min(...cues.map((c) => c.rms)) };
     ok([msq, mpop].every((s) => s.peak <= 0.6 * quiet.peak && s.rms <= 0.6 * quiet.rms),
@@ -1910,6 +1915,36 @@ try {
     eq([before, after], [[true, "1"], [true, "true"]], "E24: muted stays muted after a reload: the browser remembers it");
     await press("m");
     eq(await ev("[ET.audio.muted(), localStorage.getItem('eggtimer.muted')]"), [false, "0"], "…and M turns it back on");
+
+    // E35: the title music starts on the title screen. Headless Chrome holds sound until a key or click, like a normal
+    // browser, so this is the browser case; where autoplay is allowed (Fang Rock) the same queued track simply plays.
+    const fresh = async (setup = "") => {
+      await reload();
+      for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
+      if (setup) await ev(setup);
+      let q = null; for (let i = 0; i < 100; i++) { q = await ev("({ state: ET.audio.state(), m: ET.audio.musicState(), screen: __et.screen() })"); if (q.m.playing === "title") break; await wait(50); }
+      return q;
+    };
+    const heard = async () => { let r = null; for (let i = 0; i < 60; i++) { r = await ev("({ state: ET.audio.state(), tune: __et.tune(), screen: __et.screen() })"); if (r.state === "running" && r.tune) break; await wait(50); } return r; };
+    const q0 = await fresh();
+    eq([q0.state, q0.m.playing, q0.screen], ["suspended", "title", "title"], "E35: before any key, the title track is already set going on the title screen, held only by the browser");
+    await press("Enter");
+    eq(await heard(), { state: "running", tune: true, screen: "title" }, "E35: the first Enter starts the title music ON the title screen (titleFirstPress \"sound\")");
+    await press("Enter");
+    eq(await ev("__et.screen()"), "setup", "…and the next Enter goes on to the options screen, the music playing on");
+    await fresh();
+    const tAt = await ev("(() => { const r = document.querySelector('#title-prompt').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()");
+    const tClick = async () => { for (const type of ["mousePressed", "mouseReleased"]) await c.send("Input.dispatchMouseEvent", { type, x: tAt[0], y: tAt[1], button: "left", clickCount: 1 }); await wait(60); };
+    await tClick();
+    eq(await heard(), { state: "running", tune: true, screen: "title" }, "E35: a first click on the title does the same: the music starts, the title stays");
+    await tClick();
+    eq(await ev("__et.screen()"), "setup", "…and the next click goes on");
+    await fresh("ET.CONFIG.titleFirstPress = 'go'; 1");
+    await press("Enter");
+    const go = await heard();
+    eq([go.screen, go.tune], ["setup", true], "E35 (the other value, \"go\"): the first Enter starts the music and goes on, as before");
+    await reload();   // back to the switch as shipped
+    for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
   }
 
   /* ------------------------------------------------------------ K. errors */

@@ -586,6 +586,22 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
 
 ### Raised by Andrew's playtest, ruled by Chat (2026-09-25) — E35 to E39 (the block arrived cut off)
 
+- ~~**E35. The title music starts on the options screen, not the title.**~~ **Resolved** *(E35, Chat)*: **it starts on the
+  title: at once where autoplay is allowed (Fang Rock), else on the first key press or click on the title.** *(Code: the
+  cause was confirmed: the game made its sound context only on the first key or click, and on the title that press
+  is Enter, which also leaves for the options screen; the menus share one track, so it began there. Now the context is
+  made as the page opens and the title track is set going at once. Fang Rock's Electron (32) allows autoplay by
+  default and its shell doesn't change that, so there it plays as the title appears, and nothing in Fang Rock needed
+  changing. A browser holds it until the first key or click; that press now only starts the music, and the next Enter
+  or click goes on (⏳ **E40**, below). Headless Chrome holds sound like a normal browser, so the rig checks that case
+  directly.)*
+- **E40. Does the first press on the title also leave it?** *(Raised by Code building E35.)* In a normal browser the
+  first key or click is what lets sound play. Built: ⏳ `titleFirstPress: "sound"`: the first Enter or click on the
+  title **only starts the music** and stays on the title; the next one goes to the options screen. The other value,
+  `"go"`, starts the music **and** goes on (as before), so the music starts as the options screen appears, which is the
+  bug E35 fixed. Other keys (M, Ctrl+Shift+B) wake sound without being held back, and Fang Rock never needs the extra
+  press. Needed: keep `"sound"` (one extra press, in browsers only), or `"go"`?
+
 - ~~**E37. The frying pan comes down when an egg hatches.**~~ **Resolved** *(E37, Chat)*: **the pan and THONG only on a
   successful `RCAV` clear; a hatch shows the hatch only.** *(Code: the cause was deliberate, not a glitch: Refinement 2
   had the pan come down late, 0.35 s after a hatch, on the empty nest, with a dull clunk. The late pan, the clunk and

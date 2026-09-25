@@ -319,6 +319,20 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E35, the title music starts on the title (Chat ruling from Andrew's playtest)
+
+**Solved:** The title track began on the options screen; now it begins on the title.
+**Cause:** `ET.audio.unlock()` made the AudioContext on the first keydown/pointerdown, and on the title that is Enter,
+which also shows the options screen (the menus share the track, so it started there).
+**Approach:** `ET.audio.autoplay()` makes the context at boot and queues the wanted track (on a suspended context it
+waits at its start). Electron 32's default autoplay policy (Fang Rock's shell sets none) lets it run at once. In a
+browser, every press while `ET.audio.locked()` calls `unlock()` (a resume); the first such Enter or click on the title
+is let pass (`app.wakePress`, ⏳ E40 `titleFirstPress`). The unlock listener is registered BEFORE the keyboard handler
+on purpose. Side fixes: the pop's click is 0.04 (0.06 could peak it 1% past its limit); rig S takes the loudest of 5
+renders of each random sound, and rig A waits for the mute fade to finish, since music is now queued from the start.
+**If you touch this again:** headless Chrome holds sound like a browser (probed: `suspended`), so the Fang Rock path
+can't be seen in the rig; Andrew checks it by hand.
+
 ## Resolved 2026-09-25 — Egg Timer: E37, no pan on a hatch (Chat ruling from Andrew's playtest)
 
 **Solved:** The frying pan came down (with a clunk) when an egg hatched; now it comes down only on a clear.

@@ -147,6 +147,11 @@
     //   so M types there. M mutes on the title, mode-selection and game-over screens and while paused; in play the
     //   button does, and so does Ctrl+M (it does nothing in VisiCAD, so it teaches no wrong habit). "none" drops Ctrl+M.
     muteKeyInPlay: "ctrl-m",       // "ctrl-m" | "none"
+    // E35 (Chat, 2026-09-25): the title music starts on the title screen. Where the browser allows it (Fang Rock) it
+    //   plays as soon as the title appears; a browser that holds sound until the first key or click starts it on that
+    //   press. ⏳ PENDING (E40): does that first press also leave the title? "sound": no, it only starts the music (the
+    //   next Enter or click goes on); "go": yes, as before (the music then starts as the options screen appears).
+    titleFirstPress: "sound",      // "sound" | "go"
 
     // ── Refinement 2 gaps, ruled 2026-09-22 (E5–E11) ─────────────────────────
     // Hose ruling (2026-09-22, replaces E5): in-game the cursor is ALWAYS the hose nozzle, with a
