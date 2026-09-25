@@ -1,8 +1,3 @@
-> **FILING NOTE — Claude Code, 2026-09-25 (Pilot art).** Chat's pilot-art ruling (nest + egg) is merged, tagged
-> *(Pilot art)*, filed verbatim as `Previous Versions/EGG_TIMER_PILOT_ART_2026-09-25.md`. Built on the local branch
-> `et-pilot-art-hold`, both rigs green, and **held for Andrew's approval** of the screenshots of every state (in his
-> Downloads: "Egg Timer pilot art - every state.png"). After his yes it merges to `main` and goes live.
-
 > **FILING NOTE — Claude Code, 2026-09-25 (Lay sound).** Chat's egg-laying sound ruling is merged, tagged *(Lay sound)*,
 > filed verbatim as `Previous Versions/EGG_TIMER_LAY_SOUND_2026-09-25.md` (§7). Built and **pushed live** under the
 > standing rule (both rigs green). The pilot-art ruling that came with it waits for Andrew's approval of screenshots.
@@ -303,11 +298,6 @@ at once, with no flash.** *(E31)* Andrew's very fast blink isn't allowed (at mos
 **after the 3 flashes, while Time Warp runs, the "TIME WARP" letters wobble and stretch fast** (a 0.36 s [T] squash,
 stretch and skew of the letters only). The sign stays lit and its colours never change. **Under reduced motion: lit,
 no wobble.**
-*(Pilot art)* **The nest and egg are Andrew's approved pictures** (a hybrid: the cracks stay vector), with the egg's
-hints as pictures coming out of its cracks. **Each egg is mirrored left/right at random (50/50) when it's laid**, and
-**about 1 egg in 6 [T] gets a rare eye hint** from 50% of the way to hatching, beside the others, staying until the egg is
-cleared or hatches (a still picture, no blink). *(Code: the layers are in `files/art/`, built by `make-pilot-art.py`;
-the eye sits in the right crack below the leg; the cord's egg is still the plain oval, the brief's next code item.)*
 *(Lay sound)* **Laying an egg sounds: a short wet, rubbery squeeze while the bulge travels the cord's last stretch, then
 a cartoon "finger out of the mouth" pop the moment the egg drops into the nest.** Synthesized for now; each lay nudges
 the pitch (±8% [T]); at most 2 [T] of each sound at once; both clearly under THONG, the buzz and the hiss. Mute covers

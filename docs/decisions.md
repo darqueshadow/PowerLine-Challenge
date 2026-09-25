@@ -319,6 +319,20 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Built 2026-09-25 — Egg Timer: the pilot art, nest + egg (held for Andrew's approval)
+
+**Solved:** Slot 0 is Andrew's Gemini pictures (cut out, split, laid on the 404 × 374 slot canvas) with vector cracks;
+the egg's hints come out of its cracks; eggs are mirrored at random and ~1 in 6 has a rare eye.
+**Approach:** `make-pilot-art.py` (beside the rigs; never deployed): the background is the near-white joined to the
+picture's edge (a PIL flood fill; no scipy here), a 3 px band round it un-blended from white so the outlines stay
+crisp; the nest split along its bowl's lower arc; slate copies by luminance. art.js puts each layer in as an `<image>`
+over the whole viewBox inside the brief's class groups; view.js rolls the mirror and eye on "laying" (on "active" for
+a VF) and shows the hints from `eggHintsAt`. Rigs on the branch: logic 159/0, browser 452/0 (new section Z).
+**If you touch this again:**
+- **Full-canvas layers overhang their box when the egg rocks**, so the rig checks bounds from the pictures' pixels,
+  not from the elements' boxes.
+- **Held on `et-pilot-art-hold`**, not `main`, until Andrew approves; after that, merge and push under the normal rule.
+
 ## Resolved 2026-09-25 — Egg Timer: the egg-laying sound (Chat ruling)
 
 **Solved:** Laying an egg squeezes (a wet, rubbery squelch on the cord's last stretch) and then pops (the egg into the

@@ -77,6 +77,11 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   (Data Sheet) duration sets the bold mark exactly: never jitter it. Readouts show the literal type code. Transport
   units only, never one already on the board, no repeat in a wave until the pool is used; types from a **shuffle
   bag**, fresh each wave (E19, E20). The numbers and curves live in `config.js` with their sources.
+- **Slot 0 art (pilot, 2026-09-25; ⏳ on branch `et-pilot-art-hold` until Andrew approves the screenshots):** the nest
+  and egg are picture layers in `files/art/` (404 × 374, full viewBox; `make-pilot-art.py` rebuilds them from Andrew's
+  `files/assets/imgages/`), the cracks vector. Each egg is mirrored 50/50 and ~1 in 6 has the eye (`rollEgg()` as it's
+  laid); hints show from `eggHintsAt` (40 / eye 50 / 60 / 80%). Rig section Z checks the layers' pixel bounds and every
+  state at the smallest and largest nests.
 - **Egg lifecycle:** `laying` (the cord lowers the egg; **the clock starts at the pop**; no cord for VF, E16), then
   running. **`RCAV` does nothing until the CAV's real duration has passed**: that floor stops place-then-instantly-
   clear, so don't loosen it. Then bold, `RCAV` valid and the crack are one event; overtime (the player's seconds),

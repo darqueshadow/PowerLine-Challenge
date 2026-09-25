@@ -165,6 +165,18 @@ hose line, the arcade lights, all the text boxes, panels, signs, tags and clocks
 
 **Do this one first.** It is the picture players look at all game, and it sets the style for everything else.
 
+> ✅ **Built as a HYBRID (Chat ruling, 2026-09-25): pictures for the look, vector for the cracks.** Andrew's approved
+> Gemini pictures (`fresh_egg`, `empty_nest`, `tendrils`, `alien_bits`) are cut out and laid on the 404 × 374 canvas as
+> the layers in `files/art/` (provenance in its `README.md`; `make-pilot-art.py` rebuilds them). The nest is split into a
+> back rim and a front rim over the egg's base, each with a slate "not in play" copy; the three tendrils sit in `ooze`
+> behind the back rim, over a slightly wider vector puddle (so its rim shows). The egg's shell and its hints are
+> pictures; its **three cracks stay vector** (single lines, `pathLength="1"`, 3.5 units, `--crack`), placed so each hint
+> comes out of one: `hint-3` the antenna out of the top crack, `hint-4` the leg from the right crack (lying mostly over
+> the egg), `hint-5` the tentacle and goo out of the left one. **New:** each egg is **mirrored** left/right at random,
+> 50/50, when it's laid (a `mirror` group inside `egg`: shell, cracks and hints flip together), and about **1 egg in 6**
+> (`eggEyeChance`) gets the rare **eye** (`hint-eye`), from 50% of the way to hatching, in the right crack below the leg.
+> The spots are part of the shell picture now (no `speckle` shapes). The rest of this section is the spec it was built to.
+
 ### What it is and where it appears
 
 - **12 nests** sit on the play screen all game, scattered across the board in 3 rows. The centre is left free for the
@@ -259,8 +271,8 @@ y= 48 └───────────────────────�
     parts of the creature that breaks out in stages 3–5 of slot 13, not like the horrible hatchling.
   - **Colours:** use the egg's palette plus `--drool` #b8ff5e for the slurpy and `--cord-purple` #7a2cc4 for a
     purple part. Anything else is named with its hex in your notes.
-- **Speckles** (each spot a shape of class `speckle`): spots on the shell. They move with the egg and are never
-  animated on their own.
+- **Speckles:** spots on the shell. (Built: they're part of the shell picture; the `speckle` class is retired.) They
+  move with the egg and are never animated on their own.
 - **One special type, VF (vehicle fuelling), hides its egg until it's bold.** It then appears at full size, uncracked, and
   starts cracking at once. Nothing extra to draw; it's the same egg.
 - **The egg vanishes** when the player clears it (the pan slams and gunk splashes; today there's no break picture,
@@ -333,10 +345,10 @@ y= 48 └───────────────────────�
   style.css, the inactive-twig recolour and the rigs select `.ooze`, `.twigs.back`, `.twigs.front`, `.egg`, `.crack`,
   `.speckle`, `.shells`, `.creature`, `.legs`, `.eye` and `.fangs`; E28's wave-1 tag aims its leader line at `.egg`.
   Keep them as given. The hint groups `hint-3` … `hint-5` are new hooks for this batch.
-- **The stylesheet will override the art.** style.css still styles the placeholder by those same class names
-  (fills, strokes, stroke widths, and opacity 0.28 on `.ooze .pool`; style.css:572-606). When the new art goes in,
-  strip or retune those rules so they don't replace the art's own colours and widths, then re-run the theme baseline
-  (`--write-theme-baseline`).
+- ~~**The stylesheet will override the art.**~~ **Done with the pilot (2026-09-25):** the placeholder rules for the twigs,
+  the tendrils, the egg's shell and its speckles are gone; the pictures carry their own colours. What's left styles the
+  vector parts (the puddle, the cracks at 3.5 units) and switches the pictures (the slate look, the mirror, the hints).
+  The theme baseline was rewritten with it. The cord egg (above) is still a plain oval: it's the next code item.
 
 ---
 
