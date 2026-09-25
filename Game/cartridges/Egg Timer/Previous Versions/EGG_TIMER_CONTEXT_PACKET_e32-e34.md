@@ -1,17 +1,3 @@
-> **FILING NOTE — Claude Code, 2026-09-25 (E38–E40).** The rest of E38, E39 and E40 are filed verbatim as
-> `Previous Versions/EGG_TIMER_E38-E40_RULINGS_2026-09-25.md`. E39 and E40 are built and pushed live, each in its own
-> commit; E38 waits for the pilot art to merge, then a screenshot sheet for Andrew before it goes live.
-
-> **FILING NOTE — Claude Code, 2026-09-25 (E35–E39).** Chat's rulings from Andrew's playtest are filed verbatim as
-> `Previous Versions/EGG_TIMER_E35-E39_RULINGS_2026-09-25.md`; the packet before them is
-> `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e35-e39.md`. **The block arrived cut off** (mid-E38, no E39): what's
-> whole is merged in §11 as it's built, each in its own commit.
-
-> **FILING NOTE — Claude Code, 2026-09-25 (E32–E34).** Chat's rulings are filed verbatim as
-> `Previous Versions/EGG_TIMER_E32-E34_RULINGS_2026-09-25.md`; the packet before them is
-> `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e32-e34.md`. E32 lilac and E34 TITLE SCREEN stand as built; E33 darkens the
-> ready pink, and E34 adds an Enter guard. Each is struck in §11, built, and **pushed live** in its own commit.
-
 > **FILING NOTE — Claude Code, 2026-09-25 (Legs).** Chat's answers are filed verbatim as
 > `Previous Versions/EGG_TIMER_CHAT_ANSWERS_2026-09-25.md`. Item 2, the hatchling's legs, is merged here, tagged *(Legs)*
 > (§7), built and **pushed live**; item 1, the cord egg, goes on the pilot-art hold branch.
@@ -19,11 +5,6 @@
 > **FILING NOTE — Claude Code, 2026-09-25 (Music).** Chat's music ruling is merged, tagged *(Music)*, filed verbatim as
 > `Previous Versions/EGG_TIMER_MUSIC_2026-09-25.md` (§7, §11). Built and **pushed live** under the standing rule (both
 > rigs green). **E34 raised:** the game-over screen's default button. Andrew's source files stay off GitHub and the site.
-
-> **FILING NOTE — Claude Code, 2026-09-25 (Pilot art).** Chat's pilot-art ruling (nest + egg) is merged, tagged
-> *(Pilot art)*, filed verbatim as `Previous Versions/EGG_TIMER_PILOT_ART_2026-09-25.md`. Built on the local branch
-> `et-pilot-art-hold`, both rigs green, and **held for Andrew's approval** of the screenshots of every state (in his
-> Downloads: "Egg Timer pilot art - every state.png"). After his yes it merges to `main` and goes live.
 
 > **FILING NOTE — Claude Code, 2026-09-25 (Lay sound).** Chat's egg-laying sound ruling is merged, tagged *(Lay sound)*,
 > filed verbatim as `Previous Versions/EGG_TIMER_LAY_SOUND_2026-09-25.md` (§7). Built and **pushed live** under the
@@ -333,26 +314,16 @@ options screens (one track: moving between them doesn't restart it), "Ticking Cl
 first wave to game over, and "Game Over" once on the game-over screen. Each loop plays its intro once, then loops with no
 gap or click (an 80 ms equal-power crossfade baked in at the join); the gameplay loop's last minute is ramped down so its
 end matches its start. **Every change of screen fades out and in (0.5 s [T]); Esc pauses the gameplay music and resumes
-where it stopped; a background tab holds all music; mute covers it; Time Warp doesn't change it.** ~~The gameplay music sits
-clearly under every sound effect.~~ *(E36)* **The music is a feature: as loud as the other PLC cartridges' music, dipping
-briefly under THONG, the error buzz and the hiss; small sounds ride under it.** **The game-over screen** has TITLE SCREEN and PLAY AGAIN buttons (← → pick, Enter
-presses the lit one; leaving fades the music out; *(E34)* TITLE SCREEN is lit first, and Enter does nothing for the
-screen's first second [T] or on a held key's auto-repeat); left alone, the game-over track plays to its end and the game returns
+where it stopped; a background tab holds all music; mute covers it; Time Warp doesn't change it.** The gameplay music sits
+clearly under every sound effect. **The game-over screen** has TITLE SCREEN and PLAY AGAIN buttons (← → pick, Enter
+presses the lit one; leaving fades the music out); left alone, the game-over track plays to its end and the game returns
 to the title screen and its music. *(Code: `make-music.py` prepares the files in `files/audio/` from Andrew's MP3s (no
 WAVs), with provenance in `files/audio/README.md`. Chat's loop points were checked on the files: the joins were matched by
 waveform and both points moved together onto the beat (up to ~50 ms). The tempos measure **141.02** (title; Chat: about
 144) and **131.15** BPM (gameplay; Chat: about 129), each loop a whole number of bars (34 and 78); the board lights use
-131.15. The ramp measured 3.07 dB and leaves the join within 0.2 dB. ~~Levels [T]: menus 0.2, play 0.03, which puts the
-gameplay music 6.8 dB under the quietest effect, the egg-laying squeeze.~~ *(E36: levels 0.762 / 0.826 / 0.762.)* Andrew's full-length sources in
+131.15. The ramp measured 3.07 dB and leaves the join within 0.2 dB. Levels [T]: menus 0.2, play 0.03, which puts the
+gameplay music 6.8 dB under the quietest effect, the egg-laying squeeze. Andrew's full-length sources in
 `files/assets/` are git-ignored: never committed, so never published.)*
-
-*(Pilot art)* **The nest and egg are Andrew's approved pictures** (a hybrid: the cracks stay vector), with the egg's
-hints as pictures coming out of its cracks. **Each egg is mirrored left/right at random (50/50) when it's laid**, and
-**about 1 egg in 6 [T] gets a rare eye hint** from 50% of the way to hatching, beside the others, staying until the egg is
-cleared or hatches (a still picture, no blink). *(Code: the layers are in `files/art/`, built by `make-pilot-art.py`;
-the eye sits in the right crack below the leg.)* *(Chat's answers, 2026-09-25)* **The egg on the laying cord is the nest's
-own egg picture**, with the same random mirror, ending at 35% with its base on (0, 20), tilted with the nest: no swap and
-no drop when it lands. *(Code: from the pop, the nest's egg itself slides from the cord's tip; the cord draws no egg.)*
 *(Lay sound)* **Laying an egg sounds: a short wet, rubbery squeeze while the bulge travels the cord's last stretch, then
 a cartoon "finger out of the mouth" pop the moment the egg drops into the nest.** Synthesized for now; each lay nudges
 the pitch (±8% [T]); at most 2 [T] of each sound at once; both clearly under THONG, the buzz and the hiss. Mute covers
@@ -389,7 +360,7 @@ with a thin dashed leader line to the egg or the note, drawn under every readout
 - *(Refinement 3)* **All 12 nest positions are on screen all game**, fixed. A nest **active** this wave has the **alien-nest look**; an **inactive** one is **plain and blank** (no readout). Nests activate in a **fixed order spread across the board**, not clustered [T]. They still fit beside the how-to panel at every measured window size. *(Code: the order is the four corners and a centre nest (wave 1), then the other centre, then the edges alternating sides: cells 0, 3, 8, 11, 5 · 6 · 1 · 10 · 2 · 9 · 4 · 7 on the 4 × 3 grid read left to right, top to bottom. Measured at 1920×1080, 1440×900, 1280×720 and 1024×640. The alien look is a placeholder ooze pool and tendrils.)*
 - *(Refinement 6 §3)* **Room for Time Warp at the centre:** relocate whichever nests the central panel displaces; **keep all 12 nests, fixed positions, and a spread-out activation order.** The **wall clock moves to the top centre** of the playing field, clear of all nests. The layout and fit checks are re-run at all four window sizes. *(Code: only the middle row moves: its four nests now sit at 12%, 31%, 69% and 88% across the board, two each side, with less jitter so they keep their spacing, and the centre is left to the panel. The top and bottom rows, the logical grid and the activation order are unchanged. The browser rig's layout section checks at all four sizes that the panel is centred and clear of every nest and readout, the wall clock is at the top centre, and every earlier check still holds (readouts inside their boxes and the board, nothing covering another nest's readout, the post-its, the hose tag). The scary mom face's top zone is now the space left of the clock.)*
 - *(Refinement 4 §5)* **The nest display boxes, cartoon style:** the **unit** in a **white** box with **blue** type; the **CAV type** in **grey** with **black**; the **timer** in **yellow** with **dark purple**, turning **hot pink with white** type at bold. **Rounded corners and a thick dark outline** [T]. **Everything fits inside its box at all four test window sizes**, sized for the widest reading (including overtime), and the post-it gets the same check. *(Code: each box is sized for its widest reading: a 4-digit unit, a 3-letter code, MM:SS right through overtime. A readout may run wider than its nest, which the organic layout has room for. The browser rig fills every box and post-it with its widest reading at 1920×1080, 1440×900, 1280×720 and 1024×640 and checks nothing spills out, overlaps another readout or nest, or leaves the board.)*
-- *(Refinement 5 §2)* **The display boxes at the limit:** the **unit** is white with **regular blue** type before the limit, and white with **bold dark green** type at and after it (dark enough to read on white); the **CAV type** is grey with black type, **regular** before and **bold** at and after; the **timer** is unchanged (yellow with purple, then **hot pink with white**, approved; *(E33)* the pink is now the darker `#d1006a`, white on it 5.4:1). **All three change on the same instant.** The fit check is re-run with bold text. *(Code: one class flips all three at once. The dark green is `#0b5d1e` [T]. The layout rig already filled every box with its widest reading in bold at all four sizes; it now also checks each box's weight and colours before and at the limit.)*
+- *(Refinement 5 §2)* **The display boxes at the limit:** the **unit** is white with **regular blue** type before the limit, and white with **bold dark green** type at and after it (dark enough to read on white); the **CAV type** is grey with black type, **regular** before and **bold** at and after; the **timer** is unchanged (yellow with purple, then **hot pink with white**, approved). **All three change on the same instant.** The fit check is re-run with bold text. *(Code: one class flips all three at once. The dark green is `#0b5d1e` [T]. The layout rig already filled every box with its widest reading in bold at all four sizes; it now also checks each box's weight and colours before and at the limit.)*
 - The egg is purely the animated hazard object — no text, no UI role.
 - *(Timer Refinement)* **Wall clock.** A time-of-day display, **24-hour**: large **HH:MM**, with the seconds smaller and raised to the upper half, like a digital clock. It **starts at the player's actual time of day** [T], runs at the same speed as the nest clocks (§3), and freezes on pause like everything else. Placeholder look for now; the final look is Gemini's. *(Refinement 2)* **Larger and more pronounced**; no change in behaviour. *(Refinement 3)* **Moved to the top-right corner of the board**, left of the how-to panel, and **larger again**. *(Code: it sits in a band across the top of the board, kept clear of every nest, with the TIME WARP panel (§3) at the band's left end.)* *(Refinement 6 §3)* It moves to the **top centre** of the playing field, and the TIME WARP panel to the centre of the board (§7). *(Code: it wraps past midnight; `?clock=HH:MM` starts it at a fixed time, so a `?seed=` game replays exactly.)*
 - *(AD notes & blank boxes)* **The two AD notes look different.** The clock-time note ("**Clear @ HH:MM**") is **styled to match the wall clock**, the same colours and the same digital font: it reads as "watch the wall clock". The duration note ("**20 min**") **stays a post-it, in a neat hand-lettered font**: it reads as "watch this nest's timer". **Any new font is bundled locally** so it works offline in Fang Rock. **Both fit their box at all four window sizes, gunk-covered too.** *(Code: the clock note takes the wall clock's LED amber on near-black, its outline and its monospace digital font, flat rather than tilted. The duration note is the yellow post-it in **Patrick Hand** (neat hand-lettering; SIL Open Font License, Patrick Wagesreiter), bundled as `files/fonts/PatrickHand-Regular.woff2` with `OFL.txt` beside it, and the notice in `style.css` too. *(Corrected 2026-09-23: the font file does **not** carry the licence text, only its copyright line and the OFL's URL, so the shared deploy now publishes font licence files: any `OFL*.txt` or `*LICENSE*.txt` sitting directly in a `fonts/` folder, and no other `.txt`. `OFL.txt` is served beside the font on the live site.)* The browser rig checks the clock note's font and colours equal the wall clock's, the post-it's font is Patrick Hand and loads from the game's own folder, and fills every nest's note with its widest reading of each kind under a coat of gunk at all four sizes.)*
@@ -451,8 +422,7 @@ VF (§3) only appears in two-phase segments (Follow Progression once ramped, or 
 - **Clear (success):** `RCAV ####` lands before the egg fully hatches → **egg gets smooshed**, turning into ~~a randomly chosen cooked-egg splat (scrambled, deviled, poached, sunny-side-up, etc. — a variety pool, same pattern as the escape flourish below)~~ *(Refinement 2)* a fried egg that shows the timing. Points awarded, nest resets to idle.
   *(Refinement 2)* **A frying pan slams down on the egg** with a "THONG" (its pitch varies slightly each time [T]), and the egg becomes a **fried egg in the nest**. The slam is fast, **under 0.5 s** [T], and **never blocks typing** the next command. The fried egg shows **which third of the overtime window** the clear landed in [T]: the **early third** (near 100 points) is a perfect **sunny-side-up** with a small "ding" and sparkle; the **middle third** a **broken yolk**; the **last third** (near 25 points) **scrambled/burnt** with a puff of smoke. The yolk splattering onto neighbouring nests *is* the look of the existing mess (§8); the mess rules don't change. *(Refinement 2 rulings, E11)* The random cooked eggs (poached, deviled, etc.) are **retired**; the fried egg follows the timing only. The escape flourish's random scurry-or-lunge is unchanged.
   *(Refinement 3 rulings)* **The egg ladder replaces the fried eggs by overtime third** (sunny-side-up, broken yolk, burnt). **Every smash leaves a bit of mess.** A **fast clear** is one inside the **early part of the overtime window** [T, the first third to start]. A fast clear shows a **dish and caption over the nest** for **~1 s** [T], never blocking typing. **Consecutive fast clears climb the ladder:** **Scrambled → Sunny-Side Up → Over Easy → Poached → Eggs Benny → Eggs Benny w/ Avocado → Steak, Eggs & Brew!** [T: wording and steps]; at the top it **stays there while the streak holds**. The streak **resets to the bottom** on a **slow clear, any ERROR, or a hatch**. **Slow clears show no dish** (mess only). The streak **carries across waves** and resets at game over. **Cosmetic only for now: no score effect.** Placeholder dish art; the final art is Gemini's. *(Code, approved in the E13–E18 rulings: the pan still slams on every clear, with its THONG; the ding now marks a fast clear, and the sparkle and smoke that went with the fried eggs are gone. The dish sits in the pop-up layer, which takes no pointer or keyboard.)*
-- **Escape (failure) — final and irreversible:** if the (jittered) overtime window runs out *(Addendum)*, the egg finishes hatching and the creature is loose. **`RCAV` no longer does anything to it at this point** — there is no post-hatch recovery via command. The creature performs a randomly chosen escape flourish — **scurries away, or lunges at the screen** (variety pool, mirrors the cooked-egg splat pattern) — and the nest then auto-resets to idle on its own. No lingering "overdue" state requiring further player action. ~~*(Refinement 2)* **The pan comes down late**, hitting the empty nest with a dull "clunk".~~ *(E37)* **No pan, no THONG
-and no clunk on a hatch: the pan and THONG come only with a successful `RCAV` clear.** *(Refinement 5 §4)* The creature that escapes is **horrific** (Art direction, above).
+- **Escape (failure) — final and irreversible:** if the (jittered) overtime window runs out *(Addendum)*, the egg finishes hatching and the creature is loose. **`RCAV` no longer does anything to it at this point** — there is no post-hatch recovery via command. The creature performs a randomly chosen escape flourish — **scurries away, or lunges at the screen** (variety pool, mirrors the cooked-egg splat pattern) — and the nest then auto-resets to idle on its own. No lingering "overdue" state requiring further player action. *(Refinement 2)* **The pan comes down late**, hitting the empty nest with a dull "clunk". Visual only; the hatch rules are unchanged. *(Refinement 5 §4)* The creature that escapes is **horrific** (Art direction, above).
   *(E26)* **Five break stages** (look only; the amount of mess is unchanged): the clear's tier (§10) picks what's left in the nest when the pan comes down. **1 elegant:** clean crack, neat halves, bright yolk, small sparkle. **2 messier:** jagged shards, runny yolk, still just an egg. **3 first alien signs:** green-tinged yolk, tiny antenna in the goo. **4 half-formed:** wiggly leg, eyeball on a stalk, purple slime. **5 jokey leftovers:** a spill of alien slurpy, tangled legs, a tentacle. Art is Gemini's (brief slot 13); the game has no break picture until the art-slot layer. *(Code: the `cleared` event already carries its `tier`.)*
 - *(E26)* **The waiting egg shows alien hints** matching the tiers: at the start of **tier 3** (40% of the window) an **antenna tip** pokes out of a crack, at **tier 4** (60%) a **wiggly leg**, at **tier 5** (80%) a **tentacle with slurpy seeping out**. Each appears **once** at its boundary, **no flashing**, and stays until the egg is cleared or hatches, so at 80% all three show *(Code's call, confirmed by Chat: keep as built)*. Art in the pilot slot (`egg.svg`, groups `hint-3` … `hint-5`); not built until the art-slot layer.
 - *(E26)* **Art rules for all alien art** (eggs, hatchling, breaks, mom face, the title family): scary is fine, but scary **alien** (extra eyes, fangs, tentacles, slime). **Nothing human** (no hands or fingers, human eyes, teeth or skin); **no red blood except the cord**; gross-funny, family cartoon.
@@ -602,98 +572,24 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
 - ~~**E24. No way to turn the sound off.**~~ **Resolved** *(Andrew, 2026-09-24, audit fixes A)*: **a mute button plus the M key, remembered per browser; the title tune pauses in a background tab; a master level so overlapping sounds can't clip. No volume slider.** *(Code: the button sits top left on every screen, above every overlay, so it works while paused too; in play the HUD makes room for it, it keeps the hose-nozzle cursor, and pressing it never takes the keyboard from a Command Line. Every sound goes through one master level (0.8 [T]) and then a soft ceiling: untouched below its knee, and nothing ever leaves louder than 0.95 of full scale, however many sounds overlap. A background tab stops the title tune and holds every sound; the tune starts again from the top when the tab comes back. The setting is kept in the browser's own storage, so a private window forgets it. The browser rig checks each part.)* *(The gap, from the audit)* There was no mute or volume control, overlapping sounds could pass full scale and clip, and the title tune played on in a background tab.
 - ~~**E25. The M key during play.**~~ **Resolved** *(Andrew, 2026-09-24)*: **keep as built, with Ctrl+M on for play**: M mutes on the menus and while paused, the mute button any time, and **Ctrl+M during play** (`muteKeyInPlay: "ctrl-m"`). Andrew confirmed Ctrl+M does nothing in VisiCAD, so it teaches no wrong habit. *(Original question follows.)* M is a letter players type (the MB code), and during play a Command Line always has the keys, so M can't mute there without breaking typing. **Built** (`muteKeyInPlay: "none"`): M mutes on the title, mode-selection and game-over screens and while paused; during play the mute button does it. The other value, `"ctrl-m"`, also lets **Ctrl+M** mute mid-game (Chrome has no Ctrl+M shortcut of its own). Needed: keep it as built, or give play a mute key such as Ctrl+M.
 
-### Raised by Andrew's playtest, ruled by Chat (2026-09-25) — E35 to E39 (the block arrived cut off)
+### Raised by Code building the music (2026-09-25) — E34 open
 
-- ~~**E35. The title music starts on the options screen, not the title.**~~ **Resolved** *(E35, Chat)*: **it starts on the
-  title: at once where autoplay is allowed (Fang Rock), else on the first key press or click on the title.** *(Code: the
-  cause was confirmed: the game made its sound context only on the first key or click, and on the title that press
-  is Enter, which also leaves for the options screen; the menus share one track, so it began there. Now the context is
-  made as the page opens and the title track is set going at once. Fang Rock's Electron (32) allows autoplay by
-  default and its shell doesn't change that, so there it plays as the title appears, and nothing in Fang Rock needed
-  changing. A browser holds it until the first key or click; that press now only starts the music, and the next Enter
-  or click goes on (⏳ **E40**, below). Headless Chrome holds sound like a normal browser, so the rig checks that case
-  directly.)*
-- ~~**E40. Does the first press on the title also leave it?**~~ **Resolved** *(E40, Chat)*: **keep as built: in a normal
-  browser the first press on the title only starts the music. Add: until that press the title shows a blinking "PRESS ANY
-  KEY" (within the 2-a-second rule, steady under reduced motion), gone after the first press; Fang Rock skips it.**
-  *(Code: it is the title's own prompt, which already blinks once a second and holds still under reduced motion: it
-  reads PRESS ANY KEY while sound is held back and no key or click has come, then PRESS ENTER. It waits 0.3 s [T]
-  (`wakePromptDelay`) for autoplay behind LOADING…, so Fang Rock, where sound runs at once, never shows it. Muted, or
-  with `"go"`, there's no extra press, so it doesn't show. Any key ends it; M also mutes, as ever.)* *(Raised by Code
-  building E35.)* In a normal browser the
-  first key or click is what lets sound play. Built: ⏳ `titleFirstPress: "sound"`: the first Enter or click on the
-  title **only starts the music** and stays on the title; the next one goes to the options screen. The other value,
-  `"go"`, starts the music **and** goes on (as before), so the music starts as the options screen appears, which is the
-  bug E35 fixed. Other keys (M, Ctrl+Shift+B) wake sound without being held back, and Fang Rock never needs the extra
-  press. Needed: keep `"sound"` (one extra press, in browsers only), or `"go"`?
-
-- **E38. Shell pieces, alien parts, hose, trough.** *(E38, Chat; see the verbatim block.)* **Not built yet:** the
-  ruling is now whole (its rest is in `EGG_TIMER_E38-E40_RULINGS_2026-09-25.md`: quota, performance, reduced motion, the
-  hose tag moved up clear of the trough), but its pieces are cut from the pilot art, still on the hold branch. Order:
-  the pilot art merges, then E38 is built and held for Andrew's screenshot sheet before it goes live. *(Code, the trough's layout, measured as the ruling asks:
-  the clear strip between the board's edge and the nearest nest or readout is, left / right / bottom, 149 / 90 / 72 px
-  at 1920×1080, 91 / 62 / 54 at 1440×900, 79 / 54 / 36 at 1280×720 and 61 / 41 / 32 at 1024×640. A thin trough (about
-  8–10 px) fits on all three edges at every size without moving a nest, readout or Command Line. The only thing already
-  in that strip is the sink's "CLEANING HOSE" tag at the bottom centre, which would sit over the trough there.)*
-- ~~**E39. A second Time Warp trigger.**~~ **Resolved** *(E39, Chat)*: **Time Warp also starts when 2 or more eggs are
-  each more than 8:00 (displayed time) from their bold mark. The existing trigger stays (the last CAV started and nothing
-  bold); it never starts while any egg is bold; no random trigger; everything else about it unchanged.** *(Code:
-  `warpFar: { eggs: 2, seconds: 480 }` in `config.js`, and `warping()` checks either rule under the one bold guard. Only
-  running eggs count (an egg still being laid has no clock yet). As with a bold, the step splits on the exact instant
-  the second egg comes within 8:00, so the warp stops there to the frame. The E39 rule doesn't wait on a placement
-  still waiting, since the ruling's only guard is a bold egg; E18's condition stays with the last-CAV rule. The logic
-  rig tests the rule, its exact stop and the guard; the browser rig sees the panel light for it early in a wave.)*
-  *(E39 follow-up, Chat, 2026-09-25: Time Warp while a placement is waiting is allowed; no change; the caption stays.)*
-- ~~**E36. Music level.**~~ **Resolved** *(E36, Chat)*: **the same music loudness as the other PLC cartridges; a feature,
-  not background; no clipping or distortion; the music dips briefly under THONG, the error buzz and the hiss, and small
-  sounds ride under it with no dip; the gameplay track's ~3 dB ramp and every loop point unchanged.** *(Code: measured
-  with ffmpeg's ebur128 at each cartridge's own playback volume (both play music at 0.5): **Asteroid Command** Title
-  Screen −19.1, Menus −16.0, Game Play 1/2/3 −19.8/−20.1/−19.8, High Score −19.1, Region Lost −19.1 LUFS; **the
-  Aquanaut** Jelly Fish Bop −20.9, its menu bed −22.3. Target: their median, **−19.8 LUFS** (`musicLufs`). Egg Timer
-  **before**: title and game over −31.4, gameplay **−48.6** LUFS (levels 0.2 / 0.03). **After**: all three −19.8 (levels
-  0.762 title and game over, 0.826 gameplay). The files peak about −4 dBFS, so music alone tops out at 0.41 against the
-  master ceiling's knee of 0.75: never rounded off. The dip: to 40% (−8 dB) in 15 ms, held for the cue, back over 0.3 s
-  [T] (`musicDuck`). The files, the ramp and the loop points are untouched. The rig checks the loudness sum, the
-  headroom, the dip under each loud cue and no dip under the squeeze and pop.)*
-- ~~**E37. The frying pan comes down when an egg hatches.**~~ **Resolved** *(E37, Chat)*: **the pan and THONG only on a
-  successful `RCAV` clear; a hatch shows the hatch only.** *(Code: the cause was deliberate, not a glitch: Refinement 2
-  had the pan come down late, 0.35 s after a hatch, on the empty nest, with a dull clunk. The late pan, the clunk and
-  `hatchPanDelay` are gone. The browser rig counts every THONG and every pan from a game's start to past its first hatch:
-  none.)*
-
-### Raised by Code building the music (2026-09-25) — E34 ruled
-
-- ~~**E34. The game-over screen's default button.**~~ **Resolved** *(E34, Chat, 2026-09-25)*: **TITLE SCREEN is picked
-  first (as built). Add: game over ignores Enter until about 1 s after it appears, so a player hammering Enter sees the
-  result; arrows and mute unaffected; the music-end return to the title unchanged.** *(Code: both of Chat's options at
-  once, as the title's own guard is a condition too: Enter is ignored for `overEnterDelay` 1 s [T] after the screen
-  appears, and a held Enter's auto-repeat is ignored at any time, so leaving always takes a fresh press. Clicks are
-  unaffected. The browser rig dispatches Enter in the screen's first instant and a repeat after it.)* *(Original
-  question follows.)* *(Music: "a clear way back to the title screen: a button, with Enter
+- **E34. The game-over screen's default button.** *(Music: "a clear way back to the title screen: a button, with Enter
   as its key if it's the default. If there is also a Play Again, keep it.")* Before, the screen had no buttons: Enter or a
   click went to the mode selection. Built: **TITLE SCREEN** and **PLAY AGAIN** (to the mode selection), ← → pick, Enter
   presses the lit one, ⏳ `overDefault: "title"` (the other value, `"again"`, keeps Enter going where it used to).
   Needed: which one is the default?
-- *(A note, not a question; overtaken by E36, which made the music a feature.)* The gameplay music follows the rule "clearly under the sound effects", and the quietest
+- *(A note, not a question.)* The gameplay music follows the rule "clearly under the sound effects", and the quietest
   effect is the soft egg-laying squeeze, so the music plays at 0.03 of full (6.8 dB under it). If it feels too quiet in
   playtest, the fix is to raise the effects and the music together, not the music alone.
 
 ### Raised by Code building the board lights (2026-09-25) — E32 and E33 open
 
-- ~~**E32. The board's tint.**~~ **Resolved** *(E32, Chat, 2026-09-25)*: **lilac, as built. No change.** *(Code: the
-  switch stays `boardTint: "lilac"`; the mint and cream tokens stay too, since Chat asked for no change, and `?tint=`
-  still previews them.)* *(Original question follows.)* *(Board lights: "Offer Andrew 2–3 swatches to pick from in playtest.")* Three are in
+- **E32. The board's tint.** *(Board lights: "Offer Andrew 2–3 swatches to pick from in playtest.")* Three are in
   `theme.css`: **lilac** (`--board-tint-lilac`, a pale lilac haze), **mint** and **cream**, each 6–7% over the dark board.
   Built as ⏳ `boardTint: "lilac"` in `config.js`; adding `?tint=mint` or `?tint=cream` to the game's address tries
   another without changing it. Needed: **Andrew's pick**; then set the switch and drop the other two tokens.
-- ~~**E33. The bold timer's contrast.**~~ **Resolved** *(E33, Chat, 2026-09-25)*: **darken it to `#d1006a` (white text,
-  5.4:1), everywhere the pink means "this egg is ready / act now"; pink used purely as decoration stays.** *(Code: every
-  "ready" use already shared one token, `--readout-bold-timer-bg`: the nest's bold timer, the wave-1 "Pink = ready!" tag,
-  the comic strip's pink timer chip and panel 2's number badge; its digit is now white, as dark ink fell to 3.4:1. The
-  brand hot pink `--hot` (the ET letters, pool, borders, shadows, the strip's "Slow…" label, the mute button) and the
-  bubblegum `--pink` (panel 4's badge, cheeks, apron) are decoration and stay. The art brief's slot 17 carries the new
-  value. There is no "Egg Timer look for the NB cabinet.md"; Nerva Beacon's own `app.js` draws its Egg Timer cabinet
-  readout in the old `#ff2d8a`, which is NB's to change.)* *(Original question follows.)* Checking the readouts for this ruling showed the bold timer (white
+- **E33. The bold timer's contrast.** *(For Chat.)* Checking the readouts for this ruling showed the bold timer (white
   on hot pink `#ff2d8a`, at the limit) is **3.5:1**, under the 4.5:1 that normal-size text needs (3:1 is enough only
   for large bold text). The lights can't touch it (the box is opaque), and it predates this ruling. Needed: keep it,
   or darken the pink (e.g. `#d1006a` gives white about 5:1)?

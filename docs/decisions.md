@@ -319,6 +319,76 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E40, the first press and PRESS ANY KEY (Chat ruling)
+
+**Solved:** `titleFirstPress` stays "sound"; the title prompt says PRESS ANY KEY until the first press, where needed.
+**Approach:** `paintPrompt()` picks LOADING… / PRESS ANY KEY / PRESS ENTER; it's repainted on the first press, a mute
+change, the context's `statechange` (`ET.audio.onState`) and after `wakePromptDelay`, until which LOADING… stays up.
+**If you touch this again:** the prompt keeps its `.blink` (1 s, steps: one flash a second; stilled under reduced motion).
+
+## Resolved 2026-09-25 — Egg Timer: E39, a second Time Warp trigger (Chat ruling)
+
+**Solved:** Time Warp now also runs while 2+ running eggs are each over 8:00 (displayed) from their bold mark.
+**Approach:** `warping()` = in a wave, no egg bold, and (the last-CAV rule OR `farEggs() >= warpFar.eggs`). `step()`
+splits on each running egg's `boldClock - 480` as well as its `boldClock`, so the warp ends exactly on the mark
+(`farEggs()` allows 1e-9 so a split step landing on the mark counts as there).
+**If you touch this again:** most rig scenes run with the rule off (`withoutFarWarp()` in the logic rig; `farWarpOff()`
+after every page load in the browser rig), because long eggs now warp early and those scenes test other things.
+
+## Resolved 2026-09-25 — Egg Timer: E36, the music level and its dip (Chat ruling from Andrew's playtest)
+
+**Solved:** Egg Timer's music was far quieter than the other cartridges' (gameplay −48.6 LUFS heard); now all three
+tracks play at −19.8 LUFS, and dip under THONG, the buzz and the hiss.
+**Approach:** Measured integrated loudness with ffmpeg ebur128 (`imageio-ffmpeg`'s binary). Asteroid Command and the
+Aquanaut play music through an `<audio>` at volume 0.5 and nothing else, so heard = file LUFS − 6.02 dB; the median of
+their nine tracks is −19.8. Egg Timer's heard = file LUFS + 20·log10(level × 0.8 master). Levels 0.762 / 0.826 / 0.762.
+Tracks now connect to one music gain (`musicBus()`) whose `duck()` the three loud cues call; offline renders skip it.
+**If you touch this again:** re-measure with ebur128 if a music file changes, and update `lufs` in `config.js`; the rig
+checks the sum, not the files. Music peaks 0.41 against the ceiling's 0.75 knee: raising it past ~1.8× would start
+rounding it off.
+
+## Resolved 2026-09-25 — Egg Timer: E35, the title music starts on the title (Chat ruling from Andrew's playtest)
+
+**Solved:** The title track began on the options screen; now it begins on the title.
+**Cause:** `ET.audio.unlock()` made the AudioContext on the first keydown/pointerdown, and on the title that is Enter,
+which also shows the options screen (the menus share the track, so it started there).
+**Approach:** `ET.audio.autoplay()` makes the context at boot and queues the wanted track (on a suspended context it
+waits at its start). Electron 32's default autoplay policy (Fang Rock's shell sets none) lets it run at once. In a
+browser, every press while `ET.audio.locked()` calls `unlock()` (a resume); the first such Enter or click on the title
+is let pass (`app.wakePress`, ⏳ E40 `titleFirstPress`). The unlock listener is registered BEFORE the keyboard handler
+on purpose. Side fixes: the pop's click is 0.04 (0.06 could peak it 1% past its limit); rig S takes the loudest of 5
+renders of each random sound, and rig A waits for the mute fade to finish, since music is now queued from the start.
+**If you touch this again:** headless Chrome holds sound like a browser (probed: `suspended`), so the Fang Rock path
+can't be seen in the rig; Andrew checks it by hand.
+
+## Resolved 2026-09-25 — Egg Timer: E37, no pan on a hatch (Chat ruling from Andrew's playtest)
+
+**Solved:** The frying pan came down (with a clunk) when an egg hatched; now it comes down only on a clear.
+**Approach:** It was Refinement 2's "the pan comes down late on the empty nest" (0.35 s after the hatch). Removed the
+`late` slam, `ET.audio.clunk` and `hatchPanDelay`; `slam()` has one kind now. Theme baseline: only `.pan.late` left.
+**If you touch this again:** rig section E counts THONGs and pans through a whole hatch; both must stay 0.
+
+## Resolved 2026-09-25 — Egg Timer: E32, the board tint (Chat ruling)
+
+**Solved:** Lilac, as built. **Approach:** no change; the ⏳ marks came off `config.js` and `theme.css`. Mint and cream
+stay as unused tokens behind `?tint=` (Chat said no change, so they weren't dropped).
+
+## Resolved 2026-09-25 — Egg Timer: E34, the game-over default and its Enter guard (Chat ruling)
+
+**Solved:** TITLE SCREEN stays the default; Enter on game over now waits 1 s, so a hammered Enter can't skip the result.
+**Approach:** `show("over")` stamps `app.overAt`; the key handler ignores Enter while `overEnterIn()` > 0 and any
+`ev.repeat` Enter (so after the second a fresh press is still needed). `overEnterDelay: 1` [T] in `config.js`.
+**If you touch this again:** the rig dispatches its early Enter in the same `ev()` as `__et.show('over')`; keep it there.
+
+## Resolved 2026-09-25 — Egg Timer: E33, the ready pink (Chat ruling)
+
+**Solved:** The bold timer's white-on-pink was 3.5:1; the pink is now `#d1006a` (5.4:1) everywhere it means "ready".
+**Approach:** One token, `--readout-bold-timer-bg`, already fed every "ready" use (nest timer, wave-1 tag, the strip's chip
+and panel 2's badge), so the change is one value; the badge's digit went white (dark ink on the new pink is 3.4:1).
+Decoration pinks (`--hot`, `--pink`) stay. Theme baseline rewritten: exactly those four rules and the badge ink changed.
+**If you touch this again:** a new "ready" cue must use that token, never `--hot` (they look alike but aren't the same).
+Nerva Beacon's cabinet art hard-codes the old `#ff2d8a` (`app.js`), NB's to update.
+
 ## Resolved 2026-09-25 — Egg Timer: the hatchling's legs (Chat ruling)
 
 **Solved:** In a scurry the hatchling's legs shuffle (a slant back and forth) and never vanish; nothing flashes.

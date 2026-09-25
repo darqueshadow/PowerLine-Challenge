@@ -130,6 +130,13 @@ function advance(g, seconds, each) {
   }
 }
 const inState = (g, s) => g.unlocked().filter((n) => n.state === s);
+// E39's second Time Warp trigger (2+ eggs over 8:00 from bold) speeds up any test with long eggs; the tests of other
+// things (spawning, bold timing) run without it, and section E39 tests it
+function withoutFarWarp(fn) {
+  const was = ET.CONFIG.warpFar.eggs;
+  ET.CONFIG.warpFar.eggs = Infinity;
+  try { fn(); } finally { ET.CONFIG.warpFar.eggs = was; }
+}
 
 section("D. one CAV, one clear (Clear CAVs Only)");
 {
@@ -220,13 +227,13 @@ section("F. waves: quota, perfect bonus, cleanup, growth");
 }
 
 section("G. a full board skips the spawn");
-{
+withoutFarWarp(() => {
   const g = game("clear", [T("LONG", 60)]);
   advance(g, 60);
   eq(inState(g, "active").length + inState(g, "overtime").length, 5, "five long CAVs fill the five nests");
   ok(g.stats.skipped > 0, `further spawns are skipped, not queued   [${g.stats.skipped} skipped]`);
   ok(g.spawned === 5, `a skipped spawn doesn't count toward the wave   [spawned ${g.spawned}]`);
-}
+});
 
 section("H. placement (Both)");
 {
@@ -397,7 +404,7 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
   advance(g, 2);
   ok(g.wall() >= 0 && g.wall() < 60, `the wall clock wraps past midnight   [${g.wall().toFixed(1)}]`);
 }
-{
+withoutFarWarp(() => {
   // Every clock shares one speed: at wave 20 a VS bolds in 10 s, and its overtime is still player seconds.
   const g = game("clear", [T("VS", 10)]);
   g.startWave(20);
@@ -411,7 +418,7 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
   const ot = n.hatchAt - n.boldAt;
   ok(ot >= 4.05 - 1e-9 && ot <= 4.95 + 1e-9, `…and its overtime is 4.5 s ±10% of player time, speed or no speed   [${ot.toFixed(2)} s]`);
   ok(Math.abs(n.boldAt - (t0 + 10)) < 1e-6, `overtime counts from the instant the clock crossed the mark   [bold at +${(n.boldAt - t0).toFixed(4)} s]`);
-}
+});
 {
   // The nest clock keeps counting through overtime.
   const g = game("clear", [T("VS", 10)]);
@@ -532,7 +539,7 @@ section("O. Refinement 3 §4: Time Warp");
   advance(g, 400, (x) => {
     if (x.wave !== 1) return;
     const w = x.warping();
-    if (w && x.spawned < x.quota) warpedBeforeLast = true;
+    if (w && x.spawned < x.quota && x.farEggs() < ET.CONFIG.warpFar.eggs) warpedBeforeLast = true;
     if (w && x.unlocked().some((n) => n.state === "overtime")) warpWithBold = true;
     if (w) sawWarp = true;
     x.drain().forEach((e) => { if (e.type === "bold") { const n = x.nests[e.nest]; bolds.push(x.clock - n.boldClock - (x.time - n.boldAt) * x.rate); ot.push(n.hatchAt - n.boldAt); } });
@@ -541,7 +548,7 @@ section("O. Refinement 3 §4: Time Warp");
     inState(x, "overtime").forEach((n) => { if (x.time - n.boldAt > 1) x.submit("RCAV " + n.unit); });
   });
   ok(sawWarp, "the clocks warp once the wave's last egg has spawned and none is bold");
-  ok(!warpedBeforeLast, "…never before the last egg of the wave has spawned");
+  ok(!warpedBeforeLast, "…never before the last egg of the wave has spawned, unless E39's rule holds (2+ eggs over 8:00 from bold)");
   ok(!warpWithBold, "…and never while an egg is bold");
   ok(sawAfter, "an egg going bold ends the warp (it comes back after the clear)");
   ok(bolds.length >= 8 && bolds.every((d) => Math.abs(d) < 1e-6), `the warp stops on the exact instant an egg goes bold (the clock runs normally from there)   [${bolds.length} bolds, worst ${Math.max(...bolds.map(Math.abs)).toExponential(1)}]`);
@@ -621,13 +628,57 @@ section("R. E18 (ruled): no Time Warp while a placement trigger is still waiting
     g.step(0.05);
     const trig = inState(g, "trigger");
     trig.forEach((n) => { if (g.spawned < g.quota) g.submit(`CAV ${n.unit} VS`); });
-    if (g.spawned >= g.quota && inState(g, "trigger").length) { sawLastWaiting = true; if (g.warping()) warpedWithTrigger = true; }
+    if (g.spawned >= g.quota && inState(g, "trigger").length) { sawLastWaiting = true; if (g.warping() && g.farEggs() < ET.CONFIG.warpFar.eggs) warpedWithTrigger = true; }
     if (g.spawned >= g.quota && !inState(g, "trigger").length && g.warping()) warpAfter = true;
     inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
   }
   ok(sawLastWaiting, "the wave's last spawn sat waiting to be placed");
-  ok(!warpedWithTrigger, "…and the clocks never warped while it waited");
+  ok(!warpedWithTrigger, "…and the last-CAV rule never warped the clocks while it waited (E39's own rule may)");
   ok(warpAfter, "once it started (here it auto-opened), the warp came on");
+}
+
+section("E39 (Chat, 2026-09-25): Time Warp also runs while 2+ eggs are each over 8:00 from their bold mark");
+{
+  eq(ET.CONFIG.warpFar, { eggs: 2, seconds: 480 }, "the rule as ruled: 2 eggs, 8:00 of displayed time");
+  // MB is 30 min: a fresh MB is 30:00 from its bold mark. Wave 1 spawns 8, so the last-CAV rule is far off at first.
+  const g = game("clear", [T("MB", 30)]);
+  let one = null, two = null, stops = [], withBold = false, sawFarOnly = false;
+  let prev = false;
+  for (let i = 0; i < 40000 && g.wave === 1; i++) {
+    const w0 = g.warping(), far0 = g.farEggs();
+    if (one === null && inState(g, "active").length === 1) one = w0;
+    if (two === null && far0 >= 2 && g.spawned < g.quota) { two = w0; }
+    if (w0 && g.spawned < g.quota) sawFarOnly = true;
+    if (w0 && inState(g, "overtime").length) withBold = true;
+    // how far the second-furthest egg is from its 8:00 mark before the step
+    const toMark = inState(g, "active").map((n) => n.boldClock - 480 - g.clock).sort((a, b) => b - a)[1], c0 = g.clock;
+    g.step(0.05);
+    const w1 = g.warping();
+    // when E39's rule alone was running it and it stops, the step splits on that egg's 8:00 mark: warp speed up to it,
+    // the wave's own speed after it
+    if (prev && !w1 && g.spawned < g.quota && !inState(g, "overtime").length && toMark > 0) {
+      const want = toMark + (0.05 - toMark / (g.rate * ET.CONFIG.warpFactor)) * g.rate;
+      stops.push(g.clock - c0 - want);
+    }
+    inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
+    prev = g.warping();   // after the clears, so a clear ending it isn't taken for a stop at the mark
+  }
+  eq(one, false, "one egg over 8:00 away is not enough");
+  eq(two, true, "two eggs each over 8:00 away start Time Warp, before the wave's last CAV has even spawned");
+  ok(sawFarOnly, "…so it runs earlier in the wave than the last-CAV rule allows");
+  ok(!withBold, "never while an egg is bold");
+  ok(stops.length > 0 && stops.every((d) => Math.abs(d) < 1e-6), `it stops on the exact instant the second egg comes within 8:00 of its bold mark   [${stops.length} stops, worst ${stops.length ? Math.max(...stops.map(Math.abs)).toExponential(1) : "-"}]`);
+}
+{
+  // the guard: two far eggs and one bold one: no warp
+  const g = game("clear", [T("MB", 30)]);
+  const ns = g.nests.filter((n) => n.unlocked).slice(0, 3);
+  ns.forEach((n) => { n.type = T("MB", 30); n.unit = String(2101 + n.id); g.activate(n, "auto"); });
+  for (let i = 0; i < 400 && ns.some((n) => n.state !== "active"); i++) g.step(0.05);
+  const w = g.warping();
+  ns[2].boldClock = g.clock;   // one of them reaches its mark
+  g.step(0.001);
+  eq([w, ns[2].state, g.farEggs() >= 2, g.warping()], [true, "overtime", true, false], "with an egg bold it doesn't run, even with two eggs over 8:00 away");
 }
 
 section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");

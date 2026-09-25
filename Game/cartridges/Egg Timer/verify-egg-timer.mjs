@@ -69,7 +69,12 @@ async function reload(url = URL_GAME) {
   carried.push(...c.errors());
   c.drain();
   await c.goto(url);
+  await farWarpOff();
 }
+/* E39's second Time Warp trigger (2+ eggs over 8:00 from bold) would warp most scenes here early; they test other
+   things, so the rig runs without it, and section P turns it on once to see the panel light for it (the logic rig
+   tests the rule itself). */
+const farWarpOff = () => ev("(window.ET && ET.CONFIG ? (ET.CONFIG.warpFar.eggs = Infinity) : 0, 1)");
 /* Wait (in real time) for a request the rig is holding back with the Fetch domain. */
 async function held(pattern) {
   for (let i = 0; i < 200; i++) {
@@ -205,6 +210,7 @@ async function typeAndEnter(text) {
 try {
   await c.goto(URL_GAME);
   for (let i = 0; i < 60 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(100);
+  await farWarpOff();
 
   /* ------------------------------------------------------------- A. boot */
   section("A. boot and data");
@@ -264,10 +270,12 @@ try {
     eq([m0.pressed, m0.muted, m0.saved], ["false", false, null], "sound starts on: a fresh browser has nothing remembered");
     await press("m");   // also the first key, so sound unlocks here
     const l1 = await levelTo(0), m1 = await m();
+    // E35: the title track is queued from the start now, so let the mute's fade finish before measuring silence
+    for (let i = 0; i < 40 && (await ev("ET.audio.level()")) > 1e-5; i++) await wait(25);
     ok(m1.pressed === "true" && m1.muted && m1.saved === "1" && l1 !== null && l1 < 0.002, `M mutes: the button shows it, the browser remembers it, and the master level goes to 0   [${l1}]`);
-    await ev("ET.audio.thong(); ET.audio.buzz(); ET.audio.clunk(0); 1");
+    await ev("ET.audio.thong(); ET.audio.buzz(); ET.audio.hiss(ET.CONFIG.momFaceSeconds, ET.CONFIG.momFaceVolume); 1");
     const quiet = await loudest(700);
-    ok(quiet < 1e-4 && (await ev("__et.tune()")), `muted, nothing leaves the speakers: not the title tune, nor a pan, buzz and clunk played together   [peak ${quiet.toExponential(1)}]`);
+    ok(quiet < 1e-4 && (await ev("__et.tune()")), `muted, nothing leaves the speakers: not the title tune, nor a pan, buzz and hiss played together   [peak ${quiet.toExponential(1)}]`);
     await press("M");   // Shift or Caps Lock: the same key
     const l2 = await levelTo(ET_LEVEL), m2 = await m();
     await ev("ET.audio.thong(); 1");
@@ -520,8 +528,10 @@ try {
   }
   ok(!!r.hit, "the nest reaches its trigger");
   eq(await ev(`getComputedStyle(${q(".readout")}).fontWeight`), "900", "at the trigger the readout goes bold");
-  eq(await boxes(), ["900 rgb(11, 93, 30) rgb(255, 255, 255)", "900 rgb(0, 0, 0) rgb(185, 185, 198)", "900 rgb(255, 255, 255) rgb(255, 45, 138)"],
-    "Refinement 5 §2: at the limit, all three at once: unit bold dark green on white, type bold black on grey, timer bold white on hot pink");
+  eq(await boxes(), ["900 rgb(11, 93, 30) rgb(255, 255, 255)", "900 rgb(0, 0, 0) rgb(185, 185, 198)", "900 rgb(255, 255, 255) rgb(209, 0, 106)"],
+    "Refinement 5 §2: at the limit, all three at once: unit bold dark green on white, type bold black on grey, timer bold white on the ready pink (E33: #d1006a)");
+  eq(await ev(`[".strip .chip.bold", ".strip .cell:nth-child(2) .num"].map(s => { const e = document.querySelector(s), c = getComputedStyle(e); return c.backgroundColor + " " + c.color; })`),
+    ["rgb(209, 0, 106) rgb(255, 255, 255)", "rgb(209, 0, 106) rgb(255, 255, 255)"], "E33: the How To Play strip's pink chip and panel 2's badge are the real timer's pink, white on it");
   const expect = { VS: 10, STR: 10, SS: 15, EOS: 30, MB: 30 }[n.code];
   {
     // the clock as it read at the bold step: one step of play is at most 0.1 s, 3 displayed seconds at base speed
@@ -664,12 +674,18 @@ try {
   /* ------------------------------------------------------ E. hatch, pool */
   section("E. a hatch drains the pool");
   await ev("__et.start('clear', 1)");                       // fresh: nothing has hatched yet
+  // E37: count every THONG, and every pan that comes down, from here to the hatch
+  await ev(`(() => { window.__e37 = { thong: 0, pan: 0 }; const f = ET.audio.thong; ET.audio.thong = function () { __e37.thong++; return f.apply(this, arguments); };
+    ET.audio.thong.__orig = f; new MutationObserver((ms) => ms.forEach((m) => { if (m.target.classList && m.target.classList.contains('pan') && m.target.className !== 'pan') __e37.pan++; }))
+      .observe(document.querySelector('#field') || document.body, { subtree: true, attributes: true, attributeFilter: ['class'] }); return 1; })()`);
   const h = await until((x) => x.stats.hatched >= 1, 120, 0.1);
   ok(!!h.hit, "leaving a CAV alone lets it hatch");
   eq(await ev("document.querySelector('#hud-pool').textContent"), "●●○", "the pool shows 2 of 3");
   eq(await ev("document.querySelector('#hud-pool-label').textContent"), "POOL", "the pool is shown by its placeholder key only");
   ok(await ev("!!document.querySelector('.nest.scurry, .nest.lunge')"), "the creature does an escape flourish (scurry or lunge)");
-  ok(await ev("!!document.querySelector('.nest.scurry .pan.late, .nest.lunge .pan.late')"), "the pan comes down late on the empty nest");
+  await wait(600);   // longer than the old late pan's delay plus its slam
+  eq(await ev("(() => { const r = [__e37.thong, __e37.pan, document.querySelectorAll('.pan:not([class=\"pan\"])').length]; ET.audio.thong = ET.audio.thong.__orig; return r; })()"), [0, 0, 0],
+    "E37: a hatch shows the hatch only: no THONG and no pan (counted from the start to after the hatch)");
   await shot("05-escape");
   {
     // Refinement 5 §4: the hatchling is horrific (⏳ placeholder): many red eyes, fangs, eight legs
@@ -977,7 +993,7 @@ try {
     const blurs = (sh) => sh === "none" ? [] : [...sh.matchAll(/(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px/g)].map((m) => +m[3]).filter((b) => b > 0);
     eq([blurs(w.text), blurs(w.box)], [[], []], "…with no glow: its shadows are hard offsets, no blur");
   }
-  ok((await ev("ET.audio.state()")) !== "none", `sound is unlocked by the first key press   [${await ev("ET.audio.state()")}]`);
+  eq(await ev("ET.audio.state()"), "running", "sound is unlocked by the first key press");
   await ev("__et.start('clear', 1)");
   await ev("__et.advance(0.2)");
   {
@@ -1134,7 +1150,7 @@ try {
       return out;
     })()`);
     ok(!!run.ready && run.ready.bold && run.ready.text === "Pink = ready! Type RCAV " + run.ready.unit && run.ready.line, `E28: in wave 1 the first egg to go bold gets a tag, with a leader line to it   [${run.ready && run.ready.text}]`);
-    eq(run.ready && run.ready.pink, "rgb(255, 45, 138)", "…in the bold timer's pink");
+    eq(run.ready && run.ready.pink, "rgb(209, 0, 106)", "…in the bold timer's pink (E33)");
     ok(!!run.clock && run.clock.text === "◀ Check the wall clock" && run.clock.line && run.clock.wave === 1, `E28: the first "Clear @" note gets "Check the wall clock", beside the wall clock, with a leader line to the note   [${run.clock && run.clock.text}]`);
     eq(run.hitNest, 0, "E28: neither tag covers a nest or a readout");
     ok(run.after === true && !run.readyAgain && !run.wave2, "E28: the ready tag goes when that egg is cleared, and neither tag comes back that game (wave 2 included)");
@@ -1196,6 +1212,17 @@ try {
     await press("ArrowLeft");
   }
   eq(await ev("__et.music().want"), "over", "the game-over track plays on the game-over screen");
+  {
+    // E34: Enter does nothing in the screen's first second (dispatched in the same ev() as the screen appearing), nor
+    // on a held key's auto-repeat after it; then a fresh press works (below)
+    const key = (rep) => `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', repeat: ${rep}, bubbles: true, cancelable: true }))`;
+    const arrow = (k) => `document.dispatchEvent(new KeyboardEvent('keydown', { key: '${k}', code: '${k}', bubbles: true, cancelable: true }))`;
+    eq(await ev(`(() => { __et.show('over'); ${key(false)}; const early = __et.overEnterIn() > 0.9; ${arrow("ArrowRight")};
+      const lit = document.querySelector('#over-buttons .selected').dataset.go; ${arrow("ArrowLeft")}; return [__et.screen(), early, lit]; })()`),
+      ["over", true, "again"], "E34: game over ignores Enter in its first second, while ← → pick straight away");
+    for (let i = 0; i < 40 && (await ev("__et.overEnterIn()")) > 0; i++) await wait(100);
+    eq(await ev(`(() => { ${key(true)}; return __et.screen(); })()`), "over", "…and a held Enter's auto-repeat after it");
+  }
   await press("Enter");
   eq(await ev("__et.screen()"), (await ev("ET.CONFIG.overDefault")) === "again" ? "setup" : "title", "Enter presses the lit button: back to the title screen");
   eq(await ev("__et.music().want"), "title", "…and the title music takes over");
@@ -1400,6 +1427,23 @@ try {
       await ev("__et.advance(0.25)");
     }
     ok(!!lit && lit.spawned === lit.quota, "the clocks warp once the wave's last egg has spawned");
+    {
+      // E39: with its rule on, two eggs each over 8:00 from bold light Time Warp early in a wave (one ev: nothing between)
+      const e39 = await ev(`(() => { ET.CONFIG.warpFar.eggs = 2; __et.start('clear', 1, { types: ['MB'] }); let s = null;
+        for (let i = 0; i < 4000; i++) { __et.advance(0.02); s = __et.snapshot(); if (s.nests.filter(n => n.state === 'active').length >= 2) break; }
+        __et.advance(0.02); s = __et.snapshot();
+        const r = { warp: s.warp, early: s.spawned < s.quota, lit: document.querySelector('#warp').classList.contains('lit') };
+        ET.CONFIG.warpFar.eggs = Infinity; return r; })()`);
+      eq(e39, { warp: true, early: true, lit: true }, "E39: two eggs each over 8:00 from bold light Time Warp, before the wave's last CAV has spawned");
+      await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+      lit = null;
+      for (let t = 0; t < 300 && !lit; t += 0.25) {
+        const x = await snap();
+        if (x.warp) { lit = x; break; }
+        for (const y of x.nests.filter((z) => z.state === "overtime")) await ev(`__et.submit('RCAV ${y.unit}')`);
+        await ev("__et.advance(0.25)");
+      }
+    }
     eq([await ev("document.querySelector('#warp').classList.contains('lit')"), await ev("document.querySelector('#warp .plaque').textContent")], [true, "TIME WARP"], "…and Time Warp lights up");
     {
       // E27: the hands spin fast while it runs (one evaluation, so the live page can't end it in between)
@@ -1593,6 +1637,7 @@ try {
           // the loud parts: the 90th percentile of 400 ms windows
           const W = Math.round(0.4 * sr), r = []; for (let a = 0; a + W < b.length; a += W) { let q = 0; for (let i = a; i < a + W; i += 4) q += m(i) * m(i); r.push(Math.sqrt(q / (W / 4))); }
           r.sort((x, y) => x - y); out.p90 = r[Math.floor(r.length * 0.9)];
+          let pk = 0; for (let i = 0; i < b.length; i++) pk = Math.max(pk, Math.abs(d0[i]), Math.abs(d1[i])); out.peak = pk;
           return out; }); }))))`);
     const fm = Object.fromEntries(files.map((f) => [f.k, f]));
     ok(files.length === 3 && files.every((f) => f.kb < 2600 && f.same && Math.abs(f.seconds - f.want) < 0.01),
@@ -1600,11 +1645,14 @@ try {
     ok(fm.title.step < 0.02 && fm.gameplay.step < 0.02, `each loop's join has no click: the jump from its end to its start is a tiny step   [title ${fm.title.step}, gameplay ${fm.gameplay.step}]`);
     ok(Math.abs(fm.gameplay.joinDb) <= 0.5, `the gameplay loop's volume ramp is baked in: its end matches its start within 0.5 dB   [${fm.gameplay.joinDb} dB]`);
     eq(await ev("ET.view.backdrop().bpm"), await ev("ET.CONFIG.music.gameplay.bpm"), "the board lights keep time to the gameplay track's BPM, measured from the file");
-    // the mix: the gameplay music, at its level, sits at least 6 dB under every sound effect (measured while each sounds)
-    const cues = await ev(`Promise.all([['thong'], ['buzz'], ['hiss', [0.85, 0.12]], ['squeeze'], ['pop']].map(([k, a]) => ET.audio.measure(k, a, 1).then(x => ({ k, active: x.active }))))`);
-    const quietest = cues.reduce((a, b) => (a.active < b.active ? a : b)), musicRms = fm.gameplay.p90 * (await ev("ET.CONFIG.music.gameplay.level"));
-    const under = 20 * Math.log10(quietest.active / musicRms);
-    ok(under >= 6, `in play the music sits at least 6 dB under every sound effect (THONG, buzz, hiss, the egg-laying squeeze and pop)   [${under.toFixed(1)} dB under the quietest, the ${quietest.k}]`);
+    // E36: every track plays at the other PLC cartridges' music loudness (its file's own loudness, measured with ffmpeg
+    // and recorded in config.js, plus its level and the master level), and at that level music alone never reaches the
+    // master ceiling's knee, so it is never rounded off (no distortion)
+    const mix = await ev("({ M: ET.CONFIG.music, target: ET.CONFIG.musicLufs, LEVEL: ET.audio.LEVEL, KNEE: 0.75 })");
+    const heardAt = Object.fromEntries(Object.entries(mix.M).map(([k, t]) => [k, +(t.lufs + 20 * Math.log10(t.level * mix.LEVEL)).toFixed(2)]));
+    ok(Object.values(heardAt).every((v) => Math.abs(v - mix.target) <= 0.2), `E36: each track plays at ${mix.target} LUFS, the median of Asteroid Command's and the Aquanaut's music   [${Object.entries(heardAt).map(([k, v]) => k + " " + v).join(", ")}]`);
+    const tops = Object.fromEntries(files.map((f) => [f.k, +(f.peak * mix.M[f.k].level * mix.LEVEL).toFixed(3)]));
+    ok(Object.values(tops).every((v) => v < mix.KNEE), `E36: at those levels the music's loudest sample stays under the ceiling's knee (${mix.KNEE}): never rounded off   [${Object.entries(tops).map(([k, v]) => k + " " + v).join(", ")}]`);
     // the menus share one track: title → options doesn't restart it; into play it fades over to the gameplay track
     await ev("__et.start('clear', 1); 1");
     if (await ev("__et.paused()")) await ev(`(() => { ${esc}; return 1; })()`);   // start unpaused
@@ -1618,6 +1666,24 @@ try {
     await wait(700);
     const full = (await ev("__et.music()")).level, lvl = await ev("ET.CONFIG.music.gameplay.level");
     ok(g0.playing === "gameplay" && early < lvl * 0.9 && Math.abs(full - lvl) < 1e-4, `changing screens fades the music out and the next in, about half a second, no hard cut   [gameplay level ${early.toFixed(4)} → ${full.toFixed(4)}]`);
+    {
+      // E36: the music dips under THONG, the error buzz and the hiss, then comes back; the small sounds don't dip it
+      const D = await ev("ET.CONFIG.musicDuck");
+      const dip = async (call) => {
+        for (let i = 0; i < 60 && (await ev("__et.music().duck")) < 0.999; i++) await wait(50);   // back to full first
+        const r = await ev(`new Promise((done) => { ${call}; setTimeout(() => done(__et.music().duck), 120); })`);
+        let back = 0; for (let i = 0; i < 60; i++) { await wait(50); back = await ev("__et.music().duck"); if (back > 0.999) break; }
+        return [+r.toFixed(3), +back.toFixed(3)];
+      };
+      const dips = {
+        thong: await dip("ET.audio.thong()"), buzz: await dip("ET.audio.buzz()"),
+        hiss: await dip("ET.audio.hiss(ET.CONFIG.momFaceSeconds, ET.CONFIG.momFaceVolume)"),
+        squeeze: await dip("ET.audio.squeeze()"), pop: await dip("ET.audio.pop()")
+      };
+      ok(["thong", "buzz", "hiss"].every((k) => Math.abs(dips[k][0] - D.depth) < 0.02 && dips[k][1] > 0.999),
+        `E36: the music dips (to ${D.depth}) under THONG, the error buzz and the hiss, then comes back   [${["thong", "buzz", "hiss"].map((k) => k + " " + dips[k].join(" → ")).join("; ")}]`);
+      ok(dips.squeeze[0] > 0.999 && dips.pop[0] > 0.999, `…and the egg-laying squeeze and pop ride under it with no dip   [${dips.squeeze[0]}, ${dips.pop[0]}]`);
+    }
     // Time Warp leaves the music alone
     const tw = await ev("(() => { const s = __et.snapshot(), a = ET.audio.musicState(); ET.view.render(Object.assign({}, s, { warp: true, time: s.time + 0.05 })); const b = ET.audio.musicState(); ET.view.render(Object.assign({}, s, { warp: false, time: s.time + 0.7 })); return [a.playing, b.playing, a.level === b.level]; })()");
     eq(tw, ["gameplay", "gameplay", true], "Time Warp doesn't change the music");
@@ -1676,7 +1742,10 @@ try {
     const burst = await ev("(() => { const p = [], s = []; for (let i = 0; i < 6; i++) { p.push(ET.audio.pop()); s.push(ET.audio.squeeze()); } return { p: p.filter(x => x !== false).length, s: s.filter(x => x !== false).length, on: ET.audio.state() }; })()");
     ok(burst.p <= 2 && burst.s <= 2 && (burst.on === "none" || burst.p >= 1), `a burst of lays can't pile up: at most 2 pops and 2 squeezes at once   [${burst.p} pops, ${burst.s} squeezes of 6 each]`);
     // the mix: both clearly under THONG, the error buzz and the hiss
-    const m = await ev(`Promise.all([['squeeze'], ['pop'], ['thong'], ['buzz'], ['hiss', [0.85, 0.12]]].map(([k, a]) => ET.audio.measure(k, a, 1)))
+    // the squeeze and the pop are random (pitch, noise): each is measured 5 times and its loudest taken
+    const m = await ev(`Promise.all([['squeeze'], ['pop'], ['thong'], ['buzz'], ['hiss', [0.85, 0.12]]].map(([k, a]) =>
+        Promise.all(Array.from({ length: k === 'squeeze' || k === 'pop' ? 5 : 1 }, () => ET.audio.measure(k, a, 1)))
+          .then(rs => ({ peak: Math.max(...rs.map(x => x.peak)), rms: Math.max(...rs.map(x => x.rms)) }))))
       .then(r => r.map(x => ({ peak: +x.peak.toFixed(3), rms: +x.rms.toFixed(4) })))`);
     const [msq, mpop, ...cues] = m, quiet = { peak: Math.min(...cues.map((c) => c.peak)), rms: Math.min(...cues.map((c) => c.rms)) };
     ok([msq, mpop].every((s) => s.peak <= 0.6 * quiet.peak && s.rms <= 0.6 * quiet.rms),
@@ -1935,7 +2004,9 @@ try {
     if (id) await c.send("Fetch.continueRequest", { requestId: id });
     await c.send("Fetch.disable");
     for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
-    eq(await ev("document.querySelector('#title-prompt').textContent"), "PRESS ENTER", "…the prompt changes once it has loaded");
+    // (E40: LOADING… also covers the prompt's short wait for autoplay, so poll)
+    let pr = ""; for (let i = 0; i < 40 && (pr = await ev("document.querySelector('#title-prompt').textContent")) === "LOADING…"; i++) await wait(50);
+    eq(pr, "PRESS ENTER", "…the prompt changes once it has loaded");
     await press("Enter");
     eq(await ev("__et.screen()"), "setup", "…and then Enter goes on to setup as usual");
 
@@ -1972,6 +2043,47 @@ try {
     eq([before, after], [[true, "1"], [true, "true"]], "E24: muted stays muted after a reload: the browser remembers it");
     await press("m");
     eq(await ev("[ET.audio.muted(), localStorage.getItem('eggtimer.muted')]"), [false, "0"], "…and M turns it back on");
+
+    // E35: the title music starts on the title screen. Headless Chrome holds sound until a key or click, like a normal
+    // browser, so this is the browser case; where autoplay is allowed (Fang Rock) the same queued track simply plays.
+    const fresh = async (setup = "") => {
+      await reload();
+      for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
+      if (setup) await ev(setup);
+      let q = null; for (let i = 0; i < 100; i++) { q = await ev("({ state: ET.audio.state(), m: ET.audio.musicState(), screen: __et.screen() })"); if (q.m.playing === "title") break; await wait(50); }
+      return q;
+    };
+    const heard = async () => { let r = null; for (let i = 0; i < 60; i++) { r = await ev("({ state: ET.audio.state(), tune: __et.tune(), screen: __et.screen() })"); if (r.state === "running" && r.tune) break; await wait(50); } return r; };
+    const q0 = await fresh();
+    eq([q0.state, q0.m.playing, q0.screen], ["suspended", "title", "title"], "E35: before any key, the title track is already set going on the title screen, held only by the browser");
+    // E40: until that first press the prompt reads PRESS ANY KEY, blinking as the prompt always has (1 a second)
+    const prompt = () => ev("(() => { const p = document.querySelector('#title-prompt'), cs = getComputedStyle(p); return { text: p.textContent, anim: cs.animationName, secs: parseFloat(cs.animationDuration) }; })()");
+    let p0 = null; for (let i = 0; i < 40; i++) { p0 = await prompt(); if (p0.text === "PRESS ANY KEY") break; await wait(50); }
+    ok(p0.text === "PRESS ANY KEY" && p0.anim === "blink" && p0.secs >= 0.5, `E40: before the first press the title says PRESS ANY KEY, blinking at most 2 a second   [${p0.text}, ${p0.anim} every ${p0.secs} s]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    eq((await prompt()).anim, "none", "E40: …steady under reduced motion");
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+    await press("Enter");
+    eq(await heard(), { state: "running", tune: true, screen: "title" }, "E35: the first Enter starts the title music ON the title screen (titleFirstPress \"sound\")");
+    eq((await prompt()).text, "PRESS ENTER", "E40: …and the prompt goes back to PRESS ENTER");
+    await press("Enter");
+    eq(await ev("__et.screen()"), "setup", "…and the next Enter goes on to the options screen, the music playing on");
+    await fresh();
+    const tAt = await ev("(() => { const r = document.querySelector('#title-prompt').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()");
+    const tClick = async () => { for (const type of ["mousePressed", "mouseReleased"]) await c.send("Input.dispatchMouseEvent", { type, x: tAt[0], y: tAt[1], button: "left", clickCount: 1 }); await wait(60); };
+    await tClick();
+    eq(await heard(), { state: "running", tune: true, screen: "title" }, "E35: a first click on the title does the same: the music starts, the title stays");
+    await tClick();
+    eq(await ev("__et.screen()"), "setup", "…and the next click goes on");
+    await fresh("ET.CONFIG.titleFirstPress = 'go'; 1");
+    await wait(450);   // past the prompt's wait for autoplay
+    eq((await prompt()).text, "PRESS ENTER", "E40: with \"go\" there's no extra press, so no PRESS ANY KEY");
+    await press("Enter");
+    const go = await heard();
+    eq([go.screen, go.tune], ["setup", true], "E35 (the other value, \"go\"): the first Enter starts the music and goes on, as before");
+    await reload();   // back to the switch as shipped
+    for (let i = 0; i < 100 && !(await ev("!!(window.__et && __et.ready())")); i++) await wait(50);
   }
 
   /* ------------------------------------------------------------ K. errors */

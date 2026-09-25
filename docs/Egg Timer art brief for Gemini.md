@@ -800,7 +800,7 @@ y= 48 └───────────────────────�
 | Slot | Panel | The picture |
 |---|---|---|
 | 16 | 1. Watch the nests | The mommy alien lowering an egg into a nest, with a blank yellow **timer box** under the nest (the game writes the time). |
-| 17 | 2. Wait for pink | A nest whose **timer box is hot pink** (`--readout-bold-timer-bg` #ff2d8a, left blank), and a little alien beside it, mouth wide open, shouting. **Leave the top right corner (about 50 × 20 units) clear**: the game puts the shout "RCAV 2101!" there in its own bubble. |
+| 17 | 2. Wait for pink | A nest whose **timer box is the ready pink** (`--readout-bold-timer-bg` #d1006a since E33, a deep hot pink; left blank), and a little alien beside it, mouth wide open, shouting. **Leave the top right corner (about 50 × 20 units) clear**: the game puts the shout "RCAV 2101!" there in its own bubble. |
 | 18a | 3. Be quick: **fast** | The frying pan slamming down (slot 4's pan) and a fancy breakfast plate (like the top dishes of slot 3). **Leave the left 24 units clear** for the game's "Fast!" label. |
 | 18b | 3. Be quick: **slow** | A cracked egg with an alien leg flailing out of the crack. **Leave the left 24 units clear** for "Slow…". |
 | 19 | 4. Use your Command Lines | An alien typing on **two keyboards at once with its tentacles**, one keyboard per tentacle pair. Blank keys. |

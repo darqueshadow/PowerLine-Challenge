@@ -25,7 +25,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E35**; E32, E33 and E34 are open);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E41**; none open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -90,14 +90,15 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   green** (`#39ff14`, no glow) in the bundled **DSEG7** face; fonts are OFL in `files/fonts/` with their licences.
 - **Timer and Time Warp:** timers count **up** in displayed time, MM:SS, through overtime; the 24-hour wall clock is at
   the top centre. Once the wave's last CAV has *started* and no egg is bold, every clock runs 5× [T] until an egg goes
-  bold (the step splits there; E18); overtime never warps. **Time Warp** (that name, E28) is a **grandfather clock** in
+  bold (the step splits there; E18); overtime never warps. **E39:** it also runs while 2+ running eggs are each over 8:00 from bold (`warpFar`), never with an
+  egg bold; the rigs run most scenes with that rule off. **Time Warp** (that name, E28) is a **grandfather clock** in
   the centre of the board, 17% of its height (about 27% is free between nests), hands spinning while it runs ("5×" on
   the face under reduced motion), over a "TIME WARP" sign and a caption. 🚨 The sign flashes 3 times as it kicks in,
   at most 2 a second (`setSign()`'s 0.25 s guard), then stays lit while its **letters wobble** (E31: a transform only,
   never a brightness change; no fast blink, the flash rule forbids it). Running nests glow green (E22) and green
   **lightning** chains to them under every readout; 🚨 it re-jags 2/s [T], guard-capped at 2.5 (`rejag()`).
 - **Board lights (Chat, 2026-09-25):** one backmost layer (`#backdrop`, behind the cord, the bolts and the board) holds
-  the board's faint tint (⏳ **E32**: Andrew picks lilac, mint or cream; `?tint=` previews), white lights on the gameplay
+  the board's faint tint (**lilac**, E32; mint and cream remain only as `?tint=` previews), white lights on the gameplay
   track's BPM (a placeholder until the music is in; the player's seconds: mute doesn't stop them, pause freezes them),
   and Time Warp's dark veil, a 0.5 s fade that can't touch anything in front of it. 🚨 Lights rise and fall once over
   8 beats, one start a beat at most, 3 at once, **5% white at most** (7% dropped the dim caption under 4.5:1); the veil
@@ -121,7 +122,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   flashes at most 2 a second [T], guard-capped at 2.5 (`cleanupFlashSeconds()`).
 - **Wave-1 tags (E28):** once a game: "Pink = ready! Type RCAV <unit>" (first bold egg) and "◀ Check the wall clock"
   (first "Clear @" note), either side of the wall clock with a dashed leader line under every readout; no flashing.
-- **Readouts:** three cartoon boxes (unit, type, timer); at the limit all three go bold at once, timer hot pink/white.
+- **Readouts:** three cartoon boxes (unit, type, timer); at the limit all three go bold at once, timer white on the **ready pink** `#d1006a` (E33). 🎨 Every "ready / act now"
+  pink uses `--readout-bold-timer-bg` (tag, strip chip, panel 2 badge); `--hot` and `--pink` are decoration only.
   Each fits its widest reading (rig section L). A nest in play with no CAV has its boxes darkened.
 - **Command Lines** (players never see "Command Box", E7): 1–4, **2 by default**, picked with "How Many Command Lines?"
   (One–Four, each in its line's colour, the one picked lit; E29). An empty line says "RCAV + unit", or "CAV + unit +
@@ -142,11 +144,15 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Sound (E24/E25):** a mute button top left on every screen, and M (remembered per browser); in play M types, so the
   button and **Ctrl+M** mute. Every sound goes through `audio.js`'s one master chain: connect new sounds to `bus()`,
   never to the speakers directly (rig section A2). A background tab stops the title tune and holds every sound.
+  **E35:** the sound context is made at boot, so the title track plays as the title appears where autoplay is allowed
+  (Fang Rock); in a browser the first Enter or click on the title only starts it (E40, ruled), and until then the title's prompt
+  reads PRESS ANY KEY (never in Fang Rock: it waits 0.3 s for autoplay behind LOADING…).
   **Music (Chat, 2026-09-25):** `files/audio/` (from `make-music.py`; Andrew's sources in the git-ignored `files/assets/`):
   the title track on the menus (shared), the gameplay loop in play, the game-over track once. 0.5 s fades on every
-  change; Esc pauses and resumes; the loops are sample-exact (loop points in `config.js` = `music.json`). The gameplay
-  level keeps it ≥ 6 dB under the quietest effect (rig section M). Game over: TITLE SCREEN / PLAY AGAIN (⏳ **E34**:
-  the default), and at the track's end it returns to the title by itself.
+  change; Esc pauses and resumes; the loops are sample-exact (loop points in `config.js` = `music.json`). **E36:** every
+  track plays at −19.8 LUFS (the other cartridges' median; `lufs` + `level` in `config.js`) and dips to 40% under
+  THONG, the buzz and the hiss (`musicDuck`); small sounds ride under it. Re-measure with ebur128 if a file changes. Game over: TITLE SCREEN / PLAY AGAIN (TITLE SCREEN
+  lit first, E34; Enter does nothing for 1 s [T] or on auto-repeat), and at the track's end it returns to the title.
   Laying an egg: a squeeze on the cord's last stretch, then a pop (Chat, 2026-09-25; synthesized, ±8% pitch, at most 2
   of each at once, kept under THONG, the buzz and the hiss: rig section S measures them offline).
 - **Platform:** a plain browser tab, and Fang Rock (`fangrock://arcade/eggtimer`), which serves the arcade from the
@@ -184,11 +190,15 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 the PLC root index instead, because it keys to the git root.
 
 ## State 2026-09-25
-Everything is live through `b1bebdc` (E26–E31, the refreshed art brief, the board lights). The brief
-(`docs/Egg Timer art brief for Gemini.md`) is now **Code's build spec**: its 🔒 sections are Code/Andrew only, and Chat
-writes Gemini's prompts. **Open:** E32 (Andrew picks the board tint) and E33 (for Chat: the bold timer's 3.5:1). Andrew's own `files/assets/`
-(images and three music tracks, added 2026-09-25) is untracked: not Code's to commit or rename. **Waiting on Andrew:**
-the rest of Chat's review item 4 (the hatchling's legs must stay visible
-in the scurry: it arrived cut off; see the ⏸ handoff). **Next:** the Gemini pilot (nest + egg with its three hints),
-then the art-slot batch. Left from the audit, by Andrew's choice: moving the JavaScript colours into `theme.css`, dead
-code, and the other test gaps.
+Everything is live on `main` through E32–E34 (Chat, 2026-09-25): board lights, lay sound, music, the legs' shuffle, the
+ready pink, the game-over Enter guard. No E-item is open. The brief (`docs/Egg Timer art brief for Gemini.md`) is
+**Code's build spec**: its 🔒 sections are Code/Andrew only, and Chat writes Gemini's prompts. Andrew's own
+`files/assets/` (images, music sources) is git-ignored: not Code's to commit or rename.
+**Held:** the Gemini pilot art (nest + egg, hints, the cord egg) and its art README are on branch `et-pilot-art-hold`,
+waiting for Andrew's OK of `~/Downloads/Egg Timer pilot art - every state (updated).png`. On his OK: set that day as the
+approval date in `files/art/README.md`, merge the branch into `main`, run both rigs, push (see the ⏸ handoff).
+**Chat's E35–E40 (Andrew's playtest):** E35, E36, E37 built and live. E39 and E40 live too. **E38** (shell pieces, alien parts, hose
+physics, trough) is ruled in full but comes after the pilot-art merge, then is held for Andrew's screenshot sheet
+(pieces mid-push, a streaked yolk, a drip from the top, a piece riding a drip, pieces in the trough, a big pile).
+**Next:** the art-slot batch. Left from the audit, by Andrew's choice: moving the JavaScript colours into `theme.css`,
+dead code, and the other test gaps.

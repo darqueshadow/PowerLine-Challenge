@@ -101,10 +101,10 @@
     if (cls) elm.className = base + " " + cls;
   }
 
-  function slam(v, how) {
+  // E37: the pan comes down on a clear only (it used to come down late on a hatch too)
+  function slam(v) {
     v.pan.style.setProperty("--pan", ET.CONFIG.panSeconds + "s");
-    v.pan.style.setProperty("--pan-delay", (how === "late" ? ET.CONFIG.hatchPanDelay : 0) + "s");
-    replay(v.pan, "pan", how);
+    replay(v.pan, "pan", "hit");
   }
 
   /* The egg ladder (Refinement 3 rulings): a fast clear's dish and caption over the nest for about a second.
@@ -900,7 +900,7 @@
             break;
           case "cleared":
             // the pan slams; a fast clear serves the egg ladder's next dish, a slow one only leaves mess
-            slam(v, "hit");
+            slam(v);
             if (e.fast) dish(v.el, e.rung);
             if (ET.audio) { ET.audio.thong(); if (e.fast) ET.audio.ding(); }
             // E15 (ruled): a small splat on its own nest, the rest evenly across the whole board
@@ -913,9 +913,7 @@
             void v.el.offsetWidth;
             v.el.style.setProperty("--dir", Math.random() < 0.5 ? -1 : 1);
             v.el.classList.add(ET.art.FLOURISHES[Math.floor(Math.random() * ET.art.FLOURISHES.length)]);
-            // the pan comes down late, on the empty nest: look only, the hatch is already final
-            slam(v, "late");
-            if (ET.audio) ET.audio.clunk(ET.CONFIG.hatchPanDelay);
+            // E37 (Chat, 2026-09-25): a hatch shows the hatch only: no pan, no THONG, no clunk
             hud.pool.classList.remove("hit");
             void hud.pool.offsetWidth;
             hud.pool.classList.add("hit");

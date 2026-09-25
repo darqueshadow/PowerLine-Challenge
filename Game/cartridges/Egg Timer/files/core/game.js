@@ -11,6 +11,8 @@
    The wall clock is wallStart + clock, wrapped at midnight.
    Time Warp (Refinement 3 §4, E18): once the wave's last CAV has started (none
    still waiting to be placed) and no egg is bold, `clock` runs warpFactor times as fast, until the next egg goes bold.
+   E39: it also runs while 2 or more eggs are each over 8:00 (displayed) from their bold mark, again never while an
+   egg is bold.
    `time` never warps, so the overtime window is never shortened.
 
    A nest's life (packet §6–§7):
@@ -254,13 +256,21 @@
     return (((this.wallStart + this.clock) % 86400) + 86400) % 86400;
   };
 
-  /* Time Warp is on once the wave's last CAV has spawned AND started, and no egg is bold (checked every
-     step, so it re-checks after each clear and hatch). */
+  /* Time Warp is on once the wave's last CAV has spawned AND started, and no egg is bold; or (E39) while 2 or more
+     eggs are each over 8:00 from their bold mark, again with no egg bold (checked every step, so it re-checks after
+     each clear, hatch and pop). */
   Game.prototype.warping = function () {
-    if (this.phase !== "wave" || this.spawned < this.quota) return false;
-    // E18 (ruled): not while a placement trigger is still waiting; the last CAV must have started
-    // (placed or auto-opened), and no egg may be bold
-    return !this.nests.some(function (n) { return n.unlocked && (n.state === "overtime" || n.state === "trigger"); });
+    if (this.phase !== "wave") return false;
+    var live = this.nests.filter(function (n) { return n.unlocked; });
+    if (live.some(function (n) { return n.state === "overtime"; })) return false;   // never while an egg is bold
+    // E18 (ruled): the last CAV must have started (placed or auto-opened): none still waiting to be placed
+    if (this.spawned >= this.quota && !live.some(function (n) { return n.state === "trigger"; })) return true;
+    return this.farEggs() >= ET.CONFIG.warpFar.eggs;
+  };
+  /* E39: how many running eggs are more than warpFar.seconds (displayed) from their bold mark. */
+  Game.prototype.farEggs = function () {
+    var clock = this.clock, far = ET.CONFIG.warpFar.seconds;
+    return this.nests.filter(function (n) { return n.unlocked && n.state === "active" && n.boldClock - clock > far + 1e-9; }).length;   // (a split step lands on the mark itself)
   };
 
   Game.prototype.step = function (dt) {
@@ -268,9 +278,14 @@
     var C = ET.CONFIG;
     var rate = this.warping() ? this.rate * C.warpFactor : this.rate;
     if (rate !== this.rate) {
-      // stop the warp on the exact instant the next egg goes bold: split the step there
-      var next = Infinity;
-      this.nests.forEach(function (n) { if (n.unlocked && n.state === "active") next = Math.min(next, n.boldClock); });
+      // stop the warp on the exact instant the next egg goes bold, or (E39) an egg comes within 8:00 of its bold mark:
+      // split the step there, and warping() decides again
+      var next = Infinity, far = C.warpFar.seconds, clock = this.clock;
+      this.nests.forEach(function (n) {
+        if (!n.unlocked || n.state !== "active") return;
+        next = Math.min(next, n.boldClock);
+        if (n.boldClock - far > clock) next = Math.min(next, n.boldClock - far);
+      });
       var until = (next - this.clock) / rate;
       if (until > 1e-9 && until < dt) {
         this.step(until);

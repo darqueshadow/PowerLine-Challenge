@@ -120,7 +120,6 @@
     // ── Refinement 2 (2026-09-22): pan, ERROR, hose (its switcher is retired by Refinement 3)
     panSeconds: 0.32,        // [T] the frying pan's slam, well under 0.5 s; never holds the keyboard
     // (Refinement 2's fried eggs by overtime third are replaced by the egg ladder, Refinement 3 rulings, below.)
-    hatchPanDelay: 0.35,     // [T] on a hatch the pan comes down this late, on the empty nest
     thongPitchJitter: 0.06,  // [T] ±6% pitch on each THONG so repeats don't grate
     errorSeconds: 1.0,       // [T] how long the red ERROR shows under the Command Line
     sound: true,            // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
@@ -131,18 +130,30 @@
     // has its volume ramp baked in. loop = [start, end] in seconds inside the file; the file plays from 0 once, then loops.
     // The tempo is exact: each loop is a whole number of bars (Chat's "about 144" and "about 129" measure 141.02 and
     // 131.15). The numbers are make-music.py's files/audio/music.json, repeated here.
+    // E36 (Chat, 2026-09-25): the music is a feature, as loud as the other PLC cartridges' music. Measured with ffmpeg's
+    // ebur128 (integrated loudness) and each cartridge's own playback volume: Asteroid Command's seven tracks (volume 0.5)
+    // play at -16.0 to -20.1 LUFS, the Aquanaut's two (0.5) at -20.9 and -22.3; the median of the nine, -19.8 LUFS, is
+    // the target. `lufs` is each file's own loudness; its level = 10^((musicLufs - lufs + 1.94) / 20), 1.94 dB being the
+    // master level's 0.8. Before E36 they played at -31.4 (title, game over) and -48.6 LUFS (gameplay). The files peak at
+    // about -4 dBFS, so at these levels music alone stays well under the master ceiling's knee: never rounded off.
+    musicLufs: -19.8,
     music: {
-      title: { file: "audio/title-screens-loop.mp3", loop: [34.668005, 92.531995], bpm: 141.02, level: 0.2 },   // title, mode selection, options
-      gameplay: { file: "audio/ticking-clock-loop.mp3", loop: [9.198005, 151.940431], bpm: 131.15, level: 0.03 }, // first wave to game over
-      over: { file: "audio/game-over.mp3", loop: null, bpm: 113.45, level: 0.2, seconds: 121.4 }                 // plays once
+      title: { file: "audio/title-screens-loop.mp3", loop: [34.668005, 92.531995], bpm: 141.02, lufs: -15.5, level: 0.762 },   // title, mode selection, options
+      gameplay: { file: "audio/ticking-clock-loop.mp3", loop: [9.198005, 151.940431], bpm: 131.15, lufs: -16.2, level: 0.826 }, // first wave to game over
+      over: { file: "audio/game-over.mp3", loop: null, bpm: 113.45, lufs: -15.5, level: 0.762, seconds: 121.4 }                 // plays once
     },
     // [T] levels before the master: the menus have no sound effects to protect; in play the music sits at least 6 dB
     // under the quietest effect (the egg-laying squeeze), which rig section M measures.
     musicFade: 0.5,                // [T] seconds: every change of screen fades out and in; so does leaving game over
+    // E36: the music dips under THONG, the error buzz and the hiss, then comes back; every other sound (the egg-laying
+    // squeeze and pop, the ding) rides under it with no dip.
+    musicDuck: { depth: 0.4, attack: 0.015, release: 0.3 },   // [T] to 40% (-8 dB) in 15 ms, back over 0.3 s once it ends
     musicPauseFade: 0.05,          // [T] seconds: Esc pauses and resumes the gameplay music where it stopped, without a click
-    // ⏳ PENDING (E34): the game-over screen's default button (Enter). "title" (a clear way back to the title screen,
-    //   Chat's ruling) or "again" (play again, what Enter did before).
+    // E34 (ruled 2026-09-25): TITLE SCREEN is picked first ("again" would pick PLAY AGAIN, what Enter did before).
     overDefault: "title",
+    // E34: game over ignores Enter for this long after it appears, and a held Enter (auto-repeat) at any time, so a
+    // player still hammering Enter at the end of a game sees the result first. ← →, mute and clicks are unaffected.
+    overEnterDelay: 1,             // [T] seconds
 
     // ── E24 (Andrew, 2026-09-24): sound on and off ──────────────────────────
     // A mute button on every screen and the M key, remembered per browser. The title tune pauses in a background tab,
@@ -151,6 +162,13 @@
     //   so M types there. M mutes on the title, mode-selection and game-over screens and while paused; in play the
     //   button does, and so does Ctrl+M (it does nothing in VisiCAD, so it teaches no wrong habit). "none" drops Ctrl+M.
     muteKeyInPlay: "ctrl-m",       // "ctrl-m" | "none"
+    // E35 (Chat, 2026-09-25): the title music starts on the title screen. Where the browser allows it (Fang Rock) it
+    //   plays as soon as the title appears; a browser that holds sound until the first key or click starts it on that
+    //   press. E40 (ruled 2026-09-25): "sound", as built: that first press only starts the music (the next Enter or click
+    //   goes on); "go" would also leave the title, so the music would start as the options screen appears. Until that
+    //   press the title's prompt reads "PRESS ANY KEY" (blinking, as the prompt always has), then "PRESS ENTER".
+    wakePromptDelay: 0.3,          // [T] seconds: E40's prompt waits this long for autoplay (Fang Rock) before showing
+    titleFirstPress: "sound",      // "sound" | "go"
 
     // ── Refinement 2 gaps, ruled 2026-09-22 (E5–E11) ─────────────────────────
     // Hose ruling (2026-09-22, replaces E5): in-game the cursor is ALWAYS the hose nozzle, with a
@@ -176,6 +194,9 @@
     // §4 "Time Warp": once the wave has spawned its last egg and no egg is bold, every clock (nests and the
     // wall clock) runs this many times the wave's speed, until an egg goes bold. Overtime is untouched.
     warpFactor: 5,                 // [T]
+    // E39 (Chat, 2026-09-25): Time Warp ALSO runs while at least `eggs` eggs are each more than `seconds` of displayed
+    // time from their bold mark (both as ruled), whether or not the wave's last CAV has started. Never while an egg is bold.
+    warpFar: { eggs: 2, seconds: 480 },   // 2 eggs, 8:00
     // E27 (ruled 2026-09-24): the centre panel is a grandfather clock whose hands spin while it runs; with reduced motion
     // they hold still and the face reads "5×". E28 (ruled 2026-09-24) keeps the name "Time Warp" (E27's rename is undone)
     // and puts a caption under its sign. When it kicks in, the sign flashes warpSignFlashes times, then stays lit.
@@ -269,8 +290,8 @@
     // A faint, pale tint on the board (it stays dark), white lights that fade in and out on the music's beat behind
     // everything, and, while Time Warp runs, the board and its lights fade to dark. All in view.js's backdrop layer,
     // which sits behind the cord, the bolts and the whole board, so nothing in front of it is ever darkened.
-    // ⏳ PENDING (E32): Andrew picks the tint in playtest from three swatches (theme.css --board-tint-*); `?tint=` in the
-    //   address tries another one without changing this.
+    // E32 (ruled 2026-09-25): lilac, as built. The other two swatches (theme.css --board-tint-*) stay, unused: `?tint=`
+    //   in the address still previews one without changing this.
     boardTint: "lilac",            // "lilac" | "mint" | "cream"
     // The beat clock reads the gameplay track's BPM (music.gameplay.bpm, below). It runs on the player's seconds: mute
     // doesn't stop the lights, pause freezes them.
