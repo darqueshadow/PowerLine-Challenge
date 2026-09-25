@@ -26,7 +26,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Andrew will review the shared transport unit list himself: change nothing else in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E45**; ⏳ **E44** open: the hose jet's aim);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E45**; none open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -106,7 +106,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Mess, pieces, hose and trough:** a clear leaves a small splat on its own nest and drops the rest over the board
   (E15); liquid **covers readouts and post-its** (E14). Every clear also throws **shell pieces** cut from the egg
   picture, plus alien parts at break stages 3–5 (E38): they sit behind the nests, pile round the readouts, never fade
-  and carry into the next wave. **In-game the cursor is always the hose nozzle.** A drag **pushes pieces** the way it
+  and carry into the next wave. **In-game the cursor is always the hose nozzle** (E44: drawn by view.js, the system cursor
+  hidden, turned about its tip to point where the jet goes: a swing, a wobble ignored, up-left at each game's start). A drag **pushes pieces** the way it
   goes (they slide, tumble, settle) and **streaks and thins liquid** (E42: a blast, not a trickle: a thick jet with a burst, mist and a
   splash, pushing what it reaches; one sweep carries a piece into the trough; ~2 passes wash liquid; a pressure-washer
   sound under the music); liquid pushed to the top drips back down, and a

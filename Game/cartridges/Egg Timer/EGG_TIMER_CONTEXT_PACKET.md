@@ -1,3 +1,6 @@
+> **FILING NOTE — Claude Code, 2026-09-25 (E44).** Chat's ruling is filed verbatim as
+> `Previous Versions/EGG_TIMER_E44_2026-09-25.md`, struck in §11, built and **pushed live**. No E-item is open.
+
 > **FILING NOTE — Claude Code, 2026-09-25 (E42–E43).** Chat's rulings are filed verbatim as
 > `Previous Versions/EGG_TIMER_E42-E43_2026-09-25.md`; the packet before them is
 > `Previous Versions/EGG_TIMER_CONTEXT_PACKET_e42-e43.md`. Each is struck in §11, built, and **pushed live** in its own
@@ -686,7 +689,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   `hatchPanDelay` are gone. The browser rig counts every THONG and every pan from a game's start to past its first hatch:
   none.)*
 
-### Ruled by Chat (2026-09-25) — E42 and E43; E44 raised building E42
+### Ruled by Chat (2026-09-25) — E42, E43 and E44 (raised building E42)
 
 - ~~**E42. Hose: blast, not trickle.**~~ **Resolved** *(E42, Chat, 2026-09-25; verbatim in
   `EGG_TIMER_E42-E43_2026-09-25.md`)*: **a thicker, faster, longer-reaching stream, with a burst at the nozzle, mist
@@ -712,7 +715,17 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   fired as the board draws the change, so a pause holds it and a new game starts silent. Both sit under 60% of the
   quietest loud cue's peak and loudness, through the master chain like every sound; the rig checks the direction of each
   sweep, that nothing sounds while it runs, no dip, and mute.)*
-- ⏳ **E44. Which way does the hose's jet point?** *(Raised by Code building E42.)* The nozzle cursor is a fixed picture
+- ~~**E44. Which way does the hose's jet point?**~~ **Resolved** *(E44, Chat, 2026-09-25; verbatim in
+  `EGG_TIMER_E44_2026-09-25.md`)*: **neither option: the jet keeps pointing the way you drag, and the nozzle picture
+  turns to point the same way, so the two always agree. It pivots at the nozzle's tip (the cleaning point stays where it
+  is); the turn is smooth (a swing, no snapping or jitter on small wobbles); still, it keeps its last direction; before
+  the first drag it points up-left, as now. Reduced motion: it snaps, no swing.** *(Code: a cursor picture can't turn, so
+  in play the system cursor is hidden and the nozzle is drawn on the pointer, above everything, its tip exactly on it,
+  turned about that tip; the hose joins its turned back end. A drag's direction counts only once it has moved 8 px
+  (`hoseJet.turnMinMove`), so a wobble turns nothing, and the picture swings onto it with a 0.07 s time constant
+  (`turnSeconds`), the jet drawn from the same angle every frame; the jet reaches, and pushes, where the picture points.
+  Each game starts it up-left. The `hoseJet.aim` switch is gone. Menus keep the normal pointer. One trade: a drawn
+  cursor can trail the real pointer by a frame, which the system cursor never did.)* *(Original question follows.)* The nozzle cursor is a fixed picture
   pointing up-left, and the wash happens at its tip. **Built** (`hoseJet.aim: "travel"`): the jet points the way the drag
   is going (the way it pushes), so the splash lands just ahead of where the nozzle is heading, and before the drag moves
   it points the nozzle's way. The other value, `"nozzle"`, always points it up-left like the picture (then the jet no

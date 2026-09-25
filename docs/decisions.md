@@ -363,6 +363,18 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Resolved 2026-09-25 — Egg Timer: E44, the nozzle turns with the jet (Chat ruling)
+
+**Solved:** The jet pointed the way of the drag while the nozzle cursor always pointed up-left. Now the nozzle picture
+turns with the jet about its tip, swinging, ignoring wobbles, keeping its last direction, up-left at each game's start.
+**Approach:** A CSS cursor image can't rotate, so in play `cursor: none` and view.js draws `#nozzle` (position fixed, top
+z-index, transform-origin at the tip 3,3) from the document's capture pointermove. One `aim` state (`want`/`shown`) feeds
+the nozzle, the jet (`placeJet`, `puff`), the hose's end (back offset 24,24 rotated) and the pieces' reach
+(`ET.pieces.spray(x0,y0,x1,y1,jx,jy)` now tests the move and the jet as two segments). `steer()` takes a direction only
+after 8 px; `swing()` is a rAF loop, time constant 0.07 s; reduced motion snaps.
+**If you touch this again:** rig checks that asserted `cursor: url(` now assert `none` plus the drawn nozzle; a rig drag
+done in one `ev()` never lets the swing run (no frames), so read the angle after a timeout.
+
 ## Resolved 2026-09-25 — Egg Timer: E43, Time Warp's sound (Chat ruling)
 
 **Solved:** Time Warp starting and ending were silent. Now a rising zap as it starts and a falling one as it ends; nothing

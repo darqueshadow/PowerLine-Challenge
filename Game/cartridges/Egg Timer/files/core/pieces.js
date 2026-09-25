@@ -370,23 +370,30 @@
       return made;
     },
 
-    /* The spray's move from (x0,y0) to (x1,y1), board px: every piece it passes is pushed the way it's going. E42:
-       `reach` (px) is the jet's length ahead of the nozzle when it points the way the drag goes: what the jet touches
-       is pushed too. */
-    spray: function (x0, y0, x1, y1, reach) {
-      var mx = x1 - x0, my = y1 - y0, move = Math.hypot(mx, my);
-      if (move < 1) return 0;
-      if (reach > 0) { x1 += mx / move * reach; y1 += my / move * reach; }
+    /* The spray's move from (x0,y0) to (x1,y1), board px: every piece it passes is pushed the way it's going. E42/E44:
+       (jx, jy) is the jet, from the nozzle at (x1,y1) to where it hits: what the jet touches is pushed too. */
+    spray: function (x0, y0, x1, y1, jx, jy) {
       var dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+      if (len < 1) return 0;
+      jx = jx || 0; jy = jy || 0;
+      var jl = Math.hypot(jx, jy);
       var C = ET.CONFIG.pieces, ux = dx / len, uy = dy / len, R = C.sprayRadius * H, hit = 0;
+      // how far (x, y) is from the move, or from the jet, whichever is nearer
+      function gap(x, y) {
+        var t = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / (len * len)));
+        var d = Math.hypot(x - (x0 + t * dx), y - (y0 + t * dy));
+        if (jl < 1) return d;
+        var u = Math.max(0, Math.min(1, ((x - x1) * jx + (y - y1) * jy) / (jl * jl)));
+        return Math.min(d, Math.hypot(x - (x1 + u * jx), y - (y1 + u * jy)));
+      }
+      var bx0 = Math.min(x0, x1, x1 + jx), by0 = Math.min(y0, y1, y1 + jy), bx1 = Math.max(x0, x1, x1 + jx), by1 = Math.max(y0, y1, y1 + jy);
       var near = [];
-      cells({ x0: Math.min(x0, x1) - R, y0: Math.min(y0, y1) - R, x1: Math.max(x0, x1) + R, y1: Math.max(y0, y1) + R }, function (k) {
+      cells({ x0: bx0 - R, y0: by0 - R, x1: bx1 + R, y1: by1 + R }, function (k) {
         (grid[k] || []).forEach(function (p) { if (near.indexOf(p) < 0) near.push(p); });
       });
       pieces.forEach(function (p) { if (p.state === "live" && near.indexOf(p) < 0) near.push(p); });
       near.forEach(function (p) {
-        var t = Math.max(0, Math.min(1, ((p.x - x0) * dx + (p.y - y0) * dy) / (len * len)));
-        var d = Math.hypot(p.x - (x0 + t * dx), p.y - (y0 + t * dy));
+        var d = gap(p.x, p.y);
         if (d < R + radius(p) * 0.5) { push(p, ux, uy, C.push * H * (1 - 0.5 * d / (R + radius(p)))); hit++; }
       });
       return hit;

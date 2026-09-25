@@ -130,7 +130,7 @@
     return on;
   }
 
-  /* ⏳ placeholder: the hose body (Hose ruling, 2026-09-22). The nozzle is the cursor itself (CSS);
+  /* ⏳ placeholder: the hose body (Hose ruling, 2026-09-22). The nozzle is drawn on the pointer (E44, below);
      this draws the hose from the back of the nozzle, sagging down to a fixed spigot on the board's
      bottom edge. Refinement 4 §2: it sits ABOVE the whole board (nests, gunk, readouts) and below the
      how-to panel, the Command Lines and the HUD bar with its cleanup banner. */
@@ -149,21 +149,24 @@
     hose.pipe = pipe; hose.valve = valve;
     screen.insertBefore(svg, screen.firstChild);
     svg.hidden = true;
+    buildNozzle();
     document.addEventListener("pointermove", function (ev) {
       lastPointer = { x: ev.clientX, y: ev.clientY };
       drawHose();
     }, true);
-    document.documentElement.addEventListener("pointerleave", function () { svg.hidden = true; });
+    document.documentElement.addEventListener("pointerleave", function () { svg.hidden = true; nozzle.hidden = true; });
     window.addEventListener("resize", drawHose);
   }
   function drawHose() {
+    placeNozzle();
     if (!hose || !lastPointer || hose.screen.hidden) { if (hose) hose.svg.hidden = true; return; }
     var sr = hose.screen.getBoundingClientRect(), f = field.getBoundingClientRect();
     var w = ET.CONFIG.hoseWidth;
     // the spigot: fixed on the board's bottom edge, poking up from under the Command Lines
     var sx = f.left - sr.left + f.width * ET.CONFIG.hoseSpigotX, sy = f.bottom - sr.top;
-    // the back of the nozzle cursor (its tip is the hotspot, the body runs down-right)
-    var ex = lastPointer.x - sr.left + 24, ey = lastPointer.y - sr.top + 24;
+    // the back of the nozzle (its tip is on the pointer; the picture's body runs down-right, turned with it, E44)
+    var turn = aim.shown - NOZZLE_AIM, cs = Math.cos(turn), sn = Math.sin(turn);
+    var ex = lastPointer.x - sr.left + 24 * cs - 24 * sn, ey = lastPointer.y - sr.top + 24 * sn + 24 * cs;
     var d = Math.hypot(ex - sx, ey - sy);
     var sag = Math.min(0.45 * d, 260);
     // leave the spigot upward, and come into the nozzle from below-right, drooping between
@@ -571,10 +574,60 @@
   /* E42 (Chat, 2026-09-25): the hose blasts, not trickles (⏳ placeholder look). From the press to the release, moving
      or not, a thick, fast jet leaves the nozzle's tip (the cursor's hotspot) and reaches hoseJet.length ahead, with a
      burst at the nozzle, mist thrown off along it and a splash where it hits; the blast sounds all that time. The jet
-     points the way the drag goes, or the nozzle's own aim until it moves (hoseJet.aim, ⏳ E44). Refinement 4 §2: the
+     points where the nozzle picture points: the way the drag goes (E44, below). Refinement 4 §2: the
      water draws with the hose, above the board. Reduced motion: the jet only, standing still. */
   var water = null, stopWipe = null;
-  var NOZZLE = [-Math.SQRT1_2, -Math.SQRT1_2];   // the cursor picture's nozzle points up-left
+
+  /* E44 (Chat, 2026-09-25): the nozzle turns to point where the jet goes, so the picture and the jet always agree. A
+     cursor picture can't turn, so in play the system cursor is hidden (style.css) and the nozzle is drawn here, its tip
+     on the pointer (the cleaning point, where it always was), turned about that tip. A drag turns it the way the drag
+     goes: the drag must move hoseJet.turnMinMove px before its direction counts, so a small wobble turns nothing, and
+     the picture swings onto the new direction (time constant turnSeconds) rather than snapping. Still, it keeps its
+     last direction; each game starts pointing up-left, as the cursor did. Reduced motion: it snaps, no swing. */
+  var NOZZLE_AIM = -3 * Math.PI / 4;   // the picture's own aim: up-left
+  var aim = { want: NOZZLE_AIM, shown: NOZZLE_AIM, from: null, raf: 0, at: 0 };
+  var nozzle = null;
+  function buildNozzle() {
+    nozzle = document.createElement("div");
+    nozzle.id = "nozzle";
+    nozzle.setAttribute("aria-hidden", "true");
+    nozzle.innerHTML = '<svg viewBox="0 0 32 32" width="32" height="32"><path class="n-hose-edge" d="M30 30 L16 16"/>' +
+      '<path class="n-hose" d="M30 30 L16 16"/><path class="n-head" d="M17 11 L11 17 L2 6 L6 2 Z"/></svg>';
+    nozzle.hidden = true;
+    document.body.appendChild(nozzle);
+  }
+  function placeNozzle() {
+    if (!nozzle) return;
+    var show = !!lastPointer && !!hose && !hose.screen.hidden;
+    nozzle.hidden = !show;
+    if (!show) return;
+    nozzle.style.transform = "translate(" + (lastPointer.x - 3) + "px, " + (lastPointer.y - 3) + "px) rotate(" + (aim.shown - NOZZLE_AIM) + "rad)";
+  }
+  function turnBy(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }   // the short way round, -π…π
+  // the drag is at (x, y), screen px: once it has moved far enough from where its direction was last taken, turn
+  function steer(x, y) {
+    if (!aim.from) { aim.from = { x: x, y: y }; return; }
+    var dx = x - aim.from.x, dy = y - aim.from.y;
+    if (Math.hypot(dx, dy) < ET.CONFIG.hoseJet.turnMinMove) return;
+    aim.from = { x: x, y: y };
+    aim.want = Math.atan2(dy, dx);
+    if (reducedMotion()) { aim.shown = aim.want; turned(); return; }
+    if (!aim.raf) { aim.at = performance.now(); aim.raf = requestAnimationFrame(swing); }
+  }
+  function swing(now) {
+    var dt = Math.max(0, Math.min(0.1, (now - aim.at) / 1000)), d = turnBy(aim.want - aim.shown);
+    aim.at = now;
+    if (Math.abs(d) < 0.003) aim.shown = aim.want;
+    else aim.shown = turnBy(aim.shown + d * (1 - Math.exp(-dt / ET.CONFIG.hoseJet.turnSeconds)));
+    turned();
+    aim.raf = aim.shown === aim.want ? 0 : requestAnimationFrame(swing);
+  }
+  function turned() { drawHose(); if (water && water.on) placeJet(); }
+  function resetAim() {
+    if (aim.raf) cancelAnimationFrame(aim.raf);
+    aim.want = aim.shown = NOZZLE_AIM; aim.from = null; aim.raf = 0;
+    drawHose();
+  }
   function jetSize() {
     var J = ET.CONFIG.hoseJet, h = board.getBoundingClientRect().height;
     return { len: J.length * h, w: Math.max(J.minWidth, J.width * h) };
@@ -588,7 +641,7 @@
     ["core", "burst"].forEach(function (k) { var i = document.createElement("i"); i.className = k; jet.appendChild(i); });
     el.appendChild(jet);
     field.closest(".screen").appendChild(el);
-    water = { el: el, jet: jet, on: false, x: 0, y: 0, ux: NOZZLE[0], uy: NOZZLE[1], splashAt: -Infinity, timer: null };
+    water = { el: el, jet: jet, on: false, x: 0, y: 0, splashAt: -Infinity, timer: null };
   }
   function placeJet() {
     var f = water.el.getBoundingClientRect(), s = jetSize(), j = water.jet;
@@ -596,7 +649,7 @@
     j.style.top = (water.y - f.top - s.w / 2) + "px";
     j.style.width = s.len + "px";
     j.style.height = s.w + "px";
-    j.style.transform = "rotate(" + Math.atan2(water.uy, water.ux) + "rad)";
+    j.style.transform = "rotate(" + aim.shown + "rad)";
     j.classList.toggle("still", reducedMotion());
   }
   function particle(cls, x, y, dx, dy, size, seconds) {
@@ -614,7 +667,7 @@
   function puff() {
     if (!water.on || reducedMotion()) return;
     var J = ET.CONFIG.hoseJet, s = jetSize(), f = water.el.getBoundingClientRect(), x = water.x - f.left, y = water.y - f.top;
-    var ux = water.ux, uy = water.uy;
+    var ux = Math.cos(aim.shown), uy = Math.sin(aim.shown);
     for (var i = 0; i < J.mist; i++) {
       var k = 0.15 + Math.random() * 0.8, side = (Math.random() < 0.5 ? -1 : 1) * (s.w * 0.6 + Math.random() * s.w * 1.6);
       particle("drop", x + ux * s.len * k, y + uy * s.len * k, -uy * side + ux * s.w, ux * side + uy * s.w, 0, 0.35);
@@ -634,18 +687,12 @@
     water.x = x; water.y = y;
     if (!water.on) {
       water.on = true;
-      water.ux = NOZZLE[0]; water.uy = NOZZLE[1];
       water.jet.hidden = false;
       water.timer = setInterval(puff, 60);   // it keeps blasting while the pointer is held still
       if (ET.audio) ET.audio.blast(true);
     }
     placeJet();
     puff();
-  }
-  // the drag moved by (ux, uy): the jet swings to point that way (hoseJet.aim "travel")
-  function sprayAim(ux, uy) {
-    if (!water || !water.on || ET.CONFIG.hoseJet.aim !== "travel" || (!ux && !uy)) return;
-    water.ux = ux; water.uy = uy;
   }
   function sprayOff() {
     if (!water || !water.on) return;
@@ -807,6 +854,7 @@
       });
       ET.mess.clear(floor);
       ET.pieces.reset();   // E38: a new game starts clean (between waves nothing is removed)
+      resetAim();          // E44: the nozzle starts each game pointing up-left
       piecesAt = null;
       inCleanup = false;
       field.classList.remove("hose");
@@ -1038,9 +1086,10 @@
         var br = board.getBoundingClientRect(), bx = ev.clientX - br.left, by = ev.clientY - br.top, prev = last.board || { x: bx, y: by };
         var mv = Math.hypot(bx - prev.x, by - prev.y), ux = mv ? (bx - prev.x) / mv : 0, uy = mv ? (by - prev.y) / mv : 0;
         var jet = paintHose();
-        if (jet) { sprayAim(ux, uy); sprayOn(ev.clientX, ev.clientY); }
-        // E38: the spray pushes the pieces it passes the way it's going (E42: and those its jet reaches ahead of it)…
-        ET.pieces.spray(prev.x, prev.y, bx, by, jet && ET.CONFIG.hoseJet.aim === "travel" ? jetSize().len : 0);
+        if (jet) { steer(ev.clientX, ev.clientY); sprayOn(ev.clientX, ev.clientY); }
+        // E38: the spray pushes the pieces it passes the way it's going (E42/E44: and those its jet reaches)…
+        var reach = jet ? jetSize().len : 0;
+        ET.pieces.spray(prev.x, prev.y, bx, by, Math.cos(aim.shown) * reach, Math.sin(aim.shown) * reach);
         last.board = { x: bx, y: by };
         // …and streaks and thins the liquid under it (E14's gunk on a nest, and the floor's)
         at(ev).forEach(function (h) {
@@ -1055,6 +1104,7 @@
         try { field.setPointerCapture(ev.pointerId); } catch (e) { /* synthetic pointers have no capture */ }
         field.classList.add("wiping");
         last = {};
+        aim.from = null;   // E44: the drag's direction is taken from where it starts
         wipe(ev);
         ev.preventDefault();
       });
@@ -1075,6 +1125,8 @@
       window.addEventListener("blur", end);   // the window losing focus pauses the game: the blast stops with it
       stopWipe = end;
     },
+    /* For rigs (E44): the nozzle's aim, radians: where the drag last pointed it, and where it's drawn now. */
+    aim: function () { return { want: aim.want, shown: aim.shown, nozzle: !!nozzle && !nozzle.hidden }; },
     /* E42: stop spraying now (a pause, or the play screen closing): the jet and its blast end with it. */
     stopSpray: function () { if (stopWipe) stopWipe(); sprayOff(); },
 

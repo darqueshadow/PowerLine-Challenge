@@ -154,6 +154,8 @@
   --water: #6fd3ff;                       /* water blue */
   --water-edge: #0a4a7a;                  /* deep water blue */
   --water-core: #eafaff;                  /* E42: the jet's hard white core */
+  --nozzle-head: #ffd23a;                 /* E44: the drawn nozzle (was the cursor picture's own colours) */
+  --nozzle-hose: #22a34a;                 /* E44: the stub of hose on the nozzle */
   --water-mist: rgba(190, 236, 255, 0.8); /* E42: the mist and splash */
 
   /* Frying pan and the egg ladder dishes */

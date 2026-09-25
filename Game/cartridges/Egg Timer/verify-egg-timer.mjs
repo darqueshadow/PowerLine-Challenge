@@ -265,7 +265,7 @@ try {
     const loudest = async (ms) => { let p = 0; for (let t = 0; t < ms; t += 25) { p = Math.max(p, await ev("ET.audio.peak()")); await wait(25); } return p; };
     const b = await ev("(() => { const e = document.querySelector('#mute'), r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, cursor: getComputedStyle(e).cursor }; })()");
     ok(b.w > 20 && b.h > 20 && b.x < 40 && b.y < 40, `a mute button sits top left   [${Math.round(b.x)},${Math.round(b.y)}, ${Math.round(b.w)}×${Math.round(b.h)}]`);
-    ok(!b.cursor.includes("url("), "…with the normal pointer on the menus");
+    ok(!b.cursor.includes("url(") && b.cursor !== "none", "…with the normal pointer on the menus");
     const m0 = await m();
     eq([m0.pressed, m0.muted, m0.saved], ["false", false, null], "sound starts on: a fresh browser has nothing remembered");
     await press("m");   // also the first key, so sound unlocks here
@@ -419,7 +419,7 @@ try {
       return { same: JSON.stringify(says('#howto')) === JSON.stringify(says('#howto-title')), shown: strip.height > 100, under: strip.top >= signs.bottom, lines: [...p.querySelectorAll('ul li')].filter(l => l.getBoundingClientRect().height > 0).length }; })()`);
     ok(st.same && st.shown && st.under && st.lines === 0, "E29: the options screen's panel shows the same comic strip, under the HOW / TO / PLAY signs, in place of its lines");
   }
-  ok(!(await ev("getComputedStyle(document.querySelector('[data-mode]')).cursor")).includes("url("), "menus and setup keep the normal pointer");
+  ok(!/url\(|none/.test(await ev("getComputedStyle(document.querySelector('[data-mode]')).cursor")) && (await ev("document.querySelector('#nozzle').hidden")), "menus and setup keep the normal pointer (and no drawn nozzle)");
   eq(await ev("!document.querySelector('#hose') || document.querySelector('#hose').hidden || document.querySelector('#screen-play').hidden"), true, "no hose outside the game");
   await shot("02-setup");
   await press("Enter");
@@ -833,7 +833,7 @@ try {
     const clicked = await line();
     await click();
     ok(clicked[1] && clicked[2] && clicked[0] === "m" && !(await ev("ET.audio.muted()")), `in play the button mutes (and unmutes), and the Command Line keeps the keyboard and its text   [${JSON.stringify(clicked)}]`);
-    ok((await ev("getComputedStyle(document.querySelector('#mute')).cursor")).includes("url("), "…and over it the cursor is still the hose nozzle, as everywhere in the game");
+    ok((await ev("getComputedStyle(document.querySelector('#mute')).cursor")) === "none", "…and over it the cursor is still the hose nozzle (the drawn one: the system cursor is hidden), as everywhere in the game");
     // E25 (ruled): Ctrl+M mutes in play, leaving the Command Line's text alone
     await typeM(CTRL);
     const ctrlOn = await line();
@@ -1016,7 +1016,8 @@ try {
   {
     // Hose ruling (2026-09-22): in-game the cursor is always the nozzle; menus keep the normal pointer
     const cur = (sel) => ev(`getComputedStyle(document.querySelector('${sel}')).cursor`);
-    ok((await cur("#field")).includes("url(") && (await cur(".box.active input")).includes("url("), "in-game the cursor is always the hose nozzle (board, Command Line)");
+    const drawn = await ev("(() => { document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 700, clientY: 400 })); return !document.querySelector('#nozzle').hidden; })()");
+    ok((await cur("#field")) === "none" && (await cur(".box.active input")) === "none" && drawn, "in-game the cursor is always the hose nozzle (board, Command Line): E44 draws it, the system cursor hidden");
     const hosePath = await ev(`(() => {
       const f = document.querySelector('#field').getBoundingClientRect();
       document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: f.left + f.width * 0.8, clientY: f.top + 120 }));
@@ -1129,7 +1130,7 @@ try {
     ok(await ev("document.querySelector('#howto').getBoundingClientRect().width === 0"), "E30: no side panel during cleanup either");
     ok(await ev("getComputedStyle(document.querySelector('#howto-title')).display === 'none' || document.querySelector('#screen-title').hidden"), "…and the title's How To Play card is only on the title screen");
     await shot("12a-cleanup-banner");
-    eq(await ev("getComputedStyle(document.querySelector('#field')).cursor.includes('url(')"), true, "during cleanup the cursor is the hose nozzle too");
+    eq(await ev("getComputedStyle(document.querySelector('#field')).cursor === 'none' && !document.querySelector('#nozzle').hidden"), true, "during cleanup the cursor is the hose nozzle too");
     const drops = await ev(`(() => {
       const field = document.querySelector('#field');
       const r = field.getBoundingClientRect();
@@ -2045,19 +2046,20 @@ try {
       const j = document.querySelector('#water .jet'), m0 = new DOMMatrix(getComputedStyle(j).transform);
       const r0 = { shown: !j.hidden, blasting: ET.audio.blasting(), aim: [+m0.a.toFixed(3), +m0.b.toFixed(3)] };
       fire('pointermove', 430, 300); fire('pointermove', 460, 300);
-      const jr = j.getBoundingClientRect(), m1 = new DOMMatrix(getComputedStyle(j).transform);
-      const r1 = { w: parseFloat(j.style.height), len: parseFloat(j.style.width), H: b.height, aim: [+m1.a.toFixed(3), +m1.b.toFixed(3)], left: jr.left - b.left,
-        anim: getComputedStyle(j.querySelector('.core')).animationName + '/' + getComputedStyle(j.querySelector('.burst')).animationName, drops: document.querySelectorAll('#water .drop').length };
+      let r1 = null;
+      setTimeout(() => { const jr = j.getBoundingClientRect(), m1 = new DOMMatrix(getComputedStyle(j).transform);
+        r1 = { w: parseFloat(j.style.height), len: parseFloat(j.style.width), H: b.height, aim: [+m1.a.toFixed(3), +m1.b.toFixed(3)], left: jr.left - b.left,
+          anim: getComputedStyle(j.querySelector('.core')).animationName + '/' + getComputedStyle(j.querySelector('.burst')).animationName, drops: document.querySelectorAll('#water .drop').length }; }, 300);
       setTimeout(() => {
         const r2 = { drops: document.querySelectorAll('#water .drop').length, splash: document.querySelectorAll('#water .splash').length, shown: !j.hidden, blasting: ET.audio.blasting() };
         fire('pointerup', 460, 300);
         done({ r0, r1, r2, r3: { shown: !j.hidden, blasting: ET.audio.blasting() } });
-      }, 400); })`);
+      }, 700); })`);
     const J = await ev("ET.CONFIG.hoseJet");
     ok(held.r0.shown && held.r0.blasting && Math.abs(held.r0.aim[0] + Math.SQRT1_2) < 0.01 && Math.abs(held.r0.aim[1] + Math.SQRT1_2) < 0.01,
       `pressing starts the jet at once, pointing the nozzle's way (up-left), and the blast with it   [${JSON.stringify(held.r0)}]`);
     ok(held.r1.aim[0] > 0.99 && Math.abs(held.r1.left - 460) <= held.r1.w && Math.abs(held.r1.len - J.length * held.r1.H) < 1,
-      `dragging, the jet runs from the nozzle the way the drag goes (hoseJet.aim "${J.aim}", ⏳ E44), ${J.length} board heights long   [${Math.round(held.r1.len)} px, from x ${Math.round(held.r1.left)}]`);
+      `dragging, the jet runs from the nozzle the way the drag goes (E44), ${J.length} board heights long   [${Math.round(held.r1.len)} px, from x ${Math.round(held.r1.left)}]`);
     ok(held.r1.w >= 10 && held.r1.anim === "jet-flow/jet-burst" && held.r1.drops > 0,
       `it's a thick, fast jet (${held.r1.w.toFixed(1)} px; the old drops were 6), streaming, with a burst at the nozzle and mist along it   [${held.r1.anim}, ${held.r1.drops} mist]`);
     ok(held.r2.shown && held.r2.blasting && held.r2.drops > 0 && held.r2.splash > 0, `held still, it keeps blasting: mist, a splash where it hits, the sound   [${JSON.stringify(held.r2)}]`);
@@ -2111,6 +2113,56 @@ try {
         fire('pointerup', 430, 300); done(r); }, 300); })`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
     ok(rm.shown && rm.core === "none" && rm.burst === "none" && rm.bits === 0, `SAFETY: with reduced motion the jet shows standing still: no burst, no mist, no splash   [${JSON.stringify(rm)}]`);
+  }
+
+  /* ------------------------------------------------------ E44. the nozzle turns with the jet */
+  section("E44. the nozzle picture turns with the jet (Chat, 2026-09-25)");
+  {
+    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    if (await ev("__et.paused()")) await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })), 1)");
+    const UL = -3 * Math.PI / 4;
+    // where the drawn nozzle's tip is, its turn, and the hose's end, with the pointer at (x, y)
+    const look = `(() => { const n = document.querySelector('#nozzle'), m = new DOMMatrix(getComputedStyle(n).transform), a = ET.view.aim();
+      const d = document.querySelector('#hose .hose-body').getAttribute('d').trim().split(/[ ,]+/), sr = document.querySelector('#screen-play').getBoundingClientRect();
+      const j = document.querySelector('#water .jet'), jm = j && !j.hidden ? new DOMMatrix(getComputedStyle(j).transform) : null;
+      return { shown: !n.hidden, tip: [3 + m.e, 3 + m.f], turn: Math.atan2(m.b, m.a), want: a.want, at: a.shown,
+        hoseEnd: [+d[d.length - 2] + sr.left, +d[d.length - 1] + sr.top], jet: jm ? Math.atan2(jm.b, jm.a) : null }; })()`;
+    const near = (x, y, e = 0.02) => Math.abs(Math.atan2(Math.sin(x - y), Math.cos(x - y))) < e;
+    const s0 = await ev(`(() => { document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 600, clientY: 420 })); return ${look}; })()`);
+    ok(s0.shown && near(s0.at, UL) && near(s0.turn, 0) && Math.hypot(s0.tip[0] - 600, s0.tip[1] - 420) < 0.5,
+      `before the first drag the nozzle points up-left, as the cursor did, its tip on the pointer   [tip ${s0.tip.map(Math.round)}]`);
+    const fireJs = "const f = document.querySelector('#field'); const fire = (t, x, y) => { const e = new PointerEvent(t, { bubbles: true, clientX: x, clientY: y, pointerId: 12, buttons: 1 }); document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x, clientY: y })); f.dispatchEvent(e); };";
+    // a drag to the right: the picture swings (not snaps) onto it, about its tip, and the jet agrees at every moment
+    const sw = await ev(`new Promise((done) => { ${fireJs} const out = [];
+      fire('pointerdown', 600, 420); fire('pointermove', 640, 420); out.push(${look});
+      setTimeout(() => { out.push(${look}); setTimeout(() => { out.push(${look}); fire('pointermove', 642, 423); fire('pointermove', 639, 419); fire('pointermove', 641, 422); out.push(${look}); done(out); }, 400); }, 40); })`);
+    const [a0, a1, a2, a3] = sw;
+    ok(near(a0.want, 0) && near(a0.at, UL) && !near(a1.at, UL, 0.05) && !near(a1.at, 0, 0.05) && near(a2.at, 0),
+      `a drag turns it the way it goes with a swing, not a snap   [${[a0, a1, a2].map((q) => (q.at * 180 / Math.PI).toFixed(0) + "°").join(" → ")}]`);
+    ok(sw.every((q) => near(q.turn, q.at - UL) && q.jet !== null && near(q.jet, q.at)),
+      "…and the picture and the jet point the same way at every moment");
+    ok(sw.every((q, i) => Math.hypot(q.tip[0] - (i ? [640, 640, 641][i - 1] : 640), q.tip[1] - (i ? [420, 420, 422][i - 1] : 420)) < 0.5),
+      "…turning about its tip, which stays on the pointer (the cleaning point)");
+    const back = (q, x, y) => { const t = q.at - UL; return [x + 24 * Math.cos(t) - 24 * Math.sin(t), y + 24 * Math.sin(t) + 24 * Math.cos(t)]; };
+    const want2 = back(a2, 640, 420);
+    ok(Math.hypot(a2.hoseEnd[0] - want2[0], a2.hoseEnd[1] - want2[1]) < 1, `the hose joins the back of the turned nozzle   [${a2.hoseEnd.map(Math.round)} vs ${want2.map(Math.round)}]`);
+    ok(near(a3.want, 0) && near(a3.at, 0), "a small wobble of the mouse (a few px) doesn't turn it");
+    // still: it keeps its last direction, through a release and a fresh press
+    const kept = await ev(`(() => { ${fireJs} fire('pointerup', 641, 422); const u = ${look}; fire('pointerdown', 641, 422); const p = ${look}; fire('pointerup', 641, 422); return [u, p]; })()`);
+    ok(kept.every((q) => near(q.at, 0)) && near(kept[1].jet, 0), "still, it keeps its last direction, and a fresh press sprays that way");
+    // down-left, then a new game points it up-left again
+    const dl = await ev(`new Promise((done) => { ${fireJs} fire('pointerdown', 700, 300); fire('pointermove', 680, 320); fire('pointermove', 660, 340);
+      setTimeout(() => { const q = ${look}; fire('pointerup', 660, 340); done(q); }, 400); })`);
+    ok(near(dl.at, 3 * Math.PI / 4), `it follows any direction (down-left here)   [${(dl.at * 180 / Math.PI).toFixed(0)}°]`);
+    const fresh = await ev(`(() => { __et.start('clear', 1); __et.advance(0.1); return ${look}; })()`);
+    ok(near(fresh.at, UL) && near(fresh.want, UL), "each new game starts it pointing up-left");
+    // reduced motion: it snaps to the new direction, no swing
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const snapTurn = await ev(`(() => { ${fireJs} fire('pointerdown', 600, 420); fire('pointermove', 600, 460); const q = ${look}; fire('pointerup', 600, 460); return q; })()`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+    ok(near(snapTurn.at, Math.PI / 2) && near(snapTurn.turn, Math.PI / 2 - UL), `SAFETY: with reduced motion it snaps to the new direction at once, no swing   [${(snapTurn.at * 180 / Math.PI).toFixed(0)}°]`);
+    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
   }
 
   /* ------------------------------------------------------ E43. Time Warp's sound */

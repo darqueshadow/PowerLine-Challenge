@@ -1755,7 +1755,34 @@ export default {
   "position": "relative"
  },
  "#screen-play, #screen-play *, body.playing #mute, body.playing #mute *": {
-  "cursor": "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M30 30 L16 16' stroke='%23000' stroke-width='9' stroke-linecap='round'/%3E%3Cpath d='M30 30 L16 16' stroke='%2322a34a' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M17 11 L11 17 L2 6 L6 2 Z' fill='%23ffd23a' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E\") 3 3, crosshair"
+  "cursor": "none"
+ },
+ "#nozzle": {
+  "height": "32px",
+  "left": "0px",
+  "pointer-events": "none",
+  "position": "fixed",
+  "top": "0px",
+  "transform-origin": "3px 3px",
+  "width": "32px",
+  "z-index": "2147483647"
+ },
+ "#nozzle .n-hose-edge": {
+  "fill": "none",
+  "stroke": "rgb(0, 0, 0)",
+  "stroke-linecap": "round",
+  "stroke-width": "9"
+ },
+ "#nozzle .n-hose": {
+  "fill": "none",
+  "stroke": "rgb(34, 163, 74)",
+  "stroke-linecap": "round",
+  "stroke-width": "6"
+ },
+ "#nozzle .n-head": {
+  "fill": "rgb(255, 210, 58)",
+  "stroke": "rgb(0, 0, 0)",
+  "stroke-width": "2"
  },
  "#hose": {
   "bottom": "0px",

@@ -393,10 +393,14 @@ h2 {
 #board { position: relative; flex: 1; min-height: 0; container-type: size; }
 
 /* ⏳ placeholder: in-game the cursor is ALWAYS the hose nozzle (Hose ruling, 2026-09-22); menus and
-   setup keep the normal pointer. A drag still sprays water and wipes, as before. */
-#screen-play, #screen-play *, body.playing #mute, body.playing #mute * {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M30 30 L16 16' stroke='%23000' stroke-width='9' stroke-linecap='round'/%3E%3Cpath d='M30 30 L16 16' stroke='%2322a34a' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M17 11 L11 17 L2 6 L6 2 Z' fill='%23ffd23a' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 3 3, crosshair;
-}
+   setup keep the normal pointer. A drag still sprays water and wipes, as before. E44: the nozzle turns with the jet,
+   and a cursor picture can't turn, so in play the system cursor is hidden and view.js draws the nozzle (#nozzle), its
+   tip on the pointer. */
+#screen-play, #screen-play *, body.playing #mute, body.playing #mute * { cursor: none; }
+#nozzle { position: fixed; left: 0; top: 0; width: 32px; height: 32px; z-index: 2147483647; pointer-events: none; transform-origin: 3px 3px; }
+#nozzle .n-hose-edge { fill: none; stroke: var(--black); stroke-width: 9; stroke-linecap: round; }
+#nozzle .n-hose { fill: none; stroke: var(--nozzle-hose); stroke-width: 6; stroke-linecap: round; }
+#nozzle .n-head { fill: var(--nozzle-head); stroke: var(--black); stroke-width: 2; }
 
 /* Refinement 4 §2 (replacing the "under text" hose rulings, E12 included): the hose (body, spigot and water)
    draws ABOVE everything on the board (nests, eggs, gunk, readouts, the wall clock), and stays BELOW the how-to
