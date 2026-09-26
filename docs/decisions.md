@@ -363,6 +363,19 @@ holds no licence text; DSEG's do. Time Warp keeps mint `#3dff9a`: the clock must
 (`~/Downloads/Egg Timer look for the NB cabinet.md`) names `eb9bbc5` as the commit to copy from. A rig screenshot taken
 during Time Warp must be taken inside the Esc pause, or the warp ends and the lightning checks fail.
 
+## Pruned 2026-09-26 — Egg Timer's CLAUDE.md, on parking (182 → ~150 lines)
+
+**Condensed out (all still in the packet):** the pilot art's details (each egg mirrored 50/50, ~1 in 6 with the eye,
+alien hints from 40 / 50 / 60 / 80%, the cord's egg is the nest's own egg); Follow Progression's ramp (one-phase for waves
+1–2, then a placement chance of 0% at wave 3, +10% a wave); Time Warp's placement (the clock in the board's centre, the
+caption), and that E39's warp is allowed while a placement waits; the title's singing mommy alien and babies and the
+options screen's three-headed singing blob; the sound context's Fang Rock/browser behaviour (E35) and music's 0.5 s fades
+and sample-exact loops. **Restructured:** the long "Mess, pieces, hose and trough" bullet split into "Mess and pieces" and
+"The hose" (E42, E44), then tightened; also condensed out: the three modes' names, the wave-1 tags' wording, each readout
+box fitting its widest reading and darkened boxes on an empty nest, the placement "no penalty for waiting", the Time Warp
+step-split and glow (E22) notes, the full reduced-motion list, the sound context and background-tab notes, and the
+brief's slot numbers. All are in the packet §§4–12. **Dropped (stale):** the E44 "open" note (ruled and live) and the 2026-09-25 park state.
+
 ## Resolved 2026-09-25 — Egg Timer: E44, the nozzle turns with the jet (Chat ruling)
 
 **Solved:** The jet pointed the way of the drag while the nozzle cursor always pointed up-left. Now the nozzle picture

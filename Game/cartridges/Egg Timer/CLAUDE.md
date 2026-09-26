@@ -1,10 +1,8 @@
 # Egg Timer *(formerly Whack A CAV)* — 🟢 LIVE since 2026-09-19; every green build goes live
 
-A whack-a-mole typing game built on the real Niagara EMS **CAV (Conditional Availability)**
-workflow. Each unit has a **nest** with a digital readout below it. The player places a CAV with
-`CAV #### TYPE` and clears it with `RCAV ####` before the alien egg in that nest hatches. A clear
-smashes the egg. A hatch is a final escape that drains the **pool**, and an empty pool ends the
-game. The styled "E" and "T" read as "ET", tying the name to the alien eggs.
+A whack-a-mole typing game on the real Niagara EMS **CAV (Conditional Availability)** workflow: each unit has a
+**nest** with a readout; `CAV #### TYPE` places a CAV, `RCAV ####` clears it before the nest's alien egg hatches. A
+hatch drains the **pool**; an empty pool ends the game. The styled "E" and "T" read as "ET".
 
 **The design lives in [`EGG_TIMER_CONTEXT_PACKET.md`](EGG_TIMER_CONTEXT_PACKET.md), the source of truth.**
 Every merged change is tagged by its source, with filing notes on top; Chat's rulings verbatim and each earlier
@@ -19,11 +17,9 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   push, tell Andrew in one line what went live.** A push also publishes other sessions' commits on `main`: check
   `git log origin/main..main` and say so if anything besides Egg Timer is going out. Work Andrew must see first
   (a screenshot sheet) waits on its own branch until he OKs it, then merges onto main.
-- **Open, all Andrew's:** **D3**, the Developer Mode phrase (`devModePasswordHash`, null denies every entry): Andrew
-  gives Code the digest, never the phrase; then set the hash, strike D3 in the packet, and change the rig checks
-  labelled ⏳ D3. **Walk him through it step by step in plain language** (Andrew, 2026-09-23): he types the phrase
-  himself in his own terminal (`node make-dev-hash.mjs`, echo off, asked twice); Code only ever receives the code.
-  Andrew will review the shared transport unit list himself: change nothing else in it.
+- **Open, Andrew's:** **D3**, the Developer Mode phrase (`devModePasswordHash` null denies every entry). **Walk him
+  through it in plain language**: he runs `node make-dev-hash.mjs` himself and gives Code only the digest; then set it,
+  strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
 - **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E45**; none open);
@@ -42,7 +38,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - `core/`: `config.js` (every number with its source, [T] = tunable, plus the build-question switches), `rules.js`
   (pure curves), `commands.js`, `data.js`, `game.js` (the whole mechanic, **no DOM**: keep it that way), `art.js`
   (placeholder SVG), `audio.js`, `title.js`, `lights.js`, `mess.js` (liquid), `pieces.js` (E38: pieces, push, drips,
-  trough), `view.js` (board, pan, hose, cord, lightning, Time Warp, tags), `boxes.js`, `devmode.js`.
+  trough), `view.js` (board, pan, hose, nozzle, jet, cord, lightning, Time Warp, tags), `boxes.js`, `devmode.js`.
   `files/art/` holds the approved pilot layers (`make-pilot-art.py` rebuilds them; provenance in its README).
 - **Two clocks in `game.js`:** `time` is the player's seconds (spawns, timeouts, overtime, cleanup);
   `clock` is displayed time at the wave's shared speed. Bold is decided on `clock`, overtime on `time`.
@@ -73,10 +69,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 ## Locked design (summary; the packet has the detail and the numbers)
 - **Art direction: "juxtaposition":** a friendly family cartoon with a dark, twisted undertone. **Alien art:** scary
   alien, nothing human, **no red liquid** (blood, splatter, drips, pools) except the cord; red eyes and veins are fine.
-  Slot 0 (nest + egg) is Gemini's approved pilot art (live 2026-09-25): each egg mirrored 50/50, ~1 in 6 with the eye,
-  alien hints from 40 / 50 / 60 / 80%; the cord's egg is the nest's own egg. The rest of the art is still placeholder.
-- **Modes:** Clear CAVs Only, Follow Progression (one-phase for waves 1–2, then a placement chance of 0% at wave 3,
-  +10% a wave), and Both. The mode buttons are the difficulty menu.
+  Slot 0 (nest + egg) is Gemini's approved pilot art; the rest is still placeholder.
 - **CAV data:** Andrew's durations (VS, STR, SS, EOS, MB, AD; VF random 10–30 min). **Say "displayed time" and
   "the player's seconds"** (E3). Clocks show displayed time, **one speed shared by every clock**; the real (Data Sheet)
   duration sets the bold mark exactly: never jitter it. Readouts show the literal type code. Transport units only,
@@ -86,63 +79,39 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   `RCAV` valid and the crack are one event; overtime (the player's seconds), then the hatch, final: **no pan, no
   THONG on a hatch** (E37). **VF** hides egg and timer until "Clear Fueling". **Every AD shows a post-it** ("20 min" or
   "Clear @ HH:MM" against the wall clock, E1). The wall clock is **neon green** `#39ff14`, no glow, in **DSEG7**.
-- **Time Warp:** every clock runs 5× [T] once the wave's last CAV has *started* and no egg is bold (E18), and also
-  while 2+ running eggs are each over 8:00 from bold (E39, `warpFar`; allowed while a placement waits); never with an
-  egg bold; the step splits exactly where it ends; overtime never warps. A **grandfather clock** in the board's centre
-  over a "TIME WARP" sign and caption (E27, E28). 🚨 The sign flashes 3 times at most 2 a second (`setSign()`'s 0.25 s
-  guard), then stays lit while its **letters wobble** (E31: a transform, never a brightness change). Running nests glow
-  (E22) and green **lightning** chains to them; 🚨 it re-jags 2/s, guard-capped at 2.5 (`rejag()`). **E43:** a rising
-  zap as it starts, a falling one as it ends, nothing while it runs (`ET.audio.warp()`, fired from `paintSign()`).
+- **Time Warp:** clocks run 5× once the wave's last CAV has *started* and none is bold (E18), or while 2+ eggs are each
+  over 8:00 from bold (E39); never with an egg bold; overtime never warps. 🚨 The sign flashes at most 2/s (`setSign()`'s
+  0.25 s guard), then wobbles (a transform, never brightness); 🚨 lightning re-jags ≤ 2.5/s (`rejag()`). E43 zaps.
 - **Board lights:** `#backdrop`, behind everything on the board: the **lilac** tint (E32), white lights on the gameplay
   track's BPM (🚨 5% white at most, one start a beat, 3 at once) and Time Warp's dark veil (a 0.5 s fade).
-- **Placement:** 10 points, no penalty for waiting, but **an ignored trigger auto-opens** after 20 s (−1 s a wave,
-  floor 8 s). **Any rejected Enter** clears the line, shows a red ERROR for ~1 s and buzzes, no penalty (E6).
-- **Waves and pool:** nests in play grow 5 → 12; **all 12 are on screen all game**. A wave ends after its quota
-  resolves; spawning stops once the quota has spawned (D4); a spawn due on a full board is skipped. Pool 3 (key
-  `POOL`), −1 per escape, +1 for a wave with no escape (max 3). **Only an empty pool ends the game.**
-- **Scoring (E26):** a clear scores by **tier**, a fifth of that egg's own overtime window each: 100 / 75 / 50 / 35 / 25,
-  plus a perfect-wave bonus; no penalty for an escape or wiping. **Never set tiers in displayed time.** The tier is the
-  clear's **break stage** (E38's alien parts at 3–5). The **egg ladder** is cosmetic (tier 1–2 clears).
-- **Mess, pieces, hose and trough:** a clear leaves a small splat on its own nest and drops the rest over the board
-  (E15); liquid **covers readouts and post-its** (E14). Every clear also throws **shell pieces** cut from the egg
-  picture, plus alien parts at break stages 3–5 (E38): they sit behind the nests, pile round the readouts, never fade
-  and carry into the next wave. **In-game the cursor is always the hose nozzle** (E44: drawn by view.js, the system cursor
-  hidden, turned about its tip to point where the jet goes: a swing, a wobble ignored, up-left at each game's start). A drag **pushes pieces** the way it
-  goes (they slide, tumble, settle) and **streaks and thins liquid** (E42: a blast, not a trickle: a thick jet with a burst, mist and a
-  splash, pushing what it reaches; one sweep carries a piece into the trough; ~2 passes wash liquid; a pressure-washer
-  sound under the music); liquid pushed to the top drips back down, and a
-  piece in it rides the drip. A thin **trough** on the left, right and bottom edges (none on top) runs to the drain
-  under the sink; a piece in it squelches and drains (an eye "bloops"). Resting pieces are baked (a pile costs nothing).
-  Cleanup is a timed window with a countdown; nothing is counted (E41). 🚨 The cleanup banner flashes at most 2 a
-  second, guard-capped at 2.5 (`cleanupFlashSeconds()`). The hose tag sits just above the trough, by the sink (E28).
-- **Wave-1 tags (E28):** once a game: "Pink = ready! Type RCAV <unit>" and "◀ Check the wall clock"; no flashing.
-- **Readouts:** three cartoon boxes (unit, type, timer); at the limit all three go bold at once, the timer white on the
-  **ready pink** `#d1006a` (E33). 🎨 Every "ready / act now" pink uses `--readout-bold-timer-bg`; `--hot` and `--pink`
-  are decoration only. Each box fits its widest reading. A nest in play with no CAV has its boxes darkened.
-- **Command Lines** (players never see "Command Box", E7): 1–4, **2 by default** (E29). An empty line says "RCAV +
-  unit", or "CAV + unit + type" while a nest waits (E30). **Tab / Shift+Tab** next / previous, text kept; **F12** next
-  and clears the line it lands on (E13). The game pauses when the window loses focus. **Esc, and only Esc, pauses.**
-- **How To Play:** a **five-panel comic strip** (E29) on the title card and the options screen; **the side panel is
-  never in play** (E30). 🚨 The HOW / TO / PLAY signs change at most 2 times a second; every arcade bulb change goes
-  through `set()`'s 0.2 s guard (`lightsMinToggle`, never below 1/6 s); bulbs and doodles never over a word; it never
-  lists CAV durations.
-- **Screens:** title (singing mommy alien and babies; the prompt reads PRESS ANY KEY until a browser's first press, E40),
-  options (a three-headed singing blob), game over (TITLE SCREEN lit first; Enter ignored for 1 s and on auto-repeat,
-  E34; the track's end returns to the title). **Horror beats:** a horrific hatchling; a **scary mom face** at most once
-  a wave, under 1 s, over the HUD bar only, never taking input or flashing.
-- **Reduced motion** stills the CSS loops, lights, lightning, place-me cue, overtime wobble, cord twitch, hatchling's
-  legs, signs, Time Warp's hands and wobble, the pieces' tumble and the trough's water. **New motion must join it** (rig R).
-- **Sound (E24/E25):** a mute button top left on every screen, and M (remembered); in play the button and **Ctrl+M**.
-  Every sound goes through `audio.js`'s one master chain: connect new sounds to `bus()` (rig A2). A background tab
-  holds every sound. The sound context is made at boot (E35): Fang Rock plays the title music at once, a browser on the
-  first press. **Music** (`files/audio/`, from `make-music.py`): title track on the menus, gameplay loop in play, the
-  game-over track once; 0.5 s fades; sample-exact loops. **E36:** every track at −19.8 LUFS (`lufs` + `level`; re-measure
-  with ebur128 if a file changes), dipping to 40% under THONG, the buzz and the hiss. The lay squeeze and pop, the
-  trough's squelch and bloop share one overlap cap and sit under those cues (rig S).
-- **Platform:** a plain browser tab, and Fang Rock (`fangrock://arcade/eggtimer`), which serves the arcade from the
-  **local** `(PCL)/Game` folder, not GitHub Pages.
-- **Deferred:** the rest of the art (Gemini: brief slots 1–8, 13, 14, 16–20; Code restyles 9–12 and 15), final
-  sounds, the end screen, the pool's display name.
+- **Placement:** 10 points; **an ignored trigger auto-opens** (20 s, −1 s a wave, floor 8 s). **Any rejected Enter**
+  clears the line, shows ERROR ~1 s and buzzes, no penalty (E6).
+- **Waves and pool:** nests in play 5 → 12, **all 12 on screen all game**; spawning stops at the quota (D4); a spawn on
+  a full board is skipped. Pool 3 (`POOL`), −1 per escape, +1 per escape-free wave. **Only an empty pool ends the game.**
+- **Scoring (E26):** by **tier**, fifths of the egg's own overtime window: 100 / 75 / 50 / 35 / 25, plus a perfect-wave
+  bonus. **Never set tiers in displayed time.** Tier = the clear's **break stage**; the egg ladder is cosmetic.
+- **Mess and pieces:** splat on the cleared nest, the rest over the board (E15); liquid **covers readouts** (E14).
+  **Shell pieces** (and alien parts at stages 3–5, E38) sit behind the nests, never fade, carry over, and drain via the
+  **trough** (left, right, bottom; none on top) to the sink. Cleanup is a timed window; nothing is counted (E41).
+  🚨 The cleanup banner flashes at most 2 a second, guard-capped at 2.5 (`cleanupFlashSeconds()`).
+- **The hose:** in play the cursor is **always the nozzle**, **drawn** (`#nozzle`, system cursor hidden) and turned
+  about its tip with the jet (E44). A drag **blasts** (E42): a jet that pushes what it reaches (one sweep into the
+  trough) and streaks and thins liquid (~2 passes), with a pressure-washer sound. The hose tag sits by the sink.
+- **Readouts:** three boxes (unit, type, timer), all bold at once at the limit, the timer on **ready pink** `#d1006a`
+  (E33). 🎨 Every "act now" pink uses `--readout-bold-timer-bg`; `--hot`/`--pink` are decoration only.
+- **Command Lines** (never "Command Box", E7): 1–4, **2 by default**. **Tab / Shift+Tab** next / previous; **F12** next,
+  clearing the line it lands on (E13). Losing focus pauses; otherwise **Esc, and only Esc, pauses.**
+- **How To Play:** a five-panel comic strip (E29) on the title and options screens; **no side panel in play** (E30).
+  🚨 Signs change ≤ 2/s; every bulb change goes through `set()`'s guard (`lightsMinToggle` ≥ 1/6 s). No CAV durations.
+- **Screens:** title (PRESS ANY KEY until the first press, E40), options, game over (Enter ignored for 1 s and on
+  auto-repeat, E34). The **scary mom face**: at most once a wave, under 1 s, HUD bar only, no input, no flashing.
+- **Reduced motion** stills every loop, light, sign and wobble, the pieces' tumble, the trough's water, the jet's burst,
+  mist and splash, and the nozzle's swing. **New motion must join it** (rig R).
+- **Sound:** mute button + M (Ctrl+M in play, E25). Every sound connects to `audio.js`'s `bus()` (rig A2). Music
+  (`files/audio/`, `make-music.py`) at −19.8 LUFS (E36; re-measure with ebur128 if a file changes), dipping to 40%
+  under THONG, the buzz and the hiss; every other sound sits under those three, no dip (rigs S, E42, E43).
+- **Platform:** a browser tab, and Fang Rock (`fangrock://arcade/eggtimer`), which serves the **local** `(PCL)/Game`.
+- **Deferred:** the rest of the art (brief slots), final sounds, the end screen, the pool's display name.
 
 ## Standing rules
 - 🚫 **Never send real keystrokes or mouse input to the desktop, and never open browser windows outside a sandboxed
@@ -156,8 +125,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Use the packet's own vocabulary:** nests, eggs, hatching, escape, the pool, Command Lines.
 - **The hub id is `eggtimer`, letters only:** Fang Rock drops any cabinet token that isn't `^[a-z]+$`. The old
   cassette menu (`Game/index.html`, `Game/core/submenu.js`) doesn't list Egg Timer: Andrew's call.
-- Its own cartridge: no other cartridge's theme. Folder names are Title Case with spaces, and GitHub Pages is
-  case-sensitive: `Egg Timer` ≠ `egg-timer`. Nerva Beacon's repo is never pushed (commit only there).
+- No other cartridge's theme. Pages is case-sensitive: `Egg Timer` ≠ `egg-timer`. Nerva Beacon's repo is never pushed.
 
 ## Working here
 - Governance is on disk, outside `Game/`: `Documents/Core Documents/` (Laws → Overview → Build Procedure). Load it
@@ -166,7 +134,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   `verify-*.mjs` and `make-*.mjs`. Never write memory files, handoffs, audit reports, decision logs or scratch notes
   anywhere under this folder. Andrew's `files/assets/` (source images, music) is git-ignored: not Code's to commit.
 - Run the game over `http://` (`Game/Start Dev Server.bat`, then `/cartridges/Egg%20Timer/files/index.html`).
-- Patch scripts: files come back CRLF after a git checkout, so match line endings per file.
+- Patch scripts: files are CRLF; match line endings per file, and never `sed -i` in Git Bash (it strips every CR).
 
 ## Session memory
 Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-Timer/memory/`, via the **Egg Timer
@@ -174,9 +142,10 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 (and any ⏸ one-shot handoff it lists), then `et-track.md`, and write Egg Timer memories **there**. Auto-memory loads
 the PLC root index instead, because it keys to the git root.
 
-## State 2026-09-25 (parked)
-Everything is live on `main` through E41 (`1e9ce84`): E32–E41, the pilot art, E38's pieces and trough. Nothing is held,
-no E-item is open. Andrew owes two hand tests (Fang Rock's title music, and holding Enter at Game Over). **Next:** the
-art-slot batch as Gemini's art arrives (the brief, `docs/Egg Timer art brief for Gemini.md`, is Code's build spec: its
-🔒 sections are Code/Andrew only; Chat writes Gemini's prompts). Left from the audit, by Andrew's choice: moving the
-JavaScript colours into `theme.css`, dead code, and the other test gaps.
+## State 2026-09-26 (parked)
+Everything is live on `main` through E44 (`d6fa0e6`): E42 hose blast, E43 Time Warp zaps, E44 the drawn, turning
+nozzle. Nothing is held, no E-item is open. Andrew owes hand tests: does the drawn nozzle lag the mouse; Fang Rock's
+title music; holding Enter at Game Over. The Gemini reference sheets (hatchlings, trough) are in his Downloads.
+**Next:** the art-slot batch as Gemini's art arrives (the brief, `docs/Egg Timer art brief for Gemini.md`, is Code's
+build spec: its 🔒 sections are Code/Andrew only; Chat writes Gemini's prompts). Left from the audit, by Andrew's choice:
+moving the JavaScript colours into `theme.css`, dead code, and the other test gaps.
