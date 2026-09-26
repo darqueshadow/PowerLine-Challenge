@@ -641,6 +641,8 @@ h2 {
 .nest.show-hint-3 .hint-3, .nest.show-hint-4 .hint-4, .nest.show-hint-5 .hint-5, .nest.show-hint-eye .hint-eye { display: inline; }
 
 
+.break { display: none; }   /* E26: the break stage, only while the cleared nest is "splat" */
+.nest[data-state="splat"] .break { display: inline; }
 .shells, .creature { display: none; }
 .nest[data-state="escape"] .shells,
 .nest[data-state="escape"] .creature { display: inline; }

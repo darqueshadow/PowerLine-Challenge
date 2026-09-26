@@ -85,7 +85,16 @@
     eggHintsAt: { "hint-3": 0.4, "hint-eye": 0.5, "hint-4": 0.6, "hint-5": 0.8 },
     eggEyeChance: 1 / 6,     // [T]
     eggMirrorChance: 0.5,    // each egg is mirrored left/right at random when it's laid
-    splatSeconds: 1.1,       // how long a smooshed nest stays busy before idling
+    splatSeconds: 1.1,       // how long a smooshed nest stays busy before idling (and shows its break stage)
+    // The break stages (E26, brief slot 13; Andrew's sheets, 2026-09-26): the shell fragments laid on a clear's splat
+    // (core/breaks.js). Sizes are viewBox units (the egg is 44 wide); every fragment stays inside the splat's outline.
+    breakShells: {
+      count: { 1: [3, 4], 2: [4, 5], 3: [5, 6], 4: [5, 7], 5: [6, 8] },   // [T] fragments by break stage, few to many
+      size: 13,              // [T] a fragment's longest side (the sheet draws them egg-sized: these are fragments)
+      jitter: [0.8, 1.15],   // [T] each one's size, as a share of `size`
+      spacing: 0.7,          // [T] how close two fragments' centres may come, as a share of their sizes
+      tries: 60              // spots tried per fragment before it's left out
+    },
     escapeSeconds: 1.4,      // how long an escape flourish keeps the nest busy
     // Refinement 3 rulings (E15): a clear leaves a small splat on its own nest, and the rest of its gunk
     // lands evenly at random over the whole board; neighbours are no longer targeted.

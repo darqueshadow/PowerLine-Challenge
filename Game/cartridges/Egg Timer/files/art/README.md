@@ -26,6 +26,22 @@
 | `egg--hint-3@2x.png`, `-4`, `-5` | the antenna, the leg, the tentacle and goo (at 40%, 60%, 80% from bold to hatch) |
 | `egg--hint-eye@2x.png` | the rare eye (about 1 egg in 6, from 50%) |
 
+## Slot 13, the break stages: five splats and ten shell fragments
+
+- **Source pictures** (Andrew's, in `files/assets/imgages/`, git-ignored, never published): `yolk_goo.jpg` (five splats,
+  neat to gross) and `shells.jpg` (ten shell pieces, 5 × 2), both on dark grey. **Approved by Andrew** (his handoff,
+  2026-09-26, filed as `Previous Versions/EGG_TIMER_SPLAT_ART_HANDOFF_2026-09-26.md`).
+- **Prepared by Claude Code** with `make-break-art.py` (next to the rigs; never published): each sprite cut out of the grey
+  (the grey joined to the crop's edge; a thin band un-blended from the grey so the plum outlines stay crisp; the sheet's
+  stray dark square went with the background). The five splats share one scale, so they show at the same size, each
+  centred in the brief's box (x −40…40, y −40…28) on the slot canvas. The shells are tight sprites; the game shrinks,
+  turns and flips them (`core/breaks.js`) and keeps each inside the splat's outline.
+
+| File | What it is |
+|---|---|
+| `break-1-elegant@2x.png` … `break-5-leftovers@2x.png` | the five splats, on the 404 × 374 slot canvas |
+| `break--shell-01@2x.png` … `-10@2x.png` | the ten shell fragments, laid on a splat at runtime |
+
 ## The Gemini prompts (from Andrew's record, `egg-timer-gemini-prompts.md`)
 
 ## Session 1: finding the look

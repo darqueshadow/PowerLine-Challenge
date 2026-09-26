@@ -240,6 +240,10 @@
       layer("nest--twigs-front", "look-live", twigsFront);
       layer("nest--twigs-front-inactive", "look-slate", twigsFront);
 
+      // the break stage (E26, slot 13): where the egg was, shown while the nest is "splat"; breaks.js fills it. It lies
+      // over the front rim, flattened onto the nest by the pan: behind the rim, its lower half was lost.
+      el("g", { class: "break" }, svg);
+
       var shells = el("g", { class: "shells" }, svg);
       el("path", { class: "shell half", d: "M-22 6 C-24 -8 -16 -18 -6 -18 L-10 -10 L-4 -4 L-12 4 Z" }, shells);
       el("path", { class: "shell half", d: "M22 6 C24 -8 16 -18 6 -18 L10 -10 L4 -4 L12 4 Z" }, shells);

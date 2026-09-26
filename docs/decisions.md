@@ -699,3 +699,21 @@ pre-batch packet is saved as `Previous Versions/EGG_TIMER_CONTEXT_PACKET_direct-
 - **Rigs:** `reload()` carries earlier page errors into check K. Section V holds and fulfils CSVs with the CDP Fetch domain.
   `__et.start(mode, boxes, { wallStart, types, rng })` is a rig-only hook. A timed check never uses a fixed wait: poll, do it
   inside one `ev()`, or wrap `ET.view.handle` at the event, installed in the same `ev()` as any game start.
+
+## Resolved 2026-09-26 — Egg Timer: the break-stage art (E26, brief slot 13)
+
+**Solved:** A cleared egg now leaves one of Andrew's five approved splats in its nest, neat to gross by the clear's tier
+(E26), for the nest's "splat" state. All five show at the same size. Shell fragments from his second sheet are laid on
+top at runtime: random pieces, shrunk, turned and flipped, 3-4 on stage 1 up to 6-8 on stage 5, every one inside the
+splat's outline.
+**Approach:** `make-break-art.py` cuts both sheets out of their grey (colour distance from the grey, flood-filled from the
+crop's edge, the edge band un-blended) into `files/art/break-*`. `files/core/breaks.js` loads each splat's and fragment's
+alpha once and places a fragment only if every solid sample of it lands on the splat's solid pixels. The handoff called
+the stage trigger undecided, but E26 already rules it (the tier), so that is what's built. The layer lies over the nest's
+front rim: behind it, as the egg is, the lower half of each splat was hidden.
+**If you touch this again:**
+- Numbers are `breakShells` in `files/core/config.js` [T]. `ET.breaks.check(g)` re-tests a drawn break; rig section BR runs
+  750 fills and three real clears (0%, 50%, 90% of the way from bold to hatch give stages 1, 3, 5).
+- `fill()` rounds each spot before testing it, so the rig's re-check tests exactly what's drawn.
+- A paused game refuses commands: a rig clear must run unpaused, inside one `ev()`.
+- E38's flung shell pieces are still cut from the egg picture; the new sprites are only on the splat.

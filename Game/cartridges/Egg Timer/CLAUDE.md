@@ -38,7 +38,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - `core/`: `config.js` (every number with its source, [T] = tunable, plus the build-question switches), `rules.js`
   (pure curves), `commands.js`, `data.js`, `game.js` (the whole mechanic, **no DOM**: keep it that way), `art.js`
   (placeholder SVG), `audio.js`, `title.js`, `lights.js`, `mess.js` (liquid), `pieces.js` (E38: pieces, push, drips,
-  trough), `view.js` (board, pan, hose, nozzle, jet, cord, lightning, Time Warp, tags), `boxes.js`, `devmode.js`.
+  trough), `breaks.js` (E26's break stages: splat + fragments inside its outline), `view.js` (board, pan, hose, nozzle, jet, cord, lightning, Time Warp, tags), `boxes.js`, `devmode.js`.
   `files/art/` holds the approved pilot layers (`make-pilot-art.py` rebuilds them; provenance in its README).
 - **Two clocks in `game.js`:** `time` is the player's seconds (spawns, timeouts, overtime, cleanup);
   `clock` is displayed time at the wave's shared speed. Bold is decided on `clock`, overtime on `time`.
@@ -69,7 +69,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 ## Locked design (summary; the packet has the detail and the numbers)
 - **Art direction: "juxtaposition":** a friendly family cartoon with a dark, twisted undertone. **Alien art:** scary
   alien, nothing human, **no red liquid** (blood, splatter, drips, pools) except the cord; red eyes and veins are fine.
-  Slot 0 (nest + egg) is Gemini's approved pilot art; the rest is still placeholder.
+  Slot 0 (nest + egg) is Gemini's approved pilot art, slot 13 (break stages) Andrew's sheets (`make-break-art.py`);
+  the rest is still placeholder.
 - **CAV data:** Andrew's durations (VS, STR, SS, EOS, MB, AD; VF random 10–30 min). **Say "displayed time" and
   "the player's seconds"** (E3). Clocks show displayed time, **one speed shared by every clock**; the real (Data Sheet)
   duration sets the bold mark exactly: never jitter it. Readouts show the literal type code. Transport units only,

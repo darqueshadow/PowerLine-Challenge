@@ -2333,6 +2333,69 @@ try {
     await ev(`(() => { ${"document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))"}; __et.start('clear', 2); __et.advance(0.1); return 1; })()`);
   }
 
+  /* ------------------------------------------------ BR. the break stages */
+  section("BR. the break stages: Andrew's splats and shell fragments (E26, brief slot 13, 2026-09-26)");
+  {
+    const escK = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
+    for (let i = 0; i < 60 && !(await ev("ET.breaks.isReady()")); i++) await wait(100);
+    ok(await ev("ET.breaks.isReady()"), "the five splats and ten shell fragments load");
+    // the files: each splat on the whole slot canvas, inside the brief's box, all five the same size
+    const art = await ev(`(() => {
+      const names = ['break-1-elegant', 'break-2-messier', 'break-3-alien-signs', 'break-4-half-formed', 'break-5-leftovers'];
+      return Promise.all(names.map(n => new Promise((done) => { const im = new Image(); im.onload = () => {
+        const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+        const d = g.getImageData(0, 0, im.width, im.height).data; let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+        for (let y = 0; y < im.height; y++) for (let x = 0; x < im.width; x++) if (d[(y * im.width + x) * 4 + 3] > 24) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+        const ux = (p) => +(-60 + p * 120 / im.width).toFixed(1), uy = (p) => +(-62 + p * 110 / im.height).toFixed(1);
+        done({ n, w: im.width, h: im.height, box: [ux(x0), uy(y0), ux(x1 + 1), uy(y1 + 1)] }); };
+        im.onerror = () => done({ n, err: true }); im.src = 'art/' + n + '@2x.png'; })));
+    })()`);
+    ok(art.every((a) => !a.err && a.w === 404 && a.h === 374), `all five splats load, each on the whole 404 × 374 slot canvas   ${JSON.stringify(art.filter((a) => a.err || a.w !== 404))}`);
+    ok(art.every((a) => a.box[0] >= -40.3 && a.box[1] >= -40.3 && a.box[2] <= 40.3 && a.box[3] <= 28.3), `each sits in the brief's box, x −40…40, y −40…28   [${art.map((a) => a.box.join(",")).join(" | ")}]`);
+    const big = art.map((a) => Math.max(a.box[2] - a.box[0], a.box[3] - a.box[1]));
+    ok(Math.max(...big) / Math.min(...big) < 1.1, `all five show at the same size: only the grossness changes   [${big.map((b) => b.toFixed(1)).join(", ")} units]`);
+
+    // fill(): the stage's splat, a count of fragments that climbs with the stage, every one inside the splat's outline
+    await ev(`(() => { __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1); ${escK}; return 1; })()`);
+    const fills = await ev(`(() => { const g = document.querySelector('.nest .break'), C = ET.CONFIG.breakShells, out = [];
+      for (let st = 1; st <= 5; st++) { let lo = 99, hi = 0, outside = 0, href = '', flips = 0, big = 0, seen = new Set(); const want = C.count[st];
+        for (let i = 0; i < 150; i++) { const n = ET.breaks.fill(g, st), c = ET.breaks.check(g); lo = Math.min(lo, n); hi = Math.max(hi, n); outside += c.outside;
+          href = g.querySelector('.splat').getAttribute('href');
+          g.querySelectorAll('.piece').forEach((p) => { seen.add(p.getAttribute('href')); if (/scale\\(-1/.test(p.getAttribute('transform'))) flips++;
+            if (Math.max(+p.getAttribute('width'), +p.getAttribute('height')) > C.size * C.jitter[1] + 0.01) big++; }); }
+        out.push({ st, lo, hi, want, outside, href, flips, big, kinds: seen.size }); }
+      return out; })()`);
+    ok(fills.every((f) => f.href === `art/break-${f.st}-${["elegant", "messier", "alien-signs", "half-formed", "leftovers"][f.st - 1]}@2x.png`), "each stage shows its own splat");
+    ok(fills.every((f) => f.lo >= f.want[0] && f.hi <= f.want[1]) && fills[0].hi <= 4 && fills[4].lo >= 6,
+      `fragments by stage, few to many (stage 1 about 3-4, stage 5 about 6-8), never one short   [${fills.map((f) => `${f.st}: ${f.lo}-${f.hi} of ${f.want.join("-")}`).join("; ")}]`);
+    ok(fills.every((f) => f.outside === 0), `every fragment lies inside (or on) its splat's outline, tested on each fragment's own pixels   [${fills.map((f) => f.outside).join(", ")} outside, of 750 splats]`);
+    ok(fills.every((f) => f.big === 0 && f.kinds === 10 && f.flips > 0), `fragments are small (a ${await ev("ET.CONFIG.breakShells.size")}-unit longest side at most +15%, the egg is 44 wide), drawn from all ten pieces, turned and flipped at random`);
+    const same = await ev(`(() => { const g = document.querySelector('.nest .break'); ET.breaks.fill(g, 3); const a = g.innerHTML; ET.breaks.fill(g, 3); return a === g.innerHTML; })()`);
+    ok(!same, "…so no two splats look the same");
+
+    // in play: a clear shows the stage for its tier (fifths from bold to hatch) while the nest is "splat", then it's gone.
+    // (unpaused, since a paused game refuses commands; the whole case runs inside this one evaluation)
+    const play = async (share) => ev(`(() => {
+      __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1);
+      for (let i = 0; i < 40000; i++) { const s = __et.snapshot(), n = s.nests.find((x) => x.state === 'overtime' && x.crack >= ${share});
+        if (n) { const crack = n.crack; __et.submit('RCAV ' + n.unit); __et.advance(0.01);
+          const el = document.querySelector('.nest[data-id="' + n.id + '"]'), g = el.querySelector('.break'), st = __et.snapshot().nests.find((x) => x.id === n.id).state;
+          const shown = getComputedStyle(g).display !== 'none' && g.getBoundingClientRect().width > 0, stage = +g.getAttribute('data-stage'), pieces = g.querySelectorAll('.piece').length;
+          const eggGone = getComputedStyle(el.querySelector('.egg')).display === 'none';
+          __et.advance(ET.CONFIG.splatSeconds + 0.1);
+          return { crack, st, shown, stage, pieces, eggGone, after: getComputedStyle(g).display, afterState: __et.snapshot().nests.find((x) => x.id === n.id).state }; }
+        __et.advance(0.05); }
+      return null; })()`);
+    for (const [share, want] of [[0, 1], [0.5, 3], [0.9, 5]]) {
+      const r = await play(share);
+      ok(r && r.st === "splat" && r.shown && r.eggGone && r.stage === Math.min(5, Math.floor(r.crack * 5) + 1) && r.stage === want && r.pieces > 0,
+        `a clear ${Math.round(share * 100)}% of the way from bold to hatch leaves break stage ${want} in the nest, where the egg was, with its fragments   ${JSON.stringify(r)}`);
+      ok(r && r.after === "none" && r.afterState !== "splat", `…and it's gone when the nest idles (${await ev("ET.CONFIG.splatSeconds")} s of the player's time)`);
+    }
+    await shot("br-break-stages");
+    await ev(`(() => { ${escK}; __et.start('clear', 2); __et.advance(0.1); return 1; })()`);
+  }
+
   /* ------------------------------------------------ V. while the data loads */
   section("V. loading: nothing starts before the data is in (Andrew, 2026-09-24)");
   {

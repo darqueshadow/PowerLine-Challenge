@@ -833,6 +833,7 @@
         });
       }
       ET.pieces.build(board, floor);   // E38: the trough and the pieces, over the floor mess and behind the nests
+      if (!ET.breaks.isReady()) ET.breaks.load();   // E26: the break stages' outlines, for placing shell fragments
       ET.view.bindWipe();
       buildHose();
       buildBackdrop();
@@ -1031,6 +1032,7 @@
             ET.mess.splatter(v.mess, ET.CONFIG.messBlobsOwn, ET.CONFIG.messOwnSize);
             fling(ET.CONFIG.messBlobsField);
             ET.pieces.clear(v.svg, e.tier);   // E38: shell pieces, and at break stages 3–5 the alien's parts
+            ET.breaks.fill(v.svg.querySelector(".break"), e.tier);   // E26: the break stage left in the nest
             popup(v.el, "+" + e.points, "good");
             break;
           case "hatch":

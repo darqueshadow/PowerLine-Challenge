@@ -1,5 +1,5 @@
 /* verify-egg-timer-theme-baseline.mjs: section T's record of every rule of the game's stylesheets, resolved
-   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-25.
+   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-26.
    Rewrite it ONLY when a style is changed on purpose, in the same commit. Never published (verify-*.mjs). */
 export default {
  "@font-face": {
@@ -2659,6 +2659,12 @@ export default {
   "display": "none"
  },
  ".nest.show-hint-3 .hint-3, .nest.show-hint-4 .hint-4, .nest.show-hint-5 .hint-5, .nest.show-hint-eye .hint-eye": {
+  "display": "inline"
+ },
+ ".break": {
+  "display": "none"
+ },
+ ".nest[data-state=\"splat\"] .break": {
   "display": "inline"
  },
  ".shells, .creature": {
