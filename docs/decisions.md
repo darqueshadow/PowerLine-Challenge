@@ -717,3 +717,20 @@ front rim: behind it, as the egg is, the lower half of each splat was hidden.
 - `fill()` rounds each spot before testing it, so the rig's re-check tests exactly what's drawn.
 - A paused game refuses commands: a rig clear must run unpaused, inside one `ev()`.
 - E38's flung shell pieces are still cut from the egg picture; the new sprites are only on the splat.
+
+## Resolved 2026-09-26 — Egg Timer: the splat rulings (keep-clear zones, flying shell sprites)
+
+**Solved:** Andrew ruled on the break-stage follow-ups. E26's speed-based trigger stands. Shell fragments on a splat keep
+clear of stage 3's antenna (tip included) and stage 4's and 5's eyes and face. The shell pieces a clear flings across the
+board are now the same ten shell sprites, plain or mirrored, instead of polygons cut from the egg picture.
+**Approach:** `ZONES` in `files/core/breaks.js`: circles in viewBox units measured on the splat PNGs (a chain along the
+antenna). `fits()` rejects a fragment with any solid sample in a zone. Stages 4 and 5 then ran short (as few as 4 of 6-8),
+so a crowded fragment now shrinks a step every quarter of its 240 tries, down to `breakShells.shrinkTo` (0.7). In
+`files/core/pieces.js`, `shard()` picks from `art.shells` (ten sprites plus mirrored copies); the egg picture is still
+loaded, only to aim the throw. The unused cut-edge outline colour went with the old `shard()`.
+**If you touch this again:**
+- The zones are tied to the art: if `make-break-art.py` or the source sheets change, re-measure them. Rig BR checks each
+  zone's centre sits on its stage's art, and tests fragment centres against the zones independently of `fits()`. It was
+  run against a zones-off build (169/363/356 centres in zones on stages 3/4/5) and caught it.
+- `ET.pieces.list()` reports each piece's `sprite`; rig E38 asserts all ten sprites appear, some mirrored.
+- Git Bash heredocs here collapse a doubled backslash to one: write a rig's in-template regex escapes with the editor, not a heredoc.

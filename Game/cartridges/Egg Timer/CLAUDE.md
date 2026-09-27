@@ -38,7 +38,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - `core/`: `config.js` (every number with its source, [T] = tunable, plus the build-question switches), `rules.js`
   (pure curves), `commands.js`, `data.js`, `game.js` (the whole mechanic, **no DOM**: keep it that way), `art.js`
   (placeholder SVG), `audio.js`, `title.js`, `lights.js`, `mess.js` (liquid), `pieces.js` (E38: pieces, push, drips,
-  trough), `breaks.js` (E26's break stages: splat + fragments inside its outline), `view.js` (board, pan, hose, nozzle, jet, cord, lightning, Time Warp, tags), `boxes.js`, `devmode.js`.
+  trough), `breaks.js` (E26's break stages: splat + fragments inside its outline, off its keep-clear zones), `view.js` (board, pan, hose, nozzle, jet, cord, lightning, Time Warp, tags), `boxes.js`, `devmode.js`.
   `files/art/` holds the approved pilot layers (`make-pilot-art.py` rebuilds them; provenance in its README).
 - **Two clocks in `game.js`:** `time` is the player's seconds (spawns, timeouts, overtime, cleanup);
   `clock` is displayed time at the wave's shared speed. Bold is decided on `clock`, overtime on `time`.
@@ -92,7 +92,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Scoring (E26):** by **tier**, fifths of the egg's own overtime window: 100 / 75 / 50 / 35 / 25, plus a perfect-wave
   bonus. **Never set tiers in displayed time.** Tier = the clear's **break stage**; the egg ladder is cosmetic.
 - **Mess and pieces:** splat on the cleared nest, the rest over the board (E15); liquid **covers readouts** (E14).
-  **Shell pieces** (and alien parts at stages 3–5, E38) sit behind the nests, never fade, carry over, and drain via the
+  **Shell pieces** (the break stages' ten sprites; alien parts at stages 3–5, E38) sit behind the nests, never fade, carry over, and drain via the
   **trough** (left, right, bottom; none on top) to the sink. Cleanup is a timed window; nothing is counted (E41).
   🚨 The cleanup banner flashes at most 2 a second, guard-capped at 2.5 (`cleanupFlashSeconds()`).
 - **The hose:** in play the cursor is **always the nozzle**, **drawn** (`#nozzle`, system cursor hidden) and turned

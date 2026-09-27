@@ -2366,17 +2366,27 @@ try {
     // fill(): the stage's splat, a count of fragments that climbs with the stage, every one inside the splat's outline
     await ev(`(() => { __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1); ${escK}; return 1; })()`);
     const fills = await ev(`(() => { const g = document.querySelector('.nest .break'), C = ET.CONFIG.breakShells, out = [];
-      for (let st = 1; st <= 5; st++) { let lo = 99, hi = 0, outside = 0, href = '', flips = 0, big = 0, seen = new Set(); const want = C.count[st];
-        for (let i = 0; i < 150; i++) { const n = ET.breaks.fill(g, st), c = ET.breaks.check(g); lo = Math.min(lo, n); hi = Math.max(hi, n); outside += c.outside;
+      for (let st = 1; st <= 5; st++) { let lo = 99, hi = 0, outside = 0, onFeature = 0, inZone = 0, href = '', flips = 0, big = 0, seen = new Set(); const want = C.count[st], Z = ET.breaks.zones(st);
+        for (let i = 0; i < 150; i++) { const n = ET.breaks.fill(g, st), c = ET.breaks.check(g); lo = Math.min(lo, n); hi = Math.max(hi, n); outside += c.outside; onFeature += c.onFeature;
+          // an independent test: no fragment's centre may sit in a keep-clear zone
+          g.querySelectorAll('.piece').forEach((p) => { const m = /translate\\(([-\\d.]+) ([-\\d.]+)\\)/.exec(p.getAttribute('transform')); if (Z.some((z) => Math.hypot(+m[1] - z[0], +m[2] - z[1]) < z[2])) inZone++; });
           href = g.querySelector('.splat').getAttribute('href');
           g.querySelectorAll('.piece').forEach((p) => { seen.add(p.getAttribute('href')); if (/scale\\(-1/.test(p.getAttribute('transform'))) flips++;
             if (Math.max(+p.getAttribute('width'), +p.getAttribute('height')) > C.size * C.jitter[1] + 0.01) big++; }); }
-        out.push({ st, lo, hi, want, outside, href, flips, big, kinds: seen.size }); }
+        out.push({ st, lo, hi, want, outside, onFeature, inZone, zones: Z.length, href, flips, big, kinds: seen.size }); }
       return out; })()`);
     ok(fills.every((f) => f.href === `art/break-${f.st}-${["elegant", "messier", "alien-signs", "half-formed", "leftovers"][f.st - 1]}@2x.png`), "each stage shows its own splat");
     ok(fills.every((f) => f.lo >= f.want[0] && f.hi <= f.want[1]) && fills[0].hi <= 4 && fills[4].lo >= 6,
       `fragments by stage, few to many (stage 1 about 3-4, stage 5 about 6-8), never one short   [${fills.map((f) => `${f.st}: ${f.lo}-${f.hi} of ${f.want.join("-")}`).join("; ")}]`);
     ok(fills.every((f) => f.outside === 0), `every fragment lies inside (or on) its splat's outline, tested on each fragment's own pixels   [${fills.map((f) => f.outside).join(", ")} outside, of 750 splats]`);
+    ok(fills.every((f) => f.onFeature === 0 && f.inZone === 0) && fills[0].zones === 0 && fills[1].zones === 0 && fills.slice(2).every((f) => f.zones > 0),
+      `Andrew's ruling (2026-09-26): no fragment touches stage 3's antenna (tip included) or stage 4's and 5's eyes and face; stages 1 and 2 have no zones   [touching ${fills.map((f) => f.onFeature).join(", ")}; centres in a zone ${fills.map((f) => f.inZone).join(", ")}]`);
+    // each zone sits on its stage's art (so a zone can't drift off the feature it guards into empty space)
+    const zoneOn = await ev(`Promise.all([3, 4, 5].map((st) => new Promise((done) => { const im = new Image(); im.onload = () => {
+        const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+        const off = ET.breaks.zones(st).filter((z) => g.getImageData(Math.floor((z[0] + 60) * im.width / 120), Math.floor((z[1] + 62) * im.height / 110), 1, 1).data[3] < 200);
+        done(off.length); }; im.src = document.querySelector('.nest .break') && ['', '', '', 'art/break-3-alien-signs@2x.png', 'art/break-4-half-formed@2x.png', 'art/break-5-leftovers@2x.png'][st]; })))`);
+    eq(zoneOn, [0, 0, 0], "…and every keep-clear zone's centre sits on its stage's art");
     ok(fills.every((f) => f.big === 0 && f.kinds === 10 && f.flips > 0), `fragments are small (a ${await ev("ET.CONFIG.breakShells.size")}-unit longest side at most +15%, the egg is 44 wide), drawn from all ten pieces, turned and flipped at random`);
     const same = await ev(`(() => { const g = document.querySelector('.nest .break'); ET.breaks.fill(g, 3); const a = g.innerHTML; ET.breaks.fill(g, 3); return a === g.innerHTML; })()`);
     ok(!same, "…so no two splats look the same");

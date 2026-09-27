@@ -35,7 +35,9 @@
   (the grey joined to the crop's edge; a thin band un-blended from the grey so the plum outlines stay crisp; the sheet's
   stray dark square went with the background). The five splats share one scale, so they show at the same size, each
   centred in the brief's box (x −40…40, y −40…28) on the slot canvas. The shells are tight sprites; the game shrinks,
-  turns and flips them (`core/breaks.js`) and keeps each inside the splat's outline.
+  turns and flips them (`core/breaks.js`) and keeps each inside the splat's outline and off its key features (the
+  keep-clear zones in `breaks.js` are measured on these files: redo them if the art changes). The pieces a clear flings
+  across the board are the same sprites (`core/pieces.js`, Andrew's ruling, 2026-09-26).
 
 | File | What it is |
 |---|---|

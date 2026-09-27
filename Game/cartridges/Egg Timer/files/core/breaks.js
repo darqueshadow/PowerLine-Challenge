@@ -6,7 +6,9 @@
    grossness changes. Shell fragments are laid on top at runtime, never baked in:
    picked at random, scaled down to fragments, turned and flipped at random, a
    few on stage 1 and the most on stage 5, and every one kept inside (or on) the
-   splat's outline. It shows for the nest's "splat" state and holds still, so
+   splat's outline and off the stage's key features (Andrew's ruling, 2026-09-26:
+   stage 3's antenna, stage 4's and 5's eyes and face). The pieces a clear flings
+   across the board are the same ten sprites (pieces.js). It shows for the nest's "splat" state and holds still, so
    reduced motion has nothing to stop. No DOM in game.js: this file is the view's.
    ========================================================================= */
 (function (root) {
@@ -17,6 +19,29 @@
   var X0 = -60, Y0 = -62, VW = 120, VH = 110;   // the nest's viewBox; the splats are full-slot canvases on it
   var SVGNS = "http://www.w3.org/2000/svg";
   var splats = [], shells = [], ready = false;
+
+  /* Keep-clear zones (Andrew's ruling, 2026-09-26): no fragment may touch a stage's key features. Stage 3: the antenna,
+     tip included; stages 4 and 5: the eyes and the face. Stages 1 and 2 have none beyond the outline. Circles [x, y, r]
+     in the nest's viewBox units, measured on the art (make-break-art.py places it); redo them if the art changes. */
+  function along(pts, r, step) {   // circles every `step` units along a polyline, to cover a curved part
+    var out = [];
+    for (var i = 1; i < pts.length; i++) {
+      var ax = pts[i - 1][0], ay = pts[i - 1][1], dx = pts[i][0] - ax, dy = pts[i][1] - ay, n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / step));
+      for (var k = 0; k <= n; k++) out.push([ax + dx * k / n, ay + dy * k / n, r]);
+    }
+    return out;
+  }
+  var ZONES = {
+    3: along([[-10, 4.5], [-7, -5], [-2.6, -14], [3.4, -19.8], [9.3, -22.8]], 4.5, 2).concat([[13.3, -21.2, 5.5]]),   // the antenna, then its tip
+    4: [[-8.5, -28.3, 5.5], [9.1, -29, 5.5], [-5.5, -21.5, 3.5], [5.5, -21.5, 3.5], [0.2, -8.1, 14.5]],                 // the eyes, their stalks, the face
+    5: [[-2, -8, 14]]                                                                                                     // the face: X eye, swirl eye, mouth
+  };
+  function inZone(stage, x, y) {
+    var z = ZONES[stage];
+    if (!z) return false;
+    for (var i = 0; i < z.length; i++) if (Math.hypot(x - z[i][0], y - z[i][1]) < z[i][2]) return true;
+    return false;
+  }
 
   function splatSrc(stage) { return "art/break-" + stage + "-" + NAMES[stage - 1] + "@2x.png"; }
   function shellSrc(i) { return "art/break--shell-" + (i < 9 ? "0" : "") + (i + 1) + "@2x.png"; }
@@ -71,13 +96,15 @@
     });
   }
 
-  // does a fragment (sprite `sh`, centre cx/cy, w × h units, turned `rot` radians, flipped `flip`) lie inside the splat?
-  function fits(sp, sh, cx, cy, w, h, rot, flip) {
+  // does a fragment (sprite `sh`, centre cx/cy, w × h units, turned `rot` radians, flipped `flip`) lie inside the splat,
+  // clear of the stage's keep-clear zones? `why` (optional) collects which test failed
+  function fits(sp, stage, sh, cx, cy, w, h, rot, flip, why) {
     var c = Math.cos(rot), s = Math.sin(rot), kx = sp.m.w / VW, ky = sp.m.h / VH;
     for (var i = 0; i < sh.pts.length; i++) {
       var px = sh.pts[i][0] * w * flip, py = sh.pts[i][1] * h;
       var x = cx + px * c - py * s, y = cy + px * s + py * c;
-      if (alphaAt(sp.m, (x - X0) * kx, (y - Y0) * ky) <= 128) return false;
+      if (alphaAt(sp.m, (x - X0) * kx, (y - Y0) * ky) <= 128) { if (why) why.outside = true; return false; }
+      if (inZone(stage, x, y)) { if (why) why.zone = true; return false; }
     }
     return true;
   }
@@ -91,6 +118,7 @@
 
   ET.breaks = {
     load: load,
+    zones: function (stage) { return (ZONES[stage] || []).slice(); },   // for rigs
     isReady: function () { return ready; },
 
     /* Fill the nest's `g.break` for a clear at break stage `stage` (1–5, the clear's tier). Returns the fragments laid. */
@@ -112,14 +140,17 @@
       var laid = [], b = sp.box;
       for (var n = 0; n < want; n++) {
         var sh = shells[order[n % order.length]];
-        var size = C.size * (C.jitter[0] + rnd() * (C.jitter[1] - C.jitter[0]));
-        var k = size / Math.max(sh.m.w, sh.m.h), w = sh.m.w * k, h = sh.m.h * k;
+        var size0 = C.size * (C.jitter[0] + rnd() * (C.jitter[1] - C.jitter[0]));
         for (var tries = 0; tries < C.tries; tries++) {
+          // a fragment that can't find room shrinks, step by step, down to `shrinkTo` of its size (the keep-clear zones
+          // leave stages 4 and 5 a narrow ring)
+          var size = size0 * (1 - (1 - C.shrinkTo) * Math.floor(tries / (C.tries / 4)) / 3);
+          var k = size / Math.max(sh.m.w, sh.m.h), w = +(sh.m.w * k).toFixed(3), h = +(sh.m.h * k).toFixed(3);
           // rounded as they're written, so check() re-tests exactly what's drawn
           var cx = +(b.x0 + rnd() * (b.x1 - b.x0)).toFixed(2), cy = +(b.y0 + rnd() * (b.y1 - b.y0)).toFixed(2);
           var deg = +(rnd() * 360).toFixed(1), rot = deg * Math.PI / 180, flip = rnd() < 0.5 ? -1 : 1;
           var apart = laid.every(function (p) { return Math.hypot(p.cx - cx, p.cy - cy) >= C.spacing * (p.size + size) / 2; });
-          if (!apart || !fits(sp, sh, cx, cy, w, h, rot, flip)) continue;
+          if (!apart || !fits(sp, stage, sh, cx, cy, w, h, rot, flip)) continue;
           laid.push({ cx: cx, cy: cy, size: size });
           node("image", {
             class: "piece", href: sh.m.src, x: -w / 2, y: -h / 2, width: w, height: h,
@@ -131,17 +162,19 @@
       return laid.length;
     },
 
-    /* For rigs: is every fragment in `g` inside its splat? (the same test fill() used, re-run from the drawn transforms) */
+    /* For rigs: is every fragment in `g` inside its splat and off its key features? (fill()'s test, re-run from the drawn
+       transforms) */
     check: function (g) {
-      var stage = +g.getAttribute("data-stage"), sp = splats[stage - 1], bad = 0, count = 0;
+      var stage = +g.getAttribute("data-stage"), sp = splats[stage - 1], bad = 0, zone = 0, count = 0;
       [].forEach.call(g.querySelectorAll(".piece"), function (im) {
         count++;
         var sh = shells.filter(function (s) { return s.m.src === im.getAttribute("href"); })[0];
         var tf = /translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\) scale\((-?1) 1\)/.exec(im.getAttribute("transform"));
         var w = +im.getAttribute("width"), h = +im.getAttribute("height");
-        if (!sh || !tf || !fits(sp, sh, +tf[1], +tf[2], w, h, +tf[3] * Math.PI / 180, +tf[4])) bad++;
+        var why = {};
+        if (!sh || !tf || !fits(sp, stage, sh, +tf[1], +tf[2], w, h, +tf[3] * Math.PI / 180, +tf[4], why)) { if (why.zone) zone++; else bad++; }
       });
-      return { stage: stage, count: count, outside: bad };
+      return { stage: stage, count: count, outside: bad, onFeature: zone };
     }
   };
 })(window);

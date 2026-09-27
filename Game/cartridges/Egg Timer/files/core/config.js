@@ -93,7 +93,8 @@
       size: 13,              // [T] a fragment's longest side (the sheet draws them egg-sized: these are fragments)
       jitter: [0.8, 1.15],   // [T] each one's size, as a share of `size`
       spacing: 0.7,          // [T] how close two fragments' centres may come, as a share of their sizes
-      tries: 60              // spots tried per fragment before it's left out
+      tries: 240,            // spots tried per fragment before it's left out; each quarter of them shrinks it a step…
+      shrinkTo: 0.7          // [T] …down to this share of its size (only a crowded one: the keep-clear zones leave stages 4 and 5 a narrow ring)
     },
     escapeSeconds: 1.4,      // how long an escape flourish keeps the nest busy
     // Refinement 3 rulings (E15): a clear leaves a small splat on its own nest, and the rest of its gunk
