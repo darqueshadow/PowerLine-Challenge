@@ -705,10 +705,13 @@ try {
     // Paused in the same ev() (and left paused through this section), so the 2 s escape can't end under the checks and stills.
     const cx = await ev(`(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.querySelector('#pause').hidden = true;
       const n = document.querySelector('.nest[data-state="escape"]'); if (!n) return null; const c = n.querySelector('.creature'), d = (s) => getComputedStyle(c.querySelector(s)).display;
-      return { set: n.dataset.hatch, alien: n.dataset.alien, scurry: n.classList.contains('scurry'), lunge: n.classList.contains('lunge'), smile: d('.smile'), fangs: d('.fangs'), maw: d('.maw'), eye: getComputedStyle(c.querySelector('.eye')).fill }; })()`);
+      const al = c.querySelector('.alien'), imgs = al ? [...al.querySelectorAll('image')] : [];
+      return { set: n.dataset.hatch, alien: n.dataset.alien, puppet: al && al.dataset.alien, parts: imgs.length, drawn: imgs.filter((i) => i.getBBox().width > 0).length,
+        placeholder: d('.body'), scurry: n.classList.contains('scurry'), lunge: n.classList.contains('lunge') }; })()`);
     ok(!!cx && cx.set === "cute" && ["crab", "octopus", "worm"].includes(cx.alien), `E45: a wave-1 hatch is one of the cute set   ${JSON.stringify(cx)}`);
     ok(!!cx && cx.scurry && !cx.lunge, "E46: …and it scurries off, never lunges");
-    ok(!!cx && cx.smile !== "none" && cx.fangs === "none" && cx.maw === "none" && cx.eye === "rgb(246, 180, 42)", "E45 (⏳ placeholder): the cute hatchling smiles, with yellow eyes and no maw or fangs");
+    ok(!!cx && cx.puppet === cx.alien && cx.parts >= 3 && cx.drawn === cx.parts && cx.placeholder === "none",
+      "E45: the nest shows that alien's puppet from Andrew's sheets, every piece drawn, and the placeholder bug steps aside");
     if (SHOTS) {
       await ev(`(() => { const n = document.querySelector('.nest[data-state="escape"]'); n.classList.remove('scurry', 'lunge'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);
       await shot("05a-hatchling-cute");
@@ -724,16 +727,39 @@ try {
     // (paused above) and the same escaping nest is handed a horror hatch.
     const hx = await ev(`(() => { const n = document.querySelector('.nest[data-state="escape"]'); if (!n) return null;
       ET.view.handle([{ type: 'hatch', nest: +n.dataset.id, pool: 2, set: 'horror', alien: 'scuttler', exit: 'lunge' }], null);
-      const c = n.querySelector('.creature'), d = (s) => getComputedStyle(c.querySelector(s)).display;
-      return { set: n.dataset.hatch, lunge: n.classList.contains('lunge'), eyes: c.querySelectorAll('.eye').length, fangs: d('.fangs'), smile: d('.smile'), legs: c.querySelectorAll('.legs path').length, red: getComputedStyle(c.querySelector('.eye')).fill }; })()`);
-    ok(!!hx && hx.set === "horror" && hx.lunge && hx.eyes >= 4 && hx.fangs !== "none" && hx.smile === "none" && hx.legs >= 4 && hx.red === "rgb(255, 26, 46)",
-      `E45: a horror hatchling is horrific: a cluster of red eyes, fangs and jointed legs, no smile   ${JSON.stringify(hx)}`);
+      const c = n.querySelector('.creature'), al = c.querySelector('.alien');
+      return { set: n.dataset.hatch, lunge: n.classList.contains('lunge'), puppet: al && al.dataset.alien,
+        legs: al ? al.querySelectorAll('[data-part="leg"]').length : 0, mandibles: al ? al.querySelectorAll('[data-part^="mandible"]').length : 0 }; })()`);
+    ok(!!hx && hx.set === "horror" && hx.lunge && hx.puppet === "scuttler" && hx.legs === 8 && hx.mandibles === 2,
+      `E45: a horror hatch shows the horror puppet: the Scuttler, eight legs and two mandibles   ${JSON.stringify(hx)}`);
     if (SHOTS) {
       // a still of the hatchling at full size, in its nest, for a look (the flourish itself is too quick to catch)
       await ev(`(() => { const n = document.querySelector('.nest.scurry, .nest.lunge'); n.classList.remove('scurry', 'lunge'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);
       await shot("05b-hatchling");
       await ev(`(() => { const n = document.querySelector('.nest[style*="scale(2.2)"]'); n.style.transform = ''; n.style.zIndex = ''; return 1; })()`);
     }
+  }
+
+  /* ------------------------------------------------------ AL. the six aliens */
+  section("AL. the hatchlings: Andrew's six aliens as puppets (E45, sheets approved 2026-09-27)");
+  {
+    const al = await ev(`(async () => {
+      const c = document.querySelector('.nest[data-id="0"] .creature'), out = {};
+      for (const a of Object.keys(ET.aliens.RIGS)) {
+        ET.aliens.fill(c, a);
+        const imgs = [...c.querySelectorAll('.alien image')];
+        out[a] = { parts: imgs.length, hrefs: imgs.every((i) => i.getAttribute('href') === 'art/hatch-' + a + '--' + i.closest('[data-part]').dataset.part + '@2x.png') };
+      }
+      ET.aliens.clear(c);
+      const srcs = ET.aliens.sources(), codes = await Promise.all(srcs.map((s) => fetch(s).then((r) => r.status, () => 0)));
+      return { out, n: srcs.length, bad: srcs.filter((s, i) => codes[i] !== 200), cleared: !c.querySelector('.alien') && !c.classList.contains('has-art') };
+    })()`);
+    eq(Object.keys(al.out).sort(), ["crab", "grabber", "octopus", "scuttler", "worm", "wriggler"], "all six aliens have a puppet");
+    ok(Object.values(al.out).every((x) => x.parts >= 4 && x.hrefs), `each is built from its own cut pieces   [${Object.entries(al.out).map(([a, x]) => a + " " + x.parts).join(", ")}]`);
+    eq(al.bad, [], `every piece's picture loads   [${al.n} pictures]`);
+    ok(al.cleared, "clearing a nest takes its alien away and brings the placeholder back");
+    eq(await ev("[...Object.keys(ET.aliens.RIGS)].sort().join() === [...ET.CONFIG.hatchAliens.cute, ...ET.CONFIG.hatchAliens.horror].sort().join()"), true,
+      "the puppets are exactly the aliens the game draws from (hatchAliens)");
   }
 
   /* ------------------------------------------------------ F. command boxes */
@@ -1595,6 +1621,11 @@ try {
     await ev("__et.advance(0.1)");
     const cue = () => ev(`(() => { const s = document.querySelector('.nest[data-state="trigger"] .readout > span'); if (!s) return null; const cs = getComputedStyle(s); return { anim: cs.animationName, border: cs.borderTopColor }; })()`);
     const legs = () => ev(`(() => { const n = document.querySelector('.nest[data-id="0"]'); n.classList.add('scurry'); const a = getComputedStyle(n.querySelector('.legs')).animationName; n.classList.remove('scurry'); return a; })()`);
+    // E45: every moving piece of all six aliens, built in nest 0's slot one at a time: its animation's name
+    const aliens = () => ev(`(() => { const c = document.querySelector('.nest[data-id="0"] .creature'), out = {};
+      Object.keys(ET.aliens.RIGS).forEach((a) => { ET.aliens.fill(c, a);
+        out[a] = [...c.querySelectorAll('.wig, .squish, .drip')].map((g) => getComputedStyle(g).animationName); });
+      ET.aliens.clear(c); return out; })()`);
     // one evaluation, so the live page can't step in between: place the CAV, then read the cord's x at every point
     // and how far it spreads, over six moments of the lay
     const layCord = (t) => ev(`(() => {
@@ -1639,13 +1670,15 @@ try {
       const b = t ? await bold(t.id) : null;
       const w = b ? await tilts(b.id) : [];
       if (b) await ev(`__et.submit('RCAV ${b.unit}')`);
-      return { label, t: !!t, cue: cu, cord, bold: !!b, wobble: w, legs: await legs() };
+      return { label, t: !!t, cue: cu, cord, bold: !!b, wobble: w, legs: await legs(), aliens: await aliens() };
     };
     const live = await motion("normal");
     ok(live.t && !!live.cue && live.cue.anim === "cue", `without reduced motion the place-me cue blinks   [${live.cue && live.cue.anim}]`);
     ok(live.cord.some((d) => d !== null && d > 0), `…the laying cord twitches   [spread ${live.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(live.bold && live.wobble.some((a) => a !== null && a > 0), `…the egg wobbles in overtime   [${live.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
     eq(live.legs, "legs", "…and the escaping hatchling's legs shuffle");
+    ok(Object.values(live.aliens).every((n) => n.length >= 3 && n.every((x) => /^alien-(wig|squish|drip)$/.test(x))),
+      `…and every piece of all six aliens moves   [${Object.entries(live.aliens).map(([a, n]) => a + " " + n.length).join(", ")}]`);
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const still = await motion("reduced");
@@ -1653,6 +1686,8 @@ try {
     ok(still.cord.length === 6 && still.cord.every((d) => d === 0), `SAFETY: …the laying cord hangs straight, no twitch   [spread ${still.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(still.bold && still.wobble.length === 6 && still.wobble.every((a) => a === 0), `SAFETY: …the overtime egg doesn't wobble   [${still.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
     eq(still.legs, "none", "SAFETY: …and the hatchling's legs hold still");
+    ok(Object.values(still.aliens).every((n) => n.length >= 3 && n.every((x) => x === "none")),
+      `SAFETY: …and every alien's legs, tentacles, feelers, bodies and drips hold still   [${Object.entries(still.aliens).map(([a, n]) => a + " " + n.filter((x) => x === "none").length + "/" + n.length).join(", ")}]`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
 

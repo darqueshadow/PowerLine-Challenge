@@ -668,19 +668,37 @@ h2 {
 .nest[data-hatch="cute"] .creature .eye { fill: var(--hatchling-cute-eye); }
 .nest[data-hatch="cute"] .creature .slit { fill: var(--shadow); }
 .nest[data-hatch="cute"] .creature .legs path { stroke: var(--hatchling-cute-legs); stroke-linecap: round; stroke-linejoin: round; }
-.nest.scurry .creature { animation: scurry 1.3s steps(10) forwards; }
+/* E45: Andrew's six aliens, as puppets (core/aliens.js). While one is in the slot the placeholder bug steps aside.
+   Each piece swings about its own attaching end (its local 0,0): a rotation, never a brightness change. The fallback
+   bodies squash, stretch and bob; the Grabber's drips stretch slowly. Reduced motion stills them all (below). */
+.creature.has-art > :not(.alien) { display: none; }
+.alien .wig, .alien .squish, .alien .drip { transform-box: view-box; transform-origin: 0 0; }
+.alien .wig { animation: alien-wig var(--d, 0.5s) ease-in-out var(--dl, 0s) infinite alternate; }
+.alien .squish { animation: alien-squish var(--d, 0.5s) ease-in-out var(--dl, 0s) infinite alternate; }
+.alien .drip { animation: alien-drip var(--d, 1.4s) ease-in-out var(--dl, 0s) infinite alternate; }
+@keyframes alien-wig {
+  from { transform: rotate(calc(var(--a, 10) * -1deg)); }
+  to { transform: rotate(calc(var(--a, 10) * 1deg)); }
+}
+@keyframes alien-squish {
+  from { transform: scale(calc(1 + var(--s, 0.04)), calc(1 - var(--s, 0.04))); }
+  to { transform: translateY(calc(var(--b, 1) * -1px)) scale(calc(1 - var(--s, 0.04)), calc(1 + var(--s, 0.04))); }
+}
+@keyframes alien-drip { from { transform: scaleY(0.85); } to { transform: scaleY(1.2); } }
+/* E47: a hatch lasts 2 s: the alien shows itself in the nest for the first quarter, then leaves */
+.nest.scurry .creature { animation: scurry 1.8s steps(14) forwards; }
 .nest.scurry .legs { animation: legs 0.3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 50%; }
 @keyframes scurry {
-  0% { transform: translate(0, -6px); }
+  0%, 25% { transform: translate(0, -6px); }
   100% { transform: translate(calc(var(--dir, 1) * 520%), 80%) rotate(calc(var(--dir, 1) * 90deg)); }
 }
 /* Chat ruling, 2026-09-25: the legs shuffle, a swing that never hides them (it was a flip through zero height, 8 a
    second). Only their slant changes, never their size or colour, so nothing flashes; still under reduced motion. */
 @keyframes legs { from { transform: skewX(-14deg); } to { transform: skewX(14deg); } }
 .nest.lunge { z-index: 20; }
-.nest.lunge .creature { animation: lunge 1.3s steps(8) forwards; }
+.nest.lunge .creature { animation: lunge 1.8s steps(11) forwards; }
 @keyframes lunge {
-  0% { transform: translateY(-4px) scale(1); }
+  0%, 25% { transform: translateY(-4px) scale(1); }
   60% { transform: translateY(-40%) scale(6); opacity: 1; }
   100% { transform: translateY(-40%) scale(9); opacity: 0; }
 }
@@ -1095,7 +1113,7 @@ h2 {
 #over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
-  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cords .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   #title-scene .note, #setup-critter .note { opacity: 1; }
   /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24) */
   .nest[data-state="trigger"] .readout > span { border-color: var(--cyan); }

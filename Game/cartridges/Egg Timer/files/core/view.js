@@ -850,6 +850,7 @@
         v.el.classList.remove("bold", "hide-readout", "hide-clock", "hide-egg", "scurry", "lunge");
         delete v.el.dataset.hatch;
         delete v.el.dataset.alien;
+        ET.aliens.clear(v.svg.querySelector(".creature"));
         ET.mess.clear(v.mess);
         v.note.hidden = true;
         v.bubble.hidden = true;
@@ -1044,6 +1045,7 @@
             // E45/E46: the game picks the set (cute or horror), the alien and its exit (a cute one only scurries)
             v.el.dataset.hatch = e.set;
             v.el.dataset.alien = e.alien;
+            ET.aliens.fill(v.svg.querySelector(".creature"), e.alien);   // the puppet (Andrew's six sheets)
             v.el.classList.add(e.exit);
             // E37 (Chat, 2026-09-25): a hatch shows the hatch only: no pan, no THONG, no clunk
             hud.pool.classList.remove("hit");
@@ -1054,6 +1056,7 @@
             v.rolled = false;
             delete v.el.dataset.hatch;
             delete v.el.dataset.alien;
+            ET.aliens.clear(v.svg.querySelector(".creature"));
             v.bubble.hidden = true;
             v.el.classList.remove("scurry", "lunge");
             break;

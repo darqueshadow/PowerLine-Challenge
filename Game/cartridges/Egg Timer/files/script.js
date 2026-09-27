@@ -128,6 +128,7 @@
     $("#pause").hidden = true;
     $("#hud-mode").textContent = MODES.filter(function (m) { return m.id === mode; })[0].label;
     ET.view.reset();
+    ET.aliens.preload();   // E45: the hatchlings' pictures, once, now the data is in
     ET.boxes.setup(boxes);
     // E28: the switching hints under the Command Lines (with one line there's nothing to switch to: F12 just clears it)
     // E30: Esc joins them, now the side panel is gone from play

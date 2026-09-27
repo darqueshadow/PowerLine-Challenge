@@ -2749,10 +2749,74 @@ export default {
   "stroke-linecap": "round",
   "stroke-linejoin": "round"
  },
+ ".creature.has-art > :not(.alien)": {
+  "display": "none"
+ },
+ ".alien .wig, .alien .squish, .alien .drip": {
+  "transform-box": "view-box",
+  "transform-origin": "0px 0px"
+ },
+ ".alien .wig": {
+  "animation-delay": "0s",
+  "animation-direction": "alternate",
+  "animation-duration": "0.5s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "infinite",
+  "animation-name": "alien-wig",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in-out"
+ },
+ ".alien .squish": {
+  "animation-delay": "0s",
+  "animation-direction": "alternate",
+  "animation-duration": "0.5s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "infinite",
+  "animation-name": "alien-squish",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in-out"
+ },
+ ".alien .drip": {
+  "animation-delay": "0s",
+  "animation-direction": "alternate",
+  "animation-duration": "1.4s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "infinite",
+  "animation-name": "alien-drip",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in-out"
+ },
+ "@keyframes alien-wig » 0%": {
+  "transform": "rotate(calc(-10deg))"
+ },
+ "@keyframes alien-wig » 100%": {
+  "transform": "rotate(calc(10deg))"
+ },
+ "@keyframes alien-squish » 0%": {
+  "transform": "scale(calc(1.04), calc(0.96))"
+ },
+ "@keyframes alien-squish » 100%": {
+  "transform": "translateY(calc(-1px)) scale(calc(0.96), calc(1.04))"
+ },
+ "@keyframes alien-drip » 0%": {
+  "transform": "scaleY(0.85)"
+ },
+ "@keyframes alien-drip » 100%": {
+  "transform": "scaleY(1.2)"
+ },
  ".nest.scurry .creature": {
   "animation-delay": "0s",
   "animation-direction": "normal",
-  "animation-duration": "1.3s",
+  "animation-duration": "1.8s",
   "animation-fill-mode": "forwards",
   "animation-iteration-count": "1",
   "animation-name": "scurry",
@@ -2760,7 +2824,7 @@ export default {
   "animation-range-end": "normal",
   "animation-range-start": "normal",
   "animation-timeline": "auto",
-  "animation-timing-function": "steps(10)"
+  "animation-timing-function": "steps(14)"
  },
  ".nest.scurry .legs": {
   "animation-delay": "0s",
@@ -2777,7 +2841,7 @@ export default {
   "transform-box": "fill-box",
   "transform-origin": "50% 50%"
  },
- "@keyframes scurry » 0%": {
+ "@keyframes scurry » 0%, 25%": {
   "transform": "translate(0px, -6px)"
  },
  "@keyframes scurry » 100%": {
@@ -2795,7 +2859,7 @@ export default {
  ".nest.lunge .creature": {
   "animation-delay": "0s",
   "animation-direction": "normal",
-  "animation-duration": "1.3s",
+  "animation-duration": "1.8s",
   "animation-fill-mode": "forwards",
   "animation-iteration-count": "1",
   "animation-name": "lunge",
@@ -2803,9 +2867,9 @@ export default {
   "animation-range-end": "normal",
   "animation-range-start": "normal",
   "animation-timeline": "auto",
-  "animation-timing-function": "steps(8)"
+  "animation-timing-function": "steps(11)"
  },
- "@keyframes lunge » 0%": {
+ "@keyframes lunge » 0%, 25%": {
   "transform": "translateY(-4px) scale(1)"
  },
  "@keyframes lunge » 60%": {
@@ -4138,7 +4202,7 @@ export default {
  "#over-buttons": {
   "margin-top": "12px"
  },
- "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, #cords .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cords .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",
