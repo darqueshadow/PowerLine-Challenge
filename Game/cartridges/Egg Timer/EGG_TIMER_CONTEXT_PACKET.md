@@ -1,3 +1,10 @@
+> **FILING NOTE — Claude Code, 2026-09-27 (E45–E47, the hatched aliens).** Andrew's handoff asking for a report is filed
+> verbatim as `Previous Versions/EGG_TIMER_HATCH_HANDOFF_2026-09-27.md`, and his rulings on Code's report and proposal as
+> `Previous Versions/EGG_TIMER_HATCH_RULINGS_2026-09-27.md`. E45 (which set and which alien hatch), E46 (a cute alien only
+> scurries) and E47 (a hatch lasts about 2 s) are merged in §7 and §11, built (placeholder art: the cute set is the same
+> bug with a smile), and **pushed live**. The six art sheets are Andrew's, from Gemini; the puppet animation waits for them.
+> No E-item is open.
+
 > **FILING NOTE — Claude Code, 2026-09-26 (the splat rulings).** Andrew's rulings on the three follow-ups are filed verbatim
 > as `Previous Versions/EGG_TIMER_SPLAT_RULINGS_2026-09-26.md`: E26's speed-based trigger stands (no E45); fragments keep
 > clear of stage 3's antenna and stage 4's and 5's eyes and face; the flying shell pieces use the ten shell sprites. Built
@@ -286,7 +293,7 @@
 **Governance status:** Registered **Standalone Cartridge** (Laws v2.0 §0.23, Core Law 15 — ratified 2026-09-15). Register renamed to **Egg Timer** via amendment A2 — complete. Not duplicated from the Empty Cartridge. Does not use Target / Challenge / Impact Zone vocabulary. Still bound by: Data Sheet integrity (no invented values), real PowerLine syntax, Developer Mode gating, Claude Code as sole point of merge, no cross-cartridge convention imposition, and the build gate below.
 
 **Art direction** *(Refinement 4 §0, for Gemini and all future work)*: **"Juxtaposition"**: a friendly, fun, family-style cartoon game with a **dark, twisted undertone** (the umbilical cord, the baby aliens).
-*(Refinement 5 §4)* **Hatchlings:** when an egg hatches, **the creature that escapes is horrific**, in contrast with the cute family. Placeholder now; Gemini's final. *(Code: eight jointed legs, a gaunt ribbed body, a cluster of odd-sized red eyes and a split maw of needle teeth, drooling; the scurry and lunge flourishes are unchanged.)* *(Refinement 5 §5)* The **scary alien-mom face** (§7) is the same undertone breaking through. *(Options creature)* The mode-selection creature (§11 item 15) is the cute side: **adorable, slightly wrong**.
+~~*(Refinement 5 §4)* **Hatchlings:** when an egg hatches, **the creature that escapes is horrific**, in contrast with the cute family.~~ *(E45, 2026-09-27)* **Hatchlings: cute in wave 1, mixed in wave 2, horror from wave 3** (§7). Placeholder now; Gemini's final. *(Code: eight jointed legs, a gaunt ribbed body, a cluster of odd-sized red eyes and a split maw of needle teeth, drooling; the scurry and lunge flourishes are unchanged.)* *(Refinement 5 §5)* The **scary alien-mom face** (§7) is the same undertone breaking through. *(Options creature)* The mode-selection creature (§11 item 15) is the cute side: **adorable, slightly wrong**.
 
 **Name & branding:** Renamed from Whack A CAV to **Egg Timer** — a happy accident: styling the "E" and "T" in a distinct font/weight makes the title read as "ET" from a distance, tying directly into the alien-egg creature theme. Rename fully executed on disk and in governance (amendments A2–A4). **Creature/art direction note for Gemini:** the ET wordplay is just typography on ordinary words — keep the actual creature designs clearly original, not a visual likeness of Spielberg's E.T. specifically.
 
@@ -470,7 +477,25 @@ VF (§3) only appears in two-phase segments (Follow Progression once ramped, or 
   *(Refinement 2)* **A frying pan slams down on the egg** with a "THONG" (its pitch varies slightly each time [T]), and the egg becomes a **fried egg in the nest**. The slam is fast, **under 0.5 s** [T], and **never blocks typing** the next command. The fried egg shows **which third of the overtime window** the clear landed in [T]: the **early third** (near 100 points) is a perfect **sunny-side-up** with a small "ding" and sparkle; the **middle third** a **broken yolk**; the **last third** (near 25 points) **scrambled/burnt** with a puff of smoke. The yolk splattering onto neighbouring nests *is* the look of the existing mess (§8); the mess rules don't change. *(Refinement 2 rulings, E11)* The random cooked eggs (poached, deviled, etc.) are **retired**; the fried egg follows the timing only. The escape flourish's random scurry-or-lunge is unchanged.
   *(Refinement 3 rulings)* **The egg ladder replaces the fried eggs by overtime third** (sunny-side-up, broken yolk, burnt). **Every smash leaves a bit of mess.** A **fast clear** is one inside the **early part of the overtime window** [T, the first third to start]. A fast clear shows a **dish and caption over the nest** for **~1 s** [T], never blocking typing. **Consecutive fast clears climb the ladder:** **Scrambled → Sunny-Side Up → Over Easy → Poached → Eggs Benny → Eggs Benny w/ Avocado → Steak, Eggs & Brew!** [T: wording and steps]; at the top it **stays there while the streak holds**. The streak **resets to the bottom** on a **slow clear, any ERROR, or a hatch**. **Slow clears show no dish** (mess only). The streak **carries across waves** and resets at game over. **Cosmetic only for now: no score effect.** Placeholder dish art; the final art is Gemini's. *(Code, approved in the E13–E18 rulings: the pan still slams on every clear, with its THONG; the ding now marks a fast clear, and the sparkle and smoke that went with the fried eggs are gone. The dish sits in the pop-up layer, which takes no pointer or keyboard.)*
 - **Escape (failure) — final and irreversible:** if the (jittered) overtime window runs out *(Addendum)*, the egg finishes hatching and the creature is loose. **`RCAV` no longer does anything to it at this point** — there is no post-hatch recovery via command. The creature performs a randomly chosen escape flourish — **scurries away, or lunges at the screen** (variety pool, mirrors the cooked-egg splat pattern) — and the nest then auto-resets to idle on its own. No lingering "overdue" state requiring further player action. ~~*(Refinement 2)* **The pan comes down late**, hitting the empty nest with a dull "clunk".~~ *(E37)* **No pan, no THONG
-and no clunk on a hatch: the pan and THONG come only with a successful `RCAV` clear.** *(Refinement 5 §4)* The creature that escapes is **horrific** (Art direction, above).
+and no clunk on a hatch: the pan and THONG come only with a successful `RCAV` clear.** ~~*(Refinement 5 §4)* The creature that escapes is **horrific** (Art direction, above).~~ *(E45, Andrew, 2026-09-27; replaces
+Refinement 5 §4)* **Which aliens hatch:** **wave 1**, every hatch is **cute**; **wave 2**, the **first hatch is always
+horror**, and after that the chance of horror grows through the wave (about 25% a quarter of the way in, 75% three quarters
+in); **wave 3 onward**, **horror only**. A clean player who never lets a wave-1 egg hatch never meets the cute set, which is
+fine: the first hatch of a game is not forced to be cute. **Which alien** comes from a shuffle bag, so the same one never
+comes out twice in a row. The **cute set:** a round spider-crab with eyes on stalks, an octopus with big yellow eyes, a worm
+with one antenna. The **horror set:** **the Scuttler** (a hunched spider on long jointed legs, red eye cluster, mandibles),
+**the Grabber** (a dripping mass of tentacles with slit-pupil eyes all over), **the Wriggler** (a see-through grub with
+glowing insides and a head of purple feelers). Each cute alien and its horror version share a body plan (crab/Scuttler,
+octopus/Grabber, worm/Wriggler). *(E46)* **A cute alien only scurries off, never lunges;** a horror one scurries or lunges at
+random, as before. *(E47)* **A hatch lasts about 2 s** (was 1.4) [T], so the animation has time to show; tune it once the
+aliens move. The Game Over wait on the last hatch grows to match. **Animation:** puppet-style, each alien built from
+separate pieces (body, each leg, each tentacle) that the game swings and curls on its own; the **Wriggler** takes the
+whole-body fallback (squash, stretch, bob, sway), with only its feeler crown and glowing insides as separate pieces.
+Frame-by-frame drawings are out. Final art: Andrew's six Gemini sheets, one alien per sheet, to Code's format (§11 E45).
+*(Code: `config.js` `hatchCuteUntilWave`, `hatchMixedWave`, `hatchMixedFirst`, `hatchMixedChance`, `hatchAliens`,
+`hatchExits`, `escapeSeconds`; the draws come from their own random source, so `?seed=` replays stay exact. The `hatch`
+event carries `set`, `alien` and `exit`, and the nest carries `data-hatch` / `data-alien`. ⏳ Until the art lands, the cute
+set is the placeholder bug in soft purple with yellow eyes and a smile, no maw, fangs or drool.)*
   *(E26)* **Five break stages** (look only; the amount of mess is unchanged): the clear's tier (§10) picks what's left in the nest when the pan comes down. **1 elegant:** clean crack, neat halves, bright yolk, small sparkle. **2 messier:** jagged shards, runny yolk, still just an egg. **3 first alien signs:** green-tinged yolk, tiny antenna in the goo. **4 half-formed:** wiggly leg, eyeball on a stalk, purple slime. **5 jokey leftovers:** a spill of alien slurpy, tangled legs, a tentacle. Art is Gemini's (brief slot 13); ~~the game has no break picture until the art-slot layer~~. *(Code: the `cleared` event already carries its `tier`.)* *(Andrew's splat art, 2026-09-26)* **Built:** Andrew's five approved splats (neat egg; runny yolk; olive goo with an antenna; purple slime with a flattened alien; purple goo with tangled legs and tentacles), **all shown at the same size**, with **shell fragments laid on top at runtime, never baked in**: picked at random from ten, scaled to fragments, turned and flipped at random, **every one inside or on the splat's outline**, few on stage 1 and the most on stage 5. *(Code, `core/breaks.js`: the stage replaces the egg for the nest's "splat" state (`splatSeconds`, 1.1 s of the player's time), lying over the nest's front rim, flattened by the pan (behind the rim, its lower half was lost). Fragments 3–4 / 4–5 / 5–6 / 5–7 / 6–8 by stage, each about 13 units long (the egg is 44 wide), tested on its own pixels against the splat's; all [T] in `config.js` `breakShells`. ~~E38's flung shell pieces are unchanged.~~ The Arcade room's table decor is untouched: game art only.)* *(Andrew's splat rulings, 2026-09-26)* **The trigger stays speed-based (E26 stands).** **Fragments keep clear of key features:** stage 3's antenna, tip included; stages 4 and 5's eyes and face; stages 1 and 2 only the outline. **The pieces that fly across the board and wash into the trough are the ten shell sprites**, not pieces cut from the egg picture, so the shell looks the same everywhere. *(Code: keep-clear zones are circles measured on the art, in `core/breaks.js`; a fragment that can't find room in the narrow ring they leave on stages 4 and 5 shrinks a step at a time to 70% [T] (`breakShells.shrinkTo`), so no stage comes up short. The flying pieces pick a sprite at random, plain or mirrored, turned at random, at about the size the cut pieces had.)*
 - *(E26)* **The waiting egg shows alien hints** matching the tiers: at the start of **tier 3** (40% of the window) an **antenna tip** pokes out of a crack, at **tier 4** (60%) a **wiggly leg**, at **tier 5** (80%) a **tentacle with slurpy seeping out**. Each appears **once** at its boundary, **no flashing**, and stays until the egg is cleared or hatches, so at 80% all three show *(Code's call, confirmed by Chat: keep as built)*. Art in the pilot slot (`egg.svg`, groups `hint-3` … `hint-5`); not built until the art-slot layer.
 - *(E26)* **Art rules for all alien art** (eggs, hatchling, breaks, mom face, the title family): scary is fine, but scary **alien** (extra eyes, fangs, tentacles, slime). **Nothing human** (no hands or fingers, human eyes, teeth or skin); **no red blood except the cord**; gross-funny, family cartoon.
@@ -698,6 +723,27 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   had the pan come down late, 0.35 s after a hatch, on the empty nest, with a dull clunk. The late pan, the clunk and
   `hatchPanDelay` are gone. The browser rig counts every THONG and every pan from a game's start to past its first hatch:
   none.)*
+
+### Raised by Code's hatched-aliens report, ruled by Andrew (2026-09-27) — E45, E46 and E47
+
+- ~~**E45. Which aliens hatch, and how the wave-2 mix ramps.**~~ **Resolved** *(E45, Andrew, 2026-09-27; verbatim in
+  `EGG_TIMER_HATCH_RULINGS_2026-09-27.md`)*: Code's proposal as written (§7): wave 1 cute; wave 2's first hatch horror, then
+  horror with a chance equal to how far through the wave; wave 3 on horror only; the alien from a shuffle bag, never twice in
+  a row; every choice a `config.js` setting. Clean players who never see a cute alien: fine. **Art format** (for Chat's
+  Gemini prompts): one alien per sheet, 2816 × 1536, the body about 1000 px tall; a flat plain background, no ground shadow;
+  the game's thick dark plum outline on every piece; the body in the middle and each part laid out separately around it,
+  not touching; each part drawn whole, with a rounded stub at the attaching end that tucks under the body; parts in a
+  relaxed, fairly straight pose; legs for one side only (Code mirrors them); egg-shell bits on the body only. Parts: crab /
+  Scuttler, 4 legs in 2 pieces each (upper, lower), plus the crab's 3 eye stalks and the Scuttler's left and right mandibles;
+  octopus / Grabber, 8 tentacles in 3 segments each (base, middle, tip) with round overlapping joints, plus 3–4 loose purple
+  drips for the Grabber; worm, 3–4 body segments and the antenna; Wriggler, one whole body, the glowing insides as their own
+  layer and 8–10 separate feelers. *(Code, on whole tentacles: if Gemini can't split them, Code can cut a whole tentacle into
+  three segments itself and hide each seam under the next segment's rounded joint; that holds for gentle curls. A tight curl
+  would show the seams, and those sheets would need another pass.)* Code flags any sheet with touching parts, a missing
+  attaching end or a thin outline, rather than patching it by hand.
+- ~~**E46. The cute aliens' exit.**~~ **Resolved** *(E46, Andrew, 2026-09-27)*: scurry only, never lunge.
+- ~~**E47. How long a hatch lasts.**~~ **Resolved** *(E47, Andrew, 2026-09-27)*: about 2 s instead of 1.4 [T], tuned once
+  the aliens move; the Game Over wait on the last hatch grows to match (it was already the hatch's length plus 0.5 s).
 
 ### Ruled by Chat (2026-09-25) — E42, E43 and E44 (raised building E42)
 

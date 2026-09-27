@@ -22,7 +22,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E45**; none open);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E48**; none open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -78,8 +78,10 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Egg lifecycle:** `laying` (the cord lowers the egg; **the clock starts at the pop**; no cord for VF, E16), then
   running. **`RCAV` does nothing until the CAV's real duration has passed**: don't loosen that floor. Then bold,
   `RCAV` valid and the crack are one event; overtime (the player's seconds), then the hatch, final: **no pan, no
-  THONG on a hatch** (E37). **VF** hides egg and timer until "Clear Fueling". **Every AD shows a post-it** ("20 min" or
-  "Clear @ HH:MM" against the wall clock, E1). The wall clock is **neon green** `#39ff14`, no glow, in **DSEG7**.
+  THONG on a hatch** (E37). **Hatchlings (E45–E47):** wave 1 cute, wave 2 mixed (first hatch horror), wave 3+ horror;
+  shuffle bag, never the same alien twice running; cute only scurries; a hatch lasts ~2 s. Six Gemini sheets pending.
+  **VF** hides egg and timer until "Clear Fueling". **Every AD shows a post-it** ("20 min" or "Clear @ HH:MM" against
+  the wall clock, E1). The wall clock is **neon green** `#39ff14`, no glow, in **DSEG7**.
 - **Time Warp:** clocks run 5× once the wave's last CAV has *started* and none is bold (E18), or while 2+ eggs are each
   over 8:00 from bold (E39); never with an egg bold; overtime never warps. 🚨 The sign flashes at most 2/s (`setSign()`'s
   0.25 s guard), then wobbles (a transform, never brightness); 🚨 lightning re-jags ≤ 2.5/s (`rejag()`). E43 zaps.
