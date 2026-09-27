@@ -1,6 +1,7 @@
 /* ===========================================================================
    EGG TIMER — PIECES, THE HOSE'S PUSH AND THE TROUGH (E38, Chat, 2026-09-25)
-   Every clear leaves shell pieces cut from the approved egg picture; a slow
+   Every clear leaves shell pieces (the break stages' ten shell sprites, Andrew's
+   ruling 2026-09-26: they were cut from the egg picture); a slow
    clear (break stage 3–5) also scatters the pilot's alien parts (antenna,
    clawed leg, tentacle and goo, eye), more the slower it was. Pieces never fade
    or vanish on their own and never cap: they pile up, wave over wave, until the
@@ -26,8 +27,8 @@
   var pieces = [];                // every piece on the board: resting, live or in the trough
   var drips = [], trickles = [];
   var grid = {}, CELL = 64;       // resting pieces by cell, to unbake one without redrawing them all
-  var art = { ready: false, egg: null, eggBox: null, parts: {} };
-  var outline = "#1a0d2e";
+  var art = { ready: false, egg: null, eggBox: null, parts: {}, shells: [] };
+  var SHELLS = 10;                // break--shell-01 … -10 (files/art/, make-break-art.py)
   var stats = { drained: 0, eyesDrained: 0, entered: 0 };
   var PARTS = { antenna: "art/egg--hint-3@2x.png", leg: "art/egg--hint-4@2x.png", tentacle: "art/egg--hint-5@2x.png", eye: "art/egg--hint-eye@2x.png" };
   var SLOT_W = 404;               // the pilot layers are full-slot canvases, 404 px across the nest's 120-unit viewBox
@@ -53,38 +54,33 @@
   }
   function loadArt() {
     var keys = Object.keys(PARTS);
-    Promise.all([load("art/egg--shell@2x.png")].concat(keys.map(function (k) { return load(PARTS[k]); }))).then(function (imgs) {
+    var shells = [];
+    for (var s = 1; s <= SHELLS; s++) shells.push(load("art/break--shell-" + (s < 10 ? "0" : "") + s + "@2x.png"));
+    Promise.all([load("art/egg--shell@2x.png")].concat(keys.map(function (k) { return load(PARTS[k]); }), shells)).then(function (imgs) {
       if (!imgs[0]) return;
       art.egg = imgs[0];
-      art.eggBox = opaqueBox(imgs[0]);
+      art.eggBox = opaqueBox(imgs[0]);   // where on the nest a clear throws its pieces from
       keys.forEach(function (k, i) { if (imgs[i + 1]) art.parts[k] = crop(imgs[i + 1], opaqueBox(imgs[i + 1])); });
+      art.shells = [];
+      imgs.slice(1 + keys.length).forEach(function (im, i) {
+        if (!im) return;
+        var name = "break--shell-" + (i < 9 ? "0" : "") + (i + 1), flip = mirrored(im);
+        im.sprite = name; flip.sprite = name + ":mirrored";
+        art.shells.push(im, flip);
+      });
+      if (!art.shells.length) return;
       art.ready = true;
     });
   }
 
-  /* One shell piece: a jagged polygon cut out of the egg picture, its cut edges drawn in the cartoon outline. */
+  /* One shell piece (Andrew's ruling, 2026-09-26): one of the ten shell sprites the break stages use, picked at random,
+     plain or mirrored (a piece is also turned at random when it's added), so the shell looks the same everywhere. */
   function shard() {
-    var b = art.eggBox, rnd = Math.random;
-    var cx, cy, tries = 0;
-    do { cx = b.x + rnd() * b.w; cy = b.y + rnd() * b.h; tries++; }
-    while (tries < 30 && b.data[(Math.floor(cy) * b.cw + Math.floor(cx)) * 4 + 3] < 128);
-    var n = 5 + Math.floor(rnd() * 3), rad = b.w * (0.16 + rnd() * 0.12), pts = [];
-    for (var i = 0; i < n; i++) {
-      var a = (i / n) * Math.PI * 2 + (rnd() - 0.5) * 0.6, rr = rad * (0.55 + rnd() * 0.6);
-      pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
-    }
-    var x0 = Math.floor(Math.min.apply(null, pts.map(function (p) { return p[0]; }))) - 2;
-    var y0 = Math.floor(Math.min.apply(null, pts.map(function (p) { return p[1]; }))) - 2;
-    var x1 = Math.ceil(Math.max.apply(null, pts.map(function (p) { return p[0]; }))) + 2;
-    var y1 = Math.ceil(Math.max.apply(null, pts.map(function (p) { return p[1]; }))) + 2;
-    var c = document.createElement("canvas"); c.width = x1 - x0; c.height = y1 - y0;
-    var g = c.getContext("2d");
-    g.translate(-x0, -y0);
-    g.beginPath(); pts.forEach(function (p, k) { if (k) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.closePath();
-    g.save(); g.clip(); g.drawImage(art.egg, 0, 0); g.restore();
-    g.lineWidth = 5; g.strokeStyle = outline; g.lineJoin = "round"; g.stroke();
-    g.globalCompositeOperation = "destination-in";   // keep only what was egg: the cut edges show, nothing outside it
-    g.drawImage(art.egg, 0, 0);
+    return art.shells[Math.floor(Math.random() * art.shells.length)];
+  }
+  function mirrored(img) {
+    var c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+    var g = c.getContext("2d"); g.translate(img.width, 0); g.scale(-1, 1); g.drawImage(img, 0, 0);
     return c;
   }
 
@@ -337,7 +333,6 @@
       trough = { el: t, bottom: t.querySelector(".t-bl") };
       // the floor mess, then the trough, then the still and live pieces, then everything else on the board
       f.after(t); t.after(rest); rest.after(live);
-      outline = getComputedStyle(document.documentElement).getPropertyValue("--outline").trim() || outline;
       loadArt();
       root.addEventListener("resize", layout);
     },
@@ -427,7 +422,7 @@
         kinds: pieces.reduce(function (o, p) { o[p.kind] = (o[p.kind] || 0) + 1; return o; }, {})
       };
     },
-    list: function () { return pieces.map(function (p) { return { id: p.id, kind: p.kind, state: p.state, x: p.x, y: p.y, a: p.a, r: radius(p), riding: !!p.ride }; }); },
+    list: function () { return pieces.map(function (p) { return { id: p.id, kind: p.kind, state: p.state, x: p.x, y: p.y, a: p.a, r: radius(p), riding: !!p.ride, sprite: p.img.sprite || null }; }); },
     /* For rigs: `n` resting shell pieces spread over the board (a big pile, wave after wave). */
     bench: function (n) {
       if (!art.ready) return 0;

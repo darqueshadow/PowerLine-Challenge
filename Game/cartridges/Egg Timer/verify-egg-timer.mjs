@@ -1909,7 +1909,7 @@ try {
         out.push({ t, shell: (k1.shell || 0) - (k0.shell || 0), parts }); }
       return out; })()`);
     const PT = await ev("ET.CONFIG.pieces");
-    ok(made.every((m) => m.shell >= PT.shards[0] && m.shell <= PT.shards[1]), `every clear leaves ${PT.shards[0]}-${PT.shards[1]} shell pieces cut from the egg picture   [${made.map((m) => m.shell).join(", ")}]`);
+    ok(made.every((m) => m.shell >= PT.shards[0] && m.shell <= PT.shards[1]), `every clear leaves ${PT.shards[0]}-${PT.shards[1]} shell pieces   [${made.map((m) => m.shell).join(", ")}]`);
     eq(made.map((m) => m.parts), [0, 0, 1, 2, 3], "break stages 3, 4 and 5 add 1, 2 and 3 alien parts (antenna, clawed leg, tentacle and goo, eye); 1 and 2 none");
     await ev("__steps(80)");
     const settled = await ev(`(() => { const s = ET.pieces.state(), L = ET.pieces.list();
@@ -1919,6 +1919,14 @@ try {
     ok(settled.rest > 0 && settled.onWall === 0 && settled.off === 0, `they slide, settle and pile round the readouts, never on one, and stay on the board   [${settled.rest} at rest, ${settled.onWall} on a readout]`);
     await ev("__steps(400)");
     eq(await ev("ET.pieces.state().count + ET.pieces.state().drained"), settled.n, "…and never fade or vanish on their own (20 s later, every one is still there)");
+    // Andrew's ruling (2026-09-26): the shell pieces are the break stages' ten shell sprites (they were cut from the egg
+    // picture), plain or mirrored
+    const sprites = await ev(`(() => { ET.pieces.reset(); const svg = document.querySelector('.nest .nest-art'); for (let i = 0; i < 40; i++) ET.pieces.clear(svg, 1);
+      const L = ET.pieces.list().filter((p) => p.kind === 'shell'); ET.pieces.reset();
+      return { n: L.length, bad: L.filter((p) => !/^break--shell-(0[1-9]|10)(:mirrored)?$/.test(p.sprite || '')).length,
+               names: new Set(L.map((p) => (p.sprite || '').split(':')[0])).size, mirrored: L.filter((p) => /:mirrored$/.test(p.sprite || '')).length }; })()`);
+    ok(sprites.n > 0 && sprites.bad === 0 && sprites.names === 10 && sprites.mirrored > 0 && sprites.mirrored < sprites.n,
+      `every shell piece is one of the break stages' ten shell sprites, so the shell looks the same everywhere, plain or mirrored   [${sprites.n} pieces, ${sprites.names} sprites, ${sprites.mirrored} mirrored, ${sprites.bad} other]`);
 
     // E42: one good sweep of the hose carries a piece all the way across the board into the trough on the far side (it
     // went ~80% of the way), at every measured size (the board is 2.25-2.74 board heights wide)
