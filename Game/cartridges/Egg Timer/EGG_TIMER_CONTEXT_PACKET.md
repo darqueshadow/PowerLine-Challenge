@@ -1,3 +1,8 @@
+> **FILING NOTE — Claude Code, 2026-09-27 (the six alien sheets).** Andrew's handoff approving the six sheets as they
+> are is filed verbatim as `Previous Versions/EGG_TIMER_ALIEN_SHEETS_HANDOFF_2026-09-27.md`. The octopus and Grabber
+> sheets in the folder were wrong retries (a crab, a Scuttler); on Andrew's word the two concept crops stand in as
+> whole bodies. Built into §7 as puppets and **pushed live**. No E-item is open.
+
 > **FILING NOTE — Claude Code, 2026-09-27 (E45–E47, the hatched aliens).** Andrew's handoff asking for a report is filed
 > verbatim as `Previous Versions/EGG_TIMER_HATCH_HANDOFF_2026-09-27.md`, and his rulings on Code's report and proposal as
 > `Previous Versions/EGG_TIMER_HATCH_RULINGS_2026-09-27.md`. E45 (which set and which alien hatch), E46 (a cute alien only
@@ -494,8 +499,24 @@ whole-body fallback (squash, stretch, bob, sway), with only its feeler crown and
 Frame-by-frame drawings are out. Final art: Andrew's six Gemini sheets, one alien per sheet, to Code's format (§11 E45).
 *(Code: `config.js` `hatchCuteUntilWave`, `hatchMixedWave`, `hatchMixedFirst`, `hatchMixedChance`, `hatchAliens`,
 `hatchExits`, `escapeSeconds`; the draws come from their own random source, so `?seed=` replays stay exact. The `hatch`
-event carries `set`, `alien` and `exit`, and the nest carries `data-hatch` / `data-alien`. ⏳ Until the art lands, the cute
-set is the placeholder bug in soft purple with yellow eyes and a smile, no maw, fangs or drool.)*
+event carries `set`, `alien` and `exit`, and the nest carries `data-hatch` / `data-alien`. ~~⏳ Until the art lands, the cute
+set is the placeholder bug in soft purple with yellow eyes and a smile, no maw, fangs or drool.~~)* *(Andrew's six sheets,
+approved as they are, 2026-09-27; verbatim in `EGG_TIMER_ALIEN_SHEETS_HANDOFF_2026-09-27.md`)* **No more art rounds: work
+around what's there, fallback where a puppet doesn't work; fix what can be fixed in code.** **Built as puppets:** the
+**crab** (body, three eye stalks swaying, four legs a side scuttling; the two L-shaped legs used whole, since they already
+bend at the knee), the **Scuttler** (its one whole jointed leg eight times, the front four over the body's stubby leg and
+small claws, the pincers opening and closing as mandibles; its fangs stay as mouthparts), the **worm** (stood up in its
+body segment: head swaying, antenna bobbing, tail wagging; no legs), the **Wriggler** (the whole-body wobble, its glowing
+insides swaying on their own, ten feelers in a crown). The **octopus and Grabber** sheets in the folder were wrong retries
+(a crab and a Scuttler); on Andrew's word **the concept crops stand in as whole bodies** on the fallback wobble (the
+octopus's ground shadow and the Grabber's slime puddle cut away), each with **loose tentacles curling from under it**
+(the Wriggler's smooth feelers, recoloured: the Grabber sheet's segments read as bones) and the Grabber's **purple drips**
+stretching. *(E47)* The alien shows itself in the nest for the first quarter of the 2 s, then scurries off or lunges.
+*(Code: `make-alien-art.py` cuts the pieces (8 px per unit, so the lunge keeps detail) and writes their sizes to
+`core/alien-parts.js`; `core/aliens.js` holds each puppet's layout; every movement is a rotation about the piece's
+attaching end (or the fallback's squash and bob), never a brightness change, and reduced motion stills them all (rig R).
+The pictures are fetched when the first game starts, not with the page, so the data loads first. The placeholder bug
+stays in the code and steps aside while an alien is in the slot.)*
   *(E26)* **Five break stages** (look only; the amount of mess is unchanged): the clear's tier (§10) picks what's left in the nest when the pan comes down. **1 elegant:** clean crack, neat halves, bright yolk, small sparkle. **2 messier:** jagged shards, runny yolk, still just an egg. **3 first alien signs:** green-tinged yolk, tiny antenna in the goo. **4 half-formed:** wiggly leg, eyeball on a stalk, purple slime. **5 jokey leftovers:** a spill of alien slurpy, tangled legs, a tentacle. Art is Gemini's (brief slot 13); ~~the game has no break picture until the art-slot layer~~. *(Code: the `cleared` event already carries its `tier`.)* *(Andrew's splat art, 2026-09-26)* **Built:** Andrew's five approved splats (neat egg; runny yolk; olive goo with an antenna; purple slime with a flattened alien; purple goo with tangled legs and tentacles), **all shown at the same size**, with **shell fragments laid on top at runtime, never baked in**: picked at random from ten, scaled to fragments, turned and flipped at random, **every one inside or on the splat's outline**, few on stage 1 and the most on stage 5. *(Code, `core/breaks.js`: the stage replaces the egg for the nest's "splat" state (`splatSeconds`, 1.1 s of the player's time), lying over the nest's front rim, flattened by the pan (behind the rim, its lower half was lost). Fragments 3–4 / 4–5 / 5–6 / 5–7 / 6–8 by stage, each about 13 units long (the egg is 44 wide), tested on its own pixels against the splat's; all [T] in `config.js` `breakShells`. ~~E38's flung shell pieces are unchanged.~~ The Arcade room's table decor is untouched: game art only.)* *(Andrew's splat rulings, 2026-09-26)* **The trigger stays speed-based (E26 stands).** **Fragments keep clear of key features:** stage 3's antenna, tip included; stages 4 and 5's eyes and face; stages 1 and 2 only the outline. **The pieces that fly across the board and wash into the trough are the ten shell sprites**, not pieces cut from the egg picture, so the shell looks the same everywhere. *(Code: keep-clear zones are circles measured on the art, in `core/breaks.js`; a fragment that can't find room in the narrow ring they leave on stages 4 and 5 shrinks a step at a time to 70% [T] (`breakShells.shrinkTo`), so no stage comes up short. The flying pieces pick a sprite at random, plain or mirrored, turned at random, at about the size the cut pieces had.)*
 - *(E26)* **The waiting egg shows alien hints** matching the tiers: at the start of **tier 3** (40% of the window) an **antenna tip** pokes out of a crack, at **tier 4** (60%) a **wiggly leg**, at **tier 5** (80%) a **tentacle with slurpy seeping out**. Each appears **once** at its boundary, **no flashing**, and stays until the egg is cleared or hatches, so at 80% all three show *(Code's call, confirmed by Chat: keep as built)*. Art in the pilot slot (`egg.svg`, groups `hint-3` … `hint-5`); not built until the art-slot layer.
 - *(E26)* **Art rules for all alien art** (eggs, hatchling, breaks, mom face, the title family): scary is fine, but scary **alien** (extra eyes, fangs, tentacles, slime). **Nothing human** (no hands or fingers, human eyes, teeth or skin); **no red blood except the cord**; gross-funny, family cartoon.

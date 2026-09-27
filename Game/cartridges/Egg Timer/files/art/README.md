@@ -44,6 +44,25 @@
 | `break-1-elegant@2x.png` … `break-5-leftovers@2x.png` | the five splats, on the 404 × 374 slot canvas |
 | `break--shell-01@2x.png` … `-10@2x.png` | the ten shell fragments, laid on a splat at runtime |
 
+## The hatchlings (E45): six aliens as puppets
+
+Andrew's six Gemini sheets, approved as they are on 2026-09-27 (no more art rounds), cut by `make-alien-art.py` (at the
+cartridge root) into `hatch-<alien>--<part>@2x.png`, 8 px per viewBox unit so the lunge (up to 9×) keeps detail; each
+part's size goes to `core/alien-parts.js`, and `core/aliens.js` lays the puppets out and swings each piece about its
+attaching end. Sources in `files/assets/imgages/` (git-ignored):
+
+| Alien | Sheet | What's used |
+|---|---|---|
+| crab (cute) | `cute_crab.jpg` | body, 3 eye stalks, 4 legs mirrored to 8 (the two L-shaped legs used whole: they bend at the knee already) |
+| Scuttler (horror) | `horror_scuttler.jpg` | body, the one whole jointed leg ×8 (the front four over the body's stub and claws), the pincers as mandibles |
+| worm (cute) | `cute_worm.jpg` | head, the cup segment, tail, antenna (the S-body piece carries Gemini's spider claws, so it's left out) |
+| Wriggler (horror) | `horror_wriggler.jpg` | body (whole-body wobble), glowing insides, ten feelers (the extra Scuttler head and drums ignored) |
+| octopus (cute) | `concept_octopus.jpg` | the concept crop, whole, ground shadow removed (the sheet in the folder was a wrong retry) |
+| Grabber (horror) | `concept_grabber.jpg` | the concept crop, whole, slime puddle cut away; drips from `horror_grabber.jpg` (a wrong retry) |
+
+The octopus and Grabber's loose tentacles are the Wriggler's smooth feelers, recoloured: the Grabber sheet's
+base/middle/tip segments are drawn as ringed cylinders and read as bones next to the concept bodies.
+
 ## The Gemini prompts (from Andrew's record, `egg-timer-gemini-prompts.md`)
 
 ## Session 1: finding the look
