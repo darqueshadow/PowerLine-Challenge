@@ -201,7 +201,6 @@
       el("ellipse", { class: "glint", cx: -14, cy: -10, rx: 10, ry: 4 }, svg);
       return d;
     },
-    FLOURISHES: ["scurry", "lunge"],
 
     /* One nest's picture: the nest, the egg (grows, then cracks), a splat slot, broken shell halves and a creature
        for the escape. Slot 0 is the pilot art (Chat ruling, 2026-09-25): a HYBRID. The look is Andrew's approved
@@ -262,6 +261,8 @@
       el("path", { class: "maw", d: "M-8 -7 Q0 8 8 -7 Q0 -3 -8 -7Z" }, bug);
       el("path", { class: "fangs", d: "M-6 -6 L-5 -1 L-3.5 -5 L-2 1 L0 -4 L2 1 L3.5 -5 L5 -1 L6 -6" }, bug);
       el("path", { class: "drool", d: "M2 3 C2.5 8 1 10 2 14 C3 10 4 8 3 3Z" }, bug);
+      // E45 (⏳ placeholder): the cute set wears the same body with a smile instead of the maw, ribs, fangs and drool
+      el("path", { class: "smile", d: "M-7 -4 Q0 4 7 -4" }, bug);
       [[-5, -14, 3.6], [4, -16, 2.6], [8, -11, 1.8], [-1, -19, 1.6], [-9, -10, 1.5]].forEach(function (e) {
         el("circle", { class: "eye", cx: e[0], cy: e[1], r: e[2] }, bug);
         el("circle", { class: "slit", cx: e[0], cy: e[1], r: e[2] * 0.35 }, bug);

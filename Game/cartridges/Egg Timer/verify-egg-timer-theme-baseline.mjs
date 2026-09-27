@@ -1,5 +1,5 @@
 /* verify-egg-timer-theme-baseline.mjs: section T's record of every rule of the game's stylesheets, resolved
-   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-26.
+   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-27.
    Rewrite it ONLY when a style is changed on purpose, in the same commit. Never published (verify-*.mjs). */
 export default {
  "@font-face": {
@@ -2721,6 +2721,33 @@ export default {
   "stroke-linecap": "square",
   "stroke-linejoin": "miter",
   "stroke-width": "3"
+ },
+ ".creature .smile": {
+  "display": "none",
+  "fill": "none",
+  "stroke": "rgb(0, 0, 0)",
+  "stroke-linecap": "round",
+  "stroke-width": "1.8"
+ },
+ ".nest[data-hatch=\"cute\"] .creature .ribs, .nest[data-hatch=\"cute\"] .creature .maw, .nest[data-hatch=\"cute\"] .creature .fangs, .nest[data-hatch=\"cute\"] .creature .drool": {
+  "display": "none"
+ },
+ ".nest[data-hatch=\"cute\"] .creature .smile": {
+  "display": "inline"
+ },
+ ".nest[data-hatch=\"cute\"] .creature .body": {
+  "fill": "rgb(154, 106, 168)"
+ },
+ ".nest[data-hatch=\"cute\"] .creature .eye": {
+  "fill": "rgb(246, 180, 42)"
+ },
+ ".nest[data-hatch=\"cute\"] .creature .slit": {
+  "fill": "rgb(0, 0, 0)"
+ },
+ ".nest[data-hatch=\"cute\"] .creature .legs path": {
+  "stroke": "rgb(110, 69, 128)",
+  "stroke-linecap": "round",
+  "stroke-linejoin": "round"
  },
  ".nest.scurry .creature": {
   "animation-delay": "0s",

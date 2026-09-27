@@ -176,6 +176,56 @@ section("E. hatching, the pool, and game over");
   eq(hatchedAt, 2, "one hatch costs exactly one from the pool");
 }
 
+section("E45–E47. hatchlings: cute, then mixed, then horror (Andrew, 2026-09-27)");
+{
+  const at = (u) => () => u;
+  eq([0, 0.5, 0.99].map((u) => R.hatchSet(1, false, 0.9, at(u))), ["cute", "cute", "cute"], "E45: every wave-1 hatch is cute");
+  eq([3, 4, 12].map((w) => R.hatchSet(w, true, 0, at(0.99))), ["horror", "horror", "horror"], "E45: from wave 3 on, every hatch is horror");
+  eq(R.hatchSet(2, true, 0, at(0.99)), "horror", "E45: wave 2's first hatch is always horror, however early");
+  eq([[0.25, 0.2], [0.25, 0.3], [0.75, 0.7], [0.75, 0.8]].map(([p, u]) => R.hatchSet(2, false, p, at(u))),
+    ["horror", "cute", "horror", "cute"], "E45: later wave-2 hatches are horror with a chance equal to how far through the wave (25% a quarter in, 75% three quarters in)");
+  const rng = ET.seededRandom(3), share = (p) => { let h = 0; for (let i = 0; i < 4000; i++) h += R.hatchSet(2, false, p, rng) === "horror"; return h / 4000; };
+  const s = [share(0.25), share(0.75)];
+  ok(Math.abs(s[0] - 0.25) < 0.03 && Math.abs(s[1] - 0.75) < 0.03, `E45: …which comes out about that often over many draws   [${s.map((x) => x.toFixed(3)).join(", ")}]`);
+}
+{
+  // let everything hatch through waves 1–3 (the pool kept topped up so the game runs on)
+  const g = new ET.Game({ mode: "clear", types: [T("XX", 1)], units, rng: ET.seededRandom(11), hatchRng: ET.seededRandom(12) });
+  g.start();
+  const hatches = [], escapes = [];
+  advance(g, 400, (x) => {
+    x.pool = 3;
+    x.drain().forEach((e) => { if (e.type === "hatch") hatches.push({ wave: x.wave, ...e }); });
+    x.nests.forEach((n) => { if (n.state === "escape" && !escapes.some((q) => q.id === n.id && q.from === n.busyUntil)) escapes.push({ id: n.id, from: n.busyUntil, len: n.busyUntil - x.time }); });
+    if (x.wave > 3) x.phase = "over";
+  });
+  const w = (k) => hatches.filter((h) => h.wave === k);
+  ok(w(1).length >= 5 && w(1).every((h) => h.set === "cute"), `E45 in play: wave 1 hatches cute only   [${w(1).length} hatches]`);
+  ok(w(2).length >= 5 && w(2)[0].set === "horror", `E45 in play: wave 2's first hatch is horror   [${w(2).map((h) => h.set[0]).join("")}]`);
+  ok(w(2).some((h) => h.set === "cute"), "E45 in play: …and wave 2 still mixes cute in after it");
+  ok(w(3).length >= 5 && w(3).every((h) => h.set === "horror"), `E45 in play: wave 3 hatches horror only   [${w(3).length} hatches]`);
+  ok(hatches.every((h) => ET.CONFIG.hatchAliens[h.set].includes(h.alien)), "E45: each alien comes from its own set (crab/octopus/worm cute, Scuttler/Grabber/Wriggler horror)");
+  ok(hatches.every((h, i) => !i || h.alien !== hatches[i - 1].alien), `E45: the same alien never comes out twice in a row   [${hatches.length} hatches]`);
+  const firstSix = w(1).slice(0, 6).map((h) => h.alien);
+  eq([new Set(firstSix.slice(0, 3)).size, new Set(firstSix.slice(3, 6)).size], [3, 3], "E45: a shuffle bag: each three cute hatches in a row are the three cute aliens");
+  ok(hatches.filter((h) => h.set === "cute").every((h) => h.exit === "scurry"), "E46: a cute alien only scurries off, never lunges");
+  const hx = new Set(hatches.filter((h) => h.set === "horror").map((h) => h.exit));
+  ok(hx.has("scurry") && hx.has("lunge"), "E46: a horror alien scurries or lunges, at random as before");
+  eq(ET.CONFIG.escapeSeconds, 2, "E47: a hatch keeps its nest busy about 2 s (was 1.4)");
+  ok(escapes.length && escapes.every((q) => Math.abs(q.len - 2) < 0.06), `E47 in play: each escape lasts 2 s, then the nest empties   [${escapes.length} escapes]`);
+}
+{
+  // E45's draws have their own random source, so a seeded replay's spawns don't shift with the hatchlings
+  const spawns = (h) => {
+    const g = new ET.Game({ mode: "clear", types: [T("XX", 1), T("YY", 2)], units, rng: ET.seededRandom(5), hatchRng: ET.seededRandom(h) });
+    g.start();
+    const out = [];
+    advance(g, 200, (x) => { x.pool = 3; x.drain().forEach((e) => e.type === "active" && out.push(x.nests[e.nest].unit + x.nests[e.nest].type.code)); });
+    return out.join(",");
+  };
+  ok(spawns(1) === spawns(2), "E45: the hatchlings' draws never shift a seeded game's spawns");
+}
+
 section("F. waves: quota, perfect bonus, cleanup, growth");
 {
   const g = game("clear", [T("XX", 1)]);

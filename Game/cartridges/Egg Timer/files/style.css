@@ -657,6 +657,17 @@ h2 {
 .creature .eye { fill: var(--hatchling-eye); stroke: var(--shadow); stroke-width: 1.2; }
 .creature .slit { fill: var(--hatchling-slit); }
 .creature .legs path { fill: none; stroke: var(--hatchling-legs); stroke-width: 3; stroke-linecap: square; stroke-linejoin: miter; }
+/* E45 (⏳ placeholder): wave 1's cute hatchlings, and some of wave 2's; the game sets data-hatch on the nest */
+.creature .smile { display: none; fill: none; stroke: var(--shadow); stroke-width: 1.8; stroke-linecap: round; }
+.nest[data-hatch="cute"] .creature .ribs,
+.nest[data-hatch="cute"] .creature .maw,
+.nest[data-hatch="cute"] .creature .fangs,
+.nest[data-hatch="cute"] .creature .drool { display: none; }
+.nest[data-hatch="cute"] .creature .smile { display: inline; }
+.nest[data-hatch="cute"] .creature .body { fill: var(--hatchling-cute-body); }
+.nest[data-hatch="cute"] .creature .eye { fill: var(--hatchling-cute-eye); }
+.nest[data-hatch="cute"] .creature .slit { fill: var(--shadow); }
+.nest[data-hatch="cute"] .creature .legs path { stroke: var(--hatchling-cute-legs); stroke-linecap: round; stroke-linejoin: round; }
 .nest.scurry .creature { animation: scurry 1.3s steps(10) forwards; }
 .nest.scurry .legs { animation: legs 0.3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 50%; }
 @keyframes scurry {

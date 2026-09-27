@@ -134,6 +134,10 @@
   --hatchling-eye: #ff1a2e;               /* red */
   --hatchling-slit: #ffe14d;              /* yellow (pupil slit) */
   --hatchling-legs: #8a2a3e;              /* dark rose */
+  /* E45: the cute set (⏳ placeholder colours, from Gemini's cute concept sheet) */
+  --hatchling-cute-body: #9a6aa8;         /* soft purple */
+  --hatchling-cute-eye: #f6b42a;          /* yellow */
+  --hatchling-cute-legs: #6e4580;         /* deep purple */
   --drool: #b8ff5e;                       /* acid green drool */
 
   /* Scary mom face */

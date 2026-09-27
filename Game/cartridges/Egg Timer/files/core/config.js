@@ -96,7 +96,25 @@
       tries: 240,            // spots tried per fragment before it's left out; each quarter of them shrinks it a step…
       shrinkTo: 0.7          // [T] …down to this share of its size (only a crowded one: the keep-clear zones leave stages 4 and 5 a narrow ring)
     },
-    escapeSeconds: 1.4,      // how long an escape flourish keeps the nest busy
+    escapeSeconds: 2.0,      // [T] how long an escape flourish keeps the nest busy (E47: about 2 s, was 1.4; tune once the aliens move)
+    // E45 (Andrew, 2026-09-27; replaces Refinement 5 §4's "the escapee is always horrific"): which set hatches, by wave.
+    // Waves up to hatchCuteUntilWave hatch cute; hatchMixedWave mixes (its first hatch is hatchMixedFirst, then horror
+    // comes with a chance equal to how far through the wave it is, CAVs resolved / quota); every later wave hatches horror.
+    hatchCuteUntilWave: 1,
+    hatchMixedWave: 2,
+    hatchMixedFirst: "horror",     // "horror" | "chance": the mixed wave's first hatch
+    hatchMixedChance: "progress",  // P(horror) = the share of the wave resolved (25% a quarter in, 75% three quarters in)
+    // E45: which alien, from a shuffle bag per set, never the same one twice in a row. Each cute alien and its horror
+    // version share one body plan (crab/Scuttler, octopus/Grabber, worm/Wriggler), so one puppet rig drives both.
+    hatchAliens: {
+      cute: ["crab", "octopus", "worm"],
+      horror: ["scuttler", "grabber", "wriggler"]
+    },
+    // E46: a cute alien only scurries off; a horror one scurries or lunges, at random as before.
+    hatchExits: {
+      cute: ["scurry"],
+      horror: ["scurry", "lunge"]
+    },
     // Refinement 3 rulings (E15): a clear leaves a small splat on its own nest, and the rest of its gunk
     // lands evenly at random over the whole board; neighbours are no longer targeted.
     messBlobsOwn: 2,         // [T] the small splat on the cleared nest…

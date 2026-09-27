@@ -700,14 +700,34 @@ try {
   eq(await ev("document.querySelector('#hud-pool').textContent"), "●●○", "the pool shows 2 of 3");
   eq(await ev("document.querySelector('#hud-pool-label').textContent"), "POOL", "the pool is shown by its placeholder key only");
   ok(await ev("!!document.querySelector('.nest.scurry, .nest.lunge')"), "the creature does an escape flourish (scurry or lunge)");
+  {
+    // E45/E46 (Andrew, 2026-09-27): wave 1 hatches cute, and a cute alien only scurries (⏳ placeholder: a smile, yellow eyes, no fangs).
+    // Paused in the same ev() (and left paused through this section), so the 2 s escape can't end under the checks and stills.
+    const cx = await ev(`(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.querySelector('#pause').hidden = true;
+      const n = document.querySelector('.nest[data-state="escape"]'); if (!n) return null; const c = n.querySelector('.creature'), d = (s) => getComputedStyle(c.querySelector(s)).display;
+      return { set: n.dataset.hatch, alien: n.dataset.alien, scurry: n.classList.contains('scurry'), lunge: n.classList.contains('lunge'), smile: d('.smile'), fangs: d('.fangs'), maw: d('.maw'), eye: getComputedStyle(c.querySelector('.eye')).fill }; })()`);
+    ok(!!cx && cx.set === "cute" && ["crab", "octopus", "worm"].includes(cx.alien), `E45: a wave-1 hatch is one of the cute set   ${JSON.stringify(cx)}`);
+    ok(!!cx && cx.scurry && !cx.lunge, "E46: …and it scurries off, never lunges");
+    ok(!!cx && cx.smile !== "none" && cx.fangs === "none" && cx.maw === "none" && cx.eye === "rgb(246, 180, 42)", "E45 (⏳ placeholder): the cute hatchling smiles, with yellow eyes and no maw or fangs");
+    if (SHOTS) {
+      await ev(`(() => { const n = document.querySelector('.nest[data-state="escape"]'); n.classList.remove('scurry', 'lunge'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);
+      await shot("05a-hatchling-cute");
+      await ev(`(() => { const n = document.querySelector('.nest[style*="scale(2.2)"]'); n.style.transform = ''; n.style.zIndex = ''; n.classList.add('scurry'); return 1; })()`);
+    }
+  }
   await wait(600);   // longer than the old late pan's delay plus its slam
   eq(await ev("(() => { const r = [__e37.thong, __e37.pan, document.querySelectorAll('.pan:not([class=\"pan\"])').length]; ET.audio.thong = ET.audio.thong.__orig; return r; })()"), [0, 0, 0],
     "E37: a hatch shows the hatch only: no THONG and no pan (counted from the start to after the hatch)");
   await shot("05-escape");
   {
-    // Refinement 5 §4: the hatchling is horrific (⏳ placeholder): many red eyes, fangs, eight legs
-    const hx = await ev(`(() => { const c = document.querySelector('.nest.scurry .creature, .nest.lunge .creature'); return c ? { eyes: c.querySelectorAll('.eye').length, fangs: !!c.querySelector('.fangs'), legs: c.querySelectorAll('.legs path').length, red: getComputedStyle(c.querySelector('.eye')).fill } : null; })()`);
-    ok(!!hx && hx.eyes >= 4 && hx.fangs && hx.legs >= 4 && hx.red === "rgb(255, 26, 46)", `Refinement 5 §4: the hatchling is horrific: a cluster of red eyes, fangs and jointed legs   [${hx && hx.eyes} eyes]`);
+    // E45: from wave 2's first hatch on, the horror set (⏳ placeholder): many red eyes, fangs, eight legs. The page is paused
+    // (paused above) and the same escaping nest is handed a horror hatch.
+    const hx = await ev(`(() => { const n = document.querySelector('.nest[data-state="escape"]'); if (!n) return null;
+      ET.view.handle([{ type: 'hatch', nest: +n.dataset.id, pool: 2, set: 'horror', alien: 'scuttler', exit: 'lunge' }], null);
+      const c = n.querySelector('.creature'), d = (s) => getComputedStyle(c.querySelector(s)).display;
+      return { set: n.dataset.hatch, lunge: n.classList.contains('lunge'), eyes: c.querySelectorAll('.eye').length, fangs: d('.fangs'), smile: d('.smile'), legs: c.querySelectorAll('.legs path').length, red: getComputedStyle(c.querySelector('.eye')).fill }; })()`);
+    ok(!!hx && hx.set === "horror" && hx.lunge && hx.eyes >= 4 && hx.fangs !== "none" && hx.smile === "none" && hx.legs >= 4 && hx.red === "rgb(255, 26, 46)",
+      `E45: a horror hatchling is horrific: a cluster of red eyes, fangs and jointed legs, no smile   ${JSON.stringify(hx)}`);
     if (SHOTS) {
       // a still of the hatchling at full size, in its nest, for a look (the flourish itself is too quick to catch)
       await ev(`(() => { const n = document.querySelector('.nest.scurry, .nest.lunge'); n.classList.remove('scurry', 'lunge'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);

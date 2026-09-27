@@ -121,7 +121,8 @@
       types: rig.types ? types.filter(function (t) { return rig.types.indexOf(t.code) >= 0; }) : types,
       units: app.data.units,
       wallStart: rig.wallStart !== undefined ? rig.wallStart : wallStart(),
-      rng: rig.rng || (SEED === null ? Math.random : ET.seededRandom(SEED))
+      rng: rig.rng || (SEED === null ? Math.random : ET.seededRandom(SEED)),
+      hatchRng: rig.hatchRng || (SEED === null ? Math.random : ET.seededRandom(SEED + 7919))   // E45: its own stream
     });
     app.paused = false;
     $("#pause").hidden = true;

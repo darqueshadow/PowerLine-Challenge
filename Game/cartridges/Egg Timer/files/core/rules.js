@@ -109,6 +109,16 @@
       return t < c.fastClearShare;
     },
 
+    /* E45: which set an egg hatches. `first` is true for the wave's first hatch; `progress` is the share of the
+       wave's quota resolved before it (0…1). Cute up to hatchCuteUntilWave, mixed on hatchMixedWave, horror after. */
+    hatchSet: function (wave, first, progress, rng) {
+      var c = C();
+      if (wave <= c.hatchCuteUntilWave) return "cute";
+      if (wave !== c.hatchMixedWave) return "horror";
+      if (first && c.hatchMixedFirst === "horror") return "horror";
+      return rng() < Math.max(0, Math.min(1, progress)) ? "horror" : "cute";
+    },
+
     perfectWaveBonus: function (wave) {
       return C().perfectWavePerWave * wave;
     },

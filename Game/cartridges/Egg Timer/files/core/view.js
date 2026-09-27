@@ -848,6 +848,8 @@
         v.el.classList.remove("unlock");
         v.el.dataset.state = "idle";
         v.el.classList.remove("bold", "hide-readout", "hide-clock", "hide-egg", "scurry", "lunge");
+        delete v.el.dataset.hatch;
+        delete v.el.dataset.alien;
         ET.mess.clear(v.mess);
         v.note.hidden = true;
         v.bubble.hidden = true;
@@ -1039,7 +1041,10 @@
             v.el.classList.remove("scurry", "lunge");
             void v.el.offsetWidth;
             v.el.style.setProperty("--dir", Math.random() < 0.5 ? -1 : 1);
-            v.el.classList.add(ET.art.FLOURISHES[Math.floor(Math.random() * ET.art.FLOURISHES.length)]);
+            // E45/E46: the game picks the set (cute or horror), the alien and its exit (a cute one only scurries)
+            v.el.dataset.hatch = e.set;
+            v.el.dataset.alien = e.alien;
+            v.el.classList.add(e.exit);
             // E37 (Chat, 2026-09-25): a hatch shows the hatch only: no pan, no THONG, no clunk
             hud.pool.classList.remove("hit");
             void hud.pool.offsetWidth;
@@ -1047,6 +1052,8 @@
             break;
           case "idle":
             v.rolled = false;
+            delete v.el.dataset.hatch;
+            delete v.el.dataset.alien;
             v.bubble.hidden = true;
             v.el.classList.remove("scurry", "lunge");
             break;

@@ -47,6 +47,10 @@
     // the pool is the distinct unit numbers (Refinement 4 §3); the sheet's five doubles were removed 2026-09-23, this stays as a guard
     this.units = (opts.units || []).filter(function (u, i, all) { return all.indexOf(u) === i; });
     this.rng = opts.rng || Math.random;
+    // E45: the hatchlings draw from their own source, so a seeded replay's spawns don't shift with them
+    this.hatchRng = opts.hatchRng || Math.random;
+    this.hatchBags = { cute: [], horror: [] };
+    this.lastAlien = null;
     this.time = 0;
     this.clock = 0;
     this.wallStart = opts.wallStart || 0;  // seconds past midnight when the game starts
@@ -101,6 +105,7 @@
     n.layAt = 0;
     n.layUntil = 0;
     n.how = null;
+    n.hatchling = null;
   };
 
   Game.prototype.start = function () {
@@ -333,15 +338,34 @@
     }
   };
 
+  /* E45: the alien comes out of its set's shuffle bag, never the one that came out last (not even across a refill). */
+  Game.prototype.pickAlien = function (set) {
+    var bag = this.hatchBags[set], all = ET.CONFIG.hatchAliens[set];
+    if (!bag.length) {
+      bag.push.apply(bag, all);
+      for (var k = bag.length - 1; k > 0; k--) {        // Fisher–Yates
+        var j = Math.floor(this.hatchRng() * (k + 1)), tmp = bag[k];
+        bag[k] = bag[j];
+        bag[j] = tmp;
+      }
+      if (bag.length > 1 && bag[0] === this.lastAlien) bag.push(bag.shift());
+    }
+    return (this.lastAlien = bag.shift());
+  };
+
   Game.prototype.hatch = function (n) {
+    var C = ET.CONFIG;
+    var set = ET.rules.hatchSet(this.wave, this.escapes === 0, this.resolved / Math.max(1, this.quota), this.hatchRng);
+    var exits = C.hatchExits[set];
     n.state = "escape";
-    n.busyUntil = this.time + ET.CONFIG.escapeSeconds;
+    n.busyUntil = this.time + C.escapeSeconds;
+    n.hatchling = { set: set, alien: this.pickAlien(set), exit: exits[Math.floor(this.hatchRng() * exits.length)] };
     this.pool = Math.max(0, this.pool - 1);
     this.escapes++;
     this.resolved++;
     this.stats.hatched++;
     this.streak = 0;                 // a hatch drops the egg ladder to the bottom
-    this.emit("hatch", { nest: n.id, pool: this.pool });
+    this.emit("hatch", { nest: n.id, pool: this.pool, set: n.hatchling.set, alien: n.hatchling.alien, exit: n.hatchling.exit });
     if (this.pool <= 0) {
       this.phase = "over";           // packet §9: an empty pool is the only game over
       this.emit("game-over", { score: this.score, wave: this.wave });
