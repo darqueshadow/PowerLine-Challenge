@@ -1,5 +1,5 @@
 /* verify-egg-timer-theme-baseline.mjs: section T's record of every rule of the game's stylesheets, resolved
-   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-27.
+   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-30.
    Rewrite it ONLY when a style is changed on purpose, in the same commit. Never published (verify-*.mjs). */
 export default {
  "@font-face": {
@@ -2824,7 +2824,7 @@ export default {
   "animation-range-end": "normal",
   "animation-range-start": "normal",
   "animation-timeline": "auto",
-  "animation-timing-function": "steps(14)"
+  "animation-timing-function": "linear"
  },
  ".nest.scurry .legs": {
   "animation-delay": "0s",
@@ -2844,8 +2844,35 @@ export default {
  "@keyframes scurry » 0%, 25%": {
   "transform": "translate(0px, -6px)"
  },
+ "@keyframes scurry » 34%": {
+  "transform": "translate(calc(45%), -11px)"
+ },
+ "@keyframes scurry » 43%": {
+  "transform": "translate(calc(105%), -5px)"
+ },
+ "@keyframes scurry » 52%": {
+  "transform": "translate(calc(170%), -11px)"
+ },
+ "@keyframes scurry » 61%": {
+  "transform": "translate(calc(235%), -5px)"
+ },
+ "@keyframes scurry » 70%": {
+  "transform": "translate(calc(300%), -11px)"
+ },
+ "@keyframes scurry » 79%": {
+  "transform": "translate(calc(365%), -5px)"
+ },
+ "@keyframes scurry » 88%": {
+  "transform": "translate(calc(430%), -11px)"
+ },
  "@keyframes scurry » 100%": {
-  "transform": "translate(calc(520%), 80%) rotate(calc(90deg))"
+  "transform": "translate(calc(520%), -6px)"
+ },
+ "@keyframes scurry-plain » 0%, 25%": {
+  "transform": "translate(0px, -6px)"
+ },
+ "@keyframes scurry-plain » 100%": {
+  "transform": "translate(calc(520%), -6px)"
  },
  "@keyframes legs » 0%": {
   "transform": "skewX(-14deg)"
@@ -4214,6 +4241,9 @@ export default {
   "animation-range-start": "normal",
   "animation-timeline": "auto",
   "animation-timing-function": "ease"
+ },
+ "@media (prefers-reduced-motion: reduce) » .nest.scurry .creature": {
+  "animation-name": "scurry-plain"
  },
  "@media (prefers-reduced-motion: reduce) » #title-scene .note, #setup-critter .note": {
   "opacity": "1"

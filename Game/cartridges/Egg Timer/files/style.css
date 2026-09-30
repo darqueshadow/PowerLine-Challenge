@@ -685,12 +685,25 @@ h2 {
   to { transform: translateY(calc(var(--b, 1) * -1px)) scale(calc(1 - var(--s, 0.04)), calc(1 + var(--s, 0.04))); }
 }
 @keyframes alien-drip { from { transform: scaleY(0.85); } to { transform: scaleY(1.2); } }
-/* E47: a hatch lasts 2 s: the alien shows itself in the nest for the first quarter, then leaves */
-.nest.scurry .creature { animation: scurry 1.8s steps(14) forwards; }
+/* E47: a hatch lasts 2 s: the alien shows itself in the nest for the first quarter, then leaves.
+   Andrew, 2026-09-30: the scurry stays UPRIGHT (no tipping, no spin): it runs off sideways with a small bob, its legs or
+   tentacles still moving (the puppet's own swings carry on). Under reduced motion it slides off plainly, no bob. */
+.nest.scurry .creature { animation: scurry 1.8s linear forwards; }
 .nest.scurry .legs { animation: legs 0.3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 50%; }
 @keyframes scurry {
   0%, 25% { transform: translate(0, -6px); }
-  100% { transform: translate(calc(var(--dir, 1) * 520%), 80%) rotate(calc(var(--dir, 1) * 90deg)); }
+  34% { transform: translate(calc(var(--dir, 1) * 45%), -11px); }
+  43% { transform: translate(calc(var(--dir, 1) * 105%), -5px); }
+  52% { transform: translate(calc(var(--dir, 1) * 170%), -11px); }
+  61% { transform: translate(calc(var(--dir, 1) * 235%), -5px); }
+  70% { transform: translate(calc(var(--dir, 1) * 300%), -11px); }
+  79% { transform: translate(calc(var(--dir, 1) * 365%), -5px); }
+  88% { transform: translate(calc(var(--dir, 1) * 430%), -11px); }
+  100% { transform: translate(calc(var(--dir, 1) * 520%), -6px); }
+}
+@keyframes scurry-plain {
+  0%, 25% { transform: translate(0, -6px); }
+  100% { transform: translate(calc(var(--dir, 1) * 520%), -6px); }
 }
 /* Chat ruling, 2026-09-25: the legs shuffle, a swing that never hides them (it was a flip through zero height, 8 a
    second). Only their slant changes, never their size or colour, so nothing flashes; still under reduced motion. */
@@ -1114,6 +1127,7 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cords .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
   #title-scene .note, #setup-critter .note { opacity: 1; }
   /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24) */
   .nest[data-state="trigger"] .readout > span { border-color: var(--cyan); }
