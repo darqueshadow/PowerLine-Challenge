@@ -1938,7 +1938,11 @@ try {
     await ev(`(() => {
       window.__drag = (pts) => { const f = document.querySelector('#field'), b = document.querySelector('#board').getBoundingClientRect();
         const fire = (t, p) => f.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: b.left + p[0], clientY: b.top + p[1], pointerId: 9, buttons: 1 }));
-        fire('pointerdown', pts[0]); pts.slice(1).forEach((p) => fire('pointermove', p)); fire('pointerup', pts[pts.length - 1]); };
+        // Andrew, 2026-09-30: the water pushes every frame the jet is on, so each pointer event here is followed by two
+        // frames of play (the stream, then the pieces): a hand's sweep, at 60 frames a second
+        const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const frame = () => { for (let k = 0; k < 2; k++) { ET.view.stream(1 / 60); ET.pieces.frame(1 / 60, still); } };
+        fire('pointerdown', pts[0]); frame(); pts.slice(1).forEach((p) => { fire('pointermove', p); frame(); }); fire('pointerup', pts[pts.length - 1]); };
       window.__steps = (n, still) => { for (let i = 0; i < n; i++) ET.pieces.frame(0.05, !!still); return 1; };
       window.__row = (m) => { const s = ET.pieces.state(); let best = null;
         for (let y = 60; y < s.H - 60; y += 4) if (s.walls.every((w) => y < w.y0 - m || y > w.y1 + m)) { if (best === null || Math.abs(y - s.H / 2) < Math.abs(best - s.H / 2)) best = y; }
@@ -1989,7 +1993,9 @@ try {
     for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720], [1024, 640]]) {
       await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
       await wait(200);
-      sweeps.push(await ev(`(() => { ET.pieces.layout(); const s = ET.pieces.state(), row = __row(40); ET.pieces.reset(); const id = ET.pieces.place('shell', s.T + 70, row);
+      // (the nozzle is aimed the sweep's way first, over an empty board: E44 turns it over a tenth of a second or so)
+      sweeps.push(await ev(`(() => { ET.pieces.layout(); const s = ET.pieces.state(), row = __row(40); ET.pieces.reset();
+        __drag([0, 1, 2, 3].map((i) => [s.T + 20 + 30 * i, row])); ET.pieces.reset(); const id = ET.pieces.place('shell', s.T + 70, row);
         __drag([0, 1, 2, 3, 4, 5, 6].map((i) => [s.T + 20 + 20 * i, row])); const mid = __p(id).state; let at = null;
         for (let i = 0; i < 400 && at === null; i++) { __steps(1); const p = __p(id); if (!p || p.state === 'trough') at = p ? p.x : 'gone'; }
         return { size: '${w}x${h}', mid, at, far: s.W - s.T }; })()`));
@@ -2053,9 +2059,10 @@ try {
     // performance: a pile at rest is baked into a still layer and costs nothing a frame; the spray wakes only what it touches
     const perf = await ev(`(() => { ET.pieces.reset(); ET.pieces.bench(3000); const t0 = performance.now(); for (let i = 0; i < 60; i++) ET.pieces.frame(0.016, false);
       const frame = (performance.now() - t0) / 60, s = ET.pieces.state(), y = ${row};
-      const t1 = performance.now(); __drag([[s.W * 0.3, y], [s.W * 0.35, y], [s.W * 0.4, y], [s.W * 0.45, y], [s.W * 0.5, y]]); ET.pieces.frame(0.016, false); const sweep = performance.now() - t1;
+      // (Andrew, 2026-09-30: the stream works every frame, so the sweep is timed per frame of play: 5 events, 2 frames each)
+      const t1 = performance.now(); __drag([[s.W * 0.3, y], [s.W * 0.35, y], [s.W * 0.4, y], [s.W * 0.45, y], [s.W * 0.5, y]]); ET.pieces.frame(0.016, false); const sweep = (performance.now() - t1) / 11;
       const woke = ET.pieces.state().live; __steps(200); return { frame, sweep, woke, count: ET.pieces.state().count + ET.pieces.state().drained }; })()`);
-    ok(perf.frame < 3 && perf.sweep < 80 && perf.woke > 0 && perf.count === 3000, `a pile of 3000 pieces costs ${perf.frame.toFixed(2)} ms a frame at rest; a sweep through it wakes ${perf.woke} and takes ${perf.sweep.toFixed(1)} ms; nothing disappears`);
+    ok(perf.frame < 3 && perf.sweep < 16 && perf.woke > 0 && perf.count === 3000, `a pile of 3000 pieces costs ${perf.frame.toFixed(2)} ms a frame at rest; a sweep through it wakes ${perf.woke} and takes ${perf.sweep.toFixed(1)} ms a frame (under a 60 fps frame); nothing disappears`);
 
     // reduced motion: no tumbling, pieces only slide; the trough's flow is a fade; its water stands still
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
@@ -2131,6 +2138,36 @@ try {
     const reach = await ev(`(() => { ET.pieces.layout(); ET.pieces.reset(); const s = ET.pieces.state(), row = __row(40), x = s.W / 2, L = ET.CONFIG.hoseJet.length * s.H;
       const id = ET.pieces.place('shell', x + 0.7 * L, row); __drag([[x - 20, row], [x, row]]); const st = __p(id).state; ET.pieces.reset(); return st; })()`);
     eq(reach, "live", "the jet pushes a piece it reaches ahead of the nozzle");
+    // Andrew, 2026-09-30: the WATER pushes: every frame the jet is on, held still or not, anything any part of the stream
+    // touches goes the way the water flows, harder near the nozzle; goo along the stream washes and is carried the same way
+    const water = await ev(`(() => { ET.pieces.layout(); ET.pieces.reset(); const s = ET.pieces.state(), row = __row(40), x = s.W * 0.35, L = ET.CONFIG.hoseJet.length * s.H;
+      const f = document.querySelector('#field'), b = document.querySelector('#board').getBoundingClientRect();
+      const fire = (t, px, py) => f.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: b.left + px, clientY: b.top + py, pointerId: 9, buttons: 1 }));
+      __drag([[x - 90, row], [x - 60, row], [x - 30, row], [x, row]]);   // aim it right, along the row
+      ET.pieces.reset();
+      const near = ET.pieces.place('shell', x + 0.2 * L, row), far = ET.pieces.place('shell', x + 0.9 * L, row + 0.4 * L);
+      const fl = ET.view.floor(); ET.mess.clear(fl);
+      // press and HOLD STILL, the nozzle turned up-right (-30°) by a short drag that way first
+      fire('pointerdown', x, row); fire('pointermove', x + 10 * Math.cos(-Math.PI / 6), row + 10 * Math.sin(-Math.PI / 6));
+      for (let i = 0; i < 40; i++) ET.view.stream(1 / 60);
+      const aimNow = ET.view.aim().shown;
+      ET.pieces.reset();
+      const n = ET.pieces.place('shell', x + 10 + 0.2 * L * Math.cos(aimNow), row + 0.2 * L * Math.sin(aimNow));
+      const m = ET.pieces.place('shell', x + 10 + 0.9 * L * Math.cos(aimNow), row + 0.9 * L * Math.sin(aimNow));
+      ET.view.stream(1 / 60);
+      const pn = __p(n), pm = __p(m), vn = Math.hypot(pn.vx, pn.vy), vm = Math.hypot(pm.vx, pm.vy);
+      const dirErr = Math.abs(Math.atan2(pn.vy, pn.vx) - aimNow);
+      ET.pieces.reset();
+      const gp = __floorAt(x + 10 + 0.6 * L * Math.cos(aimNow), row + 0.6 * L * Math.sin(aimNow)); ET.mess.blob(fl, gp[0], gp[1], 14);
+      const g0 = ET.mess.sample(fl, gp[0], gp[1]).alpha;
+      for (let i = 0; i < 30; i++) ET.view.stream(1 / 60);
+      const g1 = ET.mess.sample(fl, gp[0], gp[1]).alpha;
+      fire('pointerup', x + 10, row); ET.pieces.reset(); ET.mess.clear(fl);
+      return { held: pn.state, vn: +vn.toFixed(1), vm: +vm.toFixed(1), dirErr: +dirErr.toFixed(3), aim: +(aimNow * 180 / Math.PI).toFixed(0), g0, g1 }; })()`);
+    ok(water.held === "live" && water.vn > 0, `held still, the stream still pushes what it touches   ${JSON.stringify(water)}`);
+    ok(water.dirErr < 0.05, "…the way the water flows (the jet's own direction, not the drag's)");
+    ok(water.vm > 0 && water.vn > water.vm * 1.5, "…harder near the nozzle than at the far end of the stream");
+    ok(water.g0 > 150 && water.g1 < water.g0 * 0.5, "…and goo anywhere along the stream washes out, held still, not only under the nozzle");
     const taps = await ev(`(() => { ${fireJs} const r = []; for (let i = 0; i < 4; i++) { fire('pointerdown', 400, 300); r.push(ET.audio.blasting()); fire('pointerup', 400, 300); } return r; })()`);
     eq(taps, [true, true, true, true], "quick taps blast every time (the last blast's fade never uses up the cap)");
     // a pause, and the play screen closing, end the blast

@@ -194,7 +194,8 @@
     p.vx += ux * amount; p.vy += uy * amount;
     var sp = Math.hypot(p.vx, p.vy);
     if (sp > max) { p.vx *= max / sp; p.vy *= max / sp; }
-    p.va = (Math.random() < 0.5 ? -1 : 1) * sp / Math.max(4, radius(p)) * 0.5;
+    // a spinning piece keeps its way round (the stream pushes every frame); a still one picks one
+    p.va = (p.va ? (p.va < 0 ? -1 : 1) : (Math.random() < 0.5 ? -1 : 1)) * sp / Math.max(4, radius(p)) * 0.5;
     p.ride = null;
   }
   function hitWalls(p) {
@@ -394,6 +395,28 @@
       return hit;
     },
 
+    /* Andrew, 2026-09-30: the water stream, for `dt` of the player's seconds, from the nozzle at (x, y) along (jx, jy),
+       board px. Every piece any part of it touches is pushed the way the water flows: hardest at the nozzle and on the
+       stream's centre line. Returns how many it pushed. */
+    stream: function (x, y, jx, jy, dt) {
+      var jl = Math.hypot(jx, jy);
+      if (!(dt > 0) || jl < 1) return 0;
+      var C = ET.CONFIG.pieces, ux = jx / jl, uy = jy / jl, R = C.sprayRadius * H, hit = 0, near = [];
+      cells({ x0: Math.min(x, x + jx) - R, y0: Math.min(y, y + jy) - R, x1: Math.max(x, x + jx) + R, y1: Math.max(y, y + jy) + R }, function (k) {
+        (grid[k] || []).forEach(function (p) { if (near.indexOf(p) < 0) near.push(p); });
+      });
+      pieces.forEach(function (p) { if (p.state === "live" && !p.ride && near.indexOf(p) < 0) near.push(p); });
+      near.forEach(function (p) {
+        if (p.state !== "live" && p.state !== "rest") return;
+        var u = Math.max(0, Math.min(1, ((p.x - x) * jx + (p.y - y) * jy) / (jl * jl)));
+        var d = Math.hypot(p.x - (x + u * jx), p.y - (y + u * jy)), reach = R + radius(p) * 0.5;
+        if (d >= reach) return;
+        push(p, ux, uy, C.jetPush * H * dt * (1 - C.jetFalloff * u) * (1 - 0.5 * d / (R + radius(p))));
+        hit++;
+      });
+      return hit;
+    },
+
     /* The spray washed liquid at board (x, y) moving (ux, uy): a drip if that's at the top, else sometimes a trickle. */
     washed: function (x, y, ux, uy, before) {
       if (!before || before.alpha < ET.CONFIG.liquid.minAlpha) return;
@@ -422,7 +445,7 @@
         kinds: pieces.reduce(function (o, p) { o[p.kind] = (o[p.kind] || 0) + 1; return o; }, {})
       };
     },
-    list: function () { return pieces.map(function (p) { return { id: p.id, kind: p.kind, state: p.state, x: p.x, y: p.y, a: p.a, r: radius(p), riding: !!p.ride, sprite: p.img.sprite || null }; }); },
+    list: function () { return pieces.map(function (p) { return { id: p.id, kind: p.kind, state: p.state, x: p.x, y: p.y, vx: p.vx, vy: p.vy, a: p.a, r: radius(p), riding: !!p.ride, sprite: p.img.sprite || null }; }); },
     /* For rigs: `n` resting shell pieces spread over the board (a big pile, wave after wave). */
     bench: function (n) {
       if (!art.ready) return 0;

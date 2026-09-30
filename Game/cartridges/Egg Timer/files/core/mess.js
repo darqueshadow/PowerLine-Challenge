@@ -119,6 +119,46 @@
        that way and wash it out. (x0,y0) → (x1,y1) is the spray's move since the last event, in canvas units; `r` the
        spray's radius. Returns what was there before (alpha 0–255 and its colour), so the view can start a drip or a
        trickle from it. */
+    /* Andrew, 2026-09-30: the water stream over one canvas for `dt` seconds, from the nozzle (x0,y0) to where it lands
+       (x1,y1), canvas units, `r` its half-width. Along its length it thins what's there (most at the nozzle, falling off
+       like the push on pieces) and carries a fainter copy a little way on, the way the water flows. Returns what was
+       under the nozzle before (as streak does), for a drip or a trickle. */
+    flow: function (canvas, x0, y0, x1, y1, r, dt) {
+      var g = canvas.getContext("2d"), C = ET.CONFIG.liquid, P = ET.CONFIG.pieces;
+      var dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+      if (!(dt > 0) || len < 0.5) return null;
+      var px = Math.max(0, Math.min(canvas.width - 1, Math.round(x0))), py = Math.max(0, Math.min(canvas.height - 1, Math.round(y0)));
+      var d = g.getImageData(px, py, 1, 1).data, before = { alpha: d[3], color: "rgb(" + d[0] + "," + d[1] + "," + d[2] + ")" };
+      var ux = dx / len, uy = dy / len, size = Math.ceil(2 * r), shift = Math.min(r, C.drift * 2 * r * dt);
+      if (!tmp) { tmp = document.createElement("canvas"); tmp.getContext("2d", { willReadFrequently: true }); }
+      if (tmp.width < size || tmp.height < size) { tmp.width = Math.max(tmp.width, size); tmp.height = Math.max(tmp.height, size); }
+      var t = tmp.getContext("2d");
+      // three stretches, nozzle to far end: each thins what's under it and carries a copy of it on downstream
+      for (var k = 0; k < 3; k++) {
+        var a = k / 3, b = (k + 1) / 3, mid = (a + b) / 2;
+        var sx = x0 + dx * a, sy = y0 + dy * a, ex = x0 + dx * b, ey = y0 + dy * b;
+        var gone = 1 - Math.exp(-C.wash * dt * (1 - P.jetFalloff * mid));
+        t.clearRect(0, 0, size, size);
+        t.drawImage(canvas, ex - r, ey - r, size, size, 0, 0, size, size);
+        g.save();
+        g.globalCompositeOperation = "destination-out";
+        g.globalAlpha = gone;
+        g.strokeStyle = "#000";
+        g.lineCap = "round";
+        g.lineWidth = 2 * r;
+        g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex + 0.01, ey); g.stroke();
+        g.restore();
+        if (shift > 0.05) {
+          g.save();
+          g.beginPath(); g.arc(ex + ux * shift, ey + uy * shift, r, 0, Math.PI * 2); g.clip();
+          g.globalAlpha = gone * C.keep;
+          g.drawImage(tmp, 0, 0, size, size, ex - r + ux * shift, ey - r + uy * shift, size, size);
+          g.restore();
+        }
+      }
+      return before;
+    },
+
     streak: function (canvas, x0, y0, x1, y1, r) {
       var g = canvas.getContext("2d"), C = ET.CONFIG.liquid;
       var px = Math.max(0, Math.min(canvas.width - 1, Math.round(x1))), py = Math.max(0, Math.min(canvas.height - 1, Math.round(y1)));

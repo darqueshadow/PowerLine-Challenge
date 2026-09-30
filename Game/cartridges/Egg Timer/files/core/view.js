@@ -615,18 +615,37 @@
     if (!aim.raf) { aim.at = performance.now(); aim.raf = requestAnimationFrame(swing); }
   }
   function swing(now) {
-    var dt = Math.max(0, Math.min(0.1, (now - aim.at) / 1000)), d = turnBy(aim.want - aim.shown);
+    var dt = Math.max(0, Math.min(0.1, (now - aim.at) / 1000));
     aim.at = now;
+    swingBy(dt);
+    aim.raf = aim.shown === aim.want ? 0 : requestAnimationFrame(swing);
+  }
+  function swingBy(dt) {
+    var d = turnBy(aim.want - aim.shown);
     if (Math.abs(d) < 0.003) aim.shown = aim.want;
     else aim.shown = turnBy(aim.shown + d * (1 - Math.exp(-dt / ET.CONFIG.hoseJet.turnSeconds)));
     turned();
-    aim.raf = aim.shown === aim.want ? 0 : requestAnimationFrame(swing);
   }
   function turned() { drawHose(); if (water && water.on) placeJet(); }
   function resetAim() {
     if (aim.raf) cancelAnimationFrame(aim.raf);
     aim.want = aim.shown = NOZZLE_AIM; aim.from = null; aim.raf = 0;
     drawHose();
+  }
+  /* Andrew, 2026-09-30: the stream, for dt of the player's seconds (a pause gives 0): from the nozzle (the pointer) along
+     the drawn jet, it pushes every piece it touches and washes the goo on every canvas it crosses, the way it flows. */
+  function streamStep(dt) {
+    if (!water || !water.on || !(dt > 0)) return;
+    var br = board.getBoundingClientRect(), s = jetSize(), ux = Math.cos(aim.shown), uy = Math.sin(aim.shown);
+    var x0 = water.x, y0 = water.y, x1 = x0 + ux * s.len, y1 = y0 + uy * s.len;
+    ET.pieces.stream(x0 - br.left, y0 - br.top, ux * s.len, uy * s.len, dt);
+    var canvases = nests.map(function (v) { return { id: v.el.dataset.id, c: v.mess }; }).concat([{ id: "floor", c: floor }]);
+    canvases.forEach(function (h) {
+      var r = h.c.getBoundingClientRect();
+      if (Math.max(x0, x1) + s.w < r.left || Math.min(x0, x1) - s.w > r.right || Math.max(y0, y1) + s.w < r.top || Math.min(y0, y1) - s.w > r.bottom) return;
+      var kx = h.c.width / r.width, ky = h.c.height / r.height;
+      ET.mess.flow(h.c, (x0 - r.left) * kx, (y0 - r.top) * ky, (x1 - r.left) * kx, (y1 - r.top) * ky, ET.CONFIG.wipeRadius * kx, dt);
+    });
   }
   function jetSize() {
     var J = ET.CONFIG.hoseJet, h = board.getBoundingClientRect().height;
@@ -898,7 +917,8 @@
       turnHands(snap);
       paintSign(snap);
       paintBackdrop(snap);
-      // E38: the pieces and drips move on the player's seconds, so a pause holds them
+      // E38: the pieces and drips move on the player's seconds, so a pause holds them (and the stream with them)
+      streamStep(piecesAt === null || snap.time < piecesAt ? 0 : snap.time - piecesAt);
       ET.pieces.frame(piecesAt === null || snap.time < piecesAt ? 0 : snap.time - piecesAt, reducedMotion());
       piecesAt = snap.time;
       board.classList.toggle("warp", !!snap.warp);   // Refinement 5 §1: the nests with a running clock glow (E22)
@@ -1099,10 +1119,11 @@
         var mv = Math.hypot(bx - prev.x, by - prev.y), ux = mv ? (bx - prev.x) / mv : 0, uy = mv ? (by - prev.y) / mv : 0;
         var jet = paintHose();
         if (jet) { steer(ev.clientX, ev.clientY); sprayOn(ev.clientX, ev.clientY); }
-        // E38: the spray pushes the pieces it passes the way it's going (E42/E44: and those its jet reaches)…
-        var reach = jet ? jetSize().len : 0;
-        ET.pieces.spray(prev.x, prev.y, bx, by, Math.cos(aim.shown) * reach, Math.sin(aim.shown) * reach);
         last.board = { x: bx, y: by };
+        // Andrew, 2026-09-30: with the jet on, the WATER pushes the pieces, every frame (streamStep, from render): any
+        // piece any part of the stream touches goes the way the water flows. Without a jet (the older hose switch
+        // values) the drag itself pushes them the way it's going, as before.
+        if (!jet) ET.pieces.spray(prev.x, prev.y, bx, by, 0, 0);
         // …and streaks and thins the liquid under it (E14's gunk on a nest, and the floor's)
         at(ev).forEach(function (h) {
           var from = last[h.id] || h;
@@ -1137,6 +1158,8 @@
       window.addEventListener("blur", end);   // the window losing focus pauses the game: the blast stops with it
       stopWipe = end;
     },
+    /* For rigs: run the stream for dt seconds now, as a frame of play would (a synthetic drag has no frames in it). */
+    stream: function (dt) { if (water && water.on) swingBy(dt); streamStep(dt); return !!(water && water.on); },
     /* For rigs (E44): the nozzle's aim, radians: where the drag last pointed it, and where it's drawn now. */
     aim: function () { return { want: aim.want, shown: aim.shown, nozzle: !!nozzle && !nozzle.hidden }; },
     /* E42: stop spraying now (a pause, or the play screen closing): the jet and its blast end with it. */

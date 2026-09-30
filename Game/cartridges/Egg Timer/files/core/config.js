@@ -127,7 +127,11 @@
     // washes out. Liquid pushed up to the board's top edge drips back down, and the last of a wash trickles toward the trough.
     // E42 (Chat, 2026-09-25): the blast washes liquid out faster, in about 2 passes, not 3 (thin was 0.7: 30%, 9%, 3%;
     // now 18%, then 3%).
-    liquid: { thin: 0.82, keep: 0.4, carry: 0.9, dripAlpha: 0.7, minAlpha: 40 },   // [T]
+    liquid: { thin: 0.82, keep: 0.4, carry: 0.9, dripAlpha: 0.7, minAlpha: 40,
+      // Andrew, 2026-09-30: the whole stream washes goo too, every frame, carrying it the way the water flows: `wash` is
+      // the share removed per second at the nozzle (falling off along the stream like jetPush), `drift` how far it's
+      // carried, in stream widths per second [T]
+      wash: 3.5, drift: 2.5 },   // [T]
     // E38: the pieces a clear leaves (core/pieces.js). Sizes and speeds are in board heights (bh), so every window size
     // plays the same. `parts`: alien parts by break stage (the clear's tier, E26), more the slower.
     pieces: {
@@ -141,6 +145,11 @@
       push: 1.6,                   // [T] bh/s a spray event adds (was 0.9)
       maxSpeed: 2.9,               // [T] bh/s (was 2.2)
       sprayRadius: 0.045,          // [T] bh: how wide the spray catches pieces
+      // Andrew, 2026-09-30: the WATER does the pushing. Every frame the jet is on (moving or held still), every piece any
+      // part of the stream touches is pushed the way the water flows, hardest at the nozzle and on the stream's centre:
+      // jetPush at the nozzle, falling to (1 - jetFalloff) of it at the far end; half as hard at the stream's edge.
+      jetPush: 40,                 // [T] bh/s² at the nozzle (a piece there reaches maxSpeed in about 4 frames)
+      jetFalloff: 0.6,             // [T] the stream's far end pushes 40% as hard as the nozzle
       wallPad: 0.004,              // [T] bh: the gap pieces keep round a readout
       flow: 0.28,                  // [T] bh/s: the trough's flow to the drain
       troughShrink: 0.8,           // [T] a piece in the trough is drawn this size (it's down in the channel)
