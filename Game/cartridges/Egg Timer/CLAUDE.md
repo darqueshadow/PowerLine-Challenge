@@ -22,7 +22,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E48**; none open);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E49**; **E48 open**, the exit);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -99,8 +99,10 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   **trough** (left, right, bottom; none on top) to the sink. Cleanup is a timed window; nothing is counted (E41).
   🚨 The cleanup banner flashes at most 2 a second, guard-capped at 2.5 (`cleanupFlashSeconds()`).
 - **The hose:** in play the cursor is **always the nozzle**, **drawn** (`#nozzle`, system cursor hidden) and turned
-  about its tip with the jet (E44). A drag **blasts** (E42): a jet that pushes what it reaches (one sweep into the
-  trough) and streaks and thins liquid (~2 passes), with a pressure-washer sound. The hose tag sits by the sink.
+  about its tip with the jet (E44). A drag **blasts** (E42): a jet (one sweep into the trough) that streaks and thins
+  liquid under the nozzle (~2 passes), with a pressure-washer sound. **The WATER pushes** (Andrew, 2026-09-30): every
+  frame the jet is on, held still or not, anything any part of the stream touches goes the way the water flows, harder
+  near the nozzle (`jetPush`, `liquid.wash`/`drift`); rig drags step 2 frames of play per event. The hose tag sits by the sink.
 - **Readouts:** three boxes (unit, type, timer), all bold at once at the limit, the timer on **ready pink** `#d1006a`
   (E33). 🎨 Every "act now" pink uses `--readout-bold-timer-bg`; `--hot`/`--pink` are decoration only.
 - **Command Lines** (never "Command Box", E7): 1–4, **2 by default**. **Tab / Shift+Tab** next / previous; **F12** next,

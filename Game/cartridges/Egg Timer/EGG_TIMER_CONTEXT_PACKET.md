@@ -1,3 +1,9 @@
+> **FILING NOTE — Claude Code, 2026-09-30 (Andrew's three requests).** Filed verbatim as
+> `Previous Versions/EGG_TIMER_ANDREW_REQUESTS_2026-09-30.md`. **1, the upright scurry** (§7) and **2, the water pushes**
+> (§8) are built and **pushed live**, each in its own commit. **3, an exit to the Arcade room**, needs a ruling first: the
+> hub already has an exit (its Exit Game button, and F12), but F12 is Egg Timer's "next line, cleared" (E13) and Esc is
+> its pause, so there's no matching key to reuse; Code's proposal is **E48** (§11).
+
 > **FILING NOTE — Claude Code, 2026-09-27 (the six alien sheets).** Andrew's handoff approving the six sheets as they
 > are is filed verbatim as `Previous Versions/EGG_TIMER_ALIEN_SHEETS_HANDOFF_2026-09-27.md`. The octopus and Grabber
 > sheets in the folder were wrong retries (a crab, a Scuttler); on Andrew's word the two concept crops stand in as
@@ -512,6 +518,8 @@ insides swaying on their own, ten feelers in a crown). The **octopus and Grabber
 octopus's ground shadow and the Grabber's slime puddle cut away), each with **loose tentacles curling from under it**
 (the Wriggler's smooth feelers, recoloured: the Grabber sheet's segments read as bones) and the Grabber's **purple drips**
 stretching. *(E47)* The alien shows itself in the nest for the first quarter of the 2 s, then scurries off or lunges.
+*(Andrew, 2026-09-30)* **The scurry stays upright:** no tipping or spinning; it runs off sideways with a small bob, legs or
+tentacles still moving. *(Code: under reduced motion it slides off plainly, no bob.)*
 *(Code: `make-alien-art.py` cuts the pieces (8 px per unit, so the lunge keeps detail) and writes their sizes to
 `core/alien-parts.js`; `core/aliens.js` holds each puppet's layout; every movement is a rotation about the piece's
 attaching end (or the fallback's squash and bob), never a brightness change, and reduced motion stills them all (rig R).
@@ -527,6 +535,15 @@ stays in the code and steps aside while an alien is in the slot.)*
 ---
 
 ## 8. Mess accumulation & wipe mechanic
+
+*(Andrew, 2026-09-30)* **The water stream pushes what it touches.** Every frame the jet is on, whether the drag moves or
+is held still, any shell piece **any part of the stream** touches is pushed **the way the water flows** (the jet's own
+direction), **harder the closer it is to the nozzle** and to the stream's centre; goo anywhere along the stream washes
+out and is carried a little way downstream the same way. The wash under the nozzle on each drag (E42's ~2 passes) and its
+drips and trickles stay. *(Code: before this, pieces were pushed only on pointer moves, the way the drag went, with no
+falloff along the jet, and goo washed only under the nozzle. `config.js` `pieces.jetPush` 40 bh/s² at the nozzle, falling
+`jetFalloff` 60% to the far end, half as hard at the stream's edge; `liquid.wash` 3.5/s and `liquid.drift` [T]. A drag in
+a new direction still waits the fraction of a second the nozzle takes to turn (E44) before the water hits what's ahead.)*
 
 Each successful smoosh (§7) leaves a small amount of mess/gunk on the unit's panel — not a big splatter individually, but it **accumulates in real time during the wave**, visibly, immediately after each crack. *(Addendum)* Each smoosh also **spreads mess to neighboring nests**, not just its own. *(Seventh draft)* That means the smooshed nest plus its **direct neighbors only** (up, down, left, right, §4) — no wider splash. *(Eighth draft)* **Mess belongs to the nest itself**, not to a grid position, so it's unaffected when new nests unlock as the count grows. Over a wave, gunk gradually covers the digital readouts (unit/CAV/timer), making them progressively harder to read.
 
@@ -744,6 +761,22 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   had the pan come down late, 0.35 s after a hatch, on the empty nest, with a dull clunk. The late pan, the clunk and
   `hatchPanDelay` are gone. The browser rig counts every THONG and every pan from a game's start to past its first hatch:
   none.)*
+
+### Raised by Andrew's exit request (2026-09-30) — E48 open
+
+- ⏳ **E48. The way out to the Arcade room.** *(Andrew's request, verbatim in `EGG_TIMER_ANDREW_REQUESTS_2026-09-30.md`:
+  exit to the Arcade room at the Egg Timer table; reuse the other cabinets' exit if there is one; show it as an inline
+  key hint; "Quit this game?" mid-game.)* **What exists:** every cabinet game runs inside the CAT hub, whose play bar
+  already has an **Exit Game** button (and the hub's exit key, **F12**); in Fang Rock it closes the Arcade window, which
+  leaves the player in Rec-Bay 4 at the table they clicked; in a browser tab it returns to the hub. It acts at once, with
+  no confirm. No cartridge has its own exit key, and a key pressed inside a game never reaches the hub. A cartridge can
+  ask the hub to exit with a `cat:exit` message (the C64 does). **The clash:** F12 is Egg Timer's "next line, cleared"
+  (E13) and Esc its only pause key, so neither can become Exit without undoing a ruling. **Code's proposal** (not built):
+  keep Esc as pause; the **pause panel** gains **[Q] Quit to Arcade** under "ESC TO RESUME" (typing is off while paused,
+  so Q can't be a stray letter in a command); mid-game Q asks **"Quit this game?  [Y] Yes  [N] No"**, and Y sends
+  `cat:exit`, the hub's own exit path, so Egg Timer leaves exactly as the Exit Game button does. On the title, options
+  and game-over screens (no run to lose), Q exits at once, with the same hint. Outside the hub (Egg Timer opened on its
+  own), there's nowhere to go back to, so the hint doesn't show. Needed: yes to this, or another key or place.
 
 ### Raised by Code's hatched-aliens report, ruled by Andrew (2026-09-27) — E45, E46 and E47
 
