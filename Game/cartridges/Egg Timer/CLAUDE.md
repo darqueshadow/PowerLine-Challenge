@@ -22,7 +22,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E49**; **E48 open**, the exit);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E52**; **E49–E51 open**);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -81,8 +81,10 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Egg lifecycle:** `laying` (the cord lowers the egg; **the clock starts at the pop**; no cord for VF, E16), then
   running. **`RCAV` does nothing until the CAV's real duration has passed**: don't loosen that floor. Then bold,
   `RCAV` valid and the crack are one event; overtime (the player's seconds), then the hatch, final: **no pan, no
-  THONG on a hatch** (E37). **Hatchlings (E45–E47):** wave 1 cute, wave 2 mixed (first hatch horror), wave 3+ horror;
-  shuffle bag, never the same alien twice running; cute only scurries, upright (2026-09-30); a hatch lasts ~2 s.
+  THONG on a hatch** (E37). **Hatchlings (E45):** wave 1 cute, wave 2 mixed (first hatch horror), wave 3+ horror;
+  shuffle bag, never the same alien twice running. **The hatch (Andrew, 2026-10-01, replacing E46/E47):** out, an upright
+  scurry, a dance; then cute = a goofy hop at the player, horror = freeze, stare, a **full-screen jump scare** (#scare);
+  3.2 s; movement only, never brightness; a pause holds it. The cord draws **on top of everything** (2026-10-01).
   **VF** hides egg and timer until "Clear Fueling". **Every AD shows a post-it** ("20 min" or "Clear @ HH:MM" against
   the wall clock, E1). The wall clock is **neon green** `#39ff14`, no glow, in **DSEG7**.
 - **Time Warp:** clocks run 5× once the wave's last CAV has *started* and none is bold (E18), or while 2+ eggs are each
@@ -91,7 +93,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Board lights:** `#backdrop`, behind everything on the board: the **lilac** tint (E32), white lights on the gameplay
   track's BPM (🚨 5% white at most, one start a beat, 3 at once) and Time Warp's dark veil (a 0.5 s fade).
 - **Placement:** 10 points; **an ignored trigger auto-opens** (20 s, −1 s a wave, floor 8 s). **Any rejected Enter**
-  clears the line, shows ERROR ~1 s and buzzes, no penalty (E6).
+  clears the line, shows ERROR ~1 s and buzzes, no penalty (E6); an early `RCAV` says **"Too Early!"** (2026-10-01).
 - **Waves and pool:** nests in play 5 → 12, **all 12 on screen all game**; spawning stops at the quota (D4); a spawn on
   a full board is skipped. Pool 3 (`POOL`), −1 per escape, +1 per escape-free wave. **Only an empty pool ends the game.**
 - **Scoring (E26):** by **tier**, fifths of the egg's own overtime window: 100 / 75 / 50 / 35 / 25, plus a perfect-wave
@@ -109,7 +111,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   (E33). 🎨 Every "act now" pink uses `--readout-bold-timer-bg`; `--hot`/`--pink` are decoration only.
 - **Command Lines** (never "Command Box", E7): 1–4, **2 by default**. **Tab / Shift+Tab** next / previous; **F12** next,
   clearing the line it lands on (E13). Losing focus pauses; otherwise **Esc, and only Esc, pauses.**
-- **How To Play:** a five-panel comic strip (E29) on the title and options screens; **no side panel in play** (E30).
+- **How To Play:** a five-panel comic strip (E29) on the title and options screens, in **Andrew's own five lines**
+  (2026-10-01), panel 5 a cute alien (`howtoAlien`); **no side panel in play** (E30), **none on game over** (2026-10-01).
   🚨 Signs change ≤ 2/s; every bulb change goes through `set()`'s guard (`lightsMinToggle` ≥ 1/6 s). No CAV durations.
 - **Screens:** title (PRESS ANY KEY until the first press, E40), options, game over (Enter ignored for 1 s and on
   auto-repeat, E34). The **scary mom face**: at most once a wave, under 1 s, HUD bar only, no input, no flashing.
@@ -149,9 +152,11 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 **`continue_et`** (or `continue_wac`): read that store's `MEMORY.md` and any ⏸ handoff it lists, then `et-track.md`;
 write Egg Timer memories there (auto-memory loads the PLC root index, keyed to the git root).
 
-## State 2026-10-01 (parked)
-Live on `main` through `36e7837`: E45–E47 hatch rules with Andrew's six alien puppets, the upright scurry, the water
-stream pushing what it touches. **Open: E48, the exit to the Arcade room** (Code's proposal in the packet, §11; not
-built). **Next:** F3 types `COM` (Andrew's all-games rule, shared memory `plc-f3-com-key`). Hand tests owed: nozzle lag,
-Fang Rock's title music, held Enter at Game Over, the aliens, the hose's feel. Left from the audit: JS colours →
+## State 2026-10-01 (later)
+Live on `main`: F3 types `COM`; Andrew's batch (packet filing note, 2026-10-01): E48's exit (Q, CAT hub only), "Too
+Early!", the cord on top, no How To Play on game over, his How To Play words, the new hatch with its jump scare, and
+steadier rigs. **Open, with Chat:** E49 (the jump under reduced motion), E50 (a bigger Time Warp clashes with Refinement
+6 §2), E51 (the hose's direction); the close-up art and sound proposals; **Andrew to confirm** the crab in How To Play.
+Hand tests owed: nozzle lag, Fang Rock's title music, held Enter at Game Over, the aliens, the hose's feel, the exit (Q)
+in Rec-Bay 4, real F3, the jump scare. Left from the audit: JS colours →
 `theme.css`, dead code, test gaps. History in `docs/decisions.md` (repo root); the art brief is `docs/Egg Timer art brief for Gemini.md`.
