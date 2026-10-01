@@ -46,11 +46,13 @@
 
   /* How-to panel everywhere (Andrew approved, 2026-09-23): the ONE panel moves to whichever screen shows, on the
      right as in play. In play it sits in the play row, between the HUD bar and the Command Lines; on the title,
-     mode-selection and game-over screens it hangs down the right edge and the screen's content keeps clear of it. */
+     mode-selection screens it hangs down the right edge and the screen's content keeps clear of it (since 2026-10-01,
+     not on the game-over screen). */
   function placeHowTo(name) {
     var panel = $("#howto");
-    // E30 (ruled 2026-09-24): no side panel in play: the board takes its width. The menus keep it.
-    var host = name === "play" ? null : $("#screen-" + name);
+    // E30 (ruled 2026-09-24): no side panel in play: the board takes its width. The menus keep it, except game over
+    // (Andrew, 2026-10-01: no How To Play there).
+    var host = name === "play" || name === "over" ? null : $("#screen-" + name);
     if (!host) { document.querySelectorAll(".screen").forEach(function (s) { s.classList.remove("with-howto"); }); return; }
     // Refinement 6 §1: the title screen has its own How To Play card instead
     if (name !== "title" && panel.parentNode !== host) host.appendChild(panel);

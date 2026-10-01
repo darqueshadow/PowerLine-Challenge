@@ -1266,24 +1266,12 @@ try {
   ok(/^SKIPPED SPAWNS  W1 \d+/.test(await ev("document.querySelector('#over-skipped').textContent")), `the playtest log lists skipped spawns per wave   [${await ev("document.querySelector('#over-skipped').textContent")}]`);
   await shot("09-over");
   {
-    // E30: the menus keep the panel; on the game-over screen it holds what has no object of its own
-    const txt = await ev("document.querySelector('#howto').innerText");
-    const lines = await ev("[...document.querySelectorAll('#howto ul li')].map(l => l.textContent)");
-    eq(lines, ["GOAL Clear the CAVs as soon as they're done, as quick as you can.", "ESC Pause."], "E28 and E30: on the game-over screen the panel keeps Goal and Esc");
-    for (const gone of ["RCAV", "post-it", "Clear Fueling", "Ctrl"]) ok(!txt.includes(gone), `…with no "${gone}" line`);
-    ok(!/\d+:\d\d|\b\d+\s*min/i.test(txt), "…and never lists a CAV duration");
-    // Refinement 5 §3: the cartoon look, with doodles that turn now and then
-    const look = await ev(`(() => { const cs = getComputedStyle(document.querySelector('#howto')); return { bg: cs.backgroundColor, ink: getComputedStyle(document.querySelector('#howto li')).color, round: parseFloat(cs.borderTopLeftRadius) > 8, doodles: document.querySelectorAll('#howto .doodles .doodle').length }; })()`);
-    ok(look.bg === "rgb(255, 243, 209)" && look.ink === "rgb(26, 13, 46)" && look.round, `Refinement 5 §3: the panel is a cartoon card, dark ink on cream, rounded   [${look.bg} / ${look.ink}]`);
-    ok(look.doodles >= 4, `…with alien-family doodles around the text   [${look.doodles}]`);
-    const turns = () => ev("[...document.querySelectorAll('#howto .doodles .doodle')].map(d => d.style.getPropertyValue('--turn')).join(',')");
-    // poll for up to 15 s: a turn picks a random angle, which can land on the one it had (steadied 2026-09-24)
-    const t0 = await turns();
-    let t1 = t0;
-    for (let i = 0; i < 60 && t1 === t0; i++) { await wait(250); t1 = await turns(); }
-    ok(t0 !== t1, `…turning to a new angle now and then   [${t0} → ${t1}]`);
+    // Andrew, 2026-10-01: no How To Play on the game-over screen
+    const g = await ev("(() => { const p = document.querySelector('#howto'), s = document.querySelector('#screen-over'); return { inside: s.contains(p), shown: p.getBoundingClientRect().width > 0, padded: s.classList.contains('with-howto') }; })()");
+    eq(g, { inside: false, shown: false, padded: false }, "Andrew, 2026-10-01: the game-over screen has no How To Play");
   }
-  await menuFit("over");
+  // (the panel's lines (Goal, Esc) and its doodles showed only here; the options screen shows the comic strip in their place,
+  // so since 2026-10-01 they show nowhere, and their checks went with them)
   {
     // the game-over screen (music ruling, 2026-09-25): a clear way back to the title screen, and play again
     const ob = await ev("({ words: [...document.querySelectorAll('#over-buttons button')].map(b => b.textContent), lit: document.querySelector('#over-buttons .selected').dataset.go, def: ET.CONFIG.overDefault })");
