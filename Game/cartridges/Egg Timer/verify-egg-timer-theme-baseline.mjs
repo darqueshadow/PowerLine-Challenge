@@ -1,5 +1,5 @@
 /* verify-egg-timer-theme-baseline.mjs: section T's record of every rule of the game's stylesheets, resolved
-   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-09-30.
+   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-10-01.
    Rewrite it ONLY when a style is changed on purpose, in the same commit. Never published (verify-*.mjs). */
 export default {
  "@font-face": {
@@ -1313,6 +1313,26 @@ export default {
   "top": "8px",
   "z-index": "50"
  },
+ "#quit-hint": {
+  "color": "rgb(154, 143, 184)",
+  "font-family": "\"Trebuchet MS\", Verdana, sans-serif",
+  "font-size": "13px",
+  "font-weight": "700",
+  "left": "12px",
+  "letter-spacing": "0.04em",
+  "margin-bottom": "0px",
+  "margin-left": "0px",
+  "margin-right": "0px",
+  "margin-top": "0px",
+  "pointer-events": "none",
+  "position": "fixed",
+  "text-shadow": "rgb(0, 0, 0) 1px 1px 0px",
+  "top": "54px",
+  "z-index": "61"
+ },
+ "#quit-hint[hidden]": {
+  "display": "none"
+ },
  "#screen-play": {
   "align-items": "stretch",
   "column-gap": "0px",
@@ -1841,6 +1861,19 @@ export default {
   "width": "100%",
   "z-index": "1"
  },
+ "#cord-top": {
+  "bottom": "0px",
+  "height": "100%",
+  "left": "0px",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "pointer-events": "none",
+  "position": "absolute",
+  "right": "0px",
+  "top": "0px",
+  "width": "100%",
+  "z-index": "50"
+ },
  "#backdrop": {
   "background-attachment": "initial",
   "background-clip": "initial",
@@ -1899,21 +1932,21 @@ export default {
  "#backdrop .veil.dark": {
   "opacity": "0.8"
  },
- "#cords path[class^=\"cord-\"]": {
+ "#cord-top path[class^=\"cord-\"]": {
   "fill": "none",
   "stroke-linejoin": "round"
  },
- "#cords .cord-outline": {
+ "#cord-top .cord-outline": {
   "stroke": "rgb(26, 0, 8)",
   "stroke-linecap": "round",
   "stroke-width": "calc(14px)"
  },
- "#cords .cord-line": {
+ "#cord-top .cord-line": {
   "stroke": "rgb(158, 10, 30)",
   "stroke-linecap": "round",
   "stroke-width": "10px"
  },
- "#cords .cord-stripes": {
+ "#cord-top .cord-stripes": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "1.4s",
@@ -1929,7 +1962,7 @@ export default {
   "stroke-dasharray": "9, 9",
   "stroke-width": "10px"
  },
- "#cords .cord-ribs": {
+ "#cord-top .cord-ribs": {
   "opacity": "0.8",
   "stroke": "rgb(42, 0, 16)",
   "stroke-dasharray": "2, 5",
@@ -1952,12 +1985,12 @@ export default {
   "stroke": "rgb(200, 255, 226)",
   "stroke-width": "2.5px"
  },
- "#cords .cord-bulge": {
+ "#cord-top .cord-bulge": {
   "fill": "rgb(138, 47, 214)",
   "stroke": "rgb(59, 16, 96)",
   "stroke-width": "2px"
  },
- "#cords .cord-egg": {
+ "#cord-top .cord-egg": {
   "fill": "rgb(125, 255, 106)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "2px"
@@ -4137,6 +4170,15 @@ export default {
  ".panel .hint": {
   "margin-top": "12px"
  },
+ "#pause .quit[hidden], #pause .confirm[hidden], #pause .panel.asking > .hint:not(.quit)": {
+  "display": "none"
+ },
+ "#pause .confirm .ask": {
+  "color": "rgb(255, 247, 232)",
+  "font-family": "\"Arial Black\", Impact, Haettenschweiler, sans-serif",
+  "font-size": "20px",
+  "margin-top": "12px"
+ },
  "#dev-prompt input": {
   "background-attachment": "initial",
   "background-clip": "initial",
@@ -4229,7 +4271,7 @@ export default {
  "#over-buttons": {
   "margin-top": "12px"
  },
- "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cords .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cord-top .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",
