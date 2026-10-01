@@ -485,6 +485,7 @@ try {
   eq((await snap()).nests.find((x) => x.id === n.id).state, "active", "RCAV before the trigger does nothing");
   eq(await ev("__et.boxes().values[0]"), "", "a rejected Enter (RCAV too early) clears the Command Line");
   eq(await ev("__et.boxes().error[0]"), true, "…and a red ERROR shows under it");
+  eq(await ev("document.querySelector('.box.active .err').textContent"), "Too Early!", "Andrew, 2026-10-01: an RCAV before the CAV's real duration says \"Too Early!\"");
   eq(await ev("getComputedStyle(document.querySelector('.box.active .err')).visibility"), "visible", "…drawn directly under the box");
   {
     const eb = await ev("document.querySelector('.box.active').getBoundingClientRect().bottom");
@@ -502,6 +503,9 @@ try {
     for (let i = 0; i < 80 && !gone; i++) { await wait(50); gone = !(await ev("__et.boxes().error[0]")); }
     ok(gone, "the ERROR is gone after about a second");
   }
+  await typeAndEnter("RCAV 1");
+  eq(await ev("document.querySelector('.box.active .err').textContent"), "ERROR", "…any other rejected Enter still says ERROR");
+  for (let i = 0; i < 80 && (await ev("__et.boxes().error[0]")); i++) await wait(50);
   await c.insert("RCAV 1");
   await press("F12");
   eq(await ev("__et.boxes().values[0]"), "", "F12 clears the box, no penalty");

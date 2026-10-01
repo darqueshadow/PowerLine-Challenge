@@ -146,6 +146,8 @@ section("D. one CAV, one clear (Clear CAVs Only)");
   ok(!!n, "a CAV opens on its own at the start of wave 1");
   eq(g.unlocked().length, 5, "wave 1 has 5 nests");
   ok(!g.submit("RCAV " + n.unit).ok, "RCAV before the real duration has passed does nothing");
+  eq(g.submit("RCAV " + n.unit).early, true, "…and the game calls it too early (Andrew, 2026-10-01: \"Too Early!\")");
+  eq(g.submit("RCAV 0000").early, undefined, "…but not an RCAV for a unit that isn't running");
   advance(g, 19.9);
   ok(n.state === "active" && !g.submit("RCAV " + n.unit).ok, "…still nothing at 19.95 s");
   advance(g, 0.1);

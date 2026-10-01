@@ -437,10 +437,15 @@
       }
     }
 
+    // Andrew, 2026-10-01: an RCAV for a CAV whose real duration hasn't passed yet (its egg still laying or running) is
+    // "Too Early!", not ERROR. It's still a rejected Enter in every other way (E6: no penalty; the egg ladder drops).
+    var early = live && cmd && cmd.kind === "rcav" && nests.some(function (n) {
+      return (n.state === "laying" || n.state === "active") && n.unit === cmd.unit;
+    });
     this.stats.rejected++;
     this.streak = 0;                 // any ERROR drops the egg ladder to the bottom
-    this.emit("rejected", { text: text });
-    return { ok: false };
+    this.emit("rejected", { text: text, early: !!early });
+    return early ? { ok: false, early: true } : { ok: false };
   };
 
   Game.prototype.drain = function () {
