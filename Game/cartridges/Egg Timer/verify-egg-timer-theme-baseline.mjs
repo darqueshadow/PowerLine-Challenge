@@ -435,27 +435,6 @@ export default {
   "padding-top": "0.75em",
   "row-gap": "2px"
  },
- ".strip .scene.split": {
-  "flex-direction": "column",
-  "flex-wrap": "nowrap"
- },
- ".strip .half": {
-  "align-items": "center",
-  "column-gap": "2px",
-  "display": "flex",
-  "row-gap": "2px",
-  "width": "100%"
- },
- ".strip .half .tag": {
-  "font-family": "\"Arial Black\", Impact, Haettenschweiler, sans-serif",
-  "font-size": "0.62em"
- },
- ".strip .fast .tag": {
-  "color": "rgb(14, 143, 76)"
- },
- ".strip .slow .tag": {
-  "color": "rgb(255, 61, 127)"
- },
  ".strip .pic": {
   "display": "block",
   "height": "auto",
@@ -467,9 +446,6 @@ export default {
  },
  ".strip .pic.small": {
   "width": "34%"
- },
- ".strip .half .pic": {
-  "width": "60%"
  },
  ".strip .clock-art.pic": {
   "width": "30%"
@@ -488,7 +464,49 @@ export default {
   "animation-timing-function": "ease",
   "position": "static",
   "transform": "none",
-  "width": "60%"
+  "width": "70%"
+ },
+ ".strip .goo": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(255, 194, 26)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "border-bottom-color": "rgb(26, 13, 46)",
+  "border-bottom-left-radius": "40%",
+  "border-bottom-right-radius": "60% 45%",
+  "border-bottom-style": "solid",
+  "border-bottom-width": "2px",
+  "border-image-outset": "0",
+  "border-image-repeat": "stretch",
+  "border-image-slice": "100%",
+  "border-image-source": "none",
+  "border-image-width": "1",
+  "border-left-color": "rgb(26, 13, 46)",
+  "border-left-style": "solid",
+  "border-left-width": "2px",
+  "border-right-color": "rgb(26, 13, 46)",
+  "border-right-style": "solid",
+  "border-right-width": "2px",
+  "border-top-color": "rgb(26, 13, 46)",
+  "border-top-left-radius": "55% 60%",
+  "border-top-right-radius": "45% 55%",
+  "border-top-style": "solid",
+  "border-top-width": "2px",
+  "display": "block",
+  "height": "0.85em",
+  "width": "1.5em"
+ },
+ ".strip .alien-pic.pic": {
+  "max-width": "74px",
+  "width": "92%"
+ },
+ ".strip .alien-pic .creature": {
+  "display": "inline"
  },
  ".strip .chip": {
   "background-attachment": "initial",
@@ -2940,6 +2958,203 @@ export default {
   "opacity": "0",
   "transform": "translateY(-40%) scale(9)"
  },
+ ".nest.scare, .nest.hop": {
+  "z-index": "20"
+ },
+ ".nest.scare .creature": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "3.2s",
+  "animation-fill-mode": "forwards",
+  "animation-iteration-count": "1",
+  "animation-name": "hatch-scare",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in-out"
+ },
+ ".nest.hop .creature": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "3.2s",
+  "animation-fill-mode": "forwards",
+  "animation-iteration-count": "1",
+  "animation-name": "hatch-hop",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in-out"
+ },
+ ".nest.leapt .creature": {
+  "visibility": "hidden"
+ },
+ ".nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip": {
+  "animation-play-state": "paused"
+ },
+ "body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg": {
+  "animation-play-state": "paused"
+ },
+ "@keyframes hatch-scare » 0%": {
+  "transform": "translate(0px, 0px)"
+ },
+ "@keyframes hatch-scare » 9%": {
+  "transform": "translate(0px, -14px)"
+ },
+ "@keyframes hatch-scare » 13%": {
+  "transform": "translate(calc(30%), -8px)"
+ },
+ "@keyframes hatch-scare » 17%": {
+  "transform": "translate(calc(60%), -13px)"
+ },
+ "@keyframes hatch-scare » 21%": {
+  "transform": "translate(calc(90%), -7px)"
+ },
+ "@keyframes hatch-scare » 25%": {
+  "transform": "translate(calc(110%), -10px)"
+ },
+ "@keyframes hatch-scare » 29%": {
+  "transform": "translate(calc(110%), -18px) rotate(-10deg)"
+ },
+ "@keyframes hatch-scare » 33%": {
+  "transform": "translate(calc(110%), -8px) rotate(10deg)"
+ },
+ "@keyframes hatch-scare » 37%": {
+  "transform": "translate(calc(110%), -18px) rotate(-10deg)"
+ },
+ "@keyframes hatch-scare » 41%": {
+  "transform": "translate(calc(110%), -8px) rotate(10deg)"
+ },
+ "@keyframes hatch-scare » 45%": {
+  "transform": "translate(calc(110%), -18px) rotate(-10deg)"
+ },
+ "@keyframes hatch-scare » 49%": {
+  "transform": "translate(calc(110%), -8px) rotate(10deg)"
+ },
+ "@keyframes hatch-scare » 55%, 100%": {
+  "transform": "translate(calc(110%), -10px) rotate(0deg)"
+ },
+ "@keyframes hatch-hop » 0%": {
+  "transform": "translate(0px, 0px)"
+ },
+ "@keyframes hatch-hop » 9%": {
+  "transform": "translate(0px, -14px)"
+ },
+ "@keyframes hatch-hop » 13%": {
+  "transform": "translate(calc(30%), -8px)"
+ },
+ "@keyframes hatch-hop » 17%": {
+  "transform": "translate(calc(60%), -13px)"
+ },
+ "@keyframes hatch-hop » 21%": {
+  "transform": "translate(calc(90%), -7px)"
+ },
+ "@keyframes hatch-hop » 25%": {
+  "transform": "translate(calc(110%), -10px)"
+ },
+ "@keyframes hatch-hop » 29%": {
+  "transform": "translate(calc(110%), -18px) rotate(-10deg)"
+ },
+ "@keyframes hatch-hop » 33%": {
+  "transform": "translate(calc(110%), -8px) rotate(10deg)"
+ },
+ "@keyframes hatch-hop » 37%": {
+  "transform": "translate(calc(110%), -18px) rotate(-10deg)"
+ },
+ "@keyframes hatch-hop » 41%": {
+  "transform": "translate(calc(110%), -8px) rotate(10deg)"
+ },
+ "@keyframes hatch-hop » 45%": {
+  "transform": "translate(calc(110%), -18px) rotate(-10deg)"
+ },
+ "@keyframes hatch-hop » 49%": {
+  "transform": "translate(calc(110%), -8px) rotate(10deg)"
+ },
+ "@keyframes hatch-hop » 55%": {
+  "transform": "translate(calc(110%), -4px) scale(1.15, 0.8)"
+ },
+ "@keyframes hatch-hop » 66%": {
+  "transform": "translate(calc(110%), -80%) scale(1.8) rotate(calc(-12deg))"
+ },
+ "@keyframes hatch-hop » 74%": {
+  "transform": "translate(calc(110%), -30%) scale(2.4, 2)"
+ },
+ "@keyframes hatch-hop » 78%": {
+  "transform": "translate(calc(110%), -40%) scale(2.2)"
+ },
+ "@keyframes hatch-hop » 87%": {
+  "transform": "translate(calc(110%), -85%) scale(2.6) rotate(calc(14deg))"
+ },
+ "@keyframes hatch-hop » 100%": {
+  "transform": "translate(calc(110%), 320%) scale(2.6) rotate(calc(30deg))"
+ },
+ "#scare": {
+  "align-items": "center",
+  "bottom": "0px",
+  "display": "grid",
+  "justify-items": "center",
+  "left": "0px",
+  "overflow-x": "hidden",
+  "overflow-y": "hidden",
+  "pointer-events": "none",
+  "position": "fixed",
+  "right": "0px",
+  "top": "0px",
+  "z-index": "55"
+ },
+ "#scare[hidden]": {
+  "display": "none"
+ },
+ "#scare svg": {
+  "height": "150vh",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "transform-origin": "50% 50%",
+  "width": "auto"
+ },
+ "#scare .creature": {
+  "display": "inline"
+ },
+ "#scare.go svg": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.7s",
+  "animation-fill-mode": "forwards",
+  "animation-iteration-count": "1",
+  "animation-name": "scare-jump",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "linear"
+ },
+ "@keyframes scare-jump » 0%": {
+  "animation-timing-function": "cubic-bezier(0.3, 0, 0.1, 1)",
+  "transform": "translate(0px, 0px) scale(0.1)"
+ },
+ "@keyframes scare-jump » 18%": {
+  "transform": "translate(0px, 0px) scale(1)"
+ },
+ "@keyframes scare-jump » 82%": {
+  "animation-timing-function": "ease-in",
+  "transform": "translate(0px, 0px) scale(1.04)"
+ },
+ "@keyframes scare-jump » 100%": {
+  "transform": "translate(0px, 165vh) scale(1.04)"
+ },
+ "#scare.go.still svg": {
+  "animation-name": "scare-cut",
+  "animation-timing-function": "step-end"
+ },
+ "@keyframes scare-cut » 0%": {
+  "transform": "none",
+  "visibility": "visible"
+ },
+ "@keyframes scare-cut » 82%, 100%": {
+  "transform": "none",
+  "visibility": "hidden"
+ },
  "#board.warp .nest.glow:not(.bold) .nest-art": {
   "filter": "drop-shadow(rgb(61, 255, 154) 0px 0px 3px) drop-shadow(rgb(61, 255, 154) 0px 0px 7px)"
  },
@@ -4286,6 +4501,19 @@ export default {
  },
  "@media (prefers-reduced-motion: reduce) » .nest.scurry .creature": {
   "animation-name": "scurry-plain"
+ },
+ "@media (prefers-reduced-motion: reduce) » .nest.scare .creature, .nest.hop .creature": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "auto",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "1",
+  "animation-name": "none",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease"
  },
  "@media (prefers-reduced-motion: reduce) » #title-scene .note, #setup-critter .note": {
   "opacity": "1"
