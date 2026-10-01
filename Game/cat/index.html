@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moved to C64</title>
+<!-- 2026-10-01: the CAT hub moved from Game/cat/ to Game/C64/ (commit 2bf5fec).
+     Published links still point here (Nerva Beacon's website fallbacks use
+     cat/index.html?cart=cracked|pitstop|asteroid|aquanaut|eggtimer), so this
+     page forwards to the new place and KEEPS the query string and hash —
+     ?cart=<token> is what opens the right disk. location.replace, so the old
+     address does not sit in the back history. The meta refresh is the
+     no-script fallback and cannot carry the query, so it lands on the hub. -->
+<meta http-equiv="refresh" content="0; url=../C64/index.html">
+<script>location.replace("../C64/index.html" + location.search + location.hash);</script>
+</head>
+<body>
+<p>The arcade has moved: <a href="../C64/index.html">open it here</a>.</p>
+</body>
+</html>
