@@ -444,9 +444,12 @@ try {
     const cord = await ev(`ET.view.cord(${lay.id})`);
     ok(!!cord && !cord.egg && !cord.bulge && /^M[\d.]+ 0 /.test(cord.d), `…on a cord that drops, empty at first, from the top of the screen   [${cord && cord.d.slice(0, 30)}…]`);
     eq(await ev(`[document.querySelector('.nest[data-id="${lay.id}"] .clock').textContent, getComputedStyle(document.querySelector('.nest[data-id="${lay.id}"] .egg')).display]`), ["--:--", "none"], "…with no clock running and no egg in the nest yet");
-    const z = await ev("[Number(getComputedStyle(document.querySelector('#cords')).zIndex), Number(getComputedStyle(document.querySelector('#field')).zIndex), Number(getComputedStyle(document.querySelector('.hud')).zIndex)]");
-    ok(z[0] < z[1] && z[0] < z[2], `…drawn under the nests, the HUD and every readout   [cord ${z[0]} < ${z[1]}, ${z[2]}]`);
-    const look = await ev(`(() => { const g = document.querySelectorAll('#cords .cord')[${lay.id}], cs = (s) => getComputedStyle(g.querySelector(s));
+    // Andrew, 2026-10-01: the cord draws on top of everything else in the game; only the pause panel and the drawn nozzle are above it
+    const z = await ev(`(() => { const zi = (q) => { const e = document.querySelector(q); return e ? Number(getComputedStyle(e).zIndex) || 0 : 'missing ' + q; };
+      return { cord: zi('#cord-top'), under: ['#field', '.hud', '#console', '#hose', '#popups', '#banner'].map(zi), pause: zi('#pause'), nozzle: zi('#nozzle'), inCords: !!document.querySelector('#cords .cord') }; })()`);
+    ok(z.under.every((u) => z.cord > u) && z.cord < z.pause && z.cord < z.nozzle && !z.inCords,
+      `…drawn on top of everything else (the board, nests, readouts, hose, HUD, Command Lines), under only the pause panel and the nozzle   [cord ${z.cord} > ${z.under.join(", ")}; < ${z.pause}, ${z.nozzle}]`);
+    const look = await ev(`(() => { const g = document.querySelectorAll('#cord-top .cord')[${lay.id}], cs = (s) => getComputedStyle(g.querySelector(s));
       return { w: parseFloat(cs('.cord-line').strokeWidth), red: cs('.cord-line').stroke, purple: cs('.cord-stripes').stroke, stripes: cs('.cord-stripes').strokeDasharray, ribs: cs('.cord-ribs').strokeDasharray }; })()`);
     ok(look.w >= 8 && look.red === "rgb(158, 10, 30)" && look.purple === "rgb(122, 44, 196)" && look.stripes !== "none" && look.ribs !== "none",
       `Refinement 6 §4: the cord is thick, striped blood red and purple, and ribbed   [${look.w}px, ${look.red} / ${look.purple}]`);
@@ -612,7 +615,7 @@ try {
                floorFirst: board.firstElementChild.classList.contains('floor-mess') && zi(board.firstElementChild) === 0 };
     })()`);
     ok(z.mess > z.readout && z.mess > z.postit, `E14 (ruled): a nest's gunk covers its readout and post-it again   [mess ${z.mess} > ${z.readout}, ${z.postit}]`);
-    ok(z.cords < z.field, "…while the egg-laying cord still draws under all text");
+    ok(z.cords < z.field, "…while Time Warp's lightning (the old cord layer) still draws under all text");
     ok(z.floorFirst, "the floor gunk sits under every nest");
   }
   await shot("04-splat");

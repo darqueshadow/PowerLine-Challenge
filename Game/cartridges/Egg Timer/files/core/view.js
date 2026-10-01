@@ -186,8 +186,10 @@
 
   /* ⏳ placeholder: the egg-laying cord (Refinement 3 §7). It drops from the top of the screen straight
      down to the nest with the egg on its tip, lowers the egg in, pops off, and snakes back up out of view
-     while the clock runs. It lives in the hose's layer, UNDER the HUD, the nests and every piece of text,
-     so it never hides another nest's readout; it's drawn from the snapshot, so it freezes on pause. */
+     while the clock runs. Andrew, 2026-10-01: the cord draws ON TOP of everything else in the game (it was under
+     every piece of text), in a layer of its own, #cord-top; only the pause panel and the drawn nozzle are above it.
+     #cords keeps Time Warp's lightning and the tags' leaders, under every readout. It's drawn from the snapshot, so
+     it freezes on pause. */
   var cords = null;
   function buildCords() {
     var screen = field.closest(".screen");
@@ -195,8 +197,12 @@
     svg.id = "cords";
     svg.setAttribute("aria-hidden", "true");
     screen.insertBefore(svg, screen.firstChild);
-    cords = { svg: svg, screen: screen, list: [] };
-    svg.style.setProperty("--cord", ET.CONFIG.cordWidth + "px");
+    var top = document.createElementNS(NS, "svg");
+    top.id = "cord-top";
+    top.setAttribute("aria-hidden", "true");
+    screen.appendChild(top);
+    cords = { svg: svg, top: top, screen: screen, list: [] };
+    top.style.setProperty("--cord", ET.CONFIG.cordWidth + "px");
     function mk(g, tag, cls) { var e = document.createElementNS(NS, tag); e.setAttribute("class", cls); g.appendChild(e); return e; }
     for (var i = 0; i < nests.length; i++) {
       var g = document.createElementNS(NS, "g");
@@ -205,7 +211,7 @@
       // (a dark outline, the red, purple stripes, dark rib bands across it)
       var lines = [mk(g, "path", "cord-outline"), mk(g, "path", "cord-line"), mk(g, "path", "cord-stripes"), mk(g, "path", "cord-ribs")];
       var c = { g: g, path: lines[1], lines: lines, bulge: mk(g, "ellipse", "cord-bulge"), egg: mk(g, "ellipse", "cord-egg") };
-      svg.appendChild(g);
+      top.appendChild(g);
       g.style.display = "none";
       cords.list.push(c);
     }

@@ -405,7 +405,7 @@ h2 {
 /* Refinement 4 §2 (replacing the "under text" hose rulings, E12 included): the hose (body, spigot and water)
    draws ABOVE everything on the board (nests, eggs, gunk, readouts, the wall clock), and stays BELOW the how-to
    panel, the Command Lines and the HUD bar, where the cleanup banner lies. The egg-laying cord stays under text.
-     z 1  the cord          #cords
+     z 1  the bolts, leaders #cords (the cord itself is on top of everything: #cord-top, z 50, Andrew 2026-10-01)
      z 2  the board          #field (its nests, readouts, gunk and pop-ups inside)
      z 3  the hose, water    #hose, #water
      z 4  panel, lines, HUD  #howto, #console, .hud                                                    */
@@ -418,6 +418,9 @@ h2 {
 #hose .hose-body { fill: none; stroke: var(--hose); stroke-linecap: round; }
 /* Refinement 3 §7: the egg-laying cord, in the hose's layer, under every piece of text (⏳ placeholder) */
 #cords { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible; }
+/* Andrew, 2026-10-01: the cord itself draws on top of everything else in the game: over the board, the hose, the HUD bar
+   and the Command Lines, under only the pause panel (z 60) and the drawn nozzle */
+#cord-top { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; overflow: visible; }
 /* Board lights (Chat ruling, 2026-09-25): the backmost layer, under the cord, the bolts and the whole board (z 0). It
    holds the board's faint tint, the beat lights (view.js sets each one's opacity every frame) and Time Warp's veil,
    which fades (never snaps) to dark. view.js lays it over the board's area. */
@@ -427,19 +430,19 @@ h2 {
 #backdrop .veil.dark { opacity: var(--dark-opacity, 0.8); }
 /* Refinement 6 §4 (⏳ placeholder): thick [T], striped blood red and purple, deeply ribbed. The stripes creep
    slowly down the cord (movement, not a flash); timing and layering are unchanged. */
-#cords path[class^="cord-"] { fill: none; stroke-linejoin: round; }
-#cords .cord-outline { stroke: var(--cord-outline); stroke-width: calc(var(--cord, 10px) + 4px); stroke-linecap: round; }
-#cords .cord-line { stroke: var(--cord-red); stroke-width: var(--cord, 10px); stroke-linecap: round; }
-#cords .cord-stripes { stroke: var(--cord-purple); stroke-width: var(--cord, 10px); stroke-dasharray: 9 9; animation: cord-creep 1.4s linear infinite; }
-#cords .cord-ribs { stroke: var(--cord-ribs); stroke-width: calc(var(--cord, 10px) + 3px); stroke-dasharray: 2 5; opacity: 0.8; }
+#cord-top path[class^="cord-"] { fill: none; stroke-linejoin: round; }
+#cord-top .cord-outline { stroke: var(--cord-outline); stroke-width: calc(var(--cord, 10px) + 4px); stroke-linecap: round; }
+#cord-top .cord-line { stroke: var(--cord-red); stroke-width: var(--cord, 10px); stroke-linecap: round; }
+#cord-top .cord-stripes { stroke: var(--cord-purple); stroke-width: var(--cord, 10px); stroke-dasharray: 9 9; animation: cord-creep 1.4s linear infinite; }
+#cord-top .cord-ribs { stroke: var(--cord-ribs); stroke-width: calc(var(--cord, 10px) + 3px); stroke-dasharray: 2 5; opacity: 0.8; }
 @keyframes cord-creep { to { stroke-dashoffset: -18; } }
 /* Refinement 6 §2 (⏳ placeholder look): the Time Warp lightning, in the cord's layer under every readout. Its
    kinks re-jag in view.js (never over 3 a second); nothing here animates. */
 #cords .lightning path { fill: none; stroke-linejoin: miter; stroke-linecap: round; }
 #cords .bolt-glow { stroke: var(--warp); stroke-width: 7px; opacity: 0.35; }
 #cords .bolt-core { stroke: var(--bolt-core); stroke-width: 2.5px; }
-#cords .cord-bulge { fill: var(--cord-bulge); stroke: var(--cord-bulge-edge); stroke-width: 2px; }
-#cords .cord-egg { fill: var(--shell); stroke: var(--crack); stroke-width: 2px; }
+#cord-top .cord-bulge { fill: var(--cord-bulge); stroke: var(--cord-bulge-edge); stroke-width: 2px; }
+#cord-top .cord-egg { fill: var(--shell); stroke: var(--crack); stroke-width: 2px; }
 #hose .pipe { fill: var(--tap-pipe); stroke: var(--black); stroke-width: 2; }
 #hose .valve { fill: var(--tap-valve); stroke: var(--black); stroke-width: 2; }
 /* E42 (Chat, 2026-09-25): a blast, not a trickle (⏳ placeholder look). The jet runs from the nozzle's tip (its left end)
@@ -1126,7 +1129,7 @@ h2 {
 #over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
-  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cords .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cord-top .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
   #title-scene .note, #setup-critter .note { opacity: 1; }
   /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24) */
