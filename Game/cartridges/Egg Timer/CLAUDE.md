@@ -27,7 +27,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
   build what's whole, file the partial block verbatim and ask for the rest.
-- **Investigate first** before touching anything shared (Fang Rock, the hub, other cartridges, conventions).
+- **Investigate first** before touching anything shared (Fang Rock, the hub, other cartridges, conventions). Hub
+  changes: run `verify-cat.mjs` (serve on 8899; "Chrome never opened a debug port" is CPU load: re-run).
 
 ## The build (`files/`)
 - `index.html`, `theme.css`, `style.css`, `script.js` (boot, screens, loop, keyboard, how-to panel, comic strip), `favicon.svg`.
@@ -53,6 +54,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
     Serve with `python -m http.server 8898` from the (PCL) root; `window.__et` drives the clock. Screenshots go to
     the scratchpad, never under `Game/`. **Look at them too**: they catch what the checks miss. Every screen is
     measured at 1920×1080, 1440×900, 1280×720, 1024×640. A first-load timeout ("__et is not defined") is CPU load: re-run.
+    The test server is single-threaded: fetch big asset sets at game start, never at page load (it starves the data).
+  - The hose acts every frame: the rig's `__drag` steps 2 frames of play per pointer event through `ET.view.stream(dt)`.
   - 🚨 **Gate on both rigs' EXIT CODES** before a commit or push. `node rig | grep …` exits 0 on a FAIL.
   - The live page keeps stepping (and drawing, even paused) between checks: do a timed thing inside one `ev()`,
     pause it (Esc, or an Escape keydown dispatched in the same `ev()`), poll, or record at the event. Never a fixed
@@ -65,7 +68,6 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Developer Mode:** Ctrl+Shift+B (lowercase `b` too), then a timed password prompt; on unlock the next game uses the
   Blank Dataset Module. `node make-dev-hash.mjs` makes the digest (echo off; `make-*.mjs` never deploys).
 - ⚠️ **Class names already taken:** never `error` (the title's `.error` caps width at 640px) and never `bubble` (VF's).
-- Hub changes: run `verify-cat.mjs` (serve on 8899). "Chrome never opened a debug port" is CPU load: re-run.
 
 ## Locked design (summary; the packet has the detail and the numbers)
 - **Art direction: "juxtaposition":** a friendly family cartoon with a dark, twisted undertone. **Alien art:** scary
@@ -80,7 +82,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   running. **`RCAV` does nothing until the CAV's real duration has passed**: don't loosen that floor. Then bold,
   `RCAV` valid and the crack are one event; overtime (the player's seconds), then the hatch, final: **no pan, no
   THONG on a hatch** (E37). **Hatchlings (E45–E47):** wave 1 cute, wave 2 mixed (first hatch horror), wave 3+ horror;
-  shuffle bag, never the same alien twice running; cute only scurries; a hatch lasts ~2 s. Six Gemini sheets pending.
+  shuffle bag, never the same alien twice running; cute only scurries, upright (2026-09-30); a hatch lasts ~2 s.
   **VF** hides egg and timer until "Clear Fueling". **Every AD shows a post-it** ("20 min" or "Clear @ HH:MM" against
   the wall clock, E1). The wall clock is **neon green** `#39ff14`, no glow, in **DSEG7**.
 - **Time Warp:** clocks run 5× once the wave's last CAV has *started* and none is bold (E18), or while 2+ eggs are each
@@ -143,15 +145,13 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - Patch scripts: files are CRLF; match line endings per file, and never `sed -i` in Git Bash (it strips every CR).
 
 ## Session memory
-Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-Timer/memory/`, via the **Egg Timer
-(Claude Code)** shortcut (`claude-et.cmd`). **`continue_et`** (or `continue_wac`) means: read that store's `MEMORY.md`
-(and any ⏸ one-shot handoff it lists), then `et-track.md`, and write Egg Timer memories **there**. Auto-memory loads
-the PLC root index instead, because it keys to the git root.
+Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-Timer/memory/` (shortcut `claude-et.cmd`).
+**`continue_et`** (or `continue_wac`): read that store's `MEMORY.md` and any ⏸ handoff it lists, then `et-track.md`;
+write Egg Timer memories there (auto-memory loads the PLC root index, keyed to the git root).
 
-## State 2026-09-26 (parked)
-Everything is live on `main` through E44 (`d6fa0e6`): E42 hose blast, E43 Time Warp zaps, E44 the drawn, turning
-nozzle. Nothing is held, no E-item is open. Andrew owes hand tests: does the drawn nozzle lag the mouse; Fang Rock's
-title music; holding Enter at Game Over. The Gemini reference sheets (hatchlings, trough) are in his Downloads.
-**Next:** the art-slot batch as Gemini's art arrives (the brief, `docs/Egg Timer art brief for Gemini.md`, is Code's
-build spec: its 🔒 sections are Code/Andrew only; Chat writes Gemini's prompts). Left from the audit, by Andrew's choice:
-moving the JavaScript colours into `theme.css`, dead code, and the other test gaps.
+## State 2026-10-01 (parked)
+Live on `main` through `36e7837`: E45–E47 hatch rules with Andrew's six alien puppets, the upright scurry, the water
+stream pushing what it touches. **Open: E48, the exit to the Arcade room** (Code's proposal in the packet, §11; not
+built). **Next:** F3 types `COM` (Andrew's all-games rule, shared memory `plc-f3-com-key`). Hand tests owed: nozzle lag,
+Fang Rock's title music, held Enter at Game Over, the aliens, the hose's feel. Left from the audit: JS colours →
+`theme.css`, dead code, test gaps. History in `docs/decisions.md` (repo root); the art brief is `docs/Egg Timer art brief for Gemini.md`.

@@ -734,3 +734,15 @@ loaded, only to aim the throw. The unused cut-edge outline colour went with the 
   run against a zones-off build (169/363/356 centres in zones on stages 3/4/5) and caught it.
 - `ET.pieces.list()` reports each piece's `sprite`; rig E38 asserts all ten sprites appear, some mirrored.
 - Git Bash heredocs here collapse a doubled backslash to one: write a rig's in-template regex escapes with the editor, not a heredoc.
+
+## 2026-10-01 — Egg Timer: CLAUDE.md prune at park (E45–E47, the aliens, the 2026-09-30 requests)
+
+- Dropped from CLAUDE.md: the 2026-09-26 park state (E42–E44 live, "art-slot batch as Gemini's art arrives"), now
+  superseded; and "Six Gemini sheets pending" (Andrew approved the six sheets as they are, 2026-09-27; built as puppets,
+  `2ac644f`). The octopus and Grabber sheets in the folder were wrong retries; the concept crops stand in (Andrew).
+- Kept and added: two rig lessons. The test server (`python -m http.server`) is single-threaded, so preloading the 42
+  alien pictures at page load starved the CSV fetches and timed out the loading section; the pictures now preload at
+  game start. The hose became per-frame (Andrew, 2026-09-30), so the rig's synchronous `__drag` steps 2 frames of play
+  per pointer event through `ET.view.stream(dt)`, which also advances the nozzle's E44 turn.
+- Open at park: E48, the exit to the Arcade room (the hub's Exit Game / F12 / `cat:exit` exist; F12 and Esc are taken in
+  Egg Timer; Code proposed [Q] on the pause panel with a "Quit this game?" confirm). Next: F3 → COM (all-games rule).
