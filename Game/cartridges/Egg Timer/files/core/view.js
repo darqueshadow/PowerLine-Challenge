@@ -598,7 +598,7 @@
      stillness, held a moment, then it drops away. A cute one does a goofy hop toward the player instead (CSS only). A
      pause holds all of it: the CSS timelines stop (body.paused) and so does this clock, which counts real time, not the
      game's (the last hatch plays out after the game itself has stopped). Nothing flashes or changes brightness: it moves.
-     Reduced motion: the alien sits still in its nest; the jump is ⏳ E49 (CONFIG.hatchScareReduced). */
+     Reduced motion: the alien sits still in its nest; the jump is E49's "still" (CONFIG.hatchScareReduced). */
   var scare = null, hatching = [], hatchClock = { at: 0 };
   function buildScare() {
     var el = document.createElement("div");
@@ -616,11 +616,11 @@
     ET.aliens.clear(scare.slot);
     scare.nest = null;
   }
-  // a hatch starts its clock (only a horror one needs it: the freeze and the jump are timed here)
+  // a hatch starts its clock: a horror one's freeze and jump are timed here, and a cute one's boing (the hop)
   function startHatch(v, set) {
     hatching = hatching.filter(function (h) { return h.v !== v; });
     v.el.classList.remove("freeze", "leapt");
-    if (set === "horror") hatching.push({ v: v, t: 0, frozen: false, leapt: false });
+    hatching.push({ v: v, set: set, t: 0, frozen: false, leapt: false, boinged: false });
   }
   function stepHatches() {
     var now = performance.now(), dt = hatchClock.at ? Math.min(0.1, (now - hatchClock.at) / 1000) : 0;
@@ -630,7 +630,12 @@
     var C = ET.CONFIG, total = C.escapeSeconds;
     hatching.forEach(function (h) {
       h.t += dt;
-      if (!h.frozen && h.t >= C.hatchScare.freeze * total) { h.frozen = true; h.v.el.classList.add("freeze"); }
+      if (h.set === "cute") {
+        // the hop starts as the dance ends (style.css: 55%); the boing goes with it
+        if (!h.boinged && h.t >= C.hatchScare.freeze * total) { h.boinged = true; if (ET.audio) ET.audio.boing(); }
+        return;
+      }
+      if (!h.frozen && h.t >= C.hatchScare.freeze * total) { h.frozen = true; h.v.el.classList.add("freeze"); if (ET.audio) ET.audio.stare(); }
       if (!h.leapt && h.t >= C.hatchScare.leap * total) { h.leapt = true; leap(h.v); }
     });
     hatching = hatching.filter(function (h) { return h.t < total; });
@@ -638,9 +643,9 @@
   // the jump: the puppet leaves the nest and comes at the player, filling the screen
   function leap(v) {
     var still = reducedMotion();
-    if (still && ET.CONFIG.hatchScareReduced === "none") return;
     var alien = v.el.dataset.alien;
-    if (!alien || !scare) return;
+    if ((still && ET.CONFIG.hatchScareReduced === "none") || !alien || !scare) { if (ET.audio) ET.audio.unhush(0); return; }
+    if (ET.audio) ET.audio.stinger();   // the stinger, and the music back after it
     ET.aliens.fill(scare.slot, alien);
     scare.nest = v;
     v.el.classList.add("leapt");
@@ -962,6 +967,7 @@
       mom.box.hidden = true;
       hatching = [];
       endScare();
+      if (ET.audio) ET.audio.unhush(0);   // a new game never starts with the music held out
     },
 
     render: function (snap) {

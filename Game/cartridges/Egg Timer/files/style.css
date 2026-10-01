@@ -781,7 +781,7 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
   82% { transform: translate(0, 0) scale(1.04); animation-timing-function: ease-in; }
   100% { transform: translate(0, 165vh) scale(1.04); }
 }
-/* ⏳ E49 "still" (reduced motion): no zoom, no movement: it's there for the hold, then it's gone */
+/* E49 "still" (reduced motion; Andrew, 2026-10-01: keep as built): no zoom, no movement: it's there for the hold, then it's gone */
 #scare.go.still svg { animation-name: scare-cut; animation-timing-function: step-end; }
 @keyframes scare-cut { 0% { transform: none; visibility: visible; } 82%, 100% { transform: none; visibility: hidden; } }
 

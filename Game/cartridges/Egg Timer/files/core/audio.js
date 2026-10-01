@@ -85,12 +85,29 @@
      never on a rig's offline render. */
   function duck(seconds) {
     if (!mout || mout.context !== ctx) return;
+    if (hushed) return;   // the hatch's stare has the music silent already; a cue mustn't bring it back early
     var D = ET.CONFIG.musicDuck, g = mout.gain, t = ctx.currentTime;
     g.cancelScheduledValues(t);
     g.setValueAtTime(g.value, t);
     g.linearRampToValueAtTime(D.depth, t + D.attack);
     g.setValueAtTime(D.depth, t + seconds);
     g.linearRampToValueAtTime(1, t + seconds + D.release);
+  }
+
+  /* Andrew, 2026-10-01 (the hatch's sound, as proposed): the music drops out while a horror alien stares, and comes back
+     after the jump. hush(true) fades it to silence and holds it there; hush(false, after) holds `after` seconds more,
+     then brings it back over the duck's release. */
+  var hushed = false;
+  function hush(on, after) {
+    if (!mout || mout.context !== ctx) { hushed = on; return; }
+    var H = ET.CONFIG.hatchSound, g = mout.gain, t = ctx.currentTime;
+    if (on === hushed && on) return;
+    hushed = on;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    if (on) { g.linearRampToValueAtTime(0, t + H.hushFade); return; }
+    g.setValueAtTime(g.value, t + (after || 0));
+    g.linearRampToValueAtTime(1, t + (after || 0) + ET.CONFIG.musicDuck.release);
   }
 
   function ready() {
@@ -405,6 +422,26 @@
 
     buzz: function () { duck(0.22); tone("sawtooth", 140, 120, 0.22, 0.18); },   // E36: the music dips under it
 
+    /* Andrew, 2026-10-01 (the hatch, as proposed; ⏳ synthesized until recorded sounds): the stare is quiet (the music
+       drops out: hush), then the jump hits with a stinger, a screech over a hard synth stab, about 0.4 s, as loud as
+       THONG and no louder; the music comes back after it. The cute hop gets a small boing, under the loud cues. */
+    stare: function () { hush(true); },
+    unhush: function (after) { hush(false, after); },
+    stinger: function () {
+      var V = ET.CONFIG.hatchSound.stinger;
+      tone("sawtooth", 98, 82, 0.42, V.stab);          // the stab: a low, dissonant pair
+      tone("square", 139, 116, 0.38, V.stab * 0.6);
+      tone("sawtooth", 1900, 2700, 0.34, V.screech);   // the screech, rising
+      tone("square", 2500, 1800, 0.3, V.screech * 0.5);
+      noise(0.14, V.hit, 5000);                         // the hit
+      hush(false, 0.45);
+    },
+    boing: function () {
+      var v = ET.CONFIG.hatchSound.boing;
+      tone("sine", 180, 520, 0.12, v);
+      tone("sine", 520, 260, 0.22, v * 0.8, 0.1);
+    },
+
     /* Music: which track should play (null for none). The same track carries on; another fades the current one out and
        itself in. Before sound is allowed it waits, and starts on the first key or click. */
     music: function (k) {
@@ -440,6 +477,7 @@
                duck: mout ? mout.gain.value : 1, log: music.log.slice() };
     },
     tunePlaying: function () { return !!music.cur && music.cur.name === "title"; },
+    hushed: function () { return hushed; },   // rig-only: is the music held out (the hatch's stare)?
 
     /* E24: mute, remembered per browser. The master level fades to 0 (or back) over a few milliseconds, so it
        doesn't click. */

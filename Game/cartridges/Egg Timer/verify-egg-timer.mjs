@@ -788,14 +788,18 @@ try {
       const el = document.querySelector('.nest[data-id="' + n.id + '"]'), sc = document.querySelector('#scare'), svg = sc.querySelector('svg');
       ET.view.handle([{ type: 'hatch', nest: n.id, pool: 2, set: '${set}', alien: '${alien}', exit: '${exit}' }], null);
       const t0 = performance.now(), out = { anim: getComputedStyle(el.querySelector('.creature')).animationName, cls: el.className };
+      if (!ET.audio.stinger.__orig) { for (const k of ['stinger', 'boing']) { const f = ET.audio[k]; ET.audio[k] = function () { window['__' + k + 's']++; return f.apply(this, arguments); }; ET.audio[k].__orig = f; } }
+      window.__stingers = 0; window.__boings = 0;
       const esc = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
       const pause = ${JSON.stringify(pause)}; let paused = false, resumed = false;
       (function look() {
         const t = (performance.now() - t0) / 1000;
         if (pause && !paused && t >= pause[0]) { paused = true; esc(); }
         if (pause && paused && !resumed && t >= pause[1]) { resumed = true; esc(); }
-        if (out.freeze === undefined && el.classList.contains('freeze')) out.freeze = t;
-        if (out.leap === undefined && !sc.hidden) { out.leap = t; out.alien = (sc.querySelector('.alien') || {}).dataset?.alien; out.leapt = el.classList.contains('leapt'); out.still = sc.classList.contains('still'); }
+        if (out.freeze === undefined && el.classList.contains('freeze')) { out.freeze = t; out.hushAtFreeze = ET.audio.hushed(); }
+        if (out.freeze !== undefined && out.leap === undefined && sc.hidden) out.hushStare = (out.hushStare !== false) && ET.audio.hushed();
+        if (out.boing === undefined && window.__boings > 0) out.boing = t;
+        if (out.leap === undefined && !sc.hidden) { out.leap = t; out.stingers = window.__stingers; out.alien = (sc.querySelector('.alien') || {}).dataset?.alien; out.leapt = el.classList.contains('leapt'); out.still = sc.classList.contains('still'); }
         if (out.leap !== undefined && !sc.hidden) {
           const r = svg.getBoundingClientRect();
           if (out.big === undefined && r.height >= innerHeight * 0.95) { out.big = t; out.transform = getComputedStyle(svg).transform; }
@@ -803,7 +807,7 @@ try {
         } else if (out.big !== undefined && out.gone === undefined) {
           out.gone = t;
         }
-        if (t < 4.6) requestAnimationFrame(look); else done(out);
+        if (t < 4.6) requestAnimationFrame(look); else { out.hushEnd = ET.audio.hushed(); done(out); }
       })();
     })`);
     const C = await ev("({ total: ET.CONFIG.escapeSeconds, freeze: ET.CONFIG.hatchScare.freeze, leap: ET.CONFIG.hatchScare.leap })");
@@ -814,11 +818,22 @@ try {
     ok(!!h && near(h.leap, C.leap * C.total) && h.alien === "scuttler" && h.leapt, `…then jumps at the player: the same alien, out of its nest   [at ${h && h.leap && h.leap.toFixed(2)} s]`);
     ok(!!h && h.big !== undefined && h.big - h.leap <= 0.3, `…sudden and fast: it fills the screen almost at once   [${h && h.big !== undefined ? ((h.big - h.leap) * 1000).toFixed(0) + " ms" : "never"}]`);
     ok(!!h && h.gone !== undefined && h.gone - h.big >= 0.3 && h.gone <= C.total + 0.4, `…holds a moment, then drops away out of view   [held ${h && h.gone !== undefined ? (h.gone - h.big).toFixed(2) : "?"} s, gone at ${h && h.gone && h.gone.toFixed(2)} s]`);
+    ok(!!h && h.hushAtFreeze && h.hushStare && h.stingers === 1 && !h.hushEnd, `the sound (Andrew, 2026-10-01): the music drops out for the stare, the jump hits with the stinger, and the music comes back   [${JSON.stringify(h && [h.hushAtFreeze, h.hushStare, h.stingers, h.hushEnd])}]`);
+    {
+      // levels, with the randomness seeded (as in section S): the stinger as loud as THONG and no louder; the boing under the loud cues
+      const lv = await ev(`(window.__seeded = (seed, fn) => { const R = Math.random; let s = seed; Math.random = () => (s = (s * 16807) % 2147483647) / 2147483647; try { return fn(); } finally { Math.random = R; } }, Promise.all([['thong'], ['buzz'], ['hiss', [0.85, 0.12]], ['stinger'], ['boing']].map(([k, a]) => Promise.all([0, 1, 2, 3, 4].map((i) => __seeded(1009 + 7919 * i, () => ET.audio.measure(k, a, 1))))
+        .then((rs) => ({ pMax: Math.max(...rs.map(x => x.peak)), pMin: Math.min(...rs.map(x => x.peak)), rMax: Math.max(...rs.map(x => x.rms)), rMin: Math.min(...rs.map(x => x.rms)) })))))`);
+      const [th, bz, hs, st, bo] = lv, quiet = { peak: Math.min(th.pMin, bz.pMin, hs.pMin), rms: Math.min(th.rMin, bz.rMin, hs.rMin) };
+      ok(st.pMax <= th.pMax && st.rMax <= th.rMin && st.rMin >= 0.8 * th.rMin && st.pMin >= 0.8 * th.pMin,
+        `…the stinger as loud as THONG and no louder   [stinger ${st.pMin.toFixed(3)}–${st.pMax.toFixed(3)} / ${st.rMax.toFixed(4)}; THONG ${th.pMin.toFixed(3)}–${th.pMax.toFixed(3)} / ${th.rMin.toFixed(4)}]`);
+      ok(bo.pMax <= 0.6 * quiet.peak && bo.rMax <= 0.6 * quiet.rms, `…and the cute hop's boing under THONG, the buzz and the hiss   [${bo.pMax.toFixed(3)} / ${bo.rMax.toFixed(4)}]`);
+    }
     const p = await hatchRun("horror", "grabber", "scare", [1.0, 2.0]);
     ok(!!p && near(p.leap, C.leap * C.total + 1.0, 0.35), `a pause holds the hatch: a 1 s pause before the jump puts the jump 1 s later   [at ${p && p.leap && p.leap.toFixed(2)} s]`);
     await ev("__et.paused() && document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); 1");
     const k = await hatchRun("cute", "crab", "hop");
     ok(!!k && k.anim === "hatch-hop" && k.leap === undefined && k.freeze === undefined, `a cute hatch comes out, dances and ends with a goofy hop toward the player: no freeze, no scare   [${k && k.anim}]`);
+    ok(!!k && k.boing !== undefined && near(k.boing, C.freeze * C.total) && !k.hushEnd, `…with a boing as it hops, and the music never drops out   [at ${k && k.boing && k.boing.toFixed(2)} s]`);
     const kf = await ev(`(() => { const out = {}; for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; }
       for (const r of rs) if (r.type === CSSRule.KEYFRAMES_RULE && ['hatch-scare', 'hatch-hop', 'scare-jump'].includes(r.name)) out[r.name] = /opacity|filter|brightness|color/.test(r.cssText); } return out; })()`);
     eq(kf, { "hatch-scare": false, "hatch-hop": false, "scare-jump": false }, "SAFETY: the hatch only moves: nothing in it changes opacity, colour or brightness, so nothing can flash");
@@ -826,7 +841,7 @@ try {
     for (let i = 0; i < 60 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const r = await hatchRun("horror", "wriggler", "scare");
     ok(!!r && r.anim === "none", `reduced motion: the alien sits still in its nest   [${r && r.anim}]`);
-    ok(!!r && r.still && r.transform === "none" && near(r.leap, C.leap * C.total), `⏳ E49 "still": the full-screen alien just appears for the hold, no zoom, no movement   [${r && r.transform}]`);
+    ok(!!r && r.still && r.transform === "none" && near(r.leap, C.leap * C.total), `E49 (ruled "still"): the full-screen alien just appears for the hold, no zoom, no movement   [${r && r.transform}]`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
     for (let i = 0; i < 60 && (await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
   }

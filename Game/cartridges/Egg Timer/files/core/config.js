@@ -102,9 +102,13 @@
     // Andrew, 2026-10-01: a horror hatch's timeline, as shares of escapeSeconds [T]: it freezes and stares from `freeze`
     // and jumps at the player at `leap`. ⚠️ style.css's hatch keyframes use the same shares (55%, 78%): change both.
     hatchScare: { freeze: 0.55, leap: 0.78 },
-    // ⏳ PENDING (E49): the jump under reduced motion. "still": no zoom and no movement, the full-screen alien simply
-    // appears for the hold, then goes (the scare stays; nothing moves). "none": no full-screen alien at all.
+    // E49 (Andrew, 2026-10-01: keep "still" as built): the jump under reduced motion. "still": no zoom and no movement,
+    // the full-screen alien simply appears for the hold, then goes (the scare stays; nothing moves). "none": none at all.
     hatchScareReduced: "still",
+    // Andrew, 2026-10-01 (the hatch's sound, approved as proposed): the music fades out over hushFade s as a horror alien
+    // freezes and stays out through the stare; the jump's stinger is as loud as THONG and no louder; the music comes back
+    // after it. A cute hop gets a small boing, under the loud cues. Levels [T].
+    hatchSound: { hushFade: 0.12, stinger: { stab: 0.255, screech: 0.068, hit: 0.255 }, boing: 0.06 },
     // E45 (Andrew, 2026-09-27; replaces Refinement 5 §4's "the escapee is always horrific"): which set hatches, by wave.
     // Waves up to hatchCuteUntilWave hatch cute; hatchMixedWave mixes (its first hatch is hatchMixedFirst, then horror
     // comes with a chance equal to how far through the wave it is, CAVs resolved / quota); every later wave hatches horror.
@@ -411,8 +415,8 @@
     tipsWave: 1,
     // ── How To Play (Andrew, 2026-10-01): Andrew's own five lines, one per panel of E29's strip ──────────────
     // Panel 5 ("Clear too slow....") shows a goofy, happy cute alien: deliberate bait (players expect cute; the horror
-    // ones come later). ⏳ PENDING (Andrew to confirm): Code suggests the crab, the goofiest (droopy eyes on stalks, a
-    // smug grin, a bit of shell still on its head). "crab" | "octopus" | "worm".
+    // ones come later). The crab (Andrew confirmed, 2026-10-01): the goofiest (droopy eyes on stalks, a smug grin, a bit
+    // of shell still on its head). "crab" | "octopus" | "worm".
     howtoAlien: "crab",
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
