@@ -63,6 +63,7 @@
     app.screen = name;
     document.querySelectorAll(".screen").forEach(function (s) { s.hidden = s.id !== "screen-" + name; });
     document.body.classList.toggle("playing", name === "play");   // in play the mute button takes the hose cursor too
+    paintQuit();   // E48
     placeHowTo(name);
     ET.lights.mode(name === "play" ? "calm" : "attract");   // arcade attract lights: lively on menus, calm in play
     if (name === "setup") paintSetup();
@@ -190,8 +191,26 @@
   // E34: seconds until game over takes Enter
   function overEnterIn() { return Math.max(0, C.overEnterDelay - (performance.now() - (app.overAt || 0)) / 1000); }
 
+  /* E48 (Andrew, 2026-10-01): the way out to the Arcade room. Only inside the CAT hub (an iframe), which has somewhere to
+     go back to; the rigs stand in for it with __et.hub(). Leaving is the hub's own exit, sent as `cat:exit`. */
+  function inHub() { return app.hub !== undefined ? app.hub : window.parent !== window; }
+  function exitKey(ev) {
+    return !!C.exitKey && inHub() && String(ev.key).toLowerCase() === C.exitKey && !(ev.ctrlKey || ev.altKey || ev.metaKey) && !ev.repeat;
+  }
+  function quitToArcade() { window.parent.postMessage({ type: "cat:exit" }, "*"); }
+  function paintQuit() {
+    var hub = !!C.exitKey && inHub();
+    $("#quit-hint").hidden = !(hub && (app.screen === "title" || app.screen === "setup" || app.screen === "over"));
+    $("#pause .quit").hidden = !hub || app.asking;
+    $("#pause .confirm").hidden = !app.asking;
+    $("#pause .panel").classList.toggle("asking", !!app.asking);
+  }
+  function ask(on) { app.asking = on; paintQuit(); }
+
   function setPaused(on) {
     app.paused = on;
+    app.asking = false;
+    paintQuit();
     $("#pause").hidden = !on;
     ET.audio.musicPause(on);   // the gameplay music pauses and resumes where it stopped
     if (on) ET.view.stopSpray();   // E42: a pause ends the hose's blast
@@ -262,6 +281,8 @@
     if (ET.devmode.key(ev)) return;              // Ctrl+Shift+B, from any screen
     if (ET.devmode.isOpen()) return;             // the prompt's own input has the keys
     if (muteKey(ev)) return;                     // E24
+    // E48: Q leaves at once from a menu screen (there's no run to lose)
+    if ((app.screen === "title" || app.screen === "setup" || app.screen === "over") && exitKey(ev)) { ev.preventDefault(); quitToArcade(); return; }
     switch (app.screen) {
       case "title":
         // like a click on the title: nothing goes on until the data has loaded (Andrew, 2026-09-24)
@@ -283,6 +304,15 @@
       case "play":
         if (!app.game || app.game.phase === "over") { if (ev.key !== "F5") ev.preventDefault(); return; }
         if (app.paused) {
+          // E48: Q on the pause panel asks first; Y leaves, N (or Esc) goes back to the pause
+          if (app.asking) {
+            var a = String(ev.key).toLowerCase();
+            if (!(ev.ctrlKey || ev.metaKey)) ev.preventDefault();
+            if (a === "y" && !ev.repeat) quitToArcade();
+            else if (a === "n" || ev.key === "Escape") ask(false);
+            return;
+          }
+          if (exitKey(ev)) { ev.preventDefault(); ask(true); return; }
           if (ev.key === "Escape") { ev.preventDefault(); setPaused(false); }
           else if (!(ev.ctrlKey || ev.metaKey)) ev.preventDefault();
           return;
@@ -549,6 +579,9 @@
     submit: submit,
     boxes: function () { return ET.boxes.state(); },
     paused: function () { return app.paused; },
+    // rig-only (E48): play as if inside the CAT hub (true), outside it (false), or as the page really is (undefined)
+    hub: function (on) { app.hub = on; paintQuit(); return inHub(); },
+    asking: function () { return !!app.asking; },
     mess: function (id) { return ET.mess.coverage(ET.view.nest(id).mess); },
     floor: function () { return ET.mess.coverage(ET.view.floor()); },
     tune: function () { return ET.audio.tunePlaying(); },

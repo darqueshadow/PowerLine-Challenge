@@ -109,6 +109,9 @@
       <div class="panel">
         <div class="title">PAUSED</div>
         <div class="hint">ESC TO RESUME</div>
+        <!-- E48 (Andrew, 2026-10-01): the way out, inside the CAT hub only (script.js shows it) -->
+        <div class="hint quit" hidden>[Q] QUIT TO ARCADE</div>
+        <div class="confirm" hidden><div class="ask">QUIT THIS GAME?</div><div class="hint">[Y] YES &nbsp;·&nbsp; [N] NO</div></div>
       </div>
     </div>
   </section>
@@ -133,6 +136,9 @@
   <button type="button" id="mute" aria-pressed="false" aria-label="Mute sound" title="Sound on/off (M)">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker" d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="cross" d="M16 9l6 6M22 9l-6 6"/></svg>
   </button>
+
+  <!-- E48 (Andrew, 2026-10-01): on the title, options and game-over screens Q goes straight back to the Arcade room (CAT hub only) -->
+  <p id="quit-hint" hidden>[Q] QUIT TO ARCADE</p>
 
   <!-- DEVELOPER MODE (Ctrl+Shift+B) -->
   <div id="dev-prompt" class="overlay" hidden>

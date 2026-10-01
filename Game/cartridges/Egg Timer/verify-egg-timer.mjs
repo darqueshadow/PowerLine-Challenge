@@ -919,6 +919,55 @@ try {
     await ev("document.querySelector('.box.active input').value = ''; 1");
   }
 
+  /* --------------------------------------- G2. E48: the way out to the Arcade room */
+  section("G2. E48: the way out to the Arcade room (Andrew, 2026-10-01)");
+  {
+    // the rig page isn't inside the CAT hub, so __et.hub(true) plays as if it were; `cat:exit` then lands on this window
+    await ev("window.__exits = 0; window.__exitHook || (window.__exitHook = addEventListener('message', (e) => { if (e.data && e.data.type === 'cat:exit') window.__exits++; })); 1");
+    const exits = async () => { await wait(60); return ev("window.__exits"); };
+    const shown = (sel) => ev(`(() => { const e = document.querySelector('${sel}'); return !!e && !e.hidden && e.getBoundingClientRect().width > 0; })()`);
+    ok(!(await ev("__et.hub()")), "the rig page isn't inside the hub");
+    await press("Escape");
+    eq([await ev("__et.paused()"), await shown("#pause .quit")], [true, false], "outside the hub the pause panel has no way out (there's nowhere to go)");
+    await press("q");
+    eq([await ev("__et.asking()"), await exits()], [false, 0], "…and Q does nothing there");
+    await ev("__et.hub(true)");
+    eq(await shown("#pause .quit"), true, "inside the hub the pause panel offers [Q] Quit to Arcade");
+    eq(await ev("document.querySelector('#pause .quit').textContent"), "[Q] QUIT TO ARCADE", "…in those words");
+    await press("q");
+    eq([await ev("__et.asking()"), await shown("#pause .confirm"), await shown("#pause .quit"), await exits()], [true, true, false, 0], "mid-game Q asks first: \"Quit this game? [Y] / [N]\", and nothing leaves yet");
+    await shot("07b-quit-ask");
+    await press("n");
+    eq([await ev("__et.asking()"), await ev("__et.paused()"), await exits()], [false, true, 0], "N goes back to the pause panel");
+    await press("q");
+    await press("Escape");
+    eq([await ev("__et.asking()"), await ev("__et.paused()"), await exits()], [false, true, 0], "…and so does Esc (it doesn't resume from the question)");
+    await press("q");
+    await press("y");
+    eq(await exits(), 1, "Y sends the hub `cat:exit`, its own Exit Game path");
+    await press("n");   // (inside the hub the game is gone by now; here it's still on the question)
+    await press("Escape");
+    ok(!(await ev("__et.paused()")), "Esc still resumes the game from the pause panel");
+    await ev("document.querySelector('.box.active input').focus()");
+    await c.insert("RCAV 2");
+    await press("q");
+    await press("Q");
+    eq([await exits(), await ev("__et.paused()")], [1, false], "in play (not paused) Q is only a letter: nothing leaves");
+    await ev("document.querySelector('.box.active input').value = ''; 1");
+    for (const name of ["title", "setup", "over"]) {
+      await ev(`__et.show('${name}')`);
+      const vis = await shown("#quit-hint");
+      await press("q");
+      eq([vis, await exits()], [true, 2], `on the ${name} screen the hint shows and Q leaves at once (no run to lose)`);
+      await ev("window.__exits = 1");
+    }
+    await ev("__et.hub(false)");
+    await ev("__et.show('title')");
+    await press("q");
+    eq([await shown("#quit-hint"), await exits()], [false, 1], "outside the hub the menu screens show no hint and Q does nothing");
+    await ev("__et.hub(undefined)");
+  }
+
   /* ------------------------------------------------ H. placement and VF */
   section("H. placement (Both) and VF");
   await ev("__et.start('both', 1)");

@@ -228,6 +228,10 @@
     //   so M types there. M mutes on the title, mode-selection and game-over screens and while paused; in play the
     //   button does, and so does Ctrl+M (it does nothing in VisiCAD, so it teaches no wrong habit). "none" drops Ctrl+M.
     muteKeyInPlay: "ctrl-m",       // "ctrl-m" | "none"
+    // E48 (Andrew, 2026-10-01): the way out to the Arcade room, inside the CAT hub only. Q on the title, options and game-over
+    // screens leaves at once; in play, Esc pauses and Q on the pause panel asks "Quit this game? [Y] / [N]". Leaving sends
+    // the hub its own `cat:exit`, the path its Exit Game button takes. Outside the hub there's nowhere to go: no hint, no key.
+    exitKey: "q",
     // E35 (Chat, 2026-09-25): the title music starts on the title screen. Where the browser allows it (Fang Rock) it
     //   plays as soon as the title appears; a browser that holds sound until the first key or click starts it on that
     //   press. E40 (ruled 2026-09-25): "sound", as built: that first press only starts the music (the next Enter or click
