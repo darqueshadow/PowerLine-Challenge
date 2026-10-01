@@ -294,7 +294,8 @@ h2 {
 @keyframes hit { 0%, 50% { color: var(--ink); background: var(--hot); } }
 
 /* ⏳ placeholder look: the Time Accelerator (Refinement 3 §4's Time Warp, renamed by E27). Refinement 6 §2: it sits
-   in the centre of the board, in the space the middle row of nests leaves, clear of every nest. E27: a grandfather
+   in the centre of the board, in the space the middle row of nests leaves (E50, 2026-10-01: about 1.5× bigger, so it
+   reaches under the nearest nests, which draw over it). E27: a grandfather
    clock with a plaque across its base; lit, the plaque glows green and the clock gets a green halo. Nothing flickers:
    the only motion is the hands turning (view.js). */
 #warp {
@@ -302,17 +303,17 @@ h2 {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1;
+  z-index: 0;   /* E50 (option A): where it meets a nest, the nest (later on the board) draws over it */
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   font-family: var(--font-display);
-  font-size: clamp(10px, 1vw, 17px);
+  font-size: clamp(15px, 1.5vw, 25.5px);   /* E50 (Andrew, 2026-10-01): about 1.5× (was clamp(10px, 1vw, 17px)) */
   letter-spacing: 0.12em;
   line-height: 1.1;
 }
-#warp .clock-art { display: block; height: min(17cqh, 30cqw); width: auto; overflow: visible; filter: drop-shadow(4px 4px 0 var(--shadow)); }
+#warp .clock-art { display: block; height: min(25.5cqh, 45cqw); width: auto; overflow: visible; filter: drop-shadow(4px 4px 0 var(--shadow)); }   /* E50: 1.5× */
 #warp .plaque {
   display: block;
   margin-top: -1.6em;                /* across the clock's base */

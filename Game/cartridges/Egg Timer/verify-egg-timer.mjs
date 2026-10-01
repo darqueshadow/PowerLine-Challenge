@@ -1463,9 +1463,13 @@ try {
       tr.hidden = false; tr.textContent = 'Pink = ready! Type RCAV 8888'; tc.hidden = false;
       ET.view.placeTips();
       const tipsIn = [tr, tc].every(t => { const r = t.getBoundingClientRect(), f = document.querySelector('#field').getBoundingClientRect(); return r.left >= f.left && r.right <= f.right && r.width > 40; });
-      const top = [...document.querySelectorAll('#fieldtop > *, #warp')].map(e => e.getBoundingClientRect());
+      const top = [...document.querySelectorAll('#fieldtop > *')].map(e => e.getBoundingClientRect());
       const W = document.querySelector('#warp').getBoundingClientRect(), B = document.querySelector('#board').getBoundingClientRect();
-      const warpClear = nests.filter(x => hit(W, x.n) || hit(W, x.r)).length;
+      // E50 (Andrew, 2026-10-01, option A): about 1.5× bigger, and where it meets a nest the nest draws over it
+      const warpEl = document.querySelector('#warp'), art = warpEl.querySelector('svg.clock-art').getBoundingClientRect();
+      const warpBig = art.height / Math.min(0.17 * B.height, 0.30 * B.width);
+      const warpBehind = Number(getComputedStyle(warpEl).zIndex) === 0
+        && [...document.querySelectorAll('#board > .nest')].every(n => (warpEl.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING) && ['auto', '0'].includes(getComputedStyle(n).zIndex) || Number(getComputedStyle(n).zIndex) > 0);
       const warpCentre = Math.abs((W.left + W.right) / 2 - (B.left + B.right) / 2) < 2 && Math.abs((W.top + W.bottom) / 2 - (B.top + B.bottom) / 2) < 2;
       const clearOfTop = nests.filter(x => top.some(t => hit(t, x.n))).length;
       // Refinement 5 §3: no doodle sits on a word of the panel's text (each text line's own box, not the block's)
@@ -1490,7 +1494,7 @@ try {
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
       return { muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
-               warpClear, warpCentre, tipsIn,
+               warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
     })()`);
@@ -1512,11 +1516,11 @@ try {
           cv.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily; return Math.round(i.clientWidth - cv.measureText('CAV + unit + type').width); }); })()`);
       ok(fit.length === 4 && fit.every((x) => x >= 0), `E30: "CAV + unit + type" fits in each of 4 Command Lines   ${at} [${fit.join(", ")} px spare]`);
     }
-    eq(lay.clearOfTop, 0, `the wall clock, both first-game tags (E28) and Time Warp's clock sit clear of every nest   ${at}`);
+    eq(lay.clearOfTop, 0, `the wall clock and both first-game tags (E28) sit clear of every nest   ${at}`);
     ok(lay.tipsIn, `E28: both first-game tags fit on the board beside the wall clock   ${at}`);
     await ev("(() => { document.querySelector('#tip-ready').hidden = true; document.querySelector('#tip-clock').hidden = true; return 1; })()");
     ok(lay.clockCentre, `Refinement 6 §3: the wall clock is at the top centre of the playing field   ${at}`);
-    ok(lay.warpCentre && lay.warpClear === 0, `Refinement 6 §2, E27 and E28: Time Warp's grandfather clock, sign and caption sit in the centre of the board, clear of every nest and readout   ${at}`);
+    ok(lay.warpCentre && lay.warpBehind && lay.warpBig > 1.45 && lay.warpBig < 1.55, `E50 (option A): Time Warp's grandfather clock, sign and caption sit in the centre of the board, about 1.5× bigger, every nest and readout drawn over it where they meet   ${at} [×${lay.warpBig.toFixed(2)}]`);
     ok(lay.tagged === 0 && lay.tagIn, `Refinement 5 §6: the hose tag stays on the board and touches no nest or readout   ${at}`);
     ok(lay.muteClear, `E24: the mute button sits in the HUD bar's left end, clear of its words, the wall clock and the board   ${at}`);
     if (SHOTS) {
