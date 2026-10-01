@@ -710,7 +710,7 @@ try {
   ok(!!h.hit, "leaving a CAV alone lets it hatch");
   eq(await ev("document.querySelector('#hud-pool').textContent"), "●●○", "the pool shows 2 of 3");
   eq(await ev("document.querySelector('#hud-pool-label').textContent"), "POOL", "the pool is shown by its placeholder key only");
-  ok(await ev("!!document.querySelector('.nest.scurry, .nest.lunge')"), "the creature does an escape flourish (scurry or lunge)");
+  ok(await ev("!!document.querySelector('.nest.hop, .nest.scare')"), "the creature does its hatch (Andrew, 2026-10-01: a hop or a scare)");
   {
     // E45/E46 (Andrew, 2026-09-27): wave 1 hatches cute, and a cute alien only scurries (⏳ placeholder: a smile, yellow eyes, no fangs).
     // Paused in the same ev() (and left paused through this section), so the 2 s escape can't end under the checks and stills.
@@ -718,15 +718,15 @@ try {
       const n = document.querySelector('.nest[data-state="escape"]'); if (!n) return null; const c = n.querySelector('.creature'), d = (s) => getComputedStyle(c.querySelector(s)).display;
       const al = c.querySelector('.alien'), imgs = al ? [...al.querySelectorAll('image')] : [];
       return { set: n.dataset.hatch, alien: n.dataset.alien, puppet: al && al.dataset.alien, parts: imgs.length, drawn: imgs.filter((i) => i.getBBox().width > 0).length,
-        placeholder: d('.body'), scurry: n.classList.contains('scurry'), lunge: n.classList.contains('lunge') }; })()`);
+        placeholder: d('.body'), hop: n.classList.contains('hop'), scare: n.classList.contains('scare') }; })()`);
     ok(!!cx && cx.set === "cute" && ["crab", "octopus", "worm"].includes(cx.alien), `E45: a wave-1 hatch is one of the cute set   ${JSON.stringify(cx)}`);
-    ok(!!cx && cx.scurry && !cx.lunge, "E46: …and it scurries off, never lunges");
+    ok(!!cx && cx.hop && !cx.scare, "Andrew, 2026-10-01: …and it ends with a goofy hop, never the jump scare");
     ok(!!cx && cx.puppet === cx.alien && cx.parts >= 3 && cx.drawn === cx.parts && cx.placeholder === "none",
       "E45: the nest shows that alien's puppet from Andrew's sheets, every piece drawn, and the placeholder bug steps aside");
     if (SHOTS) {
-      await ev(`(() => { const n = document.querySelector('.nest[data-state="escape"]'); n.classList.remove('scurry', 'lunge'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);
+      await ev(`(() => { const n = document.querySelector('.nest[data-state="escape"]'); n.classList.remove('hop', 'scare'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);
       await shot("05a-hatchling-cute");
-      await ev(`(() => { const n = document.querySelector('.nest[style*="scale(2.2)"]'); n.style.transform = ''; n.style.zIndex = ''; n.classList.add('scurry'); return 1; })()`);
+      await ev(`(() => { const n = document.querySelector('.nest[style*="scale(2.2)"]'); n.style.transform = ''; n.style.zIndex = ''; n.classList.add('hop'); return 1; })()`);
     }
   }
   await wait(600);   // longer than the old late pan's delay plus its slam
@@ -737,15 +737,15 @@ try {
     // E45: from wave 2's first hatch on, the horror set (⏳ placeholder): many red eyes, fangs, eight legs. The page is paused
     // (paused above) and the same escaping nest is handed a horror hatch.
     const hx = await ev(`(() => { const n = document.querySelector('.nest[data-state="escape"]'); if (!n) return null;
-      ET.view.handle([{ type: 'hatch', nest: +n.dataset.id, pool: 2, set: 'horror', alien: 'scuttler', exit: 'lunge' }], null);
+      ET.view.handle([{ type: 'hatch', nest: +n.dataset.id, pool: 2, set: 'horror', alien: 'scuttler', exit: 'scare' }], null);
       const c = n.querySelector('.creature'), al = c.querySelector('.alien');
-      return { set: n.dataset.hatch, lunge: n.classList.contains('lunge'), puppet: al && al.dataset.alien,
+      return { set: n.dataset.hatch, scare: n.classList.contains('scare'), puppet: al && al.dataset.alien,
         legs: al ? al.querySelectorAll('[data-part="leg"]').length : 0, mandibles: al ? al.querySelectorAll('[data-part^="mandible"]').length : 0 }; })()`);
-    ok(!!hx && hx.set === "horror" && hx.lunge && hx.puppet === "scuttler" && hx.legs === 8 && hx.mandibles === 2,
+    ok(!!hx && hx.set === "horror" && hx.scare && hx.puppet === "scuttler" && hx.legs === 8 && hx.mandibles === 2,
       `E45: a horror hatch shows the horror puppet: the Scuttler, eight legs and two mandibles   ${JSON.stringify(hx)}`);
     if (SHOTS) {
       // a still of the hatchling at full size, in its nest, for a look (the flourish itself is too quick to catch)
-      await ev(`(() => { const n = document.querySelector('.nest.scurry, .nest.lunge'); n.classList.remove('scurry', 'lunge'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);
+      await ev(`(() => { const n = document.querySelector('.nest.hop, .nest.scare'); n.classList.remove('hop', 'scare'); n.style.transform = 'translate(-50%, -50%) scale(2.2)'; n.style.zIndex = 50; return 1; })()`);
       await shot("05b-hatchling");
       await ev(`(() => { const n = document.querySelector('.nest[style*="scale(2.2)"]'); n.style.transform = ''; n.style.zIndex = ''; return 1; })()`);
     }
@@ -773,6 +773,62 @@ try {
     ok(al.cleared, "clearing a nest takes its alien away and brings the placeholder back");
     eq(await ev("[...Object.keys(ET.aliens.RIGS)].sort().join() === [...ET.CONFIG.hatchAliens.cute, ...ET.CONFIG.hatchAliens.horror].sort().join()"), true,
       "the puppets are exactly the aliens the game draws from (hatchAliens)");
+  }
+
+  /* ------------------------------------------- HS. the hatch (Andrew, 2026-10-01) */
+  section("HS. the hatch: out, dance, then a goofy hop (cute) or freeze, stare and a full-screen jump (horror) (Andrew, 2026-10-01)");
+  {
+    // One real hatch, re-dealt as the case wanted, and recorded in the page every frame (the live page keeps running, so
+    // nothing here is a fixed wait). `pause`: [from, to] seconds after the hatch to hold the game with Esc.
+    const hatchRun = (set, alien, exit, pause = null) => ev(`new Promise((done) => {
+      __et.start('clear', 1);
+      let n = null;
+      for (let i = 0; i < 4000 && !n; i++) { __et.advance(0.1); n = __et.snapshot().nests.find((x) => x.state === 'escape'); }
+      if (!n) return done(null);
+      const el = document.querySelector('.nest[data-id="' + n.id + '"]'), sc = document.querySelector('#scare'), svg = sc.querySelector('svg');
+      ET.view.handle([{ type: 'hatch', nest: n.id, pool: 2, set: '${set}', alien: '${alien}', exit: '${exit}' }], null);
+      const t0 = performance.now(), out = { anim: getComputedStyle(el.querySelector('.creature')).animationName, cls: el.className };
+      const esc = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      const pause = ${JSON.stringify(pause)}; let paused = false, resumed = false;
+      (function look() {
+        const t = (performance.now() - t0) / 1000;
+        if (pause && !paused && t >= pause[0]) { paused = true; esc(); }
+        if (pause && paused && !resumed && t >= pause[1]) { resumed = true; esc(); }
+        if (out.freeze === undefined && el.classList.contains('freeze')) out.freeze = t;
+        if (out.leap === undefined && !sc.hidden) { out.leap = t; out.alien = (sc.querySelector('.alien') || {}).dataset?.alien; out.leapt = el.classList.contains('leapt'); out.still = sc.classList.contains('still'); }
+        if (out.leap !== undefined && !sc.hidden) {
+          const r = svg.getBoundingClientRect();
+          if (out.big === undefined && r.height >= innerHeight * 0.95) { out.big = t; out.transform = getComputedStyle(svg).transform; }
+          if (out.big !== undefined && out.gone === undefined && r.top >= innerHeight) out.gone = t;
+        } else if (out.big !== undefined && out.gone === undefined) {
+          out.gone = t;
+        }
+        if (t < 4.6) requestAnimationFrame(look); else done(out);
+      })();
+    })`);
+    const C = await ev("({ total: ET.CONFIG.escapeSeconds, freeze: ET.CONFIG.hatchScare.freeze, leap: ET.CONFIG.hatchScare.leap })");
+    const near = (t, want, tol = 0.3) => t !== undefined && Math.abs(t - want) <= tol;
+    const h = await hatchRun("horror", "scuttler", "scare");
+    ok(!!h && h.anim === "hatch-scare", `a horror hatch comes out, scurries and dances on the spot   [${h && h.anim}]`);
+    ok(!!h && near(h.freeze, C.freeze * C.total), `…then freezes and stares (its own swings stop too)   [at ${h && h.freeze && h.freeze.toFixed(2)} s, ${(C.freeze * C.total).toFixed(2)} wanted]`);
+    ok(!!h && near(h.leap, C.leap * C.total) && h.alien === "scuttler" && h.leapt, `…then jumps at the player: the same alien, out of its nest   [at ${h && h.leap && h.leap.toFixed(2)} s]`);
+    ok(!!h && h.big !== undefined && h.big - h.leap <= 0.3, `…sudden and fast: it fills the screen almost at once   [${h && h.big !== undefined ? ((h.big - h.leap) * 1000).toFixed(0) + " ms" : "never"}]`);
+    ok(!!h && h.gone !== undefined && h.gone - h.big >= 0.3 && h.gone <= C.total + 0.4, `…holds a moment, then drops away out of view   [held ${h && h.gone !== undefined ? (h.gone - h.big).toFixed(2) : "?"} s, gone at ${h && h.gone && h.gone.toFixed(2)} s]`);
+    const p = await hatchRun("horror", "grabber", "scare", [1.0, 2.0]);
+    ok(!!p && near(p.leap, C.leap * C.total + 1.0, 0.35), `a pause holds the hatch: a 1 s pause before the jump puts the jump 1 s later   [at ${p && p.leap && p.leap.toFixed(2)} s]`);
+    await ev("__et.paused() && document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); 1");
+    const k = await hatchRun("cute", "crab", "hop");
+    ok(!!k && k.anim === "hatch-hop" && k.leap === undefined && k.freeze === undefined, `a cute hatch comes out, dances and ends with a goofy hop toward the player: no freeze, no scare   [${k && k.anim}]`);
+    const kf = await ev(`(() => { const out = {}; for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; }
+      for (const r of rs) if (r.type === CSSRule.KEYFRAMES_RULE && ['hatch-scare', 'hatch-hop', 'scare-jump'].includes(r.name)) out[r.name] = /opacity|filter|brightness|color/.test(r.cssText); } return out; })()`);
+    eq(kf, { "hatch-scare": false, "hatch-hop": false, "scare-jump": false }, "SAFETY: the hatch only moves: nothing in it changes opacity, colour or brightness, so nothing can flash");
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 60 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const r = await hatchRun("horror", "wriggler", "scare");
+    ok(!!r && r.anim === "none", `reduced motion: the alien sits still in its nest   [${r && r.anim}]`);
+    ok(!!r && r.still && r.transform === "none" && near(r.leap, C.leap * C.total), `⏳ E49 "still": the full-screen alien just appears for the hold, no zoom, no movement   [${r && r.transform}]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+    for (let i = 0; i < 60 && (await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
   }
 
   /* ------------------------------------------------------ F. command boxes */
@@ -1325,7 +1381,7 @@ try {
   await ev("__et.start('clear', 1)");
   const o = await until((x) => x.phase === "over", 400, 1);
   ok(!!o.hit, "an empty pool ends the game");
-  for (let i = 0; i < 40 && (await ev("__et.screen()")) !== "over"; i++) await wait(100);
+  for (let i = 0; i < 80 && (await ev("__et.screen()")) !== "over"; i++) await wait(100);   // the hatch's 3.2 s + 0.5 s
   eq(await ev("__et.screen()"), "over", "the end screen follows the last escape");
   eq(await ev("document.querySelector('#over-score').textContent"), String(o.s.score), "it shows the final score");
   ok(/^SKIPPED SPAWNS  W1 \d+/.test(await ev("document.querySelector('#over-skipped').textContent")), `the playtest log lists skipped spawns per wave   [${await ev("document.querySelector('#over-skipped').textContent")}]`);

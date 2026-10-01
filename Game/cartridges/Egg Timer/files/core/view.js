@@ -592,6 +592,72 @@
      last direction; each game starts pointing up-left, as the cursor did. Reduced motion: it snaps, no swing. */
   var NOZZLE_AIM = -3 * Math.PI / 4;   // the picture's own aim: up-left
   var aim = { want: NOZZLE_AIM, shown: NOZZLE_AIM, from: null, raf: 0, at: 0 };
+  /* The hatch (Andrew, 2026-10-01; replaces E46's "a cute alien only scurries"). Both sets come out of the nest, scurry
+     a little way and dance on the spot (CSS, style.css: one timeline as long as the hatch). A horror alien then FREEZES
+     and stares for a beat, and jumps at the player: the same puppet, full screen, in #scare, sudden and fast after the
+     stillness, held a moment, then it drops away. A cute one does a goofy hop toward the player instead (CSS only). A
+     pause holds all of it: the CSS timelines stop (body.paused) and so does this clock, which counts real time, not the
+     game's (the last hatch plays out after the game itself has stopped). Nothing flashes or changes brightness: it moves.
+     Reduced motion: the alien sits still in its nest; the jump is ⏳ E49 (CONFIG.hatchScareReduced). */
+  var scare = null, hatching = [], hatchClock = { at: 0 };
+  function buildScare() {
+    var el = document.createElement("div");
+    el.id = "scare";
+    el.setAttribute("aria-hidden", "true");
+    el.hidden = true;
+    el.innerHTML = '<svg viewBox="-34 -36 68 60"><g class="creature"></g></svg>';
+    field.closest(".screen").appendChild(el);
+    scare = { el: el, slot: el.querySelector(".creature"), nest: null };
+  }
+  function endScare() {
+    if (!scare) return;
+    scare.el.hidden = true;
+    scare.el.classList.remove("go", "still");
+    ET.aliens.clear(scare.slot);
+    scare.nest = null;
+  }
+  // a hatch starts its clock (only a horror one needs it: the freeze and the jump are timed here)
+  function startHatch(v, set) {
+    hatching = hatching.filter(function (h) { return h.v !== v; });
+    v.el.classList.remove("freeze", "leapt");
+    if (set === "horror") hatching.push({ v: v, t: 0, frozen: false, leapt: false });
+  }
+  function stepHatches() {
+    var now = performance.now(), dt = hatchClock.at ? Math.min(0.1, (now - hatchClock.at) / 1000) : 0;
+    hatchClock.at = now;
+    if (!hatching.length) return;
+    if (document.body.classList.contains("paused")) return;   // a pause holds the hatch
+    var C = ET.CONFIG, total = C.escapeSeconds;
+    hatching.forEach(function (h) {
+      h.t += dt;
+      if (!h.frozen && h.t >= C.hatchScare.freeze * total) { h.frozen = true; h.v.el.classList.add("freeze"); }
+      if (!h.leapt && h.t >= C.hatchScare.leap * total) { h.leapt = true; leap(h.v); }
+    });
+    hatching = hatching.filter(function (h) { return h.t < total; });
+  }
+  // the jump: the puppet leaves the nest and comes at the player, filling the screen
+  function leap(v) {
+    var still = reducedMotion();
+    if (still && ET.CONFIG.hatchScareReduced === "none") return;
+    var alien = v.el.dataset.alien;
+    if (!alien || !scare) return;
+    ET.aliens.fill(scare.slot, alien);
+    scare.nest = v;
+    v.el.classList.add("leapt");
+    // start where the alien is (its nest), as big as it is there
+    var r = v.svg.getBoundingClientRect(), svg = scare.el.querySelector("svg");
+    scare.el.hidden = false;
+    var big = svg.getBoundingClientRect();
+    scare.el.style.setProperty("--sx", (r.left + r.width / 2 - innerWidth / 2).toFixed(0) + "px");
+    scare.el.style.setProperty("--sy", (r.top + r.height * 0.4 - innerHeight / 2).toFixed(0) + "px");
+    scare.el.style.setProperty("--s0", Math.max(0.02, r.height / Math.max(1, big.height)).toFixed(3));
+    scare.el.style.setProperty("--jump", (ET.CONFIG.escapeSeconds * (1 - ET.CONFIG.hatchScare.leap)).toFixed(2) + "s");
+    scare.el.classList.toggle("still", still);
+    scare.el.classList.remove("go");
+    void scare.el.offsetWidth;
+    scare.el.classList.add("go");
+  }
+
   var nozzle = null;
   function buildNozzle() {
     nozzle = document.createElement("div");
@@ -865,6 +931,7 @@
       buildCords();
       buildLightning();
       buildMom();
+      buildScare();
     },
 
     reset: function () {
@@ -872,7 +939,7 @@
         v.el.classList.add("inactive");
         v.el.classList.remove("unlock");
         v.el.dataset.state = "idle";
-        v.el.classList.remove("bold", "hide-readout", "hide-clock", "hide-egg", "scurry", "lunge");
+        v.el.classList.remove("bold", "hide-readout", "hide-clock", "hide-egg", "scurry", "lunge", "scare", "hop", "freeze", "leapt");
         delete v.el.dataset.hatch;
         delete v.el.dataset.alien;
         ET.aliens.clear(v.svg.querySelector(".creature"));
@@ -907,6 +974,8 @@
       momShown = 0;
       clearTimeout(mom.timer);
       mom.box.hidden = true;
+      hatching = [];
+      endScare();
     },
 
     render: function (snap) {
@@ -920,6 +989,7 @@
       wall.hm.textContent = hhmm(snap.wall);
       wall.ss.textContent = two(Math.floor(snap.wall) % 60);
       warp.classList.toggle("lit", !!snap.warp);
+      stepHatches();   // the hatch's freeze and jump (Andrew, 2026-10-01)
       turnHands(snap);
       paintSign(snap);
       paintBackdrop(snap);
@@ -1065,14 +1135,16 @@
             popup(v.el, "+" + e.points, "good");
             break;
           case "hatch":
-            v.el.classList.remove("scurry", "lunge");
+            v.el.classList.remove("scurry", "lunge", "scare", "hop", "freeze", "leapt");
             void v.el.offsetWidth;
             v.el.style.setProperty("--dir", Math.random() < 0.5 ? -1 : 1);
-            // E45/E46: the game picks the set (cute or horror), the alien and its exit (a cute one only scurries)
+            v.el.style.setProperty("--hatch", ET.CONFIG.escapeSeconds + "s");
+            // E45: the game picks the set (cute or horror), the alien and its exit (Andrew, 2026-10-01: cute hops, horror scares)
             v.el.dataset.hatch = e.set;
             v.el.dataset.alien = e.alien;
             ET.aliens.fill(v.svg.querySelector(".creature"), e.alien);   // the puppet (Andrew's six sheets)
             v.el.classList.add(e.exit);
+            startHatch(v, e.exit === "scare" ? "horror" : "cute");
             // E37 (Chat, 2026-09-25): a hatch shows the hatch only: no pan, no THONG, no clunk
             hud.pool.classList.remove("hit");
             void hud.pool.offsetWidth;
@@ -1080,6 +1152,8 @@
             break;
           case "idle":
             v.rolled = false;
+            if (scare && scare.nest === v) endScare();
+            v.el.classList.remove("scare", "hop", "freeze", "leapt");
             delete v.el.dataset.hatch;
             delete v.el.dataset.alien;
             ET.aliens.clear(v.svg.querySelector(".creature"));

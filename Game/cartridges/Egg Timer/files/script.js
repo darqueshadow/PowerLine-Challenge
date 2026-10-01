@@ -128,6 +128,7 @@
       hatchRng: rig.hatchRng || (SEED === null ? Math.random : ET.seededRandom(SEED + 7919))   // E45: its own stream
     });
     app.paused = false;
+    document.body.classList.remove("paused");
     $("#pause").hidden = true;
     $("#hud-mode").textContent = MODES.filter(function (m) { return m.id === mode; })[0].label;
     ET.view.reset();
@@ -209,6 +210,7 @@
 
   function setPaused(on) {
     app.paused = on;
+    document.body.classList.toggle("paused", on);   // Andrew, 2026-10-01: a pause holds a hatch's timeline too (style.css, view.js)
     app.asking = false;
     paintQuit();
     $("#pause").hidden = !on;

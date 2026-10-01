@@ -96,7 +96,15 @@
       tries: 240,            // spots tried per fragment before it's left out; each quarter of them shrinks it a step…
       shrinkTo: 0.7          // [T] …down to this share of its size (only a crowded one: the keep-clear zones leave stages 4 and 5 a narrow ring)
     },
-    escapeSeconds: 2.0,      // [T] how long an escape flourish keeps the nest busy (E47: about 2 s, was 1.4; tune once the aliens move)
+    // [T] how long a hatch keeps the nest busy (E47: about 2 s, was 1.4). Andrew, 2026-10-01: the new hatch needs longer,
+    // "likely around 3": 3.2 s (out, scurry, dance, the horror's freeze and jump; the Game Over wait follows it, + 0.5 s)
+    escapeSeconds: 3.2,
+    // Andrew, 2026-10-01: a horror hatch's timeline, as shares of escapeSeconds [T]: it freezes and stares from `freeze`
+    // and jumps at the player at `leap`. ⚠️ style.css's hatch keyframes use the same shares (55%, 78%): change both.
+    hatchScare: { freeze: 0.55, leap: 0.78 },
+    // ⏳ PENDING (E49): the jump under reduced motion. "still": no zoom and no movement, the full-screen alien simply
+    // appears for the hold, then goes (the scare stays; nothing moves). "none": no full-screen alien at all.
+    hatchScareReduced: "still",
     // E45 (Andrew, 2026-09-27; replaces Refinement 5 §4's "the escapee is always horrific"): which set hatches, by wave.
     // Waves up to hatchCuteUntilWave hatch cute; hatchMixedWave mixes (its first hatch is hatchMixedFirst, then horror
     // comes with a chance equal to how far through the wave it is, CAVs resolved / quota); every later wave hatches horror.
@@ -110,10 +118,12 @@
       cute: ["crab", "octopus", "worm"],
       horror: ["scuttler", "grabber", "wriggler"]
     },
-    // E46: a cute alien only scurries off; a horror one scurries or lunges, at random as before.
+    // Andrew, 2026-10-01 (replaces E46's "scurry only, never lunge"): every hatch scurries out and dances; then a cute one
+    // does a goofy hop toward the player ("hop") and a horror one freezes, stares and jumps at the player full screen
+    // ("scare"). The old exits still work as values: "scurry", "lunge".
     hatchExits: {
-      cute: ["scurry"],
-      horror: ["scurry", "lunge"]
+      cute: ["hop"],
+      horror: ["scare"]
     },
     // Refinement 3 rulings (E15): a clear leaves a small splat on its own nest, and the rest of its gunk
     // lands evenly at random over the whole board; neighbours are no longer targeted.

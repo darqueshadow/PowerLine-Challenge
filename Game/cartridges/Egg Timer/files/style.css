@@ -720,6 +720,69 @@ h2 {
   60% { transform: translateY(-40%) scale(6); opacity: 1; }
   100% { transform: translateY(-40%) scale(9); opacity: 0; }
 }
+/* Andrew, 2026-10-01 (replaces E46/E47's scurry and lunge): one timeline as long as the hatch (--hatch, escapeSeconds).
+   0–25% out of the nest and a short scurry to one side (--dir), upright; 25–55% a dance on the spot (a hop and a sway).
+   Then a horror alien FREEZES (its own swings stop too: .freeze) and stares until 78%, when it jumps at the player
+   (view.js: the puppet, full screen, in #scare; the one in the nest steps aside: .leapt). A cute one squats and does a
+   goofy hop toward the player (it grows), lands with a boing, hops again and bounces off. All movement: nothing changes
+   brightness, nothing flashes. ⚠️ 55% and 78% are config's hatchScare shares. A pause holds it (body.paused). */
+.nest.scare, .nest.hop { z-index: 20; }
+.nest.scare .creature { animation: hatch-scare var(--hatch, 3.2s) ease-in-out forwards; }
+.nest.hop .creature { animation: hatch-hop var(--hatch, 3.2s) ease-in-out forwards; }
+.nest.leapt .creature { visibility: hidden; }
+.nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip { animation-play-state: paused; }
+body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg { animation-play-state: paused; }
+@keyframes hatch-scare {
+  0% { transform: translate(0, 0); }
+  9% { transform: translate(0, -14px); }
+  13% { transform: translate(calc(var(--dir, 1) * 30%), -8px); }
+  17% { transform: translate(calc(var(--dir, 1) * 60%), -13px); }
+  21% { transform: translate(calc(var(--dir, 1) * 90%), -7px); }
+  25% { transform: translate(calc(var(--dir, 1) * 110%), -10px); }
+  29% { transform: translate(calc(var(--dir, 1) * 110%), -18px) rotate(-10deg); }
+  33% { transform: translate(calc(var(--dir, 1) * 110%), -8px) rotate(10deg); }
+  37% { transform: translate(calc(var(--dir, 1) * 110%), -18px) rotate(-10deg); }
+  41% { transform: translate(calc(var(--dir, 1) * 110%), -8px) rotate(10deg); }
+  45% { transform: translate(calc(var(--dir, 1) * 110%), -18px) rotate(-10deg); }
+  49% { transform: translate(calc(var(--dir, 1) * 110%), -8px) rotate(10deg); }
+  55%, 100% { transform: translate(calc(var(--dir, 1) * 110%), -10px) rotate(0deg); }
+}
+@keyframes hatch-hop {
+  0% { transform: translate(0, 0); }
+  9% { transform: translate(0, -14px); }
+  13% { transform: translate(calc(var(--dir, 1) * 30%), -8px); }
+  17% { transform: translate(calc(var(--dir, 1) * 60%), -13px); }
+  21% { transform: translate(calc(var(--dir, 1) * 90%), -7px); }
+  25% { transform: translate(calc(var(--dir, 1) * 110%), -10px); }
+  29% { transform: translate(calc(var(--dir, 1) * 110%), -18px) rotate(-10deg); }
+  33% { transform: translate(calc(var(--dir, 1) * 110%), -8px) rotate(10deg); }
+  37% { transform: translate(calc(var(--dir, 1) * 110%), -18px) rotate(-10deg); }
+  41% { transform: translate(calc(var(--dir, 1) * 110%), -8px) rotate(10deg); }
+  45% { transform: translate(calc(var(--dir, 1) * 110%), -18px) rotate(-10deg); }
+  49% { transform: translate(calc(var(--dir, 1) * 110%), -8px) rotate(10deg); }
+  55% { transform: translate(calc(var(--dir, 1) * 110%), -4px) scale(1.15, 0.8); }
+  66% { transform: translate(calc(var(--dir, 1) * 110%), -80%) scale(1.8) rotate(calc(var(--dir, 1) * -12deg)); }
+  74% { transform: translate(calc(var(--dir, 1) * 110%), -30%) scale(2.4, 2.0); }
+  78% { transform: translate(calc(var(--dir, 1) * 110%), -40%) scale(2.2); }
+  87% { transform: translate(calc(var(--dir, 1) * 110%), -85%) scale(2.6) rotate(calc(var(--dir, 1) * 14deg)); }
+  100% { transform: translate(calc(var(--dir, 1) * 110%), 320%) scale(2.6) rotate(calc(var(--dir, 1) * 30deg)); }
+}
+/* the jump (view.js fills it): from the nest, as big as it was there (--sx, --sy, --s0), to filling the screen in about
+   an eighth of a second, held, then it drops away out of view. Above the cord and everything in play; under the pause. */
+#scare { position: fixed; inset: 0; z-index: 55; display: grid; place-items: center; overflow: hidden; pointer-events: none; }
+#scare[hidden] { display: none; }
+#scare svg { width: auto; height: 150vh; overflow: visible; transform-origin: 50% 50%; }
+#scare .creature { display: inline; }
+#scare.go svg { animation: scare-jump var(--jump, 0.7s) linear forwards; }
+@keyframes scare-jump {
+  0% { transform: translate(var(--sx, 0), var(--sy, 0)) scale(var(--s0, 0.1)); animation-timing-function: cubic-bezier(0.3, 0, 0.1, 1); }
+  18% { transform: translate(0, 0) scale(1); }
+  82% { transform: translate(0, 0) scale(1.04); animation-timing-function: ease-in; }
+  100% { transform: translate(0, 165vh) scale(1.04); }
+}
+/* ⏳ E49 "still" (reduced motion): no zoom, no movement: it's there for the hold, then it's gone */
+#scare.go.still svg { animation-name: scare-cut; animation-timing-function: step-end; }
+@keyframes scare-cut { 0% { transform: none; visibility: visible; } 82%, 100% { transform: none; visibility: hidden; } }
 
 /* Refinement 5 §1: while Time Warp runs, every ACTIVE nest and its display boxes' borders glow Time Warp green,
    off the instant it ends (render() toggles #board.warp every frame from the snapshot). No egg is ever bold
@@ -1135,6 +1198,7 @@ h2 {
 @media (prefers-reduced-motion: reduce) {
   #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cord-top .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
+  .nest.scare .creature, .nest.hop .creature { animation: none; }   /* Andrew, 2026-10-01: the alien sits still in its nest */
   #title-scene .note, #setup-critter .note { opacity: 1; }
   /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24) */
   .nest[data-state="trigger"] .readout > span { border-color: var(--cyan); }

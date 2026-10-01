@@ -210,11 +210,13 @@ section("E45–E47. hatchlings: cute, then mixed, then horror (Andrew, 2026-09-2
   ok(hatches.every((h, i) => !i || h.alien !== hatches[i - 1].alien), `E45: the same alien never comes out twice in a row   [${hatches.length} hatches]`);
   const firstSix = w(1).slice(0, 6).map((h) => h.alien);
   eq([new Set(firstSix.slice(0, 3)).size, new Set(firstSix.slice(3, 6)).size], [3, 3], "E45: a shuffle bag: each three cute hatches in a row are the three cute aliens");
-  ok(hatches.filter((h) => h.set === "cute").every((h) => h.exit === "scurry"), "E46: a cute alien only scurries off, never lunges");
-  const hx = new Set(hatches.filter((h) => h.set === "horror").map((h) => h.exit));
-  ok(hx.has("scurry") && hx.has("lunge"), "E46: a horror alien scurries or lunges, at random as before");
-  eq(ET.CONFIG.escapeSeconds, 2, "E47: a hatch keeps its nest busy about 2 s (was 1.4)");
-  ok(escapes.length && escapes.every((q) => Math.abs(q.len - 2) < 0.06), `E47 in play: each escape lasts 2 s, then the nest empties   [${escapes.length} escapes]`);
+  // Andrew, 2026-10-01 (replaces E46): every hatch scurries out and dances; a cute one then hops at the player, a horror
+  // one freezes, stares and jumps at the player full screen
+  ok(hatches.some((h) => h.set === "cute") && hatches.filter((h) => h.set === "cute").every((h) => h.exit === "hop"), "Andrew, 2026-10-01: a cute alien ends with a goofy hop toward the player");
+  ok(hatches.some((h) => h.set === "horror") && hatches.filter((h) => h.set === "horror").every((h) => h.exit === "scare"), "…and a horror alien with the jump scare, every time");
+  eq(ET.CONFIG.escapeSeconds, 3.2, "Andrew, 2026-10-01: the hatch is longer, about 3 s (E47's 2 s)");
+  ok(ET.CONFIG.hatchScare.freeze < ET.CONFIG.hatchScare.leap && ET.CONFIG.hatchScare.leap < 1, "…the freeze comes before the jump, and both inside the hatch");
+  ok(escapes.length && escapes.every((q) => Math.abs(q.len - ET.CONFIG.escapeSeconds) < 0.06), `in play: each escape lasts the hatch's ${ET.CONFIG.escapeSeconds} s, then the nest empties   [${escapes.length} escapes]`);
 }
 {
   // E45's draws have their own random source, so a seeded replay's spawns don't shift with the hatchlings
