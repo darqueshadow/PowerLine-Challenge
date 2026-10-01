@@ -62,7 +62,7 @@ import { fileURLToPath } from "node:url";
 const SHELL_DIR = fileURLToPath(new URL("../../../+Nerva Beacon/The Lantern Room/Morbius/shell/", import.meta.url));
 const ELECTRON = join(SHELL_DIR, "node_modules/electron/dist/electron.exe");
 const PRELOAD = join(SHELL_DIR, "preload.js");
-const URL_HUB = "http://localhost:8899/Game/cat/index.html";
+const URL_HUB = "http://localhost:8899/Game/C64/index.html";
 
 /* A blank, formatted 35-track 1541 disk whose directory header says `name`,
    built byte by byte (§I's two-sided game). Also how a leftover is recognised as
@@ -98,14 +98,14 @@ if (!process.versions.electron) {
       process.exit(2);
     }
   }
-  /* 🚨 A KILLED RUN LEAVES §I's TWO RIG DISKS IN Game/disks/ — measured: a run
+  /* 🚨 A KILLED RUN LEAVES §I's TWO RIG DISKS IN Game/C64/roms/ — measured: a run
      stopped by a timeout skipped its own clean-up and left them in Andrew's
      folder. So they are cleared here, before and after every run, from outside
      the Electron child. ⚠️ Only a file byte-identical to what the rig builds is
      removed; anything else of that name is his, and is left alone. */
   const clearRigDisks = () => {
     for (const s of ["A", "B"]) {
-      const f = fileURLToPath(new URL(`../disks/zz CAT rig swap - Side ${s}.d64`, import.meta.url));
+      const f = fileURLToPath(new URL(`./roms/zz CAT rig swap - Side ${s}.d64`, import.meta.url));
       try { if (existsSync(f) && readFileSync(f).equals(rigBlankD64("RIG SIDE " + s))) unlinkSync(f); } catch { /* leave it */ }
     }
   };
@@ -320,14 +320,14 @@ async function runRig() {
   })()`;
 
   /* ---- §I's two-sided game ------------------------------------------------
-     Game/disks/ is Andrew's hand-picked, gitignored folder and today holds no
+     Game/C64/roms/ is Andrew's hand-picked, gitignored folder and today holds no
      two-sided title, so the rig lays its own pair there BEFORE the hub scans it,
      and takes away only the files it made. 🚫 Nothing is sourced: each is a
      blank, formatted 1541 disk written here, told apart only by the name in its
      directory header. ⚠️ If files of these names already exist they are left
      alone and not removed. */
   const SWAP_TITLE = "zz CAT rig swap";
-  const DISK_DIR = fileURLToPath(new URL("../disks/", import.meta.url));
+  const DISK_DIR = fileURLToPath(new URL("./roms/", import.meta.url));
   const SWAP_FIXTURES = [];
   if (existsSync(DISK_DIR)) {
     for (const s of ["A", "B"]) {
@@ -432,7 +432,7 @@ async function runRig() {
     section("C. Insert Disk: a disk slides into the drive, then goes into the RUNNING machine");
     const disks = await ev("__cat.disks().map(function (d) { return { id: d.id, name: d.displayName, files: (d.files || []).map(function (f) { return f.name; }) }; })");
     /* 🚫 Picked by what the library holds today, never by a hard-coded name:
-       Game/disks/ is Andrew's, gitignored, and changes. */
+       Game/C64/roms/ is Andrew's, gitignored, and changes. */
     DISK = disks.find((d) => d.files.length === 1 && /\.d64$/i.test(d.files[0]));
     TAPE = disks.find((d) => d.files.length === 1 && /\.t64$/i.test(d.files[0]));
     ok(!!DISK && !!TAPE, `the library has a one-sided disk and a tape to test with   [${DISK && DISK.name} / ${TAPE && TAPE.name}]`);
@@ -571,7 +571,7 @@ async function runRig() {
     ok(settled >= 0, `and the hub let go of the machine afterwards   [${took(settled)}]`);
     await wait(8000);
     await wc.capturePage().then((img) => writeFileSync(fileURLToPath(new URL("./verify-c64-run.png", import.meta.url)), img.toPNG()));
-    say(`        (shot: Game/cat/verify-c64-run.png — ${DISK.name} after RUN, for a human eye)`);
+    say(`        (shot: Game/C64/verify-c64-run.png — ${DISK.name} after RUN, for a human eye)`);
 
     /* --- E. tapes ---------------------------------------------------------- */
     section("E. a tape: Load types LOAD, and Shift+Escape is Shift+RUN/STOP");

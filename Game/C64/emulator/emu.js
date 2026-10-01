@@ -1421,7 +1421,7 @@
       tell("this origin cannot run the emulator", [
         "WebAssembly is instantiated through fetch, and fetch refuses the file: scheme. Nothing is missing — the page is simply being served from the wrong kind of origin.",
         { text: "Two ways to fix it:", cls: "dim" },
-        { code: "1.  In the Fang Rock shell: apply arcade-origin.patch.md\n    (filed to the shell track) so the arcade is served from a\n    real origin instead of file://.\n\n2.  For dev, from the (PCL) repo root:\n        python -m http.server 8899\n    then open  http://localhost:8899/Game/cat/index.html" },
+        { code: "1.  In the Fang Rock shell: apply arcade-origin.patch.md\n    (filed to the shell track) so the arcade is served from a\n    real origin instead of file://.\n\n2.  For dev, from the (PCL) repo root:\n        python -m http.server 8899\n    then open  http://localhost:8899/Game/C64/index.html" },
         { text: "The PLC cartridges are unaffected and keep working from file:// exactly as before.", cls: "dim" }
       ]);
       return;
@@ -1532,7 +1532,7 @@
       if (!loaderOk) {
         tell("no emulator core on this machine", [
           "EmulatorJS is not installed here. It is a third-party GPL build of roughly 10-15MB, gitignored on purpose because this repo is public — so it is fetched per machine rather than committed.",
-          { text: "From Game/cat/emulator/ — BOTH steps, the second is not optional:", cls: "dim" },
+          { text: "From Game/C64/emulator/ — BOTH steps, the second is not optional:", cls: "dim" },
           { code: INSTALL },
           { text: "Then reload. Nothing else needs configuring — this page already points at data/ and asks for the c64 core.", cls: "dim" },
           { text: "The PLC cartridges do not use any of this and are unaffected.", cls: "dim" }
@@ -1544,7 +1544,7 @@
           tell("the loader is installed, but the core is not", [
             { text: "data/loader.js is here, and data/cores/ has no " + CORE + " build in it. These are two separate downloads and the git clone only provides the first.", cls: "err" },
             "🚨 Left alone, EmulatorJS would quietly fetch the core from cdn.emulatorjs.org instead of saying anything. This page refuses that on purpose: the arcade is not allowed to depend on the internet at runtime, and a core arriving over the network hides whatever else is actually wrong.",
-            { text: "From Game/cat/emulator/ :", cls: "dim" },
+            { text: "From Game/C64/emulator/ :", cls: "dim" },
             { code: INSTALL.split("\n\n")[1] },
             { text: "Then reload.", cls: "dim" }
           ]);
@@ -1568,7 +1568,7 @@
           s.onerror = function () {
             tell("the core is there but would not load", [
               { text: "data/loader.js answered a HEAD request and then failed to execute.", cls: "err" },
-              "That usually means a partial or corrupt download. Delete Game/cat/emulator/data/ and fetch it again."
+              "That usually means a partial or corrupt download. Delete Game/C64/emulator/data/ and fetch it again."
             ]);
           };
           document.body.appendChild(s);
@@ -1576,7 +1576,7 @@
           tell("a side of this disk would not load", [
             { text: String(err && err.message || err), cls: "err" },
             "Nothing was started: a game that asks for its other side and cannot have it would look broken halfway through.",
-            { text: "Check that every side's file is still in Game/disks/, then load it again.", cls: "dim" }
+            { text: "Check that every side's file is still in Game/C64/roms/, then load it again.", cls: "dim" }
           ]);
         });
       });

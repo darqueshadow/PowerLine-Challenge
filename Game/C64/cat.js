@@ -463,8 +463,8 @@
      folder: information, not a fault. */
   /* =======================================================================
      🆕 2026-09-12 — DISK ART, looked up by NAME. His locked call: one image per
-     disk in `assets/disk-art/`, named after the disk, hand-curated exactly like
-     `Game/disks/` — no manifest, no metadata file.
+     disk in `disk-art/`, named after the disk, hand-curated exactly like
+     `Game/C64/roms/` — no manifest, no metadata file.
 
      ⭐ SO IT IS FOUND THE WAY THE DISKS ARE FOUND: one listing of the folder,
      read once when the library is scanned. 🚫 NOT a blind <img> per selection.
@@ -486,7 +486,7 @@
      d1.png" both match that two-sided title. A cartridge has no disk file, so
      it matches on its displayName ("Asteroid Command.png").
      ===================================================================== */
-  var ART_DIR  = "assets/disk-art/";
+  var ART_DIR  = "disk-art/";
   var ART_PREF = { png: 0, webp: 1, jpg: 2, jpeg: 3, gif: 4 };   /* two formats of one name: first wins */
   var artIndex = {};
 
@@ -748,7 +748,7 @@
 
   /* 🚨 RUNNER DISPATCH. The `runner` field decides which system loads a disk.
      "plc" is a cartridge and loads its own page. "emulator" is a real C64
-     image out of Game/disks/, scanned at runtime by library.js, and loads in
+     image out of Game/C64/roms/, scanned at runtime by library.js, and loads in
      emulator/index.html.
      🚫 Do NOT "fix" anything here by routing one runner to the other. A disk
      loaded by the wrong runner is exactly the silent-wrong-destination
@@ -871,9 +871,9 @@
     if (disk.runner !== "emulator") return encodeURI(disk.launch);
     var q = "?title=" + encodeURIComponent(disk.displayName);
     /* 🚨 ABSOLUTE, NOT THE RELATIVE STRING library.js BUILT. `f.url` is
-       "../disks/<name>", which is correct RELATIVE TO THIS PAGE (Game/cat/) —
-       and this query is handed to Game/cat/emulator/index.html, one level
-       deeper, where the same string resolves to Game/cat/disks/ and 404s.
+       "roms/<name>", which is correct RELATIVE TO THIS PAGE (Game/C64/) —
+       and this query is handed to Game/C64/emulator/index.html, one level
+       deeper, where the same string resolves to Game/C64/emulator/roms/ and 404s.
        EmulatorJS reports that as a bare "Network Error" after the core has
        already loaded, which sends you looking at the core.
        ⭐ Resolving against location.href here fixes it from any depth and on
@@ -2101,7 +2101,7 @@
      rendered by exactly the same code that renders a cartridge — his ruling
      was "One mixed box, all equal", so there is no separate shelf, no badge
      and no section header distinguishing the two.
-     ⭐ THE EMPTY CASE IS THE NORMAL CASE. `Game/disks/*` is gitignored, so a
+     ⭐ THE EMPTY CASE IS THE NORMAL CASE. `Game/C64/roms/*` is gitignored, so a
      fresh clone has none, and the hub says so as information rather than as
      a fault.
      ===================================================================== */
@@ -2139,7 +2139,7 @@
       ? "Fault: disk folder unreadable"
       : "Available in Fang Rock only";
     noteLib.querySelector(".crate__notice-body").textContent = fault
-      ? "Fang Rock could not read the game/disks/ folder (" + String(res.detail || "no reason given") + ")."
+      ? "Fang Rock could not read the game/c64/roms/ folder (" + String(res.detail || "no reason given") + ")."
       : "This crate fills when the arcade is opened from Fang Rock.";
   }
 
@@ -2167,7 +2167,7 @@
               (res.disks.length === 1 ? " disk found." : " disks found."), "dim");
       } else if (res.state === "empty") {
         blank();
-        write("disk library: empty. drop .d64 files into game/disks/.", "dim");
+        write("disk library: empty. drop .d64 files into game/c64/roms/.", "dim");
       } else if (location.protocol === SHELL_PROTOCOL) {
         /* inside the shell this is the fault the crate now names, so the
            terminal names it too — "not readable from this origin" would be
@@ -2183,7 +2183,7 @@
            ⚠️ No longer the only signal: the Cracked crate says it too (above). */
         blank();
         write("disk library: not readable from this origin.", "dim");
-        write("(cartridges are unaffected. see game/disks/readme.md)", "dim");
+        write("(cartridges are unaffected. see game/c64/roms/readme.md)", "dim");
       }
       renderLine();
       /* the art folder is read only once the disk scan says this origin can list

@@ -10,7 +10,7 @@
      1.  python -m http.server 8899        (from the (PCL) repo root)
      2.  node verify-cat-library.mjs       (from this folder)
 
-   ⭐ IT LAYS ITS OWN FIXTURES AND TAKES THEM AWAY AGAIN. `Game/disks/` is the
+   ⭐ IT LAYS ITS OWN FIXTURES AND TAKES THEM AWAY AGAIN. `Game/C64/roms/` is the
    player's folder; a rig that left four files in it would be changing what the
    hub shows the next person to open it. The fixtures are ZERO-BYTE files with
    real names — nothing here boots a disk, so the bytes are never read, and the
@@ -42,8 +42,8 @@ if (!existsSync(fileURLToPath(DRIVER))) {
 }
 const { open } = await import(DRIVER);
 
-const HUB   = "http://localhost:8899/Game/cat/index.html";
-const DISKS = fileURLToPath(new URL("../disks/", import.meta.url));
+const HUB   = "http://localhost:8899/Game/C64/index.html";
+const DISKS = fileURLToPath(new URL("./roms/", import.meta.url));
 
 /* A full load: theatre 1920ms + intro 2600ms + fade 260ms. Rounded up. */
 const FULL_LOAD = 5200;

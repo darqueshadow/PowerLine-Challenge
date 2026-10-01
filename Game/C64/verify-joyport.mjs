@@ -49,8 +49,8 @@ const { open } = await import(DRIVER);
 
 /* Any joystick title will do — nothing here depends on the game, only on the
    core being up. Beach-Head is a plain single-side .d64 already in the repo. */
-const DISK = encodeURIComponent("http://localhost:8899/Game/disks/Beach-Head.D64");
-const URL_EMU = `http://localhost:8899/Game/cat/emulator/index.html?title=BEACHHEAD&d=${DISK}`;
+const DISK = encodeURIComponent("http://localhost:8899/Game/C64/roms/Beach-Head.D64");
+const URL_EMU = `http://localhost:8899/Game/C64/emulator/index.html?title=BEACHHEAD&d=${DISK}`;
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 let bad = 0;

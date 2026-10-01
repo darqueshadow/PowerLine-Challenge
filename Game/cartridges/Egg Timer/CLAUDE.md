@@ -10,7 +10,7 @@ packet are in `Previous Versions/` (the `WHACK_A_CAV_` names are deliberate). Th
 session must not re-derive or break. History: `docs/decisions.md` at the repo root, and the memory store (below).
 
 ## Status
-- **Live since 2026-09-19** (hub entry in `Game/cat/disks.js`; NB's Rec-Bay 4 table fires).
+- **Live since 2026-09-19** (hub entry in `Game/C64/disks.js`; NB's Rec-Bay 4 table fires).
 - 🚀 **STANDING RULE (Andrew, 2026-09-23):** Andrew playtests through **Nerva Beacon (Rec-Bay 4)**, not localhost.
   After building anything for Egg Timer: **if BOTH rigs pass, commit and push to the live site right away. Never
   push with a failing rig.** Keep each change in its own commit(s) so any one can be reverted alone. **After each

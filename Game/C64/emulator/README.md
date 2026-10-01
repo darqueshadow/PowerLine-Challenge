@@ -1,4 +1,4 @@
-# `Game/cat/emulator/` — the C64 drive
+# `Game/C64/emulator/` — the C64 drive
 
 EmulatorJS driving the **`vice_x64sc`** libretro core, self-hosted. Loaded into the CAT hub's
 play overlay; never opened directly by a player.

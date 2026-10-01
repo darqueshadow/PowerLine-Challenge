@@ -153,7 +153,7 @@ window.CAT_DISKS = [
      - The core is EmulatorJS + the vice_x64sc libretro core, self-hosted in
        `emulator/data/`. Gitignored — this repo is PUBLIC and publishes to
        Pages. `emulator/README.md` has the one command that installs it.
-     - Disk images live in `../disks/`, also gitignored, for the same reason.
+     - Disk images live in `roms/`, also gitignored, for the same reason.
        ⭐ AN EMPTY LIBRARY IS THE NORMAL STATE, not a fault: a fresh clone has
        none, and the hub says so as information.
      - `library.js` SCANS that folder at runtime and builds emulator disks in

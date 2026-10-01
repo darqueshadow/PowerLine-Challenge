@@ -14,7 +14,7 @@ only the rules a session must not re-derive or violate.
   the fullscreen kiosk). CSV loading and all audio use `fetch`, which `file://` blocks.
 
 ## Standing rules — don't undo these
-- **Both hubs route through `The Aquanaut.html` on purpose** (`Game/cat/disks.js`,
+- **Both hubs route through `The Aquanaut.html` on purpose** (`Game/C64/disks.js`,
   `Game/core/submenu.js`). Pointing them back at `files/index.html` skips the intro and
   drops the game onto a redundant PRESS ENTER gate.
 - **The launcher must not wipe `localStorage`.** It used to, which destroyed the Dive Log

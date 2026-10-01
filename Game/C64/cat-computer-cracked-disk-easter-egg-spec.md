@@ -12,7 +12,7 @@ written, and anyone following the citation would have found nothing and had to g
 
 His ruling: write it fresh, and commit it, so the citation resolves. This is that file.
 
-📌 It is kept in `Game/cat/` beside the code it governs, not in `Documents/` — the two files
+📌 It is kept in `Game/C64/` beside the code it governs, not in `Documents/` — the two files
 that cite it are three lines away from it.
 
 ---
@@ -77,7 +77,7 @@ the alternative is a one-word change on one line. Flagged rather than quietly na
 
 ## 5. What a "cracked disk" actually is here
 
-A file in **`Game/disks/`**, found by `library.js` at runtime.
+A file in **`Game/C64/roms/`**, found by `library.js` at runtime.
 
 - 🚫 **No cracked disk is ever listed in `disks.js`.** That file is the cartridge roster now.
 - The box renders a disk and a cartridge **identically** — his ruling, *"one mixed box, all
@@ -95,7 +95,7 @@ tell the three "no" cases apart, so it no longer claims to:
 | No core installed | `emulator/emu.js` | Names the install command |
 | Origin cannot run WASM (`file://`) | `emulator/emu.js` | Names the patch and the dev server |
 | Core present but won't execute | `emulator/emu.js` | Points at a partial download |
-| Folder holds no disks | `cat.js` | "empty. drop .d64 files into game/disks/" |
+| Folder holds no disks | `cat.js` | "empty. drop .d64 files into game/c64/roms/" |
 | Origin cannot list a directory | `cat.js` | "not readable from this origin" |
 | Group with no sides behind it | `cat.js` | Reported as a hub fault, not blamed on the drive |
 
@@ -110,7 +110,7 @@ Built now, not deferred — his ruling, because he hand-picks the library and mu
 are an ordinary near-term case.
 
 - Sides are grouped off the **filename**: `- d1`, `(Disk 1)`, `- Side A`. See
-  `Game/disks/README.md`.
+  `Game/C64/roms/README.md`.
 - The control lives in the **play bar** — the hub's chrome, not the emulator's.
 - 🚨 **A failed swap is never silently converted into a restart.** Reloading with the other image
   would look like a swap and would actually reset the machine: the game loses everything and

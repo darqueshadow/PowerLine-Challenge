@@ -1,4 +1,4 @@
-# `Game/cat/assets/disk-art/` — the picture of each disk
+# `Game/C64/disk-art/` — the picture of each disk
 
 Drop one image per disk straight into this folder. When a disk is selected in the CAT hub,
 its image shows in the preview frame under the crates. There is no manifest and nothing to
@@ -36,7 +36,7 @@ listed, so there every disk shows its screenshot or the blank sleeve.
 
 ## 🚨 Nothing in here is committed
 
-Same rule as `Game/disks/`, for the same reason: this repo is **public** and publishes to
+Same rule as `Game/C64/roms/`, for the same reason: this repo is **public** and publishes to
 GitHub Pages, and box art and sleeve scans of commercial games are other people's artwork.
 `.gitignore` excludes everything in this folder except this README. 🚫 Don't "fix" that by
 un-ignoring it. If a PLC cartridge's own art should ever travel with the repo, that is a

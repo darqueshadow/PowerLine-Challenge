@@ -35,7 +35,7 @@ if (!existsSync(fileURLToPath(DRIVER))) {
 }
 const { open } = await import(DRIVER);
 
-const URL_HUB = "http://localhost:8899/Game/cat/index.html";
+const URL_HUB = "http://localhost:8899/Game/C64/index.html";
 
 /* cdp.mjs's key() is key(type, key, code, keyCode, modifiers) and the last one
    is CDP's own bitmask, not an options object: Alt 1, Ctrl 2, Meta 4, Shift 8.
@@ -92,7 +92,7 @@ async function until(fn, ms = 20000, every = 200) {
 }
 
 /* ---- disk-art fixtures (§B2) ---------------------------------------------
-   🆕 2026-09-12. The art folder is hand-filled and gitignored like disks/, so a
+   🆕 2026-09-12. The art folder is hand-filled and gitignored like roms/, so a
    fresh clone has none — the rig lays two files BEFORE the page boots (the hub
    reads the folder once, at boot) and takes them away again.
      "The Aquanaut.png"   a real 1x1 PNG  -> the art path must show it
@@ -102,7 +102,7 @@ async function until(fn, ms = 20000, every = 200) {
    🚨 Only ever removes files it created, by name. If Andrew has already dropped
    real art under either name, it is left alone and reused, and the assertion
    that needs the fixture's exact content is reported as skipped. */
-const ART_DIR = fileURLToPath(new URL("./assets/disk-art/", import.meta.url));
+const ART_DIR = fileURLToPath(new URL("./disk-art/", import.meta.url));
 const PNG_1x1 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
 const ART_FIXTURES = [["The Aquanaut.png", PNG_1x1], ["Blank Cassette.png", Buffer.alloc(0)]];
@@ -359,7 +359,7 @@ try {
     console.log("  skip  no-art state — every Cracked disk has art in the folder");
   }
 
-  /* 🆕 2026-09-12 — THE ARTWORK. One image per disk in Game/cat/assets/disk-art/,
+  /* 🆕 2026-09-12 — THE ARTWORK. One image per disk in Game/C64/disk-art/,
      named after the disk; the frame shows it, falls back to games.js's
      screenshot, and otherwise shows a BLANK SLEEVE — never a broken-image icon,
      never an empty frame. */
@@ -416,7 +416,7 @@ try {
        1. this page — a listing origin. The crate must NOT be switched off.
        2. file:// — the hub opened directly. `fetch` refuses outright.
        3. http with the listing answered 404 — which is exactly what Pages does,
-          since `Game/disks/` is gitignored and never published.
+          since `Game/C64/roms/` is gitignored and never published.
      🚫 NOT COVERED HERE: the `arcade:` fault branch. A browser cannot be put on
      the shell's private scheme, so this rig cannot reach it; it was measured
      under the shell's own Electron build instead (see the commit). */
@@ -442,7 +442,7 @@ try {
      else — every other request is not matched by the pattern. Returns the pump,
      which the caller clears. (Shared with §K, which needs the same Pages.) */
   async function failDiskListing(b) {
-    await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/disks/" }] });
+    await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/C64/roms/" }] });
     const done = new Set();
     return setInterval(() => {
       for (const m of b.events()) {
@@ -724,7 +724,7 @@ try {
     const b = await open({ gpu: true, w: 1280, h: 860 });
     try {
       if (preload) await b.send("Page.addScriptToEvaluateOnNewDocument", { source: preload });
-      await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/cat/cat.js" }] });
+      await b.send("Fetch.enable", { patterns: [{ urlPattern: "*/Game/C64/cat.js" }] });
       await b.send("Page.navigate", { url: LINK_HUB(q) });
       let held = null;
       await until(async () => (held = b.events().find((m) => m.method === "Fetch.requestPaused")), 10000, 50);
@@ -1131,7 +1131,7 @@ try {
   }
 
   await c.shot(fileURLToPath(new URL("./verify-cat-hub.png", import.meta.url)));
-  console.log("\n  shot: Game/cat/verify-cat-hub.png");
+  console.log("\n  shot: Game/C64/verify-cat-hub.png");
 } finally {
   c.close();
   artMine.forEach((name) => { try { rmSync(ART_DIR + name); } catch { /* already gone */ } });

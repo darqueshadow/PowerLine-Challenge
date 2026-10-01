@@ -1,7 +1,7 @@
 /* ===========================================================================
    library.js — THE RUNTIME DISK LIBRARY.
 
-   Reads whatever is sitting in `Game/disks/` when the hub loads. There is no
+   Reads whatever is sitting in `Game/C64/roms/` when the hub loads. There is no
    manifest, no generated index checked into the repo, and NO COUNT WRITTEN
    DOWN ANYWHERE. Andrew curates that folder by hand — three disks or eighty —
    and the box shows what is there. (His ruling: "Scanner/Disk Box UI reads
@@ -9,7 +9,7 @@
    count anywhere.")
 
    ⭐⭐ AN EMPTY LIBRARY IS THE NORMAL STATE, NOT A FALLBACK. A fresh clone has
-   no disks, because `Game/disks/*` is gitignored — this repo is public and
+   no disks, because `Game/C64/roms/*` is gitignored — this repo is public and
    publishes to Pages. So "no disk library on this machine" is the DEFAULT
    path through this file, written first rather than bolted on at the end.
    🚫 Do not turn it into an error. Nothing is wrong when it happens.
@@ -41,7 +41,7 @@
 (function () {
   "use strict";
 
-  var DIR = "../disks/";
+  var DIR = "roms/";
 
   /* Formats the vice_x64sc core accepts. 🚫 Do not add `.zip` — the core can
      read one, but the grouping below reads SIDE MARKERS OFF THE FILENAME, and

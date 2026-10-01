@@ -1,4 +1,4 @@
-# `Game/disks/` — the C64 disk library
+# `Game/C64/roms/` — the C64 disk library
 
 Drop `.d64` / `.t64` / `.prg` / `.g64` / `.tap` / `.crt` files straight into this folder.
 The CAT hub reads whatever is here **at runtime** — there is no manifest to regenerate,

@@ -40,7 +40,7 @@
 (function () {
   "use strict";
 
-  /* Paths are relative to THIS FOLDER (`Game/cat/`), not to `Game/`. The
+  /* Paths are relative to THIS FOLDER (`Game/C64/`), not to `Game/`. The
      console's own manifest is one level up, so its paths lose a `../` — that
      is the only edit made to the values copied from it. */
   var INFO = {
