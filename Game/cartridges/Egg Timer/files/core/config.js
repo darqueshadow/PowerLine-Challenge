@@ -261,11 +261,11 @@
     // along its length, not only under the nozzle). Liquid still washes where the nozzle passes. Reduced motion: the jet
     // only, standing still (no burst, mist or splash). Sizes in board heights (bh).
     // E44 (Chat, 2026-09-25): the jet points the way the drag goes, and the nozzle picture turns with it (about its tip,
-    // the cleaning point), so the two always agree. It swings rather than snaps: the drag must move turnMinMove px before
-    // its direction counts (a small wobble turns nothing), and the picture closes on the new direction with a time
-    // constant of turnSeconds. Still, it keeps its last direction; before a game's first drag it points up-left.
-    // Reduced motion: it snaps to the new direction.
-    hoseJet: { length: 0.14, width: 0.018, minWidth: 7, mist: 4, splashEvery: 0.07, turnMinMove: 8, turnSeconds: 0.07 },   // [T]
+    // the cleaning point), so the two always agree. E51 (Andrew, 2026-10-01, replacing E44's swing): it points the way the
+    // mouse is moving right now, from its last turnMinMove px of travel (so a one-pixel wobble can't spin it), with no
+    // swing: the picture snaps with the jet. A reversal flips it at once; still, it keeps its last direction; before a
+    // game's first drag it points up-left.
+    hoseJet: { length: 0.14, width: 0.018, minWidth: 7, mist: 4, splashEvery: 0.07, turnMinMove: 4 },   // [T]
     // E42: the pressure-washer blast while spraying (audio.js): under the music, with no dip, under THONG, the buzz and
     // the hiss, on the egg-laying sounds' overlap cap. `gain` is its level into the master chain.
     hoseBlastGain: 0.032,          // [T]

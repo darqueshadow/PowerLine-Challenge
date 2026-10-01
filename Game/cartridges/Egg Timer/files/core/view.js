@@ -586,12 +586,12 @@
 
   /* E44 (Chat, 2026-09-25): the nozzle turns to point where the jet goes, so the picture and the jet always agree. A
      cursor picture can't turn, so in play the system cursor is hidden (style.css) and the nozzle is drawn here, its tip
-     on the pointer (the cleaning point, where it always was), turned about that tip. A drag turns it the way the drag
-     goes: the drag must move hoseJet.turnMinMove px before its direction counts, so a small wobble turns nothing, and
-     the picture swings onto the new direction (time constant turnSeconds) rather than snapping. Still, it keeps its
-     last direction; each game starts pointing up-left, as the cursor did. Reduced motion: it snaps, no swing. */
+     on the pointer (the cleaning point, where it always was), turned about that tip. E51 (Andrew, 2026-10-01): it points
+     the way the mouse is moving right now, taken from its last hoseJet.turnMinMove px of travel (a smaller wobble turns
+     nothing), and snaps there with the jet: no swing (it was E44's). Still, it keeps its last direction; each game
+     starts pointing up-left, as the cursor did. */
   var NOZZLE_AIM = -3 * Math.PI / 4;   // the picture's own aim: up-left
-  var aim = { want: NOZZLE_AIM, shown: NOZZLE_AIM, from: null, raf: 0, at: 0 };
+  var aim = { want: NOZZLE_AIM, shown: NOZZLE_AIM, from: null };
   /* The hatch (Andrew, 2026-10-01; replaces E46's "a cute alien only scurries"). Both sets come out of the nest, scurry
      a little way and dance on the spot (CSS, style.css: one timeline as long as the hatch). A horror alien then FREEZES
      and stares for a beat, and jumps at the player: the same puppet, full screen, in #scare, sudden and fast after the
@@ -682,26 +682,12 @@
     var dx = x - aim.from.x, dy = y - aim.from.y;
     if (Math.hypot(dx, dy) < ET.CONFIG.hoseJet.turnMinMove) return;
     aim.from = { x: x, y: y };
-    aim.want = Math.atan2(dy, dx);
-    if (reducedMotion()) { aim.shown = aim.want; turned(); return; }
-    if (!aim.raf) { aim.at = performance.now(); aim.raf = requestAnimationFrame(swing); }
-  }
-  function swing(now) {
-    var dt = Math.max(0, Math.min(0.1, (now - aim.at) / 1000));
-    aim.at = now;
-    swingBy(dt);
-    aim.raf = aim.shown === aim.want ? 0 : requestAnimationFrame(swing);
-  }
-  function swingBy(dt) {
-    var d = turnBy(aim.want - aim.shown);
-    if (Math.abs(d) < 0.003) aim.shown = aim.want;
-    else aim.shown = turnBy(aim.shown + d * (1 - Math.exp(-dt / ET.CONFIG.hoseJet.turnSeconds)));
+    aim.want = aim.shown = Math.atan2(dy, dx);   // E51: at once, the picture with the jet
     turned();
   }
   function turned() { drawHose(); if (water && water.on) placeJet(); }
   function resetAim() {
-    if (aim.raf) cancelAnimationFrame(aim.raf);
-    aim.want = aim.shown = NOZZLE_AIM; aim.from = null; aim.raf = 0;
+    aim.want = aim.shown = NOZZLE_AIM; aim.from = null;
     drawHose();
   }
   /* Andrew, 2026-09-30: the stream, for dt of the player's seconds (a pause gives 0): from the nozzle (the pointer) along
@@ -1239,7 +1225,7 @@
       stopWipe = end;
     },
     /* For rigs: run the stream for dt seconds now, as a frame of play would (a synthetic drag has no frames in it). */
-    stream: function (dt) { if (water && water.on) swingBy(dt); streamStep(dt); return !!(water && water.on); },
+    stream: function (dt) { streamStep(dt); return !!(water && water.on); },
     /* For rigs (E44): the nozzle's aim, radians: where the drag last pointed it, and where it's drawn now. */
     aim: function () { return { want: aim.want, shown: aim.shown, nozzle: !!nozzle && !nozzle.hidden }; },
     /* E42: stop spraying now (a pause, or the play screen closing): the jet and its blast end with it. */

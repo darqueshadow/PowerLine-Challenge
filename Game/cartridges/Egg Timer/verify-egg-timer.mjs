@@ -2356,7 +2356,7 @@ try {
   }
 
   /* ------------------------------------------------------ E44. the nozzle turns with the jet */
-  section("E44. the nozzle picture turns with the jet (Chat, 2026-09-25)");
+  section("E44 and E51. the nozzle picture turns with the jet, at once, the way the mouse is going (Chat, 2026-09-25; Andrew, 2026-10-01)");
   {
     await ev("__et.start('clear', 1); __et.advance(0.1); 1");
     if (await ev("__et.paused()")) await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })), 1)");
@@ -2372,13 +2372,15 @@ try {
     ok(s0.shown && near(s0.at, UL) && near(s0.turn, 0) && Math.hypot(s0.tip[0] - 600, s0.tip[1] - 420) < 0.5,
       `before the first drag the nozzle points up-left, as the cursor did, its tip on the pointer   [tip ${s0.tip.map(Math.round)}]`);
     const fireJs = "const f = document.querySelector('#field'); const fire = (t, x, y) => { const e = new PointerEvent(t, { bubbles: true, clientX: x, clientY: y, pointerId: 12, buttons: 1 }); document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x, clientY: y })); f.dispatchEvent(e); };";
-    // a drag to the right: the picture swings (not snaps) onto it, about its tip, and the jet agrees at every moment
+    // a drag to the right: E51, the picture snaps onto it (no swing), about its tip, and the jet agrees at every moment
     const sw = await ev(`new Promise((done) => { ${fireJs} const out = [];
       fire('pointerdown', 600, 420); fire('pointermove', 640, 420); out.push(${look});
       setTimeout(() => { out.push(${look}); setTimeout(() => { out.push(${look}); fire('pointermove', 642, 423); fire('pointermove', 639, 419); fire('pointermove', 641, 422); out.push(${look}); done(out); }, 400); }, 40); })`);
     const [a0, a1, a2, a3] = sw;
-    ok(near(a0.want, 0) && near(a0.at, UL) && !near(a1.at, UL, 0.05) && !near(a1.at, 0, 0.05) && near(a2.at, 0),
-      `a drag turns it the way it goes with a swing, not a snap   [${[a0, a1, a2].map((q) => (q.at * 180 / Math.PI).toFixed(0) + "°").join(" → ")}]`);
+    ok(near(a0.want, 0) && near(a0.at, 0) && near(a1.at, 0) && near(a2.at, 0),
+      `E51: a drag turns it the way the mouse is going at once, no swing   [${[a0, a1, a2].map((q) => (q.at * 180 / Math.PI).toFixed(0) + "°").join(" → ")}]`);
+    const rev = await ev(`(() => { ${fireJs} fire('pointermove', 635, 420); const q = ${look}; fire('pointermove', 640, 420); return q; })()`);
+    ok(near(rev.at, Math.PI) && near(rev.jet, Math.PI), `…and a reversal flips it at once   [${(rev.at * 180 / Math.PI).toFixed(0)}°]`);
     ok(sw.every((q) => near(q.turn, q.at - UL) && q.jet !== null && near(q.jet, q.at)),
       "…and the picture and the jet point the same way at every moment");
     ok(sw.every((q, i) => Math.hypot(q.tip[0] - (i ? [640, 640, 641][i - 1] : 640), q.tip[1] - (i ? [420, 420, 422][i - 1] : 420)) < 0.5),
@@ -2396,7 +2398,7 @@ try {
     ok(near(dl.at, 3 * Math.PI / 4), `it follows any direction (down-left here)   [${(dl.at * 180 / Math.PI).toFixed(0)}°]`);
     const fresh = await ev(`(() => { __et.start('clear', 1); __et.advance(0.1); return ${look}; })()`);
     ok(near(fresh.at, UL) && near(fresh.want, UL), "each new game starts it pointing up-left");
-    // reduced motion: it snaps to the new direction, no swing
+    // reduced motion: the same snap (there's no swing to still)
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const snapTurn = await ev(`(() => { ${fireJs} fire('pointerdown', 600, 420); fire('pointermove', 600, 460); const q = ${look}; fire('pointerup', 600, 460); return q; })()`);
