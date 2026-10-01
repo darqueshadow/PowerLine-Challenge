@@ -6,6 +6,7 @@
      Tab         the NEXT Command Line; the text in every line is kept
      Shift+Tab   the PREVIOUS Command Line, text kept
      F12         the NEXT Command Line, and clear it (with 1 line: just clear it)
+     F3          types COM at the cursor (Andrew's all-games rule, 2026-10-01)
      Enter       submit the active box. Any rejected Enter clears it and shows a
                  red ERROR under it, with a buzz (Refinement 2 §6).
    All of them wrap at the ends; with 1 line Tab does nothing. Ctrl+Tab, Alt and
@@ -132,6 +133,15 @@
         if (count > 1 && ET.CONFIG.f12Clears === "left") boxes[active].input.value = "";
         if (count > 1) switchTo(active + 1);
         if (count === 1 || ET.CONFIG.f12Clears !== "left") boxes[active].input.value = "";
+        return true;
+      }
+      if (k === "F3") {
+        ev.preventDefault();                                       // and the browser's Find bar stays shut
+        if (ev.ctrlKey || ev.metaKey || ev.altKey) return true;
+        // COM at the cursor, no trailing space (as in Asteroid Command); setRangeText skips maxlength, so trim to fit
+        var input = boxes[active].input, a = input.selectionStart, z = input.selectionEnd;
+        var room = input.maxLength - (input.value.length - (z - a));
+        if (room > 0) input.setRangeText("COM".slice(0, room), a, z, "end");
         return true;
       }
       if (k === "Enter") { ev.preventDefault(); submit(); return true; }

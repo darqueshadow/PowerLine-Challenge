@@ -46,7 +46,7 @@ const section = (s) => console.log(`\n${s}`);
 const hms = (s) => s === null || s === undefined ? "-" : [3600, 60, 1].map((d, i) => String(Math.floor(s / d) % (i ? 60 : 24)).padStart(2, "0")).join(":");
 
 const KEYS = {
-  Enter: ["Enter", 13], Tab: ["Tab", 9], Escape: ["Escape", 27], F12: ["F12", 123],
+  Enter: ["Enter", 13], Tab: ["Tab", 9], Escape: ["Escape", 27], F12: ["F12", 123], F3: ["F3", 114],
   ArrowRight: ["ArrowRight", 39], ArrowLeft: ["ArrowLeft", 37], ArrowUp: ["ArrowUp", 38], ArrowDown: ["ArrowDown", 40]
 };
 const SHIFT = 8, CTRL = 2;
@@ -831,6 +831,19 @@ try {
   eq([(await ev("__et.boxes()")).active, (await ev("__et.boxes()")).values], [0, ["RCAV 2"]], "with 1 line, Tab does nothing");
   await press("F12");
   eq((await ev("__et.boxes()")).values, [""], "…and F12 just clears it");
+  // Andrew's all-games rule (2026-10-01): F3 types COM at the cursor, no trailing space
+  await c.insert("CAV 12");
+  await press("F3");
+  eq((await ev("__et.boxes()")).values, ["CAV 12COM"], "F3 types COM into the Command Line");
+  await ev("document.querySelector('.box.active input').setSelectionRange(4, 4)");
+  await press("F3");
+  eq([(await ev("__et.boxes()")).values, await ev("document.querySelector('.box.active input').selectionStart")], [["CAV COM12COM"], 7], "…at the cursor, which ends up after it");
+  eq(await ev(`(() => { const d = new KeyboardEvent('keydown', { key: 'F3', code: 'F3', bubbles: true, cancelable: true });
+    document.activeElement.dispatchEvent(d); return d.defaultPrevented; })()`), true, "…and the browser's Find bar stays shut");
+  await ev("(() => { const i = document.querySelector('.box.active input'); i.value = 'X'.repeat(i.maxLength - 1); i.setSelectionRange(i.value.length, i.value.length); })()");
+  await press("F3");
+  eq(await ev("document.querySelector('.box.active input').value.length"), 60, "…and never past the line's 60 characters");
+  await press("F12");
 
   /* ------------------------------------------------------------- G. pause */
   section("G. pause");
