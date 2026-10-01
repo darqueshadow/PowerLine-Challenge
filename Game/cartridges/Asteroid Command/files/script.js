@@ -986,6 +986,14 @@ function init() {
             }
             return;
         }
+        if (e.key === 'F3') {
+            // Type COM into the command box at the cursor (and keep the browser's Find shut)
+            e.preventDefault();
+            DOM.input.setRangeText('COM', DOM.input.selectionStart, DOM.input.selectionEnd, 'end');
+            updateBlockCursor();
+            if (state.running) AudioManager.play('typing');
+            return;
+        }
         if (e.key === 'Backspace') state.backspaces++;
         if (state.running) AudioManager.play('typing');
         if (e.key === 'Enter') {

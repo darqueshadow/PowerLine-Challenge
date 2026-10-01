@@ -127,6 +127,7 @@ const HowToPlay = (function () {
             + table(['KEY', 'ACTION'], [
                 ['<span class="htp-key">ENTER</span>',     'Fire &mdash; submit the command'],
                 ['<span class="htp-key">F12</span>',       '<strong>Clear the command box.</strong> Free. No penalty.'],
+                ['<span class="htp-key">F3</span>',        'Type COM into the command box'],
                 ['<span class="htp-key">BACKSPACE</span>', 'Fix a typo &mdash; and pay for it'],
                 ['<span class="htp-key">ESCAPE</span>',    'Pause / Resume'],
                 ['<span class="htp-key">ARROW KEYS</span>','Navigate menus']
