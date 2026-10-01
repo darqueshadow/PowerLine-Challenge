@@ -1428,7 +1428,7 @@ export default {
   "display": "flex",
   "flex-direction": "column",
   "font-family": "\"Arial Black\", Impact, Haettenschweiler, sans-serif",
-  "font-size": "clamp(10px, 1vw, 17px)",
+  "font-size": "clamp(15px, 1.5vw, 25.5px)",
   "left": "50%",
   "letter-spacing": "0.12em",
   "line-height": "1.1",
@@ -1436,12 +1436,12 @@ export default {
   "text-align": "center",
   "top": "50%",
   "transform": "translate(-50%, -50%)",
-  "z-index": "1"
+  "z-index": "0"
  },
  "#warp .clock-art": {
   "display": "block",
   "filter": "drop-shadow(rgb(0, 0, 0) 4px 4px 0px)",
-  "height": "min(17cqh, 30cqw)",
+  "height": "min(25.5cqh, 45cqw)",
   "overflow-x": "visible",
   "overflow-y": "visible",
   "width": "auto"
