@@ -399,6 +399,11 @@
     // they never cover a nest or a readout, with a thin leader line (under every readout) to what they point at.
     // Neither flashes.
     tipsWave: 1,
+    // ── How To Play (Andrew, 2026-10-01): Andrew's own five lines, one per panel of E29's strip ──────────────
+    // Panel 5 ("Clear too slow....") shows a goofy, happy cute alien: deliberate bait (players expect cute; the horror
+    // ones come later). ⏳ PENDING (Andrew to confirm): Code suggests the crab, the goofiest (droopy eyes on stalks, a
+    // smug grin, a bit of shell still on its head). "crab" | "octopus" | "worm".
+    howtoAlien: "crab",
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

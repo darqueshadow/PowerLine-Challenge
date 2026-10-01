@@ -234,13 +234,14 @@ try {
   {
     // Refinement 6 §1: the title screen's own How To Play card, in the panel's place, laid out differently
     const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return { steps: [...c.querySelectorAll('.strip > li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.say').textContent),
-      pics: [...c.querySelectorAll('.strip > li')].map(l => l.querySelectorAll('.scene .pic').length), heads: c.querySelectorAll('.strip .head').length, split: c.querySelectorAll('.strip > li:nth-child(3) .half').length,
+      pics: [...c.querySelectorAll('.strip > li')].map(l => l.querySelectorAll('.scene .pic').length), heads: c.querySelectorAll('.strip .head').length,
+      alien: (() => { const a = c.querySelector('.strip > li:nth-child(5) .alien-pic .alien'); return a ? a.dataset.alien : null; })(), clock: c.querySelectorAll('.strip .clock-art').length,
       banner: c.querySelector('.banner').textContent, panelHere: !!document.querySelector('#screen-title #howto'), shown: c.getBoundingClientRect().width > 150 }; })()`);
-    eq(card.steps, ["1 The aliens are laying eggs in your CAVs.", "2 When the timer turns pink and bold, type RCAV + the unit. Too early won't work.",
-      "3 Clear fast, and breakfast gets fancier.", "4 Two lines! Tab to switch. Type the next RCAV while you wait.",
-      "5 Every clock speeds up 5× till an egg is ready. Get your next RCAV ready!"],
-      "E29 (ruled): the title's How To Play card is a five-panel comic strip, each step's words in a speech bubble, as ruled");
-    ok(card.pics.every((n) => n >= 1) && card.heads === 0 && card.split === 2, `…a picture in every panel, a number badge and no heading, panel 3 split fast / slow   [${card.pics.join(",")}]`);
+    eq(card.steps, ["1 The Queen is laying eggs in your CAVs", "2 Once the CAV runs out, the egg starts to hatch",
+      "3 Clear the CAV fast, more points", "4 Clear slow, more mess", "5 Clear too slow...."],
+      "Andrew, 2026-10-01: the title's How To Play card is E29's five-panel comic strip, with his five lines in its speech bubbles");
+    ok(card.pics.every((n) => n >= 1) && card.heads === 0, `…a picture in every panel, a number badge and no heading   [${card.pics.join(",")}]`);
+    eq([card.alien, card.clock], [await ev("ET.CONFIG.howtoAlien"), 0], "…panel 5 shows the goofy cute alien (the puppet, once the data is in), and the Time Warp step is gone");
     ok(card.shown && card.banner === "HOW TO PLAY" && !card.panelHere, "…in place of the in-game panel, which isn't on the title screen");
   }
   await menuFit("title", "#howto-title");

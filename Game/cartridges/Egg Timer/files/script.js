@@ -395,12 +395,16 @@
      is Gemini's, brief slots 16–20) and the step's words in a speech bubble. Panel 3 is split, fast and slow.
      E29's rulings: no panel headings, only a number badge in each panel's corner (the heading stays as the panel's
      accessible name); the words are TITLE_STEPS, as ruled; the old hose step is gone (the sink says it). */
+  /* Andrew, 2026-10-01: his own five lines (TITLE_STEPS), one a panel, on both screens; the Time Warp panel is gone.
+     The pictures: the Queen (the mommy doodle) and a running CAV; the egg cracking as the timer turns pink, with the
+     RCAV shout; a fast clear's fancy plate; a slow one's broken egg; and a goofy cute alien (CONFIG.howtoAlien, the
+     puppet itself, filled in once the data has loaded, so its pictures never hold the data back). */
   var STRIP = [
-    { head: "Watch the nests", pics: [[1], [3, "small"]], chip: ["04:21", "timer"] },
-    { head: "Wait for pink", pics: [[0]], chip: ["10:00", "timer bold"], shout: "RCAV 2101!" },
-    { head: "Be quick", split: true },
-    { head: "Use your Command Lines", pics: [[2]], keys: true },
-    { head: "Time Warp", pics: [["clock"], [4, "small"]] }
+    { head: "The Queen lays eggs", pics: [[1], [3, "small"]], chip: ["04:21", "timer"] },
+    { head: "The CAV runs out", pics: [[3]], chip: ["10:00", "timer bold"], shout: "RCAV 2101!" },
+    { head: "Fast", dish: true },
+    { head: "Slow", pics: [[3]], mess: true },
+    { head: "Too slow", alien: true }
   ];
   function buildStrip() {
     var ol = document.createElement("ol");
@@ -422,25 +426,21 @@
         el.setAttribute("class", (spec[0] === "clock" ? "clock-art" : "doodle") + " pic" + (spec[1] ? " " + spec[1] : ""));
         return el;
       }
-      if (p.split) {
-        // fast: the pan and a fancy plate; slow: a cracked egg with a leg flailing out
-        [["Fast!", "fast"], ["Slow…", "slow"]].forEach(function (h) {
-          var half = document.createElement("div");
-          half.className = "half " + h[1];
-          var lab = document.createElement("span");
-          lab.className = "tag";
-          lab.textContent = h[0];
-          half.appendChild(lab);
-          if (h[1] === "fast") {
-            var d = ET.art.dishEl(5, "");   // a fancy plate (the ladder's sixth dish), held still
-            d.className = "dish pic";
-            d.removeChild(d.querySelector(".caption"));
-            half.appendChild(d);
-          } else {
-            half.appendChild(pic([3]));
-          }
-          scene.appendChild(half);
-        });
+      if (p.dish) {
+        var d = ET.art.dishEl(5, "");   // a fancy plate (the ladder's sixth dish), held still
+        d.className = "dish pic";
+        d.removeChild(d.querySelector(".caption"));
+        scene.appendChild(d);
+      } else if (p.alien) {
+        // the puppet goes in once the data is in (fillStripAliens)
+        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "-40 -36 80 64");
+        svg.setAttribute("class", "alien-pic pic");
+        svg.setAttribute("aria-hidden", "true");
+        var slot = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        slot.setAttribute("class", "creature");
+        svg.appendChild(slot);
+        scene.appendChild(svg);
       } else {
         (p.pics || []).forEach(function (s) { scene.appendChild(pic(s)); });
         if (p.chip) {
@@ -454,6 +454,12 @@
           sh.className = "shout";
           sh.textContent = p.shout;
           scene.appendChild(sh);
+        }
+        if (p.mess) {
+          var m = document.createElement("span");
+          m.className = "goo";
+          m.setAttribute("aria-hidden", "true");
+          scene.appendChild(m);
         }
         if (p.keys) {
           var k = document.createElement("span");
@@ -473,16 +479,19 @@
     return ol;
   }
 
-  /* Refinement 6 §1: the title screen's How To Play card. Andrew may reword these; keep them short.
-     E27 (ruled 2026-09-24) adds step 5, Time Warp (E28 keeps that name); its speed-up is read from the config, so it
-     stays true. E28 rewords step 2 around the colour cue: the timer turns pink when RCAV works. */
+  /* Refinement 6 §1: the title screen's How To Play card. Andrew, 2026-10-01: his own words, the same on the title and
+     options screens (they replace E28's wording and E27's Time Warp step). */
   var TITLE_STEPS = [
-    "The aliens are laying eggs in your CAVs.",
-    "When the timer turns pink and bold, type RCAV + the unit. Too early won't work.",
-    "Clear fast, and breakfast gets fancier.",
-    "Two lines! Tab to switch. Type the next RCAV while you wait.",
-    "Every clock speeds up " + C.warpFactor + "× till an egg is ready. Get your next RCAV ready!"
+    "The Queen is laying eggs in your CAVs",
+    "Once the CAV runs out, the egg starts to hatch",
+    "Clear the CAV fast, more points",
+    "Clear slow, more mess",
+    "Clear too slow...."
   ];
+  // the "too slow" panel's alien, in both strips, once the data has loaded
+  function fillStripAliens() {
+    document.querySelectorAll(".strip .alien-pic .creature").forEach(function (slot) { ET.aliens.fill(slot, C.howtoAlien); });
+  }
   function buildTitleCard() {
     $("#howto-title").appendChild(buildStrip());   // E29: the comic strip
     // E29: the same strip on the options screen, under the HOW / TO / PLAY signs (CSS shows it only there)
@@ -552,6 +561,7 @@
   ET.data.load().then(function (data) {
     app.data = data;
     paintPrompt();
+    fillStripAliens();   // How To Play's cute alien (Andrew, 2026-10-01), after the data: its pictures never hold it back
   }).catch(function (err) {
     app.screen = "error";   // nothing on this screen starts a game (Andrew, 2026-09-24)
     var sheet = err && err.sheet;

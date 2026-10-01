@@ -99,16 +99,15 @@ button { font: inherit; }
 .strip .cell:nth-child(4) .num { background: var(--pink); }
 .strip .cell:nth-child(5) .num { background: var(--warp); }
 .strip .scene { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; min-width: 0; padding: 0.75em 0 0 0.7em; }   /* clear of the corner badge */
-.strip .scene.split { flex-direction: column; flex-wrap: nowrap; }
-.strip .half { display: flex; align-items: center; gap: 2px; width: 100%; }
-.strip .half .tag { font-family: var(--font-display); font-size: 0.62em; }
-.strip .fast .tag { color: var(--warp-edge); }
-.strip .slow .tag { color: var(--hot); }
 .strip .pic { display: block; width: 52%; max-width: 48px; height: auto; overflow: visible; transform: none; }
 .strip .pic.small { width: 34%; }
-.strip .half .pic { width: 60%; }
 .strip .clock-art.pic { width: 30%; }
-.strip .dish.pic { position: static; transform: none; animation: none; width: 60%; }
+.strip .dish.pic { position: static; transform: none; animation: none; width: 70%; }
+/* Andrew, 2026-10-01: panel 4's mess (a yolk splat beside the broken egg), and panel 5's goofy cute alien, the hatchling
+   puppet itself (its swings still under reduced motion, as in play) */
+.strip .goo { display: block; width: 1.5em; height: 0.85em; background: var(--yolk); border: 2px solid var(--outline); border-radius: 55% 45% 60% 40% / 60% 55% 45% 40%; }
+.strip .alien-pic.pic { width: 92%; max-width: 74px; }
+.strip .alien-pic .creature { display: inline; }
 .strip .chip { padding: 0 3px; border: 2px solid var(--outline); font-family: var(--font-mono); font-weight: 700; font-size: 0.72em; background: var(--readout-timer-bg); color: var(--readout-timer-ink); }
 .strip .chip.bold { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
 .strip .shout { padding: 0 4px; background: var(--comic-bubble); border: 2px solid var(--outline); border-radius: 8px; font-family: var(--font-display); font-size: 0.62em; white-space: nowrap; }
