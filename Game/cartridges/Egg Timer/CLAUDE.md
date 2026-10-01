@@ -22,7 +22,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E52**; **E49–E51 open**);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E52**; none open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -90,6 +90,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Time Warp:** clocks run 5× once the wave's last CAV has *started* and none is bold (E18), or while 2+ eggs are each
   over 8:00 from bold (E39); never with an egg bold; overtime never warps. 🚨 The sign flashes at most 2/s (`setSign()`'s
   0.25 s guard), then wobbles (a transform, never brightness); 🚨 lightning re-jags ≤ 2.5/s (`rejag()`). E43 zaps.
+  E50: the clock is 1.5× and sits UNDER the nests where they meet (#warp z-index 0).
 - **Board lights:** `#backdrop`, behind everything on the board: the **lilac** tint (E32), white lights on the gameplay
   track's BPM (🚨 5% white at most, one start a beat, 3 at once) and Time Warp's dark veil (a 0.5 s fade).
 - **Placement:** 10 points; **an ignored trigger auto-opens** (20 s, −1 s a wave, floor 8 s). **Any rejected Enter**
@@ -103,7 +104,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   **trough** (left, right, bottom; none on top) to the sink. Cleanup is a timed window; nothing is counted (E41).
   🚨 The cleanup banner flashes at most 2 a second, guard-capped at 2.5 (`cleanupFlashSeconds()`).
 - **The hose:** in play the cursor is **always the nozzle**, **drawn** (`#nozzle`, system cursor hidden) and turned
-  about its tip with the jet (E44). A drag **blasts** (E42): a jet (one sweep into the trough) that streaks and thins
+  about its tip with the jet (E44), snapping to the way the mouse is going (E51: last 4 px, no swing). A drag **blasts** (E42): a jet (one sweep into the trough) that streaks and thins
   liquid under the nozzle (~2 passes), with a pressure-washer sound. **The WATER pushes** (Andrew, 2026-09-30): every
   frame the jet is on, held still or not, anything any part of the stream touches goes the way the water flows, harder
   near the nozzle (`jetPush`, `liquid.wash`/`drift`); rig drags step 2 frames of play per event. The hose tag sits by the sink.
@@ -117,7 +118,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Screens:** title (PRESS ANY KEY until the first press, E40), options, game over (Enter ignored for 1 s and on
   auto-repeat, E34). The **scary mom face**: at most once a wave, under 1 s, HUD bar only, no input, no flashing.
 - **Reduced motion** stills every loop, light, sign and wobble, the pieces' tumble, the trough's water, the jet's burst,
-  mist and splash, and the nozzle's swing. **New motion must join it** (rig R).
+  mist and splash, the hatch's dance and hop (the jump scare: E49 "still"). **New motion must join it** (rig R).
 - **Sound:** mute button + M (Ctrl+M in play, E25). Every sound connects to `audio.js`'s `bus()` (rig A2). Music
   (`files/audio/`, `make-music.py`) at −19.8 LUFS (E36; re-measure with ebur128 if a file changes), dipping to 40%
   under THONG, the buzz and the hiss; every other sound sits under those three, no dip (rigs S, E42, E43).
@@ -155,8 +156,9 @@ write Egg Timer memories there (auto-memory loads the PLC root index, keyed to t
 ## State 2026-10-01 (later)
 Live on `main`: F3 types `COM`; Andrew's batch (packet filing note, 2026-10-01): E48's exit (Q, CAT hub only), "Too
 Early!", the cord on top, no How To Play on game over, his How To Play words, the new hatch with its jump scare, and
-steadier rigs. **Open, with Chat:** E49 (the jump under reduced motion), E50 (a bigger Time Warp clashes with Refinement
-6 §2), E51 (the hose's direction); the close-up art and sound proposals; **Andrew to confirm** the crab in How To Play.
+steadier rigs. Then E49 ("still"), E50 (option A), E51, the crab and the hatch's sound (music out for the stare, a
+stinger on the jump), all ruled and live. **Waiting:** the horror aliens' close-up faces from Gemini (spec in packet
+§11 under E49): swap them in at the moment the puppet fills the screen. No E-item open; next free E52.
 Hand tests owed: nozzle lag, Fang Rock's title music, held Enter at Game Over, the aliens, the hose's feel, the exit (Q)
-in Rec-Bay 4, real F3, the jump scare. Left from the audit: JS colours →
+in Rec-Bay 4, real F3, the jump scare and its sound, the hose's new aim. Left from the audit: JS colours →
 `theme.css`, dead code, test gaps. History in `docs/decisions.md` (repo root); the art brief is `docs/Egg Timer art brief for Gemini.md`.

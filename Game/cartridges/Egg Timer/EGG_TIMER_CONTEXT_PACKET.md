@@ -1,7 +1,13 @@
+> **FILING NOTE — Claude Code, 2026-10-01 (later: E49–E51 ruled).** Andrew's rulings are filed verbatim as
+> `Previous Versions/EGG_TIMER_E49-E51_RULINGS_2026-10-01.md`: **E50 option A**, **E51 as proposed**, **E49 "still"
+> kept**, **the crab confirmed**, **the hatch's sound as proposed**; the close-up art is coming from Gemini. Each is
+> struck in §11, built and **pushed live** in its own commit (E49 and the crab ride with the sound). No E-item is open;
+> next free **E52**.
+
 > **FILING NOTE — Claude Code, 2026-10-01 (Andrew's batch of seven, plus E48 and the steadier rigs).** Filed verbatim as
 > `Previous Versions/EGG_TIMER_CHANGES_BATCH_2026-10-01.md`. **Built and pushed live**, each in its own commit: **E48**
 > (the exit, as proposed, §11); **2, "Too Early!"** (§6); **4, the cord on top** (§7); **6, How To Play in Andrew's words**
-> (§11 E29; the cute alien in panel 5 is Code's suggestion, the crab, pending Andrew's word); **7, no How To Play on the
+> (§11 E29; the cute alien in panel 5 is the crab, confirmed by Andrew the same day); **7, no How To Play on the
 > game-over screen** (§11); **3, the new hatch** (§7; it replaces E46 and E47); and the six steadied rig checks.
 > **Not built, flagged:** **1, a bigger Time Warp** clashes with Refinement 6 §2 (**E50**); **5, the hose pointing where
 > the mouse is going** leaves gaps to settle first (**E51**); the jump under reduced motion is **E49** (built as "still").
@@ -512,7 +518,7 @@ aliens move.~~ *(Andrew, 2026-10-01, replacing E46 and E47)* **Every hatchling s
 spot. A horror one then freezes and stares for a beat, and jumps at the player as a full-screen jump scare** ("make that
 scary as shit"): **sudden and fast after the stillness, filling the screen, held a moment before clearing. A cute one does
 a goofy hop toward the player instead: funny, not scary.** The hatch is longer: **3.2 s** [T]. No flashing and no
-brightness changes; reduced motion stills the movement (the jump: ⏳ **E49**). *(Code: one timeline as long as the hatch:
+brightness changes; reduced motion stills the movement (the jump: **E49**, "still"). *(Code: one timeline as long as the hatch:
 out and a short upright scurry to one side (0–25%), the dance, a hop and a sway (25–55%); then the horror alien's own
 swings stop and it holds still until 78%, when the same puppet leaps from its nest to fill the screen in about an eighth
 of a second, holds half a second and drops away out of view; the cute one squats, hops toward the player growing to about
@@ -784,27 +790,27 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   `hatchPanDelay` are gone. The browser rig counts every THONG and every pan from a game's start to past its first hatch:
   none.)*
 
-### Raised by Andrew's batch (2026-10-01) — E49, E50 and E51 open
+### Raised by Andrew's batch (2026-10-01) — E49, E50 and E51 ruled
 
-- ⏳ **E49. The jump scare under reduced motion.** *(Andrew's batch, item 3: "propose what the jump does under reduced
+- ~~**E49. The jump scare under reduced motion.**~~ **Resolved** *(Andrew, 2026-10-01: "keep 'still' as built")*. *(Original item follows.)* *(Andrew's batch, item 3: "propose what the jump does under reduced
   motion".)* Reduced motion already stills the scurry, the dance and the cute hop: the alien just sits in its nest for the
   hatch. **Built as "still":** at the moment of the jump, the full-screen alien simply **appears**, with no zoom and no
   movement, holds for the same half second, and is gone. The scare stays; nothing moves (reduced motion is about
   movement, and a cut isn't a flash). **The other value, "none":** no full-screen alien at all under reduced motion; the
   hatch ends in the nest. Switch: `hatchScareReduced`. Needed: keep "still", or "none".
   **Two proposals that came with item 3 (no number; for Chat):**
-  - **Close-up art for the scare.** Blown up to full screen the puppet does look soft (its pieces are drawn for the
+  - **Close-up art for the scare.** *(Andrew, 2026-10-01: "coming from Gemini next". Not built; Code swaps it in when the pictures arrive.)* Blown up to full screen the puppet does look soft (its pieces are drawn for the
     nest). **What would make it land:** one picture per horror alien (Scuttler, Grabber, Wriggler), **its face coming at
     the viewer**: front-on, eyes, mandibles and open maw, lunging forward, so close the frame **crops the head and
     front limbs** at the edges. **2560 × 1440 (16:9)**, the face filling about 90% of the height; a **flat plain
     background** (Code cuts it out, as with the sheets); the game's **thick dark plum outline**; the same palette as its
     sheet; **no red liquid** (red eyes and veins are fine). Code would swap it in at the moment the puppet fills the
     screen, so the zoom starts from the alien in its nest and ends on the close-up.
-  - **A sound.** The hatch is silent, and a jump scare is half sound. **Proposal (not built):** the music drops out
+  - ~~**A sound.**~~ **Approved as proposed** *(Andrew, 2026-10-01)*, built and live. *(Code: synthesized until recorded sounds: the music fades out over 0.12 s as the alien freezes and stays out through the stare (no other cue's dip can bring it back early); the stinger, two low detuned sawtooth/square stabs, a rising screech and a noise hit, about 0.4 s, measured with seeded randomness at THONG's peak range and just under its loudness; the music comes back over the duck's release after 0.45 s; the cute hop's boing sits under 60% of the quietest loud cue. `hatchSound` in `config.js`; rig section HS.)* The hatch is silent, and a jump scare is half sound. **Proposal (not built):** the music drops out
     during the freeze, so the stare is quiet, then a **short, sharp stinger** on the jump (a screech over a hard synth
     stab, about 0.4 s), as loud as THONG, the buzz and the hiss and no louder; the music comes back after. For the cute
     hop, a small "boing" under them. Needed: yes to either, and whether the music should drop out.
-- ⏳ **E50. A bigger Time Warp (Andrew's batch, item 1) clashes with Refinement 6 §2.** The clock, sign and caption sit
+- ~~**E50. A bigger Time Warp (Andrew's batch, item 1) clashes with Refinement 6 §2.**~~ **Resolved** *(Andrew, 2026-10-01: "option A (grow about 1.5x, nests draw over it)")*: built and live. *(Code: the clock, sign and caption are exactly 1.5×; `#warp` sits at z-index 0, under the nests and readouts that follow it on the board. The layout rig checks the size and the stacking at all four window sizes instead of "clear of every nest".)* *(Original item follows.)* The clock, sign and caption sit
   in the centre of the board, **clear of every nest and readout** (Refinement 6 §2, checked at all four window sizes),
   and there's almost no room: at 1280 × 720 and 1024 × 640 it already sits 4 px from the nearest nests. Measured: 1.5×
   overlaps the nests at every size; growing only the clock picture by 1.3× still touches them at 1440 × 900 and below.
@@ -813,7 +819,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   1.5× at 1920 × 1080, a little at 1440 × 900, not at all below); **C.** move the caption off it (say, into the band by
   the wall clock) and give the clock that space (roughly 1.2–1.3×, to be measured). Code recommends **A**: it's the only
   one that's noticeably bigger on every screen. Needed: A, B or C.
-- ⏳ **E51. The hose's jet points where the mouse is going (Andrew's batch, item 5, replacing E44's slow turn): the
+- ~~**E51. The hose's jet points where the mouse is going**~~ **Resolved** *(Andrew, 2026-10-01: "approved as proposed")*: built and live (`hoseJet.turnMinMove` 4, no swing; `turnSeconds` is gone). *(Original item follows.)* **E51. The hose's jet points where the mouse is going (Andrew's batch, item 5, replacing E44's slow turn): the
   gaps.** Today a drag's direction counts only after it has moved 8 px, and the nozzle picture swings onto it over
   about 0.07 s; the jet follows the picture. **Code's proposal:** the jet points **the way the mouse is moving right
   now**, from its last few pixels of travel (about 4 px, so a one-pixel wobble can't spin it), with **no swing**; the
@@ -950,7 +956,7 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   press Enter. Too early won't work.") and step 5 ("Time Warp! …"). *(Code: the cleanup banner keeps its countdown
   after "CLEAN-UP TIME!", as Refinement 3 §3 had it; the title card is wider, 27% of the window [250–430 px], to hold
   the longer step 2.)*
-- ~~**E29. Command Line picker and comic-strip How To Play.**~~ *(Andrew, 2026-10-01: the strip now carries **his own five lines, identical on the title and options screens**: "The Queen is laying eggs in your CAVs" / "Once the CAV runs out, the egg starts to hatch" / "Clear the CAV fast, more points" / "Clear slow, more mess" / "Clear too slow...." with a picture of a goofy, happy cute alien (deliberate bait: players expect cute, and later the horror ones arrive). The Time Warp step is gone. Code: one line a panel; the pictures are the Queen (the mommy doodle) with a running CAV, the egg as the timer turns pink (the RCAV shout kept), a fast clear's fancy plate, a slow one's broken egg with a yolk splat, and the cute alien's own puppet. ⏳ **Which cute alien:** Code suggests **the crab**, the goofiest (droopy eyes on stalks, a smug grin, a bit of shell still on its head); `howtoAlien` in `config.js`, for Andrew to confirm.)* **Resolved** *(E29 rulings, Chat)*: **the strip ships with
+- ~~**E29. Command Line picker and comic-strip How To Play.**~~ *(Andrew, 2026-10-01: the strip now carries **his own five lines, identical on the title and options screens**: "The Queen is laying eggs in your CAVs" / "Once the CAV runs out, the egg starts to hatch" / "Clear the CAV fast, more points" / "Clear slow, more mess" / "Clear too slow...." with a picture of a goofy, happy cute alien (deliberate bait: players expect cute, and later the horror ones arrive). The Time Warp step is gone. Code: one line a panel; the pictures are the Queen (the mommy doodle) with a running CAV, the egg as the timer turns pink (the RCAV shout kept), a fast clear's fancy plate, a slow one's broken egg with a yolk splat, and the cute alien's own puppet. **Which cute alien:** **the crab** (Code's suggestion, **confirmed by Andrew, 2026-10-01**), the goofiest (droopy eyes on stalks, a smug grin, a bit of shell still on its head); `howtoAlien` in `config.js`.)* **Resolved** *(E29 rulings, Chat)*: **the strip ships with
   no panel headings, a number badge (1–5) in each panel's corner, and these words: 1 "The aliens are laying eggs in your
   CAVs." 2 "When the timer turns pink and bold, type RCAV + the unit. Too early won't work." 3 "Clear fast, and
   breakfast gets fancier." 4 "Two lines! Tab to switch. Type the next RCAV while you wait." 5 "Every clock speeds up 5×
