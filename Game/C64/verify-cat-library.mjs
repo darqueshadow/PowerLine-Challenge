@@ -42,7 +42,7 @@ if (!existsSync(fileURLToPath(DRIVER))) {
 }
 const { open } = await import(DRIVER);
 
-const HUB   = "http://localhost:8899/Game/C64/index.html";
+const HUB   = (process.env.CAT_RIG_BASE || "http://localhost:8899") + "/Game/C64/index.html";
 const DISKS = fileURLToPath(new URL("./roms/", import.meta.url));
 
 /* A full load: theatre 1920ms + intro 2600ms + fade 260ms. Rounded up. */

@@ -1385,6 +1385,11 @@
      takes focus. ⚠️ Keys the capture handler above already used (F2, F9, F12)
      are marked defaultPrevented and are left alone. */
   if (MACHINE) {
+    /* 🆕 2026-10-01 — a click on the glass is a click OUTSIDE the hub's small
+       prompt (cat.js, THE LOAD CHOICE), but the hub's document never hears a
+       mouse press that lands in this frame. So it is told, and closes the
+       prompt. Nothing else is said, and the click itself is untouched. */
+    document.addEventListener("mousedown", function () { toHub({ type: "cat:pointer" }); }, true);
     ["keydown", "keyup"].forEach(function (type) {
       document.addEventListener(type, function (e) {
         var el = keyTarget();

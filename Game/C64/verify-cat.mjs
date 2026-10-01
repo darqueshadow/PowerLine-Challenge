@@ -35,7 +35,7 @@ if (!existsSync(fileURLToPath(DRIVER))) {
 }
 const { open } = await import(DRIVER);
 
-const URL_HUB = "http://localhost:8899/Game/C64/index.html";
+const URL_HUB = (process.env.CAT_RIG_BASE || "http://localhost:8899") + "/Game/C64/index.html";
 
 /* cdp.mjs's key() is key(type, key, code, keyCode, modifiers) and the last one
    is CDP's own bitmask, not an options object: Alt 1, Ctrl 2, Meta 4, Shift 8.

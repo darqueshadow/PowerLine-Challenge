@@ -518,6 +518,17 @@
        title="Drag to resize"></div>
 </div>
 
+<!-- 🆕 2026-10-01 — THE C64 CORNER'S SMALL PROMPT: Load's choice ("Play" /
+     "Instructions") and the picker for a set of three or more disks. One
+     element for both, placed by cat.js above whatever opened it (placePick).
+     Mouse only, like the reader: nothing in it takes the keyboard, and every
+     choice hands focus back to the machine. A region, not a dialog, for the
+     same reason the reader gives. -->
+<div id="c64-pick" class="c64-pick" hidden role="region" aria-labelledby="c64-pick-title">
+  <div class="c64-pick__title" id="c64-pick-title"></div>
+  <div class="c64-pick__body" id="c64-pick-body"></div>
+</div>
+
 <p class="sr-only" id="help-text">
   The CAT terminal accepts typed commands. Type LOAD, quote, a program name,
   quote, comma 8 and press Enter to load it, or LOAD "$",8 to list the
