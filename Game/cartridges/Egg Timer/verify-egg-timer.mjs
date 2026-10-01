@@ -52,6 +52,8 @@ const KEYS = {
 const SHIFT = 8, CTRL = 2;
 
 const c = await open({ gpu: true, w: 1440, h: 900 });
+// the font check (O) reads the page's resource log, whose default 250 entries a full run can fill first (2026-10-01)
+await c.send("Page.addScriptToEvaluateOnNewDocument", { source: "performance.setResourceTimingBufferSize(5000)" });
 async function press(name, mods = 0) {
   const [code, kc] = KEYS[name] || [name, name.toUpperCase().charCodeAt(0)];
   await c.key("rawKeyDown", name, code, kc, mods);
@@ -1635,8 +1637,9 @@ try {
       const still1 = await ev("ET.view.lightning().d");
       ok(still0 === still1 && !!still0, "SAFETY: with reduced motion the lightning holds still");
       // E27: the clock's hands hold still too, and its face reads "5×" (stepped in one evaluation while it runs)
-      const h = await ev("(() => { const a = ET.view.clockHands(); __et.advance(0.1); const b = ET.view.clockHands(); return { a, b, warp: __et.snapshot().warp, five: document.querySelector('#warp .fivex').textContent }; })()");
-      ok(h.warp && h.a.minute === h.b.minute && h.a.hour === h.b.hour && h.b.fivex && h.five === "5×", `SAFETY: with reduced motion the clock's hands hold still and its face shows "5×"   [${h.five}, ${h.b.fivex}]`);
+      // a tiny step, just to draw a frame: a 0.1 s step could take an egg to bold and end the warp (steadied 2026-10-01)
+      const h = await ev("(() => { const a = ET.view.clockHands(); __et.advance(0.01); const b = ET.view.clockHands(); return { a, b, warp: __et.snapshot().warp, five: document.querySelector('#warp .fivex').textContent }; })()");
+      ok(h.warp && h.a.minute === h.b.minute && h.a.hour === h.b.hour && h.b.fivex && h.five === "5×", `SAFETY: with reduced motion the clock's hands hold still and its face shows "5×"   [${h.five}, ${h.b.fivex}, warp ${h.warp}]`);
       await shot("13d-accelerator-reduced-motion");
       await c.send("Emulation.setEmulatedMedia", { features: [] });
       await press("Escape");
