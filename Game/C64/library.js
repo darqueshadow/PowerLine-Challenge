@@ -50,9 +50,28 @@
   var EXT = /\.(d64|d71|d81|g64|nib|t64|tap|prg|p00|crt)$/i;
 
   /* Files that legitimately live in the folder but are not disks. */
-  var SKIP = /^(README\.md|_favourites\.txt|\.gitignore|desktop\.ini|Thumbs\.db)$/i;
+  var SKIP = /^(README\.md|_favourites\.txt|_library(\.[\w-]+)?\.json|\.gitignore|desktop\.ini|Thumbs\.db)$/i;
 
   var FAVOURITES = "_favourites.txt";
+
+  /* 🆕 2026-10-01 — THE LIBRARY MANIFEST (Chat's handoff; Andrew's rulings).
+     `_library.json` beside the disks, hand-curated, and GIT-IGNORED with them:
+     its entries name real files on commercial disks, so it lives where nothing
+     reaches the public repo (roms/* in .gitignore, checked with check-ignore).
+     Every `_library*.json` in the listing is read and merged in name order, so
+     a rig can lay `_library.zz-rig.json` beside his file and take it away again
+     without ever touching his.
+     ⭐ WHAT IT CAN SAY, per title (the key is the title as grouped below):
+       entries  [{label, file} | {label, text}] — what Load offers. `file` is the
+                real C64 name typed after LOAD"; `text` is shown by the hub.
+                One entry loads straight away; two or more ask first.
+       port     1 or 2 — the joystick port the title starts on (default 2).
+       images   [filenames] — groups images the side markers cannot.
+     🚫 Nothing here is guessed at runtime. A title it does not name keeps the
+     old behaviour exactly: LOAD"*",8,1, the first file on the disk.
+     🚨 A broken file is reported and ignored, never half-applied. */
+  var MANIFEST = /^_library(\.[\w-]+)?\.json$/i;
+  var MAX_FILE = 16;   /* a C64 filename, and so what is typed */
 
   /* -----------------------------------------------------------------------
      SIDE MARKERS. Three spellings, because all three are ordinary in a real
@@ -65,20 +84,27 @@
      Rider") must not be read as a side marker — and would be, if this matched
      anywhere in the string.
      --------------------------------------------------------------------- */
+  /* 🆕 2026-10-01 — each marker also gives the PLAIN LABEL the corner's swap
+     controls show (Chat's handoff, Andrew's rulings): the number or letter the
+     file itself carries, so "- d0" says "Disk 0" rather than being renumbered
+     into something the disk's own prompts would not match. */
   var SIDE_PATTERNS = [
     { re: /^(.*?)[\s._-]*[-–]\s*d(\d{1,2})$/i,
-      num: function (m) { return parseInt(m[2], 10); } },
+      num: function (m) { return parseInt(m[2], 10); },
+      label: function (m) { return "Disk " + parseInt(m[2], 10); } },
     { re: /^(.*?)[\s._-]*[([]?\s*disk\s*(\d{1,2})\s*[)\]]?$/i,
-      num: function (m) { return parseInt(m[2], 10); } },
+      num: function (m) { return parseInt(m[2], 10); },
+      label: function (m) { return "Disk " + parseInt(m[2], 10); } },
     { re: /^(.*?)[\s._-]*[([]?\s*side\s*([a-h])\s*[)\]]?$/i,
-      num: function (m) { return m[2].toUpperCase().charCodeAt(0) - 64; } }
+      num: function (m) { return m[2].toUpperCase().charCodeAt(0) - 64; },
+      label: function (m) { return "Side " + m[2].toUpperCase(); } }
   ];
 
   function splitSide(base) {
     for (var i = 0; i < SIDE_PATTERNS.length; i++) {
       var m = base.match(SIDE_PATTERNS[i].re);
       if (m && m[1] && m[1].trim()) {
-        return { title: m[1].trim(), side: SIDE_PATTERNS[i].num(m) };
+        return { title: m[1].trim(), side: SIDE_PATTERNS[i].num(m), label: SIDE_PATTERNS[i].label(m) };
       }
     }
     return null;
@@ -164,21 +190,33 @@
      directory listing must not be able to tell a library disk from a
      cartridge. His ruling: "One mixed box, all equal."
      --------------------------------------------------------------------- */
-  function build(files) {
+  function build(files, manifest) {
     var groups = {};
     var order = [];
+
+    /* the manifest's hand-made groups, filename -> [title, position] */
+    var manual = {};
+    Object.keys(manifest || {}).forEach(function (title) {
+      var imgs = manifest[title] && manifest[title].images;
+      if (!Array.isArray(imgs)) return;
+      imgs.forEach(function (f, i) {
+        if (typeof f === "string") manual[f.toLowerCase()] = [title.trim(), i + 1];
+      });
+    });
 
     files.forEach(function (file) {
       if (SKIP.test(file) || !EXT.test(file)) return;
       var base = baseName(file);
-      var split = splitSide(base);
-      var title = split ? split.title : base;
-      var key = title.toLowerCase();
+      var hand = manual[file.toLowerCase()];
+      var split = hand ? null : splitSide(base);
+      var title = hand ? hand[0] : split ? split.title : base;
+      var key = title.trim().toLowerCase();
       if (!groups[key]) { groups[key] = { title: title, files: [] }; order.push(key); }
       groups[key].files.push({
         name: file,
         url: DIR + encodeURIComponent(file),
-        side: split ? split.side : 1
+        side: hand ? hand[1] : split ? split.side : 1,
+        label: split ? split.label : null
       });
     });
 
@@ -186,6 +224,8 @@
     return order.map(function (key) {
       var g = groups[key];
       g.files.sort(function (a, b) { return a.side - b.side || a.name.localeCompare(b.name); });
+      /* a file with no marker of its own (a hand-made group) is named by place */
+      g.files.forEach(function (f, i) { if (!f.label) f.label = "Disk " + (i + 1); });
 
       var filename = dedupe(names, c64Name(g.title));
       var multi = g.files.length > 1;
@@ -202,6 +242,61 @@
         entries: [{ filename: filename, label: g.title.toLowerCase(), kind: "game" }]
       };
     });
+  }
+
+  /* -----------------------------------------------------------------------
+     THE MANIFEST, APPLIED. Reads only what it can check: a label, and either a
+     C64 filename that fits the 16-character cap and holds no quote (it is about
+     to be typed between two of them) or a piece of text. A title whose entry
+     fails any check gets NO choices at all, and the problem is returned so the
+     hub can say it — half a menu would be a guess dressed as a ruling.
+     --------------------------------------------------------------------- */
+  function cleanEntry(e) {
+    if (!e || typeof e !== "object") return null;
+    var label = typeof e.label === "string" ? e.label.trim() : "";
+    if (!label || label.length > 40) return null;
+    if (typeof e.file === "string") {
+      var f = e.file;
+      if (!f || f.length > MAX_FILE || /["\r\n]/.test(f)) return null;
+      return { label: label, file: f };
+    }
+    if (typeof e.text === "string" && e.text.trim() && e.text.length <= 4000) {
+      return { label: label, text: e.text };
+    }
+    return null;
+  }
+
+  function applyManifest(disks, manifest) {
+    var byTitle = {};
+    var problems = [];
+    Object.keys(manifest || {}).forEach(function (k) {
+      if (k.charAt(0) !== "_") byTitle[k.trim().toLowerCase()] = manifest[k];
+    });
+    disks.forEach(function (d) {
+      var m = byTitle[d.displayName.trim().toLowerCase()];
+      if (!m || typeof m !== "object") return;
+      if (Array.isArray(m.entries) && m.entries.length) {
+        var out = m.entries.map(cleanEntry);
+        if (out.indexOf(null) > -1) problems.push(d.displayName);
+        else d.choices = out;
+      }
+      /* the same field, and the same meaning, the overlay's emulator already
+         reads (cat.js sourceFor: `disk.port === 1` starts it on port 1) */
+      if (m.port === 1 || m.port === "1") d.port = 1;
+    });
+    return problems;
+  }
+
+  /* several manifest files, merged in name order: a later file's title wins */
+  function mergeManifests(bodies) {
+    var out = {}, bad = [];
+    bodies.forEach(function (b) {
+      var data;
+      try { data = JSON.parse(b.body); } catch (e) { bad.push(b.name); return; }
+      if (!data || typeof data !== "object" || Array.isArray(data)) { bad.push(b.name); return; }
+      Object.keys(data).forEach(function (k) { out[k] = data[k]; });
+    });
+    return { manifest: out, bad: bad };
   }
 
   /* -----------------------------------------------------------------------
@@ -264,7 +359,30 @@
       if (!files) files = parseHtmlIndex(body);
 
       files = files || [];
-      var disks = build(files);
+      /* the manifest, found the way the favourites are: from the listing we
+         already have, never by a blind fetch that 404s on most machines */
+      var mnames = files.filter(function (f) { return MANIFEST.test(f); }).sort();
+      return Promise.all(mnames.map(function (n) {
+        return text(DIR + n).then(function (body) { return { name: n, body: body }; },
+                                  function () { return { name: n, body: "" }; });
+      })).then(function (bodies) {
+        return finish(files, mergeManifests(bodies));
+      });
+    }).catch(function (err) {
+      /* 🚫 NOT an error path in the console sense. file:// cannot list a
+         directory and never will; that is the shipped state of this hub
+         outside the shell, and it is what a fresh clone does too. */
+      return { state: "unlistable", disks: [], detail: String((err && err.message) || err) };
+    });
+  }
+
+  function finish(files, merged) {
+      var disks = build(files, merged.manifest);
+      var problems = applyManifest(disks, merged.manifest);
+      /* told to the hub, which says it once: a manifest that does not parse, or
+         a title whose entries were refused, is a fault in HIS file to fix */
+      var manifestNote = merged.bad.length || problems.length
+        ? { unreadable: merged.bad, refused: problems } : null;
       if (!disks.length) {
         return { state: "empty", disks: [], detail: "the folder is there and holds no disks" };
       }
@@ -278,19 +396,13 @@
          lands in a list people have already learned to ignore. */
       var hasFav = files.some(function (f) { return f.toLowerCase() === FAVOURITES; });
       if (!hasFav) {
-        return { state: "present", disks: applyFavourites(disks, ""), detail: null };
+        return { state: "present", disks: applyFavourites(disks, ""), detail: null, manifest: manifestNote };
       }
       return text(DIR + FAVOURITES)
         .catch(function () { return ""; })
         .then(function (fav) {
-          return { state: "present", disks: applyFavourites(disks, fav), detail: null };
+          return { state: "present", disks: applyFavourites(disks, fav), detail: null, manifest: manifestNote };
         });
-    }).catch(function (err) {
-      /* 🚫 NOT an error path in the console sense. file:// cannot list a
-         directory and never will; that is the shipped state of this hub
-         outside the shell, and it is what a fresh clone does too. */
-      return { state: "unlistable", disks: [], detail: String((err && err.message) || err) };
-    });
   }
 
   window.CAT_LIBRARY = {
@@ -303,6 +415,8 @@
       splitSide: splitSide,
       c64Name: c64Name,
       build: build,
+      applyManifest: applyManifest,
+      mergeManifests: mergeManifests,
       applyFavourites: applyFavourites,
       parseHtmlIndex: parseHtmlIndex,
       parseJsonIndex: parseJsonIndex

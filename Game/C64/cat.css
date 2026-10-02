@@ -2052,5 +2052,66 @@ html.cat-link #cat { visibility: hidden; }
   padding: 6px clamp(8px, 1.4vw, 18px);
 }
 #cat.is-full #c64-side > #btn-eject { align-self: center; }
+#cat.is-full #c64-side > #btn-load { align-self: center; }
 #cat.is-full #c64-side > #side-swap { align-self: center; }
 #cat.is-full #c64-side > #side-swap[hidden] { display: none; }
+
+
+/* ---- 🆕 2026-10-01 — the corner's small prompt (cat.js, THE LOAD CHOICE) ----
+   Load's "Play / Instructions" and the picker for a set of three or more disks.
+   The deck's own paper-and-beige language, so it reads as part of the machine's
+   desk rather than a browser dialog. Fixed, above the reader, and placed by
+   cat.js over whatever opened it (in full screen, the strip). The disk that is
+   in is LIT, exactly as the side swap lights it. */
+.c64-pick {
+  position: fixed;
+  z-index: 70;
+  min-width: 200px;
+  max-width: min(420px, 92vw);
+  padding: 10px 12px 12px;
+  background: #f4ecd6;
+  color: #2b2418;
+  border: 1px solid #8d8058;
+  border-radius: 6px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .55), inset 0 1px 0 #fffaea;
+}
+.c64-pick[hidden] { display: none; }
+.c64-pick__title {
+  font-family: var(--mono);
+  font-size: clamp(11px, 1.35vh, 14px);
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.c64-pick__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.c64-pick__opt { text-align: left; }
+.c64-pick__opt:disabled { opacity: 1; cursor: default; }
+.c64-pick__opt.is-lit {
+  color: #2a1c00;
+  background: linear-gradient(#fff4cf, #f2d27a);
+  border-color: #a8791c;
+  box-shadow: inset 0 0 0 2px rgba(255, 212, 121, .95), 0 0 12px rgba(255, 196, 64, .45);
+}
+.c64-pick__cancel {
+  margin-top: 4px;
+  background: linear-gradient(#ece4c8, #cfc49a);
+  font-size: clamp(10px, 1.2vh, 12px);
+}
+/* an inline Instructions entry: text to read, selectable, never typed */
+.c64-pick__text {
+  max-height: 46vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: clamp(12px, 1.5vh, 14px);
+  line-height: 1.45;
+  padding: 8px;
+  background: #fffaea;
+  border: 1px solid #c9bd94;
+  border-radius: 4px;
+}

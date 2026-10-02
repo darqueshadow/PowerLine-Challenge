@@ -1045,6 +1045,8 @@
       return true;
     }
     if (m.type === "cat:machine") return true;
+    /* 🆕 2026-10-01 — the glass was clicked: that is outside the small prompt */
+    if (m.type === "cat:pointer") { closePick(); return true; }
     for (var i = 0; i < waiters.length; i++) {
       if (waiters[i].replies.indexOf(m.type) !== -1) {
         var w = waiters.splice(i, 1)[0];
@@ -1064,6 +1066,217 @@
     btnLoad.dataset.cmd = tape ? "LOAD" : 'LOAD"*",8,1';
     btnLoad.textContent = tape ? "Load" : "Load \"*\",8,1";
     driveLabel.textContent = tape ? "Tape" : "Drive 8";
+    /* 🆕 2026-10-01 — a title the library manifest names says what IT types:
+       its one file by name, or "Load…" when there is a choice to make first.
+       A title the manifest does not name keeps LOAD"*",8,1 exactly. */
+    var ch = MACHINE ? choicesOf(inserted) : [];
+    if (ch.length === 1 && ch[0].file) {
+      btnLoad.dataset.cmd = loadCmdFor(ch[0].file);
+      btnLoad.textContent = tape ? "Load \"" + ch[0].file + "\"" : "Load \"" + ch[0].file + "\",8,1";
+    } else if (ch.length) {
+      btnLoad.textContent = "Load…";
+    }
+  }
+
+  /* =======================================================================
+     🆕 2026-10-01 — THE LOAD CHOICE, THE DISK PICKER, AND THE INPUT A TITLE
+     STARTS ON. Chat's handoff ("Load Choice Prompt + Multi-Disk Sets") and
+     Andrew's rulings of the same day.
+
+     LOAD. A title in the library manifest (roms/_library.json, git-ignored,
+     read by library.js) lists what Load may load. One entry loads straight
+     away; two or more open a small prompt with ONLY those entries — never a
+     game part, a data file or a divider off the directory. The hub then TYPES
+     the matching LOAD"<file>",8,1 itself, so the LOAD/RUN theatre still plays
+     and the player sees what to type next time. An entry can instead carry
+     text, which the prompt shows in place of loading anything.
+
+     THE DISK PICKER. Two images keep the one "Swap to …" button. Three or more
+     get ONE button that opens the same small prompt, listing that set's images
+     by their plain labels ("Disk 2"). Never an automatic swap: the player swaps
+     when the game asks, as on the machine.
+
+     🚫 MOUSE ONLY, both of them — no new key, because every free key is one a
+     game may want. Clicking outside closes them; so does Cancel. Neither opens
+     while the machine is paused or busy, and pausing closes either. Every
+     choice ends in focusMachine(), so the next key goes into the C64.
+
+     THE INPUT A TITLE STARTS ON (his ruling, replacing two earlier drafts).
+     Every title starts on joystick port 2; a title the manifest marks `port: 1`
+     starts on port 1. After the hub has typed LOAD and RUN (which needs the
+     keyboard), it switches to that. 🔄 And it LEARNS: whatever the player
+     switches to during a game — F2, F9, a port, the keyboard — is remembered
+     for that title and used on its next load. Stored in this browser's
+     localStorage under INPUT_STORE (Fang Rock keeps it in its own profile for
+     the arcade:// origin) — never in the repo, and losing it only means the
+     next load starts on the default again.
+     ⚠️ This supersedes the 2026-09-08 note in emu.js ("not a per-title
+     default"): that described a guessed default; this is the player's own
+     last choice for that title.
+     ===================================================================== */
+  var INPUT_STORE = "plc.c64.input";
+  var learnFor = null;   /* the title whose input changes are being remembered */
+  var learnWant = null;  /* what the handover asked for; lessons start once the machine reports it */
+  var pickEl    = document.getElementById("c64-pick");
+  var pickTitle = document.getElementById("c64-pick-title");
+  var pickBody  = document.getElementById("c64-pick-body");
+  var pickAnchor = null;
+
+  function choicesOf(disk) {
+    return disk && disk.library && Array.isArray(disk.choices) ? disk.choices : [];
+  }
+  function loadCmdFor(file) {
+    return medium === "tape" ? 'LOAD"' + file + '"' : 'LOAD"' + file + '",8,1';
+  }
+  function sideLabel(disk, i) {
+    var f = disk && disk.files && disk.files[i];
+    return (f && f.label) || sideName(i);
+  }
+
+  /* the prompt sits ABOVE what opened it — in full screen that is the strip —
+     and drops below only where there is no room above */
+  function placePick() {
+    if (!pickAnchor || pickEl.hidden) return;
+    var r = pickAnchor.getBoundingClientRect();
+    var w = pickEl.offsetWidth, h = pickEl.offsetHeight;
+    var left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+    /* in full screen, above the whole STRIP, not just the button inside it */
+    var above = fullView && sidePanel.contains(pickAnchor) ? sidePanel.getBoundingClientRect().top : r.top;
+    var top = above - h - 6;
+    if (top < 8) top = Math.min(r.bottom + 6, window.innerHeight - h - 8);
+    pickEl.style.left = Math.round(left) + "px";
+    pickEl.style.top = Math.round(top) + "px";
+  }
+
+  function closePick(refocus) {
+    if (!pickEl || pickEl.hidden) return;
+    pickEl.hidden = true;
+    pickBody.textContent = "";
+    if (pickAnchor) pickAnchor.setAttribute("aria-expanded", "false");
+    pickAnchor = null;
+    if (refocus) focusMachine();
+  }
+
+  function cancelButton(text) {
+    var c = document.createElement("button");
+    c.type = "button";
+    c.className = "btn c64-pick__cancel";
+    c.textContent = text;
+    c.addEventListener("click", function () { closePick(true); });
+    return c;
+  }
+
+  function showPick(anchor, title) {
+    pickTitle.textContent = title;
+    pickAnchor = anchor;
+    anchor.setAttribute("aria-expanded", "true");
+    pickEl.hidden = false;
+    placePick();
+  }
+
+  /* items: [{label, lit, onPick}] */
+  function openPick(anchor, title, items) {
+    if (paused || pauseAsk || busy) return;
+    closePick();
+    items.forEach(function (it) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn c64-pick__opt" + (it.lit ? " is-lit" : "");
+      b.textContent = it.label;
+      b.disabled = !!it.lit;
+      b.setAttribute("aria-pressed", String(!!it.lit));
+      b.addEventListener("click", function () {
+        if (paused || busy) return;
+        closePick();
+        it.onPick();
+      });
+      pickBody.appendChild(b);
+    });
+    pickBody.appendChild(cancelButton("Cancel"));
+    showPick(anchor, title);
+  }
+
+  /* a `text` entry: the hub shows it, nothing is loaded */
+  function showPickText(anchor, entry) {
+    if (paused || pauseAsk || busy) return;
+    closePick();
+    var t = document.createElement("div");
+    t.className = "c64-pick__text";
+    t.textContent = entry.text;
+    pickBody.appendChild(t);
+    pickBody.appendChild(cancelButton("Close"));
+    showPick(anchor, entry.label);
+  }
+
+  function chooseEntry(entry) {
+    if (entry.text !== undefined) { showPickText(btnLoad, entry); return; }
+    loadThenRun(loadCmdFor(entry.file));
+  }
+
+  function pressLoad() {
+    var ch = choicesOf(inserted);
+    if (ch.length > 1) {
+      if (!pickEl.hidden && pickAnchor === btnLoad) { closePick(true); return; }
+      openPick(btnLoad, "Load " + inserted.displayName + ":", ch.map(function (e) {
+        return { label: e.label, onPick: function () { chooseEntry(e); } };
+      }));
+      return;
+    }
+    if (ch.length === 1) { chooseEntry(ch[0]); return; }
+    loadThenRun(btnLoad.dataset.cmd);
+  }
+
+  function pickDisk(anchor) {
+    var disk = inserted;
+    if (!disk || !disk.files) return;
+    if (!pickEl.hidden && pickAnchor === anchor) { closePick(true); return; }
+    var cur = disk.side || 0;
+    openPick(anchor, "Put in the drive:", disk.files.map(function (f, i) {
+      return { label: sideLabel(disk, i), lit: i === cur, onPick: function () { machineSwap(i); } };
+    }));
+  }
+
+  /* ---- the input a title starts on, and what the player teaches it ------ */
+  function readInputs() {
+    try {
+      var all = JSON.parse(window.localStorage.getItem(INPUT_STORE) || "{}");
+      return all && typeof all === "object" && !Array.isArray(all) ? all : {};
+    } catch (e) { return {}; }
+  }
+  function startingInput(disk) {
+    var v = readInputs()[disk.id];
+    if (v === "1" || v === "2" || v === "keyboard") return v;
+    return disk.port === 1 ? "1" : "2";
+  }
+  function rememberInput(disk, v) {
+    var all = readInputs();
+    if (all[disk.id] === v) return;
+    all[disk.id] = v;
+    try { window.localStorage.setItem(INPUT_STORE, JSON.stringify(all)); } catch (e) { /* private window: nothing learned, nothing broken */ }
+  }
+  /* after LOAD and RUN: the keyboard the typing needed hands over to the
+     title's input, and from here on a change the player makes is a lesson */
+  function applyInput(disk) {
+    if (!disk || !disk.library || disk !== inserted || machineOff) return;
+    var want = startingInput(disk);
+    learnFor = disk;
+    learnWant = want;
+    if (want === "keyboard") postMachine({ type: "cat:keyboard" });
+    else postMachine({ type: "cat:joystick", port: want });
+  }
+  /* 🚨 Only while a game is running and the hub is not typing: the hub's own
+     typing switches the machine to the keyboard, and that is not the player's
+     choice. 🚨 NOR IS THE HANDOVER: until the machine reports the input
+     applyInput asked for, the reports are the hub's own switch arriving, and
+     storing them would write the default down as if the player had picked it —
+     which would then outvote a later `port: 1` in the manifest (measured: the
+     rig's control caught exactly that). Learned from the machine's REPORTS, so
+     what is remembered is what actually took, never what was clicked. */
+  function learnInput() {
+    if (!learnFor || learnFor !== inserted || busy || side.keyboard === null) return;
+    var now = side.keyboard ? "keyboard" : (side.port || "2");
+    if (learnWant !== null) { if (now === learnWant) learnWant = null; return; }
+    rememberInput(learnFor, now);
   }
 
   function machineInsert(disk) {
@@ -1085,6 +1298,7 @@
       .then(function (m) {
         if (m.type === "cat:inserted") {
           disk.side = 0;
+          learnFor = null; learnWant = null;
           medium = m.medium === "tape" ? "tape" : "disk";
           setDrive(disk);
           paintLoad();
@@ -1120,6 +1334,7 @@
     machineCall({ type: "cat:eject" }, ["cat:ejected", "cat:ejectfailed"], 20000)
       .then(function (m) {
         if (m.type !== "cat:ejected") throw new Error(String(m.reason || "no reason given"));
+        learnFor = null; learnWant = null;
         medium = null;
         setDrive(null);
         paintLoad();
@@ -1148,6 +1363,7 @@
     machineCall({ type: "cat:reset" }, ["cat:resetdone", "cat:resetfailed"], 20000)
       .then(function (m) {
         if (m.type !== "cat:resetdone") throw new Error(String(m.reason || "no reason given"));
+        learnFor = null; learnWant = null;
         write("reset." + (inserted ? " " + inserted.displayName.toUpperCase() + " is still in." : ""), "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not reset: " + err.message, "err"); })
@@ -1178,7 +1394,7 @@
     driveSide.hidden = !multi;
     if (!multi) { driveSide.textContent = ""; return; }
     var cur = disk.side || 0;
-    driveSide.textContent = "Now playing: " + sideName(cur);
+    driveSide.textContent = "Now playing: " + sideLabel(disk, cur);
     var add = function (i, label, lit) {
       var b = document.createElement("button");
       b.type = "button";
@@ -1190,8 +1406,17 @@
       b.addEventListener("click", function () { machineSwap(i); });
       sideSwap.appendChild(b);
     };
-    if (disk.files.length === 2) add(cur === 0 ? 1 : 0, "Swap to " + sideName(cur === 0 ? 1 : 0), false);
-    else disk.files.forEach(function (f, i) { add(i, sideName(i), i === cur); });
+    if (disk.files.length === 2) { add(cur === 0 ? 1 : 0, "Swap to " + sideLabel(disk, cur === 0 ? 1 : 0), false); return; }
+    /* 🔄 2026-10-01 — three or more: ONE button, and the set in a small picker
+       (Chat's handoff), rather than a row of buttons that grows with the set */
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn side-btn side-btn--pick";
+    b.textContent = "Swap disk…";
+    b.setAttribute("aria-haspopup", "true");
+    b.setAttribute("aria-expanded", "false");
+    b.addEventListener("click", function () { pickDisk(b); });
+    sideSwap.appendChild(b);
   }
 
   function machineSwap(index) {
@@ -1203,7 +1428,7 @@
       .then(function (m) {
         if (m.type !== "cat:swapped") throw new Error(String(m.note || "no reason given").replace(/^could not swap: /, ""));
         disk.side = Number(m.index) || 0;
-        write(sideName(disk.side).toLowerCase() + " is in the drive.", "dim");
+        write(sideLabel(disk, disk.side).toLowerCase() + " is in the drive.", "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not swap sides: " + err.message, "err"); })
       .then(function () {
@@ -1227,6 +1452,8 @@
      READY. on screen, so the drive is asked too, via the lamp state. */
   function loadThenRun(cmd) {
     if (busy) return;
+    var disk = inserted;
+    learnFor = null; learnWant = null;
     setBusy(true);
     paintDrive("loading");
     machineCall({ type: "cat:type", text: String(cmd) + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
@@ -1241,21 +1468,25 @@
            started itself and must not be typed into. */
         if (!m.ready) {
           var why = String(m.why || "");
-          if (why === "started") write("it started on its own.", "dim");
-          else if (why === "error") write("the load failed, so run was not typed.", "warn");
+          if (why === "started") { write("it started on its own.", "dim"); return true; }
+          if (why === "error") write("the load failed, so run was not typed.", "warn");
           else if (why === "noscreen") write("auto-run could not read the c64's screen, so run was not typed. type run yourself.", "warn");
           else if (why === "timeout") write("the load took too long, so run was not typed. type run when it says ready.", "warn");
           else write("run was not typed (" + (why || "no reason given") + "). type run yourself.", "warn");
-          return null;
+          return false;
         }
         return machineCall({ type: "cat:type", text: "RUN\n" }, ["cat:typed", "cat:typefailed"], 30000)
           .then(function (t) {
             if (t.type !== "cat:typed") throw new Error("could not type run: " + String(t.reason || "no reason given"));
+            return true;
           }, function (err) {
             if (err.byPowerOff) throw err;
             throw new Error("could not type run: " + err.message);
           });
       })
+      /* 🆕 2026-10-01 — the game is going (it started itself, or RUN was
+         typed): hand over to the title's input. Not on a failed load. */
+      .then(function (going) { if (going) applyInput(disk); })
       .catch(function (err) {
         if (err.byPowerOff) return;
         write(/^could not type run/.test(err.message) ? err.message + "." : "could not load: " + err.message, "err");
@@ -1463,6 +1694,8 @@
         w.reject(err);
       });
       machineFrame.src = "about:blank";
+      closePick();
+      learnFor = null; learnWant = null;
       if (inserted && inserted.runner === "emulator") setDrive(null);
       medium = null;
       paintLoad();
@@ -1512,9 +1745,11 @@
        - 🚨 THE STRIP IS THE SAME ELEMENTS, MOVED — never copied. The rigs read
          these ids, and paintSide() paints exactly these nodes; a copy would be
          a second panel that can disagree with the first. The cartridge port
-         (and so the fast loader), the drive port, Load and Reset stay out of
-         it (F12 still resets). His exception: the SIDE SWAP comes along, so a
+         (and so the fast loader), the drive port and Reset stay out of it
+         (F12 still resets). His exception: the SIDE SWAP comes along, so a
          two-sided game can be turned over without leaving full screen.
+         🔄 2026-10-01, his ruling: LOAD comes along too, so the Load choice
+         can be made from the strip (its prompt opens above the strip).
        - Eject in full screen also LEAVES full screen, so the disks show.
        - 🔄 His change after the first build: errors must not be invisible in
          full screen. #deck-note (the hub's one-line voice, write()) stays shown
@@ -1525,12 +1760,16 @@
   var fullView  = false;
   var ejectHome = document.createComment(" Eject's place in the crates ");
   var swapHome  = document.createComment(" the side swap's place in the crates ");
+  /* 🆕 2026-10-01 — Load comes into the strip too (his ruling, amending the
+     2026-09-25 one), so the Load choice can be made without leaving full screen */
+  var loadHome  = document.createComment(" Load's place on the deck ");
   /* the parts a paused machine does not take; Power, Eject and Full Screen are
      deliberately not in it */
-  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-keys, #c64-port1, #c64-port2";
+  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-keys, #c64-port1, #c64-port2, #c64-pick button, #btn-load";
 
   function setBusy(on) {
     busy = on;
+    if (on) closePick();
     paintPause();
   }
 
@@ -1558,7 +1797,7 @@
     machineCall({ type: want ? "cat:pause" : "cat:resume" },
                 want ? ["cat:paused", "cat:pausefailed"] : ["cat:resumed", "cat:resumefailed"], 5000)
       .then(function (m) {
-        if (m.type === "cat:paused") paused = true;
+        if (m.type === "cat:paused") { paused = true; closePick(); }
         else if (m.type === "cat:resumed") paused = false;
         else write((want ? "could not pause: " : "could not resume: ") + String(m.reason || "no reason given"), "warn");
       })
@@ -1583,11 +1822,15 @@
   function setFull(on) {
     on = !!on;
     if (!MACHINE || on === fullView) return;
+    closePick();
     fullView = on;
     if (on) {
+      if (!loadHome.parentNode) btnLoad.parentNode.insertBefore(loadHome, btnLoad);
+      sidePanel.insertBefore(btnLoad, sidePause);
       sidePanel.insertBefore(btnEject, sidePause);
       sidePanel.insertBefore(sideSwap, sidePause);
     } else {
+      loadHome.parentNode.insertBefore(btnLoad, loadHome);
       ejectHome.parentNode.insertBefore(btnEject, ejectHome);
       swapHome.parentNode.insertBefore(sideSwap, swapHome);
     }
@@ -2054,6 +2297,7 @@
     if (m.type === "cat:inputmode" && fromMachine) {
       side.keyboard = !!m.keyboard;
       paintSide();
+      learnInput();
       return;
     }
     if (m.type === "cat:inputmode") {
@@ -2077,6 +2321,7 @@
     if (m.type === "cat:portmode" && fromMachine) {
       side.port = (String(m.port) === "1") ? "1" : "2";   /* clamped, as below */
       paintSide();
+      learnInput();
       return;
     }
     if (m.type === "cat:portmode") {
@@ -2186,6 +2431,12 @@
         blank();
         write("disk library: " + res.disks.length +
               (res.disks.length === 1 ? " disk found." : " disks found."), "dim");
+        /* 🆕 2026-10-01 — a manifest fault is HIS file to fix, so it is said
+           once, here, and the titles it names fall back to LOAD"*",8,1 */
+        if (res.manifest) {
+          if (res.manifest.unreadable.length) write("library manifest: could not read " + res.manifest.unreadable.join(", ").toLowerCase() + ".", "warn");
+          if (res.manifest.refused.length) write("library manifest: entries refused for " + res.manifest.refused.join(", ").toLowerCase() + ".", "warn");
+        }
       } else if (res.state === "empty") {
         blank();
         write("disk library: empty. drop .d64 files into game/c64/roms/.", "dim");
@@ -2352,7 +2603,7 @@
          exists to compare those two. The carve-out is Load, and only Load.
          🚫 data-cmd is NOT touched. Two rig assertions pin it to the exact string
          LOAD"*",8,1, and the button must go on saying what it types. */
-      if (b === btnLoad && MACHINE && machineStarted) { loadThenRun(b.dataset.cmd); return; }
+      if (b === btnLoad && MACHINE && machineStarted) { pressLoad(); return; }
       submitCommand(b.dataset.cmd);
     });
   });
@@ -2375,6 +2626,21 @@
     e.preventDefault();
     e.stopImmediatePropagation();
   }, true);
+  /* 🆕 2026-10-01 — THE SMALL PROMPT'S MOUSE RULES (see THE LOAD CHOICE).
+     A press outside it closes it and puts the keyboard back in the machine; a
+     press on one of its buttons must not take the keyboard (the deck's rule,
+     measured in verify-c64 §G), but the text of an inline entry can still be
+     selected. It follows its button when the window changes size. */
+  document.addEventListener("mousedown", function (e) {
+    if (pickEl.hidden || !e.target.closest) return;
+    if (e.target.closest("#c64-pick")) {
+      if (e.target.closest("button")) e.preventDefault();
+      return;
+    }
+    if (pickAnchor && pickAnchor.contains(e.target)) return;   /* its own button toggles it */
+    closePick(true);
+  }, true);
+  window.addEventListener("resize", placePick);
   btnExit.addEventListener("click", exitGame);
   btnReset.addEventListener("click", exitGame);
   /* Power Off, on the disk screen inside Fang Rock only: a browser tab cannot
@@ -2582,6 +2848,26 @@
       };
     },
     reset: machineReset,
+    /* 🆕 2026-10-01 — the Load choice, the disk picker and the input memory,
+       as the player sees them. 🚫 Nothing here does anything the UI cannot. */
+    pick: function () {
+      return pickEl.hidden ? null : {
+        title: pickTitle.textContent,
+        anchor: pickAnchor ? (pickAnchor.id || pickAnchor.className) : null,
+        options: Array.prototype.map.call(pickBody.querySelectorAll(".c64-pick__opt"), function (b) {
+          return { label: b.textContent, lit: b.classList.contains("is-lit") };
+        }),
+        text: (pickBody.querySelector(".c64-pick__text") || {}).textContent || null,
+        rect: (function (r) { return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left) }; })(pickEl.getBoundingClientRect())
+      };
+    },
+    choices: function (id) {
+      var d = null;
+      DISKS.forEach(function (x) { if (x.id === id) d = x; });
+      return d ? choicesOf(d).slice() : null;
+    },
+    inputs: readInputs,
+    learning: function () { return learnFor ? learnFor.id : null; },
     /* 🆕 2026-09-25 — the same entry points as the two buttons */
     pause: pressPause,
     full: setFull,

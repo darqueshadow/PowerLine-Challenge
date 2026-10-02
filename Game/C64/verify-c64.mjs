@@ -62,7 +62,9 @@ import { fileURLToPath } from "node:url";
 const SHELL_DIR = fileURLToPath(new URL("../../../+Nerva Beacon/The Lantern Room/Morbius/shell/", import.meta.url));
 const ELECTRON = join(SHELL_DIR, "node_modules/electron/dist/electron.exe");
 const PRELOAD = join(SHELL_DIR, "preload.js");
-const URL_HUB = "http://localhost:8899/Game/C64/index.html";
+/* 🆕 2026-10-01 — CAT_RIG_BASE points the rig at another server (a git
+   worktree's, say) without touching the one on 8899 everyone else uses */
+const URL_HUB = (process.env.CAT_RIG_BASE || "http://localhost:8899") + "/Game/C64/index.html";
 
 /* A blank, formatted 35-track 1541 disk whose directory header says `name`,
    built byte by byte (§I's two-sided game). Also how a leftover is recognised as
@@ -84,6 +86,46 @@ function rigBlankD64(name) {
   img[bam + 0xA2] = 0x43; img[bam + 0xA3] = 0x41; img[bam + 0xA5] = 0x32; img[bam + 0xA6] = 0x41;
   img[bam + 257] = 0xFF;
   return img;
+}
+
+/* 🆕 2026-10-01 — §Q's disks: rigBlankD64 plus real files, each a one-line
+   BASIC program `10 PRINT"<text>"` in a sector of its own on track 17, listed
+   in the directory at 18/1. Enough for LOAD"<name>",8,1 and RUN to print a
+   line the screen reader can find, and nothing a real disk would miss. */
+function rigFileD64(header, files) {
+  const img = rigBlankD64(header);
+  const at = (t, s) => { let o = 0; for (let i = 1; i < t; i++) o += (i <= 17 ? 21 : i <= 24 ? 19 : i <= 30 ? 18 : 17) * 256; return o + s * 256; };
+  const dir = at(18, 1);
+  files.forEach((f, k) => {
+    const txt = Buffer.from(f.text, "latin1");
+    const next = 0x0801 + txt.length + 8;
+    const prg = Buffer.from([0x01, 0x08, next & 255, next >> 8, 10, 0, 0x99, 0x22, ...txt, 0x22, 0, 0, 0]);
+    const sec = at(17, k);
+    img[sec] = 0; img[sec + 1] = prg.length + 1;
+    prg.copy(img, sec + 2);
+    const e = dir + k * 32;
+    img[e + 2] = 0x82; img[e + 3] = 17; img[e + 4] = k;
+    for (let i = 0; i < 16; i++) img[e + 5 + i] = i < f.name.length ? f.name.charCodeAt(i) : 0xA0;
+    img[e + 30] = 1;
+  });
+  return img;
+}
+/* the rig's titles, and the manifest file it lays beside his (never in it) */
+const RIG_CHOICE = "zz CAT rig choice", RIG_ONE = "zz CAT rig one", RIG_TRIO = "zz CAT rig trio";
+const RIG_MANIFEST = "_library.zz-rig.json";
+function rigFixtures() {
+  return [
+    [`${RIG_CHOICE}.d64`, rigFileD64("RIG CHOICE", [{ name: "RIG PLAY", text: "RIG PLAY RAN" }, { name: "RIG HELP", text: "RIG HELP RAN" }, { name: "RIG PART", text: "RIG PART RAN" }])],
+    [`${RIG_ONE}.d64`, rigFileD64("RIG ONE", [{ name: "RIG PART", text: "RIG PART RAN" }, { name: "RIG ONE", text: "RIG ONE RAN" }])],
+    [`${RIG_TRIO} - d1.d64`, rigFileD64("RIG TRIO 1", [])],
+    [`${RIG_TRIO} - d2.d64`, rigFileD64("RIG TRIO 2", [])],
+    [`${RIG_TRIO} - d3.d64`, rigFileD64("RIG TRIO 3", [])],
+    [RIG_MANIFEST, Buffer.from(JSON.stringify({
+      [RIG_CHOICE]: { port: 1, entries: [{ label: "Play", file: "RIG PLAY" }, { label: "Instructions", file: "RIG HELP" },
+                                          { label: "Notes", text: "RIG NOTES: SHOWN, NEVER TYPED" }] },
+      [RIG_ONE]: { entries: [{ label: "Play", file: "RIG ONE" }] }
+    }, null, 1))]
+  ];
 }
 
 /* ---------------------------------------------------------------------------
@@ -109,8 +151,16 @@ if (!process.versions.electron) {
       try { if (existsSync(f) && readFileSync(f).equals(rigBlankD64("RIG SIDE " + s))) unlinkSync(f); } catch { /* leave it */ }
     }
   };
+  /* §Q's disks and manifest, by the same byte-identical rule */
+  const clearRigQ = () => {
+    for (const [name, bytes] of rigFixtures()) {
+      const f = fileURLToPath(new URL("./roms/" + name, import.meta.url));
+      try { if (existsSync(f) && readFileSync(f).equals(bytes)) unlinkSync(f); } catch { /* leave it */ }
+    }
+  };
   clearRigDisks();
-  process.on("exit", clearRigDisks);
+  clearRigQ();
+  process.on("exit", () => { clearRigDisks(); clearRigQ(); });
   const log = join(mkdtempSync(join(tmpdir(), "verify-c64-")), "run.log");
   writeFileSync(log, "");
   const child = spawn(ELECTRON, [fileURLToPath(import.meta.url)], {
@@ -334,6 +384,10 @@ async function runRig() {
       const f = join(DISK_DIR, `${SWAP_TITLE} - Side ${s}.d64`);
       if (!existsSync(f)) { writeFileSync(f, rigBlankD64("RIG SIDE " + s)); SWAP_FIXTURES.push(f); }
     }
+    for (const [name, bytes] of rigFixtures()) {
+      const f = join(DISK_DIR, name);
+      if (!existsSync(f)) { writeFileSync(f, bytes); SWAP_FIXTURES.push(f); }
+    }
   }
 
   let DISK = null, TAPE = null;
@@ -445,11 +499,13 @@ async function runRig() {
 
     /* --- C. insert --------------------------------------------------------- */
     section("C. Insert Disk: a disk slides into the drive, then goes into the RUNNING machine");
-    const disks = await ev("__cat.disks().map(function (d) { return { id: d.id, name: d.displayName, files: (d.files || []).map(function (f) { return f.name; }) }; })");
+    const disks = await ev("__cat.disks().map(function (d) { return { id: d.id, name: d.displayName, ch: (d.choices || []).length, files: (d.files || []).map(function (f) { return f.name; }) }; })");
     /* 🚫 Picked by what the library holds today, never by a hard-coded name:
        Game/C64/roms/ is Andrew's, gitignored, and changes. */
-    DISK = disks.find((d) => d.files.length === 1 && /\.d64$/i.test(d.files[0]));
-    TAPE = disks.find((d) => d.files.length === 1 && /\.t64$/i.test(d.files[0]));
+    /* 🔄 2026-10-01 — and one the library manifest does not name: §D, §D2 and
+       §F2 measure LOAD"*",8,1, which is what an unnamed title still types */
+    DISK = disks.find((d) => !d.ch && d.files.length === 1 && /\.d64$/i.test(d.files[0]));
+    TAPE = disks.find((d) => !d.ch && d.files.length === 1 && /\.t64$/i.test(d.files[0]));
     ok(!!DISK && !!TAPE, `the library has a one-sided disk and a tape to test with   [${DISK && DISK.name} / ${TAPE && TAPE.name}]`);
     if (!DISK || !TAPE) throw new Error("no disk or tape to test with");
 
@@ -834,6 +890,193 @@ async function runRig() {
       ok(!s2.shown && s2.now === "", "Eject takes the swap control and the side label away with the disk");
     }
 
+    /* --- Q. the Load choice, the disk picker, and the input a title starts on --
+       🆕 2026-10-01 — Chat's handoff and Andrew's rulings the same day. The rig
+       lays its OWN disks and its OWN manifest file (`_library.zz-rig.json`,
+       beside his `_library.json`, which is never opened here) — so every case
+       is tested against fixtures whose every file is known:
+         RIG ONE     one entry; its first file is a DIFFERENT program, so a
+                     LOAD"*" would print the wrong line
+         RIG CHOICE  three entries (two files, one text) and a third file the
+                     manifest does not name; marked port 1
+         RIG TRIO    three images, d1..d3
+       The two-image set is §I's pair; the unmatched title is §D's DISK. */
+    section("Q. Load asks only what the manifest lists; three disks get a picker; the title's input is remembered");
+    const rigIds = await ev(`JSON.stringify(__cat.disks().filter(function (d) { return /^zz CAT rig (choice|one|trio)$/.test(d.displayName); })
+      .map(function (d) { return { id: d.id, name: d.displayName, n: (d.files || []).length, ch: (d.choices || []).length, port: d.port || 2 }; }))`).then(JSON.parse);
+    const rid = (n) => (rigIds.find((d) => d.name === n) || {}).id;
+    ok(rigIds.length === 3 && rigIds.find((d) => d.name === RIG_CHOICE).ch === 3 && rigIds.find((d) => d.name === RIG_ONE).ch === 1
+       && rigIds.find((d) => d.name === RIG_TRIO).n === 3 && rigIds.find((d) => d.name === RIG_CHOICE).port === 1,
+       `the rig's manifest is read beside his: 3 choices, 1 choice, a set of 3, port 1   [${JSON.stringify(rigIds)}]`);
+    ok(DISK && (await ev(`(__cat.choices(${JSON.stringify(DISK.id)}) || []).length`)) === 0,
+       `[control] §D's disk is one the manifest does not name, so Load "*" there is the unmatched case   [${DISK && DISK.name}]`);
+    const pick = () => ev("JSON.stringify(__cat.pick())").then(JSON.parse);
+    const loadText = () => ev("document.getElementById('btn-load').textContent");
+    const insertRig = async (id) => {
+      if (await ev("__cat.inserted() !== null")) { await click("#btn-eject"); await idle(); }
+      await ev(`__cat.select(${JSON.stringify(id)})`);
+      await click("#btn-insert");
+      await until(`__cat.inserted() === ${JSON.stringify(id)}`, 60000);
+      await idle();
+    };
+    const ran = (line) => untilScreen((r) => r.includes(line), 120000);
+
+    /* one entry: no prompt, and it types the file by NAME */
+    await insertRig(rid(RIG_ONE));
+    const oneLabel = String(await loadText()).replace(/ /g, " ");
+    ok(oneLabel === 'Load "RIG ONE",8,1', `one entry: the Load button says the file it will type   [${oneLabel}]`);
+    await clearScreen();
+    await click("#btn-load");
+    ok((await pick()) === null, "and loads straight away: no prompt");
+    const tOne = await ran("RIG ONE RAN");
+    await idleLoad();
+    ok(tOne >= 0 && !(await screen()).includes("RIG PART RAN"),
+       `it typed LOAD"RIG ONE",8,1 and RUN: the named program ran, not the disk's first file   [${took(tOne)}; ${(await screen()).filter(Boolean).slice(-3).join(" / ")}]`);
+    const sideQ = () => ev(SIDE);
+    let spQ = await sideQ();
+    ok(spQ.mode === "joystick" && spQ.port === "2", `after RUN the hub hands over to the title's input: joystick, port 2 by default   [${spQ.mode} ${spQ.port}]`);
+
+    /* the same, from the full-screen strip */
+    await ev("__cat.full(true)");
+    await until("__cat.machine().full", 3000);
+    await clearScreen();
+    await click("#btn-load");
+    ok((await pick()) === null, "in full screen too, one entry loads straight away: no prompt");
+    const tOneFull = await ran("RIG ONE RAN");
+    await idleLoad();
+    ok(tOneFull >= 0, `and it ran, from the strip   [${took(tOneFull)}]`);
+    await ev("__cat.full(false)");
+    await until("!__cat.machine().full", 3000);
+
+    /* several entries: the prompt, with ONLY those entries */
+    await insertRig(rid(RIG_CHOICE));
+    ok((await loadText()) === "Load…", `several entries: the Load button says it will ask   [${await loadText()}]`);
+    await click("#btn-load");
+    let pk = await pick();
+    ok(!!pk && pk.options.map((o) => o.label).join("|") === "Play|Instructions|Notes" && pk.anchor === "btn-load",
+       `Load opens the prompt with exactly the manifest's entries   [${pk ? pk.options.map((o) => o.label).join("|") : "none"}]`);
+    ok(!!pk && !pk.options.some((o) => /PART/.test(o.label)), "and nothing else off the disk (RIG PART is on it, and is not offered)");
+    const loadRect = await ev("JSON.stringify(document.getElementById('btn-load').getBoundingClientRect())").then(JSON.parse);
+    ok(!!pk && (pk.rect.bottom <= loadRect.top + 1 || pk.rect.top >= loadRect.bottom - 1), `it sits beside the Load button, not over it   [prompt ${pk && pk.rect.top}-${pk && pk.rect.bottom}, load ${Math.round(loadRect.top)}-${Math.round(loadRect.bottom)}]`);
+    await click("#screen-shell");
+    ok((await pick()) === null, "a click outside closes it");
+    await click("#btn-load");
+    await click("#c64-pick .c64-pick__cancel");
+    ok((await pick()) === null && (await until("document.activeElement === document.getElementById('machine-frame')", 3000)) >= 0,
+       "Cancel closes it and the keyboard goes back into the machine");
+    /* the text entry: shown, never typed */
+    await click("#btn-load");
+    await click("#c64-pick .c64-pick__opt:nth-of-type(3)");
+    pk = await pick();
+    ok(!!pk && pk.text === "RIG NOTES: SHOWN, NEVER TYPED" && pk.title === "Notes", `a text entry is shown in the prompt   [${pk && pk.text}]`);
+    ok(!(await screen()).some((r) => /NOTES/.test(r)), "and nothing was typed into the machine for it");
+    await click("#c64-pick .c64-pick__cancel");
+    /* Instructions: its file, by name */
+    await clearScreen();
+    await click("#btn-load");
+    await click("#c64-pick .c64-pick__opt:nth-of-type(2)");
+    const tHelp = await ran("RIG HELP RAN");
+    await idleLoad();
+    ok(tHelp >= 0, `Instructions types LOAD"RIG HELP",8,1 and RUN: its own program ran   [${took(tHelp)}]`);
+    ok((await until("document.activeElement === document.getElementById('machine-frame')", 3000)) >= 0, "and the keyboard is back in the machine");
+    spQ = await sideQ();
+    ok(spQ.mode === "joystick" && spQ.port === "1", `a title the manifest marks port 1 starts on port 1   [${spQ.mode} ${spQ.port}]`);
+
+    /* learning: the player's switch is remembered for that title */
+    await click("#c64-port2");
+    await until(`document.getElementById("c64-side").dataset.port === "2"`, 5000);
+    await wait(300);
+    let mem = await ev("__cat.inputs()");
+    ok(mem[rid(RIG_CHOICE)] === "2", `the player moves the stick to port 2 during the game, and it is remembered   [${JSON.stringify(mem)}]`);
+    await clearScreen();
+    await click("#btn-load");
+    await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
+    const tPlayQ = await ran("RIG PLAY RAN");
+    await idleLoad();
+    await until(`document.getElementById("c64-side").dataset.mode === "joystick"`, 5000);
+    spQ = await sideQ();
+    ok(tPlayQ >= 0 && spQ.mode === "joystick" && spQ.port === "2", `next load: Play runs, and the remembered port 2 beats the manifest's port 1   [${took(tPlayQ)}; ${spQ.mode} ${spQ.port}]`);
+    await click("#c64-keys");
+    await until(`document.getElementById("c64-side").dataset.mode === "keyboard"`, 5000);
+    await wait(300);
+    mem = await ev("__cat.inputs()");
+    ok(mem[rid(RIG_CHOICE)] === "keyboard", `switching to the keyboard is remembered too   [${mem[rid(RIG_CHOICE)]}]`);
+    await clearScreen();
+    await click("#btn-load");
+    await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
+    await ran("RIG PLAY RAN");
+    await idleLoad();
+    await wait(800);
+    spQ = await sideQ();
+    ok(spQ.mode === "keyboard", `a keyboard title stays on the keyboard after RUN   [${spQ.mode}]`);
+    mem = await ev("__cat.inputs()");
+    ok(mem[rid(RIG_ONE)] === undefined, `[control] nothing was learned for a title the player did not change   [${JSON.stringify(mem)}]`);
+
+    /* full screen (his ruling, 2026-10-01): Load is in the strip, and its
+       prompt opens above the strip, as the disk picker's does */
+    await ev("__cat.full(true)");
+    await until("__cat.machine().full", 3000);
+    ok((await ev("document.getElementById('btn-load').parentNode.id")) === "c64-side", "in full screen, Load is in the strip");
+    await click("#btn-load");
+    pk = await pick();
+    const stripQ = await ev("JSON.stringify(document.getElementById('c64-side').getBoundingClientRect())").then(JSON.parse);
+    ok(!!pk && pk.options.length === 3 && pk.rect.bottom <= stripQ.top + 1,
+       `in full screen, Load's prompt opens above the strip   [prompt bottom ${pk && pk.rect.bottom}, strip top ${Math.round(stripQ.top)}]`);
+    await clearScreen();
+    await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
+    const tFullPlay = await ran("RIG PLAY RAN");
+    await idleLoad();
+    ok(tFullPlay >= 0 && (await ev("__cat.machine().full")),
+       `and Play from there loads and runs, still in full screen   [${took(tFullPlay)}; note "${await ev("__cat.note()")}"]`);
+    await ev("__cat.full(false)");
+    await until("!__cat.machine().full", 3000);
+    ok((await ev("document.getElementById('btn-load').parentNode.id")) === "deck-top", "leaving full screen puts Load back on the deck");
+    /* paused: no prompt */
+    await ev("__cat.pause()");
+    await until("__cat.machine().paused", 5000);
+    await click("#btn-load");
+    ok((await pick()) === null, "while paused, Load opens no prompt");
+    await ev("__cat.pause()");
+    await until("!__cat.machine().paused", 5000);
+
+    /* three images: one button, and a picker */
+    const sidesQ = () => ev(`JSON.stringify({ buttons: Array.prototype.map.call(document.querySelectorAll("#side-swap button"), function (b) { return b.textContent; }),
+      now: document.getElementById("drive-side").hidden ? "" : document.getElementById("drive-side").textContent })`).then(JSON.parse);
+    await insertRig(rid(RIG_TRIO));
+    let sq = await sidesQ();
+    ok(sq.buttons.join("|") === "Swap disk…" && sq.now === "Now playing: Disk 1", `three disks: ONE button, and the drive says which is in   [${sq.buttons.join("|")} / ${sq.now}]`);
+    await click("#side-swap button");
+    pk = await pick();
+    ok(!!pk && pk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") === "Disk 1*|Disk 2|Disk 3",
+       `it opens a picker with only that set, plainly labelled, the one in the drive lit   [${pk ? pk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") : "none"}]`);
+    await click("#c64-pick .c64-pick__opt:nth-of-type(3)");
+    const tPick = await until("document.getElementById('drive-side').textContent === 'Now playing: Disk 3'", 30000);
+    await idle();
+    ok(tPick >= 0 && (await until("document.activeElement === document.getElementById('machine-frame')", 3000)) >= 0,
+       `picking Disk 3 puts it in, and the keyboard goes back to the machine   [${took(tPick)}]`);
+    await clearScreen();
+    await type('LOAD"$",8\n');
+    await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).slice(-1)[0] === "READY.", 60000);
+    await type("LIST\n");
+    await untilScreen((r) => toReady(after(r, /^LIST$/)).slice(-1)[0] === "READY.", 20000);
+    const hT = (toReady(after(await screen(), /^LIST$/)).filter(Boolean)[0] || "").replace(/\s+/g, " ");
+    ok(/^0 "RIG TRIO 3/.test(hT), `drive 8 now reads Disk 3   [${hT}]`);
+
+    /* full screen: the picker opens above the strip */
+    await ev("__cat.full(true)");
+    await until("__cat.machine().full", 3000);
+    await click("#side-swap button");
+    pk = await pick();
+    const strip = await ev("JSON.stringify(document.getElementById('c64-side').getBoundingClientRect())").then(JSON.parse);
+    ok(!!pk && pk.rect.bottom <= strip.top + 1, `in full screen the picker opens above the strip   [prompt bottom ${pk && pk.rect.bottom}, strip top ${Math.round(strip.top)}]`);
+    await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
+    const tFull = await until("document.getElementById('drive-side').textContent === 'Now playing: Disk 1'", 30000);
+    await idle();
+    ok(tFull >= 0 && (await ev("__cat.note()")) === "disk 1 is in the drive.", `and a pick there works, said on the strip's message line   [${await ev("__cat.note()")}]`);
+    await ev("__cat.full(false)");
+    await click("#btn-eject");
+    await idle();
+
     /* --- J. the positional keymap, row by row ---------------------------------
        His ruling, 2026-09-17: the machine types on a real C64's KEY POSITIONS.
        🔄 2026-09-17, later the same day: the rig presses the CHARACTER a player
@@ -1084,20 +1327,22 @@ async function runRig() {
       var d = function (id) { return getComputedStyle(document.getElementById(id)).display; };
       return { win: { w: innerWidth, h: innerHeight }, frame: r("machine-frame"), side: r("c64-side"), crates: r("crates"),
                ejectIn: document.getElementById("btn-eject").parentNode.id, swapIn: document.getElementById("side-swap").parentNode.id,
+               loadIn: document.getElementById("btn-load").parentNode.id,
                insertIn: document.getElementById("btn-insert").parentNode.id,
                cart: d("c64-cart"), iec: d("c64-iec"), deckTop: d("deck-top"),
                label: document.getElementById("c64-full-label").textContent,
-               ids: ["c64-power", "c64-port1", "c64-port2", "c64-keys", "c64-pause", "c64-full", "btn-eject", "side-swap"]
+               ids: ["c64-power", "c64-port1", "c64-port2", "c64-keys", "c64-pause", "c64-full", "btn-eject", "side-swap", "btn-load"]
                  .map(function (id) { return document.querySelectorAll("#" + id).length; }).join("") }; })())`;
     const L = JSON.parse(await ev(FULL_LOOK));
     ok(L.crates.w === 0 && L.frame.w >= L.win.w - 2 && L.frame.h >= L.win.h * 0.8,
        `the screen fills the window and the disks step aside   [frame ${L.frame.w}x${L.frame.h} of ${L.win.w}x${L.win.h}, crates ${L.crates.w}px]`);
     ok(L.side.t >= L.frame.b - 1 && L.side.b <= L.win.h + 1,
        `the strip sits UNDER the screen, not over it   [screen ends ${L.frame.b}, strip ${L.side.t}-${L.side.b}]`);
-    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.ids === "11111111",
-       `Eject and the side swap MOVED into the strip, and nothing was copied   [eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
+    /* 🔄 2026-10-01 — Load joins them (his ruling, amending 2026-09-25's) */
+    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.loadIn === "c64-side" && L.ids === "111111111",
+       `Load, Eject and the side swap MOVED into the strip, and nothing was copied   [load ${L.loadIn}, eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
     ok(L.cart === "none" && L.iec === "none" && L.deckTop === "none",
-       `the cartridge port, the drive port, Load and Reset stay out of the strip   [${L.cart}/${L.iec}/${L.deckTop}]`);
+       `the cartridge port, the drive port and Reset stay out of the strip   [${L.cart}/${L.iec}/${L.deckTop}]`);
     ok(L.label === "Exit Full Screen", `the Full Screen part reads Exit Full Screen   [${L.label}]`);
     /* 🆕 2026-09-25 — his change: errors must not be invisible in full screen */
     const noteFull = JSON.parse(await ev(`JSON.stringify((function () {
