@@ -3521,6 +3521,54 @@ export default {
  "@keyframes mom-patch » 100%": {
   "transform": "scale(0) rotate(-12deg)"
  },
+ ".mom-visit": {
+  "bottom": "0px",
+  "left": "0px",
+  "pointer-events": "none",
+  "position": "absolute",
+  "right": "0px",
+  "top": "0px"
+ },
+ ".mom-visit .mom-clip": {
+  "overflow-x": "hidden",
+  "overflow-y": "hidden",
+  "position": "absolute"
+ },
+ ".mom-visit .mom-rig": {
+  "height": "0px",
+  "left": "0px",
+  "position": "absolute",
+  "top": "0px",
+  "width": "0px"
+ },
+ ".mom-visit img": {
+  "display": "block",
+  "max-width": "none",
+  "position": "absolute",
+  "user-select": "none"
+ },
+ ".mom-visit .mom-tentacle": {
+  "left": "0px",
+  "top": "0px",
+  "transform-origin": "0px 0px"
+ },
+ ".mom-visit .mom-plaster": {
+  "height": "auto",
+  "transform-origin": "50% 50%"
+ },
+ ".mom-visit .mom-head": {
+  "position": "absolute"
+ },
+ ".mom-visit .mom-head .mom-pose": {
+  "height": "100%",
+  "left": "0px",
+  "top": "0px",
+  "visibility": "hidden",
+  "width": "100%"
+ },
+ ".mom-visit[data-pose=\"down\"] .mom-pose.down, .mom-visit[data-pose=\"face\"] .mom-pose.face, .mom-visit[data-pose=\"giggle\"] .mom-pose.giggle": {
+  "visibility": "visible"
+ },
  ".pan": {
   "left": "50%",
   "opacity": "0",

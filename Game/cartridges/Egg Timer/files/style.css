@@ -888,6 +888,21 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
   100% { transform: scale(0) rotate(-12deg); }
 }
 
+/* Mom's visit with the Gemini parts kits (E55; Chat's brief 2026-10-02; core/mom.js lays her out and paints every
+   move from the game's seconds, so nothing here animates). .mom-visit fills its layer; .mom-clip is the box she's
+   drawn in (she slides in from behind its edge); the rig holds her head and the tentacles' stubs. Only the pose in
+   data-pose shows. */
+.mom-visit { position: absolute; inset: 0; pointer-events: none; }
+.mom-visit .mom-clip { position: absolute; overflow: hidden; }
+.mom-visit .mom-rig { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+.mom-visit img { position: absolute; display: block; max-width: none; user-select: none; }
+.mom-visit .mom-tentacle { left: 0; top: 0; transform-origin: 0 0; }
+.mom-visit .mom-plaster { height: auto; transform-origin: 50% 50%; }
+.mom-visit .mom-head { position: absolute; }
+.mom-visit .mom-head .mom-pose { left: 0; top: 0; width: 100%; height: 100%; visibility: hidden; }
+.mom-visit[data-pose="down"] .mom-pose.down, .mom-visit[data-pose="face"] .mom-pose.face,
+.mom-visit[data-pose="giggle"] .mom-pose.giggle { visibility: visible; }
+
 /* ⏳ placeholder: the frying pan slams down in well under half a second (Refinement 2 §5). Pure CSS,
    so it can never hold up the keyboard. */
 .pan { position: absolute; left: 50%; top: 34%; width: 118%; opacity: 0; pointer-events: none; z-index: 24; transform: translate(-45%, -60%); }

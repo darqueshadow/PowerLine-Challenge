@@ -451,38 +451,44 @@
     if (tips.ready.line) tips.ready.line.style.display = "none";
   }
 
-  /* E55 (ruled 2026-10-02): Mom repairs a hospital egg as its STR goes on (⏳ placeholder art: the sweet one is the
-     how-to panel's mommy doodle, the creepy one the scary HUD face, until Chat's two Gemini parts kits come back). Over
-     the nest only, in the popups layer (no pointer, no keyboard), for momRepairSeconds: she pops in, looks down and
-     patches the egg (its cracks close), turns to the player and giggles, and ducks out (style.css, mom-fix). It runs on
-     the game's own seconds, so a pause holds it (body.paused holds the CSS too). Reduced motion: she appears, still,
-     and goes. */
+  /* E55 (ruled 2026-10-02): Mom repairs a hospital egg as its STR goes on, with the two Gemini parts kits (Andrew
+     approved the art, Chat's brief 2026-10-02; core/mom.js draws her). In the popups layer (no pointer, no keyboard),
+     for momRepairSeconds: she comes in, looks down and patches the egg (its cracks close), turns to the player and
+     giggles, and goes back out. She's painted from the game's own seconds every frame, so a pause holds her. */
   var fixes = [];
+  /* The egg on screen, in px of the field: its middle, width and top. Its pictures are full-slot layers, so it's found
+     in the nest's own units (the shell spans x -22..22, y -38..20; art.js) through the egg's screen transform, which
+     carries its growth and the nest's tilt. */
+  function eggBox(v) {
+    var g = v.egg.querySelector(".mirror") || v.egg, m = g.getScreenCTM(), f = field.getBoundingClientRect();
+    var at = function (x, y) { return { x: m.a * x + m.c * y + m.e - f.left, y: m.b * x + m.d * y + m.f - f.top }; };
+    var mid = at(0, -9), top = at(0, -38);
+    return { x: mid.x, y: mid.y, w: 44 * Math.hypot(m.a, m.b), top: top.y };
+  }
+  // where she goes for a nest: her head just above its egg, coming down from the top
+  function momLayout(v, kind) {
+    var C = ET.CONFIG, P = ET.MOM_PARTS[kind];
+    var f = field.getBoundingClientRect(), egg = eggBox(v);
+    var hw = v.el.offsetWidth * C.momHeadShare, hh = hw * P.head[1] / P.head[0];
+    var head = { x: egg.x, y: egg.top - hh * 0.38 };
+    return { kind: kind, headW: hw, head: head, egg: egg, from: "top", tilt: 0,
+      clip: { l: 0, t: 0, r: f.width, b: f.height } };
+  }
   function momFix(v, kind, t) {
-    var C = ET.CONFIG;
-    var box = document.createElement("div");
-    box.className = "momfix " + kind;
-    var r = v.el.getBoundingClientRect(), f = field.getBoundingClientRect(), w = v.el.offsetWidth;
-    box.style.left = (r.left - f.left + r.width / 2) + "px";
-    box.style.top = (r.top - f.top + r.height * 0.32) + "px";
-    box.style.width = w + "px";
-    box.style.setProperty("--fix", C.momRepairSeconds + "s");
-    var head = document.createElement("div");
-    head.className = "head";
-    head.appendChild(kind === "sweet" ? ET.art.doodleEl(1) : ET.art.momFaceSvg());
-    box.appendChild(head);
-    box.appendChild(ET.art.patchSvg());
-    popups.appendChild(box);
-    var m = { el: box, v: v, kind: kind, t0: t, giggled: false, from: v.crackShown || 0 };
+    var m = { v: v, kind: kind, t0: t, giggled: false, from: v.crackShown || 0 };
+    m.rig = ET.mom.visit(popups, momLayout(v, kind));
+    m.el = m.rig.el;
     fixes.push(m);
     v.mend = m;
   }
-  // the giggle as she turns to the player, and her exit, on the game's seconds
+  // every frame: paint each visit at its moment; the giggle as she turns to the player; her exit
   function stepFixes(t) {
     var T = ET.CONFIG.momRepairSeconds;
     fixes = fixes.filter(function (m) {
       var u = (t - m.t0) / T;
-      if (!m.giggled && u >= 0.5) { m.giggled = true; if (ET.audio) ET.audio.giggle(m.kind); }
+      m.u = u;
+      if (u >= 0 && u < 1) m.rig.paint(u, reducedMotion());
+      if (!m.giggled && u >= ET.CONFIG.momTimeline.face) { m.giggled = true; if (ET.audio) ET.audio.giggle(m.kind); }
       if (u >= 1 || u < 0) { m.el.remove(); if (m.v.mend === m) m.v.mend = null; return false; }
       return true;
     });
@@ -1267,7 +1273,7 @@
       return [{ shown: !t.el.hidden, text: t.el.textContent.trim(), nest: t.nest, done: t.done, line: t.line.style.display !== "none" ? t.line.getAttribute("d") : null }];
     },
     /* For rigs (E55): Mom's repairs showing now: which nest, which Mom, and whether she has giggled yet. */
-    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled }; }); },
+    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled, u: m.u }; }); },
 
     /* For rigs: a nest's cord, if one is showing. */
     cord: function (id) {

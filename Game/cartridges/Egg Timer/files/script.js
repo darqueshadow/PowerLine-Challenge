@@ -120,6 +120,7 @@
     $("#pause").hidden = true;
     ET.view.reset();
     ET.aliens.preload();   // E45: the hatchlings' pictures, once, now the data is in
+    ET.mom.preload();      // E55: both Moms' pieces, likewise
     ET.boxes.setup(boxes);
     // E28: the switching hints under the Command Lines (with one line there's nothing to switch to: F12 just clears it)
     // E30: Esc joins them, now the side panel is gone from play

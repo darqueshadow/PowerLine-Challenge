@@ -40,11 +40,20 @@
     // hospital egg's FIRST window × this. 1 = the same window as every egg, as ruled; a longer one is a proposal first.
     hospitalWindowScale: 1,  // [T]
     // E55 (ruled): Mom repairs the egg as the STR goes on: sweet Mom on hospital eggs up to this wave, creepy Mom after
-    // (matching the scary HUD face). ⏳ placeholder art until Chat's Gemini prompts come back (two parts kits).
+    // (matching the scary HUD face). Her art: the two Gemini parts kits (Andrew approved, 2026-10-02; core/mom.js).
     momSweetUntilWave: 1,
-    // E55: pops in, looks down and patches the egg, turns to the player and giggles, ducks out; over the nest only,
-    // never blocking typing. ⚠️ style.css's mom-fix keyframes use these shares: in 0.2, patch to 0.5, giggle to 0.85.
+    // E55: pops in, looks down and patches the egg, turns to the player and giggles, ducks out; never blocking typing.
     momRepairSeconds: 1.5,   // [T]
+    // Mom kit (Chat's brief, 2026-10-02): the visit as shares of momRepairSeconds. in: she's slid in by then; face:
+    // pose A (looking down) gives way to B (facing the player) here, with the giggle sound; giggle: C's spells (C ↔ B,
+    // twice); reach: the tentacles start out, reach the egg, start back, are gone; patch: the plaster goes on (the
+    // cracks close over 0.25–0.5, view.js); out: she starts back the way she came. [T]
+    momTimeline: { in: 0.12, face: 0.5, giggle: [0.64, 0.7, 0.76, 0.82], reach: [0.12, 0.25, 0.45, 0.55], patch: [0.25, 0.3], out: 0.88 },
+    momHeadShare: 0.75,      // [T] her head's width, a share of the nest's (the brief: about three quarters)
+    momTentacleShare: 0.42,  // [T] the tentacle picture's width, a share of her head's
+    momStretchMax: 2.2,      // [T] the most a tentacle stretches along its length to reach the egg
+    momPlasterShare: 0.9,    // [T] the plaster's width, a share of the egg's shell
+    momTiltMax: 50,          // [T] the most pose A turns toward the egg (deg)
     // E56 (ruled): a placeholder giggle, creepier for creepy Mom; under THONG, the buzz and the hiss, no dip [T]
     giggle: { sweet: 0.05, creepy: 0.06 },
 
