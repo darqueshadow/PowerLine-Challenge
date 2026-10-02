@@ -112,10 +112,13 @@ function rigFileD64(header, files) {
 }
 /* the rig's titles, and the manifest file it lays beside his (never in it) */
 const RIG_CHOICE = "zz CAT rig choice", RIG_ONE = "zz CAT rig one", RIG_TRIO = "zz CAT rig trio";
+/* the unnamed disk §D, §D2 and §F2 fall back on once his manifest names every one-sided .d64 he has */
+const RIG_PLAIN = "zz CAT rig plain";
 const RIG_MANIFEST = "_library.zz-rig.json";
 function rigFixtures() {
   return [
     [`${RIG_CHOICE}.d64`, rigFileD64("RIG CHOICE", [{ name: "RIG PLAY", text: "RIG PLAY RAN" }, { name: "RIG HELP", text: "RIG HELP RAN" }, { name: "RIG PART", text: "RIG PART RAN" }])],
+    [`${RIG_PLAIN}.d64`, rigFileD64("RIG PLAIN", [{ name: "RIG PLAIN", text: "RIG PLAIN RAN" }])],
     [`${RIG_ONE}.d64`, rigFileD64("RIG ONE", [{ name: "RIG PART", text: "RIG PART RAN" }, { name: "RIG ONE", text: "RIG ONE RAN" }])],
     [`${RIG_TRIO} - d1.d64`, rigFileD64("RIG TRIO 1", [])],
     [`${RIG_TRIO} - d2.d64`, rigFileD64("RIG TRIO 2", [])],
@@ -504,7 +507,10 @@ async function runRig() {
        Game/C64/roms/ is Andrew's, gitignored, and changes. */
     /* 🔄 2026-10-01 — and one the library manifest does not name: §D, §D2 and
        §F2 measure LOAD"*",8,1, which is what an unnamed title still types */
-    DISK = disks.find((d) => !d.ch && d.files.length === 1 && /\.d64$/i.test(d.files[0]));
+    /* 🔄 2026-10-01 — a real unnamed disk when he has one; the rig's own plain
+       disk once his manifest names them all (measured: it did, the same day) */
+    DISK = disks.find((d) => !d.ch && d.files.length === 1 && /\.d64$/i.test(d.files[0]) && !/^zz CAT rig /.test(d.name))
+        || disks.find((d) => d.name === RIG_PLAIN);
     TAPE = disks.find((d) => !d.ch && d.files.length === 1 && /\.t64$/i.test(d.files[0]));
     ok(!!DISK && !!TAPE, `the library has a one-sided disk and a tape to test with   [${DISK && DISK.name} / ${TAPE && TAPE.name}]`);
     if (!DISK || !TAPE) throw new Error("no disk or tape to test with");
@@ -1274,7 +1280,13 @@ async function runRig() {
     await type("PRINT X*6\n");
     ok((await untilScreen((r) => toReady(after(r, /^PRINT X\*6$/))[0] === " 42", 6000)) >= 0,
        `the very next keys go into BASIC, and X is still 7: nothing was lost and nothing reset   [${(await screen()).filter(Boolean).slice(-2).join(" | ")}]`);
-    /* the held key */
+    /* the held key — a raw key reaches the C64 only in KEYBOARD mode, and since
+       2026-10-01 a Load ends by handing the title over to its joystick port
+       (his ruling), so the rig takes the keyboard first, as a player would */
+    if ((await ev(SIDE)).mode !== "keyboard") {
+      await press("F2");
+      await until(`document.getElementById("c64-side").dataset.mode === "keyboard"`, 5000);
+    }
     wc.sendInputEvent({ type: "keyDown", keyCode: "Space" });
     await frames(10);
     const held0 = await peek(203);
