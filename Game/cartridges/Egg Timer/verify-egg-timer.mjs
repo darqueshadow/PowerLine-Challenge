@@ -1146,10 +1146,15 @@ try {
     const later = await ev(`({ crack: Number(${q(" .crack")}.style.strokeDashoffset), giggled: ET.view.momFixes()[0] && ET.view.momFixes()[0].giggled, pose: document.querySelector('#popups .mom-visit').dataset.pose, want: ET.mom.pose(ET.view.momFixes()[0].u, false) })`);
     ok(mid.crack < 1 && later.crack === 1 && !mid.giggled && later.giggled, `E55: she patches the cracks closed, then turns and giggles   [crack ${(1 - mid.crack).toFixed(2)} → ${(1 - later.crack).toFixed(2)}]`);
     eq([mid.pose, later.pose === later.want && later.pose !== "down"], ["down", true], `Mom kit: looking down (A) while she patches, facing the player once she's done   [${later.pose}]`);
-    // the poses through one visit, as config's momTimeline has them: A, B, then C alternating with B, twice
-    eq(await ev(`[0.3, 0.55, 0.67, 0.73, 0.79, 0.9].map((u) => ET.mom.pose(u, false)).join(' ')`), "down face giggle face giggle face", "Mom kit: A, then B, then C alternating with B, twice");
-    eq(await ev(`[0.3, 0.55, 0.67, 0.73, 0.79, 0.9].map((u) => ET.mom.pose(u, true)).join(' ')`), "down face giggle giggle giggle giggle", "SAFETY: under reduced motion the giggle is held, not swapped");
-    await ev("__et.advance(0.7)");
+    // the poses through one visit, as config's momTimeline has them: A, B, C (held), B
+    eq(await ev(`[0.45, 0.9, 1.3, 1.7, 1.95].map((s) => ET.mom.pose(s / ET.CONFIG.momRepairSeconds)).join(' ')`), "down face giggle giggle face", "Mom kit: A, then B, then C held, then B");
+    // Chat's giggle ruling (2026-10-02, flash safety): every pose change through a visit, 5 ms apart
+    const swaps = await ev(`(() => { const T = ET.CONFIG.momRepairSeconds, out = []; let was = ET.mom.pose(0);
+      for (let s = 0.005; s < T; s += 0.005) { const p = ET.mom.pose(s / T); if (p !== was) out.push([+s.toFixed(3), p]); was = p; } return out; })()`);
+    const cAt = swaps.findIndex((x) => x[1] === "giggle"), holdC = cAt >= 0 && swaps[cAt + 1] ? swaps[cAt + 1][0] - swaps[cAt][0] : 0;
+    ok(swaps.filter((x) => x[1] === "giggle").length === 1 && holdC >= 0.5, `SAFETY (giggle ruling): pose C is held at least 0.5 s, one swap in and one out   [held ${holdC.toFixed(2)} s]`);
+    ok(swaps.every((x, i) => i < 2 || x[0] - swaps[i - 2][0] > 1), `SAFETY (giggle ruling): at most 2 pose changes in any second of the visit   [${swaps.map((x) => x[1] + "@" + x[0]).join(" ")}, of ${await ev("ET.CONFIG.momRepairSeconds")} s]`);
+    await ev(`__et.advance(${await ev("ET.CONFIG.momRepairSeconds")} - 0.9 + 0.1)`);
     eq(await ev("[document.querySelectorAll('#popups .momfix').length, ET.view.momFixes().length]"), [0, 0], `E55: …and ducks out after ${await ev("ET.CONFIG.momRepairSeconds")} s`);
     eq(await ev(`${q(" .hsign")}.hidden`), false, "the H sign stays on through the STR");
     // the final clear: the ordinary pan, splat and break stage
@@ -1186,7 +1191,23 @@ try {
         const vis = (s) => !!m && [...m.querySelectorAll('.mom-drool ' + s)].some(e => getComputedStyle(e).visibility === 'visible');
         return { pose: m && m.dataset.pose, strand: vis('.strand'), drop: vis('.mom-drop.falling'), tongue: !!m && !!m.querySelector('.mom-pose.giggle').style.filter, splat: !!(ET.view.momFixes().find((x) => x.kind === 'creepy') || { drool: {} }).drool.splat }; };
       ET.view.momVisit(id, 'creepy');
-      const s = [to(0.3), to(0.56), to(0.67), to(0.7), to(0.98)];
+      const bobs = [];
+      const s = [to(0.45 / T), to(0.82 / T), to(0.96 / T)];
+      for (let k = 0; k <= 12; k++) { to((1.21 + k * 0.045) / T); bobs.push(document.querySelector('#popups .mom-visit.creepy .mom-head').style.transform); }
+      s.push(to(1.75 / T));
+      const glow = (() => { const m = document.querySelector('#popups .mom-visit.creepy .mom-drool'); return m ? getComputedStyle(m).filter : ''; })();
+      s.push(to(2.15 / T));
+      // the splat's glow on the floor canvas: none of it over any nest, readout, sign, timer, the sink tag or the trough
+      const flr = fl.getBoundingClientRect(), fld = document.getElementById('field').getBoundingClientRect(), kx = fl.width / flr.width, ky0 = fl.height / flr.height;
+      const px = fl.getContext('2d').getImageData(0, 0, fl.width, fl.height).data;
+      let onObstacle = 0, purple = 0;
+      const obs = plan.obstacles.all.concat(plan.obstacles.own).concat([document.querySelector('#trough .t-left'), document.querySelector('#trough .t-right'), document.querySelector('#trough .t-bl')].filter(Boolean).map((e) => { const r = e.getBoundingClientRect(); return { l: r.left - fld.left, t: r.top - fld.top, r: r.right - fld.left, b: r.bottom - fld.top }; }));
+      for (let y = 0; y < fl.height; y += 2) for (let x = 0; x < fl.width; x += 2) {
+        const i = (y * fl.width + x) * 4; if (!px[i + 3]) continue;
+        if (px[i + 2] > px[i + 1] + 60 && px[i] > px[i + 1] + 30) purple++;
+        const fx = x / kx + (flr.left - fld.left), fy = y / ky0 + (flr.top - fld.top);
+        if (obs.some((o) => fx > o.l && fx < o.r && fy > o.t && fy < o.b)) onObstacle++;
+      }
       const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b, box = plan.drool.land.box;
       const clear = !plan.obstacles.all.concat(plan.obstacles.own).some((o) => hit(box, o)) && box.l >= plan.floor.l && box.r <= plan.floor.r && box.t >= plan.floor.t && box.b <= plan.floor.b;
       const cov = ET.mess.coverage(fl);
@@ -1197,24 +1218,34 @@ try {
       __et.advance(0.2);
       ET.view.momVisit(id, 'sweet');
       const sweet = document.querySelector('#popups .mom-visit.sweet');
-      return { id, s, clear, cov, after, sweetDrool: !!(sweet && sweet.querySelector('.mom-drool')), sweetTongue: !!(sweet && sweet.querySelector('.mom-pose.giggle').style.filter),
+      return { id, s, clear, cov, after, glow, onObstacle, purple, bobs: [...new Set(bobs)].length, fill: getComputedStyle(document.documentElement).getPropertyValue('--mom-drool').trim(),
+        sweetDrool: !!(sweet && sweet.querySelector('.mom-drool')), sweetTongue: !!(sweet && sweet.querySelector('.mom-pose.giggle').style.filter),
         defs: document.querySelectorAll('.mom-defs').length }; })()`);
     const d = await drool(false);
     ok(!!d, "Mom kit: some nest has an edge entry and a clear landing for the drool");
     if (d) {
-      eq(d.s.map((x) => [x.pose, x.strand, x.drop, x.splat]), [["down", false, false, false], ["face", true, false, false], ["giggle", false, true, false], ["face", false, true, false], ["face", false, false, true]],
+      eq(d.s.map((x) => [x.pose, x.strand, x.splat]).concat([d.s[2].drop]), [["down", false, false], ["face", true, false], ["face", true, false], ["giggle", false, true], ["face", false, true], true],
         `Mom kit: creepy Mom drools in pose B only: the strand, then the drop falling, then the splat where it lands   [nest ${d.id}]`);
+      ok(d.bobs > 3, `Chat's giggle ruling: pose C bobs gently while it's held   [${d.bobs} heights]`);
       ok(d.clear && d.cov > 0, `Mom kit: the splat lands on the floor, clear of every nest, readout, sign, timer, the sink tag and the trough   [coverage ${(d.cov * 100).toFixed(2)}%]`);
       ok(d.after < d.cov * 0.05, `Mom kit: …and washes off like any goo (the floor's own wipe)   [${(d.cov * 100).toFixed(2)}% → ${(d.after * 100).toFixed(2)}%]`);
       eq(d.sweetDrool, false, "Mom kit: sweet Mom never drools");
-      eq(d.s.map((x) => x.tongue), [false, false, true, false, false], "Mom kit: creepy Mom's tongue wobbles (its warp filter) while she giggles, pose C only");
+      eq(d.s.map((x) => x.tongue), [false, false, false, true, false], "Mom kit: creepy Mom's tongue wobbles (its warp filter) while she giggles, pose C only");
       eq([d.sweetTongue, d.defs], [false, 0], "Mom kit: â€¦never sweet Mom's, and its filter goes when she does");
+      if (SHOTS) {   // to look at: the glowing purple strand and drop, then the splat
+        await ev(`(__et.advance(0.3), ET.view.momVisit(${d.id}, 'creepy'), __et.advance(0.9), 1)`);
+        await shot("08c-creepy-drool");
+        await ev("(__et.advance(1.25), 1)");
+        await shot("08d-creepy-splat");
+        await ev("(__et.advance(0.2), ET.mess.clear(document.querySelector('.floor-mess')), 1)");
+      }
     }
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const r = await drool(true);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
-    ok(!!r && r.s.every((x) => !x.strand && !x.drop && !x.tongue) && !r.s[1].splat && r.s[2].splat, `SAFETY: under reduced motion no strand, no falling drop, no tongue wobble; the splat is simply there once it would have landed   [${r && r.s.map((x) => x.splat).join(",")}]`);
+    ok(!!r && r.s.every((x) => !x.strand && !x.drop) && !r.s[1].splat && r.s[2].splat, `SAFETY: under reduced motion no strand, no falling drop; the splat is simply there once it would have landed   [${r && r.s.map((x) => x.splat).join(",")}]`);
+    ok(!!r && r.bobs === 1 && JSON.stringify(r.s.map((x) => x.tongue)) === "[false,false,false,true,false]", `Chat's giggle ruling: under reduced motion pose C doesn't bob, and the tongue wobbles for the whole hold   [${r && r.bobs} heights]`);
   }
   {
     // E56: the placeholder giggles sit under THONG (rendered offline, each alone)
@@ -1627,8 +1658,19 @@ try {
       }
       out.bad = [...new Set(out.bad)];
       out.fallback = [...new Set(out.fallback)].join(',');
+      // E58 condition (b): her head's size at every nest, both Moms; and condition (a): no readout under her
+      out.heads = [];
+      for (const kind of ['sweet', 'creepy']) for (let id = 0; id < 12; id++) {
+        const p = ET.view.momPlan(id, kind);
+        out.heads.push({ kind, id, w: p.head.r - p.head.l, h: p.head.b - p.head.t, fb: !!p.fallback });
+        if (hit(p.head, p.readout)) out.bad.push(kind + ' ' + id + ' head on its own readout');
+      }
       return out; })()`);
     ok(mom.bad.length === 0, `Mom kit: both Moms, every nest: her head and tentacles cover no other nest, readout, sign, timer, the sink tag or the trough   ${at} [${mom.bad.slice(0, 4).join('; ') || JSON.stringify(mom.edges) + ', E58 fallback: ' + (mom.fallback || 'none')}]`);
+    {
+      const small = mom.heads.filter((x) => Math.min(x.w, x.h) < 60), least = mom.heads.reduce((a, x) => Math.min(a, x.w, x.h), 1e9);
+      console.log(`    note: E58 (b) ${at}: smallest head ${least.toFixed(0)} px; under 60 px: ${small.length ? small.map((x) => x.kind + ' ' + x.id + (x.fb ? ' (nest)' : '') + ' ' + x.w.toFixed(0) + '×' + x.h.toFixed(0)).join(', ') : 'none'}`);
+    }
     if (SHOTS) {
       await ev(`(() => { document.querySelectorAll('.mess').forEach((m, i) => i % 3 === 0 && ET.mess.splatter(m, 6)); return 1; })()`);
       await shot(`10-full-board-${w}x${h}`);

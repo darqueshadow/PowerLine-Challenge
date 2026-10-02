@@ -318,7 +318,8 @@
       cls(s, "asks", removed && !repaired);
       readout(s, removed && !repaired ? "" : repaired ? "STR" : "VS", repaired ? (u - 2.05) * 30 : u < 0.35 ? 590 + u * 28 : 600 + (u - 0.35) * 20, bold);
       var crack = bold ? clamp((u - 0.35) / 1.7) * 0.4 : 0;
-      if (repaired) crack = 0.4 * clamp(1 - (u - 2.05 - 0.375) / 0.375);   // closing as she patches (0.25–0.5 of her visit)
+      var M = C().momTimeline.mend;
+      if (repaired) crack = 0.4 * clamp(1 - (u - 2.05 - M[0]) / (M[1] - M[0]));   // closing as she patches (momTimeline.mend)
       egg(s, 1, crack, bold, 0);
       type(s, u < 1.1 ? "RCAV " + UNIT : u < 2.05 ? "CAV " + UNIT + " " + C().hospitalType : "", u, u < 1.1 ? 0.45 : 1.2, u < 1.1 ? 1.05 : 2.0);
       once(s, "mom", 2.05, u, function () {

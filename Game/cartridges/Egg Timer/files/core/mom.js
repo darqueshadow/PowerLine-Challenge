@@ -6,11 +6,12 @@
    points in mom-parts.js.
    The caller lays her out in px of its own container (where her head rests, the egg, the edge she comes in from,
    the box she's clipped to) and paints her at a share u (0..1) of the visit, read off the game's own clock, so a
-   pause holds her and a rig can set any moment. The visit, as shares (config momTimeline):
+   pause holds her and a rig can set any moment. The visit, in seconds (config momTimeline):
      in (slides in from her edge) · A, looking down: the tentacles reach the egg, the plaster goes on, the cracks
-     close · B, facing the player · C ↔ B, giggling, twice · out (back the way she came).
+     close · B, facing the player (creepy Mom drools) · C, giggling, held with a gentle bob · B · out (back the way
+     she came). Chat's giggle ruling (2026-10-02): C held ≥ 0.5 s, one swap in and one out, ≤ 2 pose changes a second.
    A and the tentacles turn toward the egg; B and C stay upright. Every move is a transform (never brightness).
-   Reduced motion: she fades in and out, nothing slides, swings or bobs, and the giggle is held (no swapping).
+   Reduced motion: she fades in and out, nothing slides, swings or bobs; the poses change as above.
    ========================================================================= */
 (function (root) {
   var ET = (root.ET = root.ET || {});
@@ -32,15 +33,11 @@
     return (Math.atan2(toY, toX) - Math.atan2(fromY, fromX)) * 180 / Math.PI;
   }
 
-  /* Which pose shows at share u. */
-  function pose(u, reduced) {
-    var T = ET.CONFIG.momTimeline;
-    if (u < T.face) return "down";
-    if (reduced) return u < T.giggle[0] ? "face" : "giggle";   // reduced motion: one giggle, held
-    for (var i = 0; i < T.giggle.length; i += 2) {
-      if (u >= T.giggle[i] && u < T.giggle[i + 1]) return "giggle";
-    }
-    return "face";
+  /* Which pose shows at share u (the same with reduced motion: there are only three changes, at most 2 a second). */
+  function pose(u) {
+    var T = ET.CONFIG.momTimeline, s = u * ET.CONFIG.momRepairSeconds;
+    if (s < T.face) return "down";
+    return s >= T.giggle[0] && s < T.giggle[1] ? "giggle" : "face";
   }
 
   /* Where everything goes for a layout, in the host's px: her head's size, her chin, each tentacle's line (from its
@@ -134,11 +131,11 @@
     var api = {
       el: el, head: head, rig: rig, clip: clip, geometry: G,
       paint: function (u, reduced) {
-        var T = ET.CONFIG.momTimeline;
-        var p = pose(u, reduced);
+        var T = ET.CONFIG.momTimeline, len = ET.CONFIG.momRepairSeconds, sec = u * len;
+        var p = pose(u);
         el.dataset.pose = p;
         // in and out: a slide from behind her edge, or (reduced motion) a fade
-        var vis = u < T.in ? ease(u / T.in) : u > T.out ? 1 - ease((u - T.out) / (1 - T.out)) : 1;
+        var vis = sec < T.in ? ease(sec / T.in) : sec > T.out ? 1 - ease((sec - T.out) / (len - T.out)) : 1;
         if (reduced) {
           rig.style.transform = "";
           el.style.opacity = vis;
@@ -147,14 +144,15 @@
           rig.style.transform = "translate(" + (away[0] * k).toFixed(1) + "px, " + (away[1] * k).toFixed(1) + "px)";
           el.style.opacity = "";
         }
-        // A turns toward the egg; B and C stand upright, C with a little bob (not under reduced motion)
+        // A turns toward the egg; B and C stand upright, C with a gentle bob from where she stood (not under reduced motion)
         var tilt = p === "down" ? lay.tilt : 0;
-        var bob = p === "giggle" && !reduced ? -0.04 * hh : 0;
+        var bob = p === "giggle" && !reduced ? -T.bob.lift * hh * (1 - Math.cos((sec - T.giggle[0]) * T.bob.hz * Math.PI * 2)) / 2 : 0;
         head.style.transform = "translateY(" + bob.toFixed(1) + "px) rotate(" + tilt.toFixed(1) + "deg)";
         // the tentacles reach out, hold the plaster on, and draw back as she turns to the player
-        var reach = reduced ? (u >= T.reach[0] && u < T.reach[3] ? 1 : 0)
-          : u < T.reach[0] ? 0 : u < T.reach[1] ? ease((u - T.reach[0]) / (T.reach[1] - T.reach[0]))
-          : u < T.reach[2] ? 1 : u < T.reach[3] ? 1 - ease((u - T.reach[2]) / (T.reach[3] - T.reach[2])) : 0;
+        var R = T.reach;
+        var reach = reduced ? (sec >= R[0] && sec < R[3] ? 1 : 0)
+          : sec < R[0] ? 0 : sec < R[1] ? ease((sec - R[0]) / (R[1] - R[0]))
+          : sec < R[2] ? 1 : sec < R[3] ? 1 - ease((sec - R[2]) / (R[3] - R[2])) : 0;
         tents.forEach(function (t) {
           t.el.style.visibility = reach > 0.02 ? "visible" : "hidden";
           var s = t.stretch * (0.25 + 0.75 * reach);
@@ -163,7 +161,7 @@
             t.aim.toFixed(1) + "deg) " + stretchAlong(t, s, w) + " translate(" + (-bx).toFixed(1) + "px, " + (-by).toFixed(1) + "px)";
         });
         // the plaster: on as the tips arrive, held, gone as she leaves
-        var pv = u < T.patch[0] ? 0 : u < T.patch[1] ? (u - T.patch[0]) / (T.patch[1] - T.patch[0]) : u < T.out ? 1 : vis;
+        var pv = sec < T.patch[0] ? 0 : sec < T.patch[1] ? (sec - T.patch[0]) / (T.patch[1] - T.patch[0]) : sec < T.out ? 1 : vis;
         plaster.style.visibility = pv > 0.02 ? "visible" : "hidden";
         plaster.style.transform = reduced ? "" : "scale(" + (pv < 1 ? 0.3 + 0.85 * ease(pv) : 1).toFixed(3) + ")";
         if (reduced) plaster.style.opacity = pv;
@@ -213,27 +211,28 @@
     var y0 = my + R.len + rb, landed = false;
     // with nowhere clear to land, it falls only as far as `stop` (before anything), fading out on the way
     var fall = R.land ? R.land.y + oy - y0 : Math.max(0, R.stop + oy - y0);
-    var avail = Math.max(0.05, (0.97 - D.drop) * T);
+    var avail = Math.max(0.05, 0.97 * T - D.drop);
     var g = Math.max(D.gravity, R.land ? 2 * Math.max(0, fall) / (avail * avail) : D.gravity);
     function land() { if (!landed) { landed = true; if (R.onLand) R.onLand(); } }
     function show(e, on) { var v = on ? "visible" : "hidden"; if (e.style.visibility !== v) e.style.visibility = v; }
     return {
       landed: function () { return landed; },
       paint: function (u, reduced, pose) {
+        var sec = u * T;
         if (reduced) {
           [strand, shine, bulb, drop, glint].forEach(function (e) { show(e, false); });
-          if (u >= D.drop) land();
+          if (sec >= D.drop) land();
           return;
         }
         // the strand and its swelling drop: while she faces the player, until the drop lets go and it snaps back
         var L = 0, b = rb * 0.5;
-        if (u >= D.grow[0] && u < D.grow[1]) L = R.len * ease((u - D.grow[0]) / (D.grow[1] - D.grow[0]));
-        else if (u >= D.grow[1] && u < D.drop) { L = R.len; b = rb * (0.5 + 0.5 * clamp((u - D.grow[1]) / (D.drop - D.grow[1]))); }
-        else if (u >= D.drop && u < D.snap) { L = R.len * (1 - ease((u - D.drop) / (D.snap - D.drop))); b = 0; }
+        if (sec >= D.grow[0] && sec < D.grow[1]) L = R.len * ease((sec - D.grow[0]) / (D.grow[1] - D.grow[0]));
+        else if (sec >= D.grow[1] && sec < D.drop) { L = R.len; b = rb * (0.5 + 0.5 * clamp((sec - D.grow[1]) / (D.drop - D.grow[1]))); }
+        else if (sec >= D.drop && sec < D.snap) { L = R.len * (1 - ease((sec - D.drop) / (D.snap - D.drop))); b = 0; }
         var on = L > 1 && pose === "face";
         show(strand, on); show(shine, on); show(bulb, on && b > 0.5);
         if (on) {
-          var wn = w0 * 0.45, sway = Math.sin(u * 40) * w0 * 0.3;
+          var wn = w0 * 0.45, sway = Math.sin(sec * 27) * w0 * 0.3;
           strand.setAttribute("d", "M" + (mx - w0 / 2) + " " + my + " Q" + (mx - wn + sway) + " " + (my + L * 0.55) + " " + (mx - wn / 2 + sway) + " " + (my + L) +
             " L" + (mx + wn / 2 + sway) + " " + (my + L) + " Q" + (mx + wn + sway) + " " + (my + L * 0.55) + " " + (mx + w0 / 2) + " " + my + " Z");
           shine.setAttribute("d", "M" + (mx - w0 * 0.15) + " " + (my + 2) + " Q" + (mx - wn * 0.4 + sway) + " " + (my + L * 0.45) + " " + (mx - wn * 0.2 + sway) + " " + (my + L * 0.8));
@@ -241,7 +240,7 @@
           bulb.setAttribute("rx", b); bulb.setAttribute("ry", b * 1.2);
         }
         // the drop, let go: falls on its own until it lands (then the splat), or out of sight
-        var t = (u - D.drop) * T, falling = u >= D.drop && !landed;
+        var t = sec - D.drop, falling = sec >= D.drop && !landed;
         if (falling) {
           var dy = 0.5 * g * t * t, k = R.land ? Math.min(1, dy / Math.max(1, fall)) : 0;
           var x = mx + (R.land ? (R.land.x + ox - mx) * k : 0), y = y0 + dy;
@@ -262,8 +261,8 @@
 
   /* The tongue's wobble: an SVG displacement filter on the giggling head. Its map is flat (no move) everywhere but
      the tongue's oval, where it rises smoothly to the middle and falls to nothing at the edge, so only the tongue
-     bends and nothing tears or doubles at a seam. The filter's strength swings to and fro while she giggles (pose C);
-     otherwise it's off. Reduced motion: never on. */
+     bends and nothing tears or doubles at a seam. The filter's strength swings to and fro for the whole of the giggle
+     (pose C), reduced motion too (Chat's giggle ruling, 2026-10-02: there, C doesn't bob); otherwise it's off. */
   var tongueId = 0;
   function buildTongue(pic, T, hw) {
     var NS = "http://www.w3.org/2000/svg", id = "mom-tongue-" + (++tongueId);
@@ -292,7 +291,7 @@
     return {
       id: id,
       paint: function (u, reduced, pose) {
-        var C = ET.CONFIG.momTongue, want = !reduced && pose === "giggle";
+        var C = ET.CONFIG.momTongue, want = pose === "giggle";
         if (want !== on) { on = want; pic.style.filter = on ? "url(#" + id + ")" : ""; }
         if (on) {
           // scale is a share of the picture (objectBoundingBox): the most it moves is half of it, at the oval's middle

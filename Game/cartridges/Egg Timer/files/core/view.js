@@ -471,7 +471,8 @@
      A), the path she slides in on, and both tentacles (from her chin to the egg, no longer than momStretchMax) are clear
      of everything she mustn't cover. Her tentacles may cross only her own nest (not its readout). The Command Lines and
      the HUD are outside the field, and she's clipped to the field inside the trough. With no clear spot on any edge
-     (the board's middle nests, mostly): momNoEdge (E58, ⏳ PENDING). */
+     (the board's middle nests, mostly): momNoEdge (E58, ruled 2026-10-02: "nest"). Either way her head and tentacles
+     never cover a readout, her own included, so the unit number and timer stay in sight all visit (E58's condition). */
   function fieldRect(e, f) {
     var r = e.getBoundingClientRect();
     return { l: r.left - f.left, t: r.top - f.top, r: r.right - f.left, b: r.bottom - f.top };
@@ -579,10 +580,10 @@
     }
     return momNoEdge(v, kind, base, f);
   }
-  /* E58 (⏳ PENDING, Chat): no edge has room. "nest" (built): she comes down inside her own nest's box, above its
+  /* E58 (ruled 2026-10-02, Chat: "nest"): no edge has room. She comes down inside her own nest's box, above its
      readout, smaller if she must be (her head no lower than the egg's middle), so she covers nothing but her own nest.
-     "over": the visit before the kit's edge rule, her full-size head just above the egg (it covers the readout of the
-     nest above). */
+     ("over", not ruled: the visit before the kit's edge rule, her full-size head just above the egg; it covers the
+     readout of the nest above.) */
   function momNoEdge(v, kind, base, f) {
     var C = ET.CONFIG, P = ET.MOM_PARTS[kind], egg = base.egg;
     var hw = base.headW, hh = hw * P.head[1] / P.head[0];
@@ -675,16 +676,15 @@
       var u = (t - m.t0) / T;
       m.u = u;
       if (u >= 0 && u < 1) m.rig.paint(u, reducedMotion());
-      if (!m.giggled && u >= ET.CONFIG.momTimeline.face) { m.giggled = true; if (ET.audio) ET.audio.giggle(m.kind); }
+      if (!m.giggled && u * T >= ET.CONFIG.momTimeline.face) { m.giggled = true; if (ET.audio) ET.audio.giggle(m.kind); }
       if (u >= 1 || u < 0) { m.rig.remove(); if (m.v.mend === m) m.v.mend = null; return false; }
       return true;
     });
   }
-  // the egg's cracks while Mom mends it: held as they were, then closing as she patches (0.25 → 0.5 of her visit)
+  // the egg's cracks while Mom mends it: held as they were, then closing as she patches (momTimeline.mend)
   function mendedCrack(v, t) {
-    var m = v.mend, T = ET.CONFIG.momRepairSeconds;
-    var u = (t - m.t0) / T;
-    return m.from * Math.max(0, Math.min(1, 1 - (u - 0.25) / 0.25));
+    var m = v.mend, M = ET.CONFIG.momTimeline.mend;
+    return m.from * Math.max(0, Math.min(1, 1 - (t - m.t0 - M[0]) / (M[1] - M[0])));
   }
   /* Reduced motion: the lightning holds still, and (Andrew, 2026-09-24) the overtime egg stops wobbling and the cord
      stops twitching; style.css stops the CSS loops. One live query, read every frame, so a change applies at once. */
