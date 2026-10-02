@@ -255,7 +255,7 @@ try {
         code: n.querySelector('.readout .code').textContent, clock: n.querySelector('.readout .clock').textContent, typed: c.querySelector('.typed').textContent,
         cord: c.querySelector('.toon-cord g').style.display !== 'none', sign: !n.querySelector('.hsign').hidden, pan: n.querySelector('.pan').classList.contains('hit'),
         brk: n.querySelector('.break').getAttribute('data-stage'), pts: [...fx.querySelectorAll('.popup')].map(p => p.textContent), dish: !!fx.querySelector('.dish'), goo: fx.querySelectorAll('.goo').length,
-        mom: fx.querySelector('.momfix') ? fx.querySelector('.momfix').className : null, alien: (n.querySelector('.creature .alien') || {}).dataset ? n.querySelector('.creature .alien').dataset.alien : null,
+        mom: fx.querySelector('.mom-visit') ? fx.querySelector('.mom-visit').className + ' ' + fx.querySelector('.mom-visit').dataset.pose : null, alien: (n.querySelector('.creature .alien') || {}).dataset ? n.querySelector('.creature .alien').dataset.alien : null,
         crack: Number(n.querySelector('.crack').style.strokeDashoffset) }; })()`);
     const s1 = await look(T0[0] + 0.7), s1b = await look(T0[0] + 2.2);
     ok(s1.step === 1 && s1.say === CAPS[0] && s1.dot === 1 && s1.cord && s1.state === "laying" && s1.clock === "--:--", "E57 step 1: the cord comes down with the egg in it, no clock yet");
@@ -268,7 +268,7 @@ try {
     ok(s4.say === CAPS[3] && s4.state === "splat" && s4.brk === "4" && s4.goo >= 3 && s4.pts.includes("+35"), "E57 step 4: a slow clear: a messier splat (break stage 4), gunk, +35");
     const s5a = await look(T0[4] + 1.6), s5 = await look(T0[4] + 2.4);
     ok(s5a.sign && s5a.asks && s5a.code === "" && /^CAV/.test(s5a.typed), `E57 step 5: the H sign; RCAV empties the type box (its pulse), then CAV 2101 STR types   [${s5a.typed}]`);
-    ok(s5.mom === "momfix sweet" && s5.code === "STR" && !s5.bold && s5.pts.includes("+75"), "…and sweet Mom patches it: the box reads STR");
+    ok(s5.mom === "mom-visit sweet down" && s5.code === "STR" && !s5.bold && s5.pts.includes("+75"), `…and sweet Mom (the game's own visit, Mom kit) patches it: the box reads STR   [${s5.mom}]`);
     const s6 = await look(T0[5] + 1.0);
     ok(s6.say === CAPS[5] && s6.state === "escape" && s6.hop && s6.alien === (await ev("ET.CONFIG.howtoAlien")), `E57 step 6: the egg hatches and the crab does its goofy hop (never a horror alien)   [${s6.alien}]`);
     eq([s1.other, s6.other], [CAPS[0], CAPS[5]], "E57: one clock: the options screen's copy is always on the same step");
@@ -285,12 +285,12 @@ try {
       const q = (i, s) => cells[i].querySelector(s);
       return { anim: c.querySelector('.toon-anim').getBoundingClientRect().height, still: c.querySelector('.toon-still').getBoundingClientRect().height,
         p1: q(0, '.toon').dataset.state, p2: q(1, '.toon').classList.contains('bold'), p3: q(2, '.break').getAttribute('data-stage'), p4: q(3, '.break').getAttribute('data-stage'),
-        p5: [!q(4, '.hsign').hidden, !!q(4, '.momfix'), q(4, '.momfix .head') ? getComputedStyle(q(4, '.momfix .head')).animationName : null],
+        p5: [!q(4, '.hsign').hidden, !!q(4, '.mom-visit.sweet'), q(4, '.mom-visit') ? q(4, '.mom-visit').dataset.pose + ' ' + getComputedStyle(q(4, '.mom-plaster')).visibility : null],
         p6: [q(5, '.toon').dataset.state, getComputedStyle(q(5, '.creature')).animationName],
         moving: [...c.querySelectorAll('.toon-still *')].filter(e => { const a = getComputedStyle(e).animationName; return a !== 'none' && !/^alien-/.test(a); }).map(e => e.getAttribute('class')).slice(0, 4) }; })()`);
     ok(rs.anim === 0 && rs.still > 200, "SAFETY: with reduced motion the cartoon gives way to the still strip");
     ok(rs.p1 === "laying" && rs.p2 && rs.p3 === "1" && rs.p4 === "4" && rs.p5[0] && rs.p5[1] && rs.p6[0] === "escape", `…each panel its step's key frame: the lay, the bold crack, the neat and messy splats, Mom with the sign, the crab out   [${JSON.stringify([rs.p1, rs.p3, rs.p4, rs.p6[0]])}]`);
-    ok(rs.p5[2] === "none" && rs.p6[1] === "none" && rs.moving.length === 0, `SAFETY: …and nothing in it moves (the alien puppets' own swings aside, held still by their own rule)   [${rs.moving.join(", ")}]`);
+    ok(rs.p5[2] === "down visible" && rs.p6[1] === "none" && rs.moving.length === 0, `SAFETY: …and nothing in it moves (the alien puppets' own swings aside, held still by their own rule)   [${rs.moving.join(", ")}]`);
     await shot("01c-howto-still");
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }

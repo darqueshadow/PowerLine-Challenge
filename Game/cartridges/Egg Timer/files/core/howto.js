@@ -208,11 +208,27 @@
       s.fx.appendChild(g);
     });
   }
+  /* Sweet Mom in step 5 (Mom kit, 2026-10-02): the game's own visit (core/mom.js), in the stage's fx layer. She comes
+     down from the top of the stage, which clips her (the stage is her play field), her head about three quarters of
+     the nest's width, smaller if the stage is short, never lower than the top of the egg. */
+  function momLayout(s) {
+    var P = ET.MOM_PARTS.sweet, f = s.fx.getBoundingClientRect(), st = s.stage.getBoundingClientRect();
+    var g = s.egg.querySelector(".mirror") || s.egg, m = g.getScreenCTM();
+    var at = function (x, y) { return { x: m.a * x + m.c * y + m.e - f.left, y: m.b * x + m.d * y + m.f - f.top }; };
+    var mid = at(0, -9), top = at(0, -38), ew = 44 * Math.hypot(m.a, m.b);
+    var clip = { l: st.left - f.left, t: st.top - f.top, r: st.right - f.left, b: st.bottom - f.top };
+    var hw = s.toon.offsetWidth * C().momHeadShare, hh = hw * P.head[1] / P.head[0];
+    var room = top.y - clip.t - 2;
+    if (hh > room && room > 10) { hh = room; hw = hh * P.head[0] / P.head[1]; }
+    return { kind: "sweet", headW: hw, head: { x: mid.x, y: clip.t + 1 + hh / 2 }, egg: { x: mid.x, y: mid.y, w: ew, top: top.y },
+      from: "top", tilt: 0, clip: clip };
+  }
   /* a new step: everything back to an empty nest */
   function reset(s, k) {
     s.k = k;
     s.fired = {};
     s.mend = null;
+    s.mom = null;
     s.fx.innerHTML = "";
     s.pan.className = "pan";
     s.sign.hidden = true;
@@ -306,16 +322,15 @@
       egg(s, 1, crack, bold, 0);
       type(s, u < 1.1 ? "RCAV " + UNIT : u < 2.05 ? "CAV " + UNIT + " " + C().hospitalType : "", u, u < 1.1 ? 0.45 : 1.2, u < 1.1 ? 1.05 : 2.0);
       once(s, "mom", 2.05, u, function () {
-        var m = div("momfix sweet");
-        m.style.left = "50%"; m.style.top = "32%"; m.style.width = "100%";
-        m.style.setProperty("--fix", C().momRepairSeconds + "s");
-        var head = div("head");
-        head.appendChild(ET.art.doodleEl(1));
-        m.appendChild(head);
-        m.appendChild(ET.art.patchSvg());
-        s.fx.appendChild(m);
+        s.mom = ET.mom.visit(s.fx, momLayout(s));
         points(s, C().clearTierPoints[1]);
       });
+      // her visit, painted from this step's own clock (the still strip: its key frame, pose A with the plaster on)
+      if (s.mom) {
+        var mu = (u - 2.05) / C().momRepairSeconds;
+        if (mu < 1) s.mom.paint(Math.max(0, mu), s.still || reduced());
+        else { s.mom.el.remove(); s.mom = null; }
+      }
     },
     // 6. Too slow: the egg cracks through and the crab comes out, scurries, dances and hops at the viewer (the cute
     //    hatch from play; never a horror alien, never the jump scare)
@@ -378,6 +393,7 @@
        pictures load then, never holding the data back) */
     ready: function () {
       dataIn = true;
+      ET.mom.preload("sweet");   // step 5's sweet Mom, now the data is in
       live.concat(stills).forEach(function (s) { if (!s.creature.classList.contains("has-art")) ET.aliens.fill(s.creature, C().howtoAlien); });
       stills.forEach(function (s) { s.pw = 0; });
     },

@@ -100,7 +100,6 @@ button { font: inherit; }
 .toon .twigs .look-slate { display: none; }
 .toon .readout { font-size: clamp(9px, min(0.9vw, 1.6vh), 14px); }
 .toon-fx { position: absolute; inset: 0; pointer-events: none; z-index: 26; }
-.toon .momfix .head { top: -30%; left: 22%; width: 56%; }   /* kept inside the stage, which clips */
 .toon .popup { left: 88%; top: 18%; font-size: clamp(14px, min(1.5vw, 2.6vh), 22px); }
 .toon .dish { left: 50%; top: 0; width: 70%; }
 .toon .goo { position: absolute; width: 1.4em; height: 0.8em; background: var(--yolk); border: 2px solid var(--outline); border-radius: 55% 45% 60% 40% / 60% 55% 45% 40%; }
@@ -591,13 +590,13 @@ h2 {
 /* sized and placed so a doodle turned the full doodleTurnMax still clears the text above it */
 #howto .doodles .doodle { position: absolute; width: min(34cqw, 40cqh, 64px); height: auto; aspect-ratio: 1; }
 #howto .doodle { overflow: visible; transform: rotate(var(--turn, 0deg)); transition: transform 0.45s cubic-bezier(0.3, 1.8, 0.5, 1); }
-:is(.howto-panel, .momfix) .doodle .ink { fill: none; stroke: var(--outline); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-:is(.howto-panel, .momfix) .doodle .green { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
-:is(.howto-panel, .momfix) .doodle .lilac { fill: var(--lilac); stroke: var(--outline); stroke-width: 3; }
-:is(.howto-panel, .momfix) .doodle .pink { fill: var(--pink); stroke: var(--outline); stroke-width: 2.5; }
-:is(.howto-panel, .momfix) .doodle .shell { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
-:is(.howto-panel, .momfix) .doodle .eye { fill: var(--white); stroke: var(--outline); stroke-width: 2.5; }
-:is(.howto-panel, .momfix) .doodle .dot { fill: var(--outline); }
+.howto-panel .doodle .ink { fill: none; stroke: var(--outline); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.howto-panel .doodle .green { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
+.howto-panel .doodle .lilac { fill: var(--lilac); stroke: var(--outline); stroke-width: 3; }
+.howto-panel .doodle .pink { fill: var(--pink); stroke: var(--outline); stroke-width: 2.5; }
+.howto-panel .doodle .shell { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
+.howto-panel .doodle .eye { fill: var(--white); stroke: var(--outline); stroke-width: 2.5; }
+.howto-panel .doodle .dot { fill: var(--outline); }
 
 /* Arcade attract lights (2026-09-23, ⏳ placeholder look): bulbs on the panel's border line, so they're never
    behind a word. Lit ones pop bright on the menus; in play (.calm) a lit bulb is dim and fades slowly. The
@@ -741,7 +740,7 @@ h2 {
 :is(.nest, .toon).hop .creature { animation: hatch-hop var(--hatch, 3.2s) ease-in-out forwards; }
 .nest.leapt .creature { visibility: hidden; }
 .nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip { animation-play-state: paused; }
-body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg, body.paused .momfix * { animation-play-state: paused; }
+body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg { animation-play-state: paused; }
 @keyframes hatch-scare {
   0% { transform: translate(0, 0); }
   9% { transform: translate(0, -14px); }
@@ -858,34 +857,6 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
   70% { transform: translateY(0) rotate(5deg); }
   85% { transform: translateY(-6%) rotate(-2deg); }
   100% { transform: translateY(0) rotate(0); }
-}
-
-/* E55 (ruled 2026-10-02; ⏳ placeholder art): Mom repairs a hospital egg, over the nest only (the popups layer: no
-   pointer). Sweet Mom is the how-to panel's mommy doodle, in its colours; creepy Mom the scary HUD face. One timeline, --fix (momRepairSeconds): 0–20% she pops in from above; to 50% she looks down and slaps the
-   patch on (the cracks close: view.js); 50–85% she turns to the player and giggles (a bob); then she ducks out. The patch
-   goes with her. Movement only: nothing flashes or changes brightness. A pause holds it (body.paused). ⚠️ 20%, 50% and
-   85% are config's momRepairSeconds comment's shares. */
-.momfix { position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1; pointer-events: none; }
-.momfix .head { position: absolute; left: 12%; top: -70%; width: 76%; transform-origin: 50% 100%; animation: mom-fix var(--fix, 1.5s) ease-in-out both; }
-.momfix .head svg { display: block; width: 100%; height: auto; overflow: visible; }
-.momfix .patch { position: absolute; left: 28%; top: 20%; width: 44%; overflow: visible; transform-origin: 50% 50%; animation: mom-patch var(--fix, 1.5s) ease-out both; }
-.momfix .patch .band { fill: var(--plaster); stroke: var(--outline); stroke-width: 2.5; }
-.momfix .patch .pad { fill: var(--plaster-pad); stroke: var(--outline); stroke-width: 1.5; }
-.momfix .patch .hole { fill: var(--outline); }
-@keyframes mom-fix {
-  0% { transform: translateY(-90%) scale(0.2); }
-  20% { transform: translateY(0) scale(1) rotate(0); }
-  30%, 46% { transform: translateY(14%) scale(1) rotate(16deg); }    /* looking down at the egg */
-  52% { transform: translateY(0) scale(1.06) rotate(0); }             /* turns to the player */
-  60%, 76% { transform: translateY(-4%) scale(1.06) rotate(-4deg); }
-  68%, 84% { transform: translateY(3%) scale(1.06) rotate(4deg); }    /* the giggle */
-  100% { transform: translateY(-90%) scale(0.2); }
-}
-@keyframes mom-patch {
-  0%, 28% { transform: scale(0) rotate(-30deg); }
-  38% { transform: scale(1.15) rotate(-12deg); }
-  44%, 85% { transform: scale(1) rotate(-12deg); }
-  100% { transform: scale(0) rotate(-12deg); }
 }
 
 /* Mom's visit with the Gemini parts kits (E55; Chat's brief 2026-10-02; core/mom.js lays her out and paints every
@@ -1194,7 +1165,7 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 #over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
-  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .momfix .head, .momfix .patch, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
   .nest.scare .creature, :is(.nest, .toon).hop .creature { animation: none; }   /* Andrew, 2026-10-01: the alien sits still in its nest */
   #title-scene .note, #setup-critter .note { opacity: 1; }
@@ -1204,5 +1175,4 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
   .toon-anim { display: none; }
   .toon-still { display: flex; }
   /* E55: Mom appears, still, with her patch on the egg, and goes (view.js removes her at the end of her visit) */
-  .momfix .patch { transform: rotate(-12deg); }
 }
