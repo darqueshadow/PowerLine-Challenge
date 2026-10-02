@@ -1547,6 +1547,39 @@ try {
     ok(lay.warpCentre && lay.warpBehind && lay.warpBig > 1.45 && lay.warpBig < 1.55, `E50 (option A): Time Warp's grandfather clock, sign and caption sit in the centre of the board, about 1.5× bigger, every nest and readout drawn over it where they meet   ${at} [×${lay.warpBig.toFixed(2)}]`);
     ok(lay.tagged === 0 && lay.tagIn, `Refinement 5 §6: the hose tag stays on the board and touches no nest or readout   ${at}`);
     ok(lay.muteClear, `E24: the mute button sits in the HUD bar's left end, clear of its words, the wall clock and the board   ${at}`);
+    // Mom kit (Chat's brief, 2026-10-02): for every nest, both Moms come in from an edge (nearest first) or, with no
+    // edge clear, take E58's fallback inside her own nest; either way her head (upright and turned) and both tentacles
+    // (the whole band their S-curve can swing over) cover no other nest, readout, H sign, the wall clock, Time Warp,
+    // the sink tag or the trough, and her head covers nothing of her own nest when she comes from an edge
+    const mom = await ev(`(() => {
+      const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+      const out = { bad: [], edges: {}, fallback: [] };
+      for (const kind of ['sweet', 'creepy']) for (let id = 0; id < 12; id++) {
+        const p = ET.view.momPlan(id, kind), c = p.clip;
+        const where = kind + ' ' + id;
+        if (p.head.l < c.l - 0.5 || p.head.r > c.r + 0.5 || p.head.t < c.t - 0.5 || p.head.b > c.b + 0.5) out.bad.push(where + ' head outside');
+        // E58's fallback stays inside her own nest's box: what that box already lies over (Time Warp, drawn under the
+        // nests, E50) isn't hers to clear
+        p.obstacles.all.forEach((o) => { if (hit(p.head, o) && !(p.fallback && hit(p.nest, o))) out.bad.push(where + ' head'); });
+        if (p.fallback) {
+          out.fallback.push(id);
+          if (p.head.l < p.nest.l - 0.5 || p.head.r > p.nest.r + 0.5 || p.head.t < p.nest.t - 0.5 || p.head.b > p.readout.t + 0.5) out.bad.push(where + ' fallback leaves its nest');
+        } else {
+          out.edges[p.from] = (out.edges[p.from] || 0) + 1;
+          p.obstacles.own.forEach((o) => { if (hit(p.head, o)) out.bad.push(where + ' head on its own nest'); });
+          p.tents.forEach((t) => {
+            for (let s = 0; s <= 40; s++) {
+              const x = t.from.x + (t.to.x - t.from.x) * s / 40, y = t.from.y + (t.to.y - t.from.y) * s / 40, r = p.tube / 2;
+              const d = { l: x - r, t: y - r, r: x + r, b: y + r };
+              p.obstacles.all.forEach((o) => { if (hit(d, o)) out.bad.push(where + ' tentacle'); });
+            }
+          });
+        }
+      }
+      out.bad = [...new Set(out.bad)];
+      out.fallback = [...new Set(out.fallback)].join(',');
+      return out; })()`);
+    ok(mom.bad.length === 0, `Mom kit: both Moms, every nest: her head and tentacles cover no other nest, readout, sign, timer, the sink tag or the trough   ${at} [${mom.bad.slice(0, 4).join('; ') || JSON.stringify(mom.edges) + ', E58 fallback: ' + (mom.fallback || 'none')}]`);
     if (SHOTS) {
       await ev(`(() => { document.querySelectorAll('.mess').forEach((m, i) => i % 3 === 0 && ET.mess.splatter(m, 6)); return 1; })()`);
       await shot(`10-full-board-${w}x${h}`);

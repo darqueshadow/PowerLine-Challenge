@@ -465,18 +465,144 @@
     var mid = at(0, -9), top = at(0, -38);
     return { x: mid.x, y: mid.y, w: 44 * Math.hypot(m.a, m.b), top: top.y };
   }
-  // where she goes for a nest: her head just above its egg, coming down from the top
+  /* Where she goes (Chat's brief, 2026-10-02: she comes in from the play-field edge nearest the egg, and never covers
+     a timer, a nest, a readout, a Command Line, the trough or the sink). The edges are tried nearest first; along each,
+     her head slides from opposite the egg outward, a little in from the edge, until her head (upright and turned for
+     A), the path she slides in on, and both tentacles (from her chin to the egg, no longer than momStretchMax) are clear
+     of everything she mustn't cover. Her tentacles may cross only her own nest (not its readout). The Command Lines and
+     the HUD are outside the field, and she's clipped to the field inside the trough. With no clear spot on any edge
+     (the board's middle nests, mostly): momNoEdge (E58, ⏳ PENDING). */
+  function fieldRect(e, f) {
+    var r = e.getBoundingClientRect();
+    return { l: r.left - f.left, t: r.top - f.top, r: r.right - f.left, b: r.bottom - f.top };
+  }
+  function overlaps(a, b) { return a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b; }
+  function grownBy(r, m) { return { l: r.l - m, t: r.t - m, r: r.r + m, b: r.b + m }; }
+  function momObstacles(v, f) {
+    var out = [], own = [];
+    nests.forEach(function (n) {
+      var parts = [n.el, n.readout];
+      if (!n.hsign.hidden) parts.push(n.hsign);
+      parts.forEach(function (e) {
+        var r = fieldRect(e, f);
+        if (r.r - r.l < 1) return;
+        (n === v && e !== n.readout ? own : out).push(r);
+      });
+    });
+    ["#fieldtop .wallclock", "#tip-ready", "#warp", "#hose-tag", "#cleanup"].forEach(function (sel) {
+      var e = field.querySelector(sel);
+      if (!e || e.hidden) return;
+      var r = fieldRect(e, f);
+      if (r.r - r.l > 1 && r.b - r.t > 1) out.push(r);
+    });
+    return { all: out, own: own };   // own: her own nest (her tentacles may cross it, her head may not)
+  }
+  // the box she's drawn in: the field, inside the trough (left, right and bottom; none on top)
+  function momClip(f) {
+    var T = function (sel) { var e = field.querySelector(sel); return e ? fieldRect(e, f) : null; };
+    var l = T("#trough .t-left"), r = T("#trough .t-right"), b = T("#trough .t-bl");
+    return { l: l ? l.r : 0, t: 0, r: r ? r.l : f.width, b: b ? b.t : f.height };
+  }
+  function momClear(lay, ob, clip) {
+    var C = ET.CONFIG, G = ET.mom.geometry(lay), m = 3;
+    var hw = G.hw, hh = G.hh, h = lay.head;
+    var box = { l: h.x - hw / 2, t: h.y - hh / 2, r: h.x + hw / 2, b: h.y + hh / 2 };
+    if (box.l < clip.l || box.r > clip.r || box.t < clip.t || box.b > clip.b) return false;
+    // A, turned about her chin
+    var a = lay.tilt * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a), xs = [], ys = [];
+    [[box.l, box.t], [box.r, box.t], [box.l, box.b], [box.r, box.b]].forEach(function (p) {
+      var dx = p[0] - G.chin.x, dy = p[1] - G.chin.y;
+      xs.push(G.chin.x + dx * cs - dy * sn); ys.push(G.chin.y + dx * sn + dy * cs);
+    });
+    var turned = { l: Math.min.apply(null, xs), t: Math.min.apply(null, ys), r: Math.max.apply(null, xs), b: Math.max.apply(null, ys) };
+    if (turned.l < clip.l || turned.r > clip.r || turned.t < clip.t || turned.b > clip.b) return false;
+    // the path she slides in on, from behind her edge
+    var path = { l: box.l, t: box.t, r: box.r, b: box.b };
+    if (lay.from === "top") path.t = clip.t; else if (lay.from === "bottom") path.b = clip.b;
+    else if (lay.from === "left") path.l = clip.l; else path.r = clip.r;
+    var heads = [grownBy(box, m), grownBy(turned, m), path];
+    var all = ob.all.concat(ob.own);
+    for (var i = 0; i < all.length; i++) {
+      for (var j = 0; j < heads.length; j++) if (overlaps(heads[j], all[i])) return false;
+    }
+    // the tentacles: a tube from each stub to its tip
+    var rad = G.tube / 2 + m;
+    for (var k = 0; k < G.tents.length; k++) {
+      var t = G.tents[k];
+      if (t.stretch > C.momStretchMax) return false;
+      var steps = Math.max(2, Math.ceil(t.dist / 8));
+      for (var s = 0; s <= steps; s++) {
+        var x = t.from.x + (t.to.x - t.from.x) * s / steps, y = t.from.y + (t.to.y - t.from.y) * s / steps;
+        var dot = { l: x - rad, t: y - rad, r: x + rad, b: y + rad };
+        if (dot.l < clip.l || dot.r > clip.r || dot.b > clip.b) return false;
+        for (var n = 0; n < ob.all.length; n++) if (overlaps(dot, ob.all[n])) return false;
+      }
+    }
+    return true;
+  }
+  function turnDeg(fx, fy, tx, ty) {
+    var d = (Math.atan2(ty, tx) - Math.atan2(fy, fx)) * 180 / Math.PI;
+    return d > 180 ? d - 360 : d < -180 ? d + 360 : d;
+  }
   function momLayout(v, kind) {
     var C = ET.CONFIG, P = ET.MOM_PARTS[kind];
-    var f = field.getBoundingClientRect(), egg = eggBox(v);
+    var f = field.getBoundingClientRect(), egg = eggBox(v), clip = momClip(f), ob = momObstacles(v, f);
     var hw = v.el.offsetWidth * C.momHeadShare, hh = hw * P.head[1] / P.head[0];
-    var head = { x: egg.x, y: egg.top - hh * 0.38 };
-    return { kind: kind, headW: hw, head: head, egg: egg, from: "top", tilt: 0,
-      clip: { l: 0, t: 0, r: f.width, b: f.height } };
+    var base = { kind: kind, headW: hw, egg: egg, clip: clip };
+    var edges = [
+      { from: "top", d: egg.y - clip.t }, { from: "bottom", d: clip.b - egg.y },
+      { from: "left", d: egg.x - clip.l }, { from: "right", d: clip.r - egg.x }
+    ].sort(function (a, b) { return a.d - b.d; });
+    var gap = 2, sweep = 3 * hw, step = 10;
+    for (var e = 0; e < edges.length; e++) {
+      var from = edges[e].from;
+      for (var inset = 0; inset <= 1; inset += 0.25) {
+        for (var s = 0; s <= sweep; s += step) {
+          for (var sign = -1; sign <= 1; sign += 2) {
+            if (s === 0 && sign > 0) continue;
+            var o = s * sign, head;
+            if (from === "top") head = { x: egg.x + o, y: clip.t + hh / 2 + gap + inset * hh };
+            else if (from === "bottom") head = { x: egg.x + o, y: clip.b - hh / 2 - gap - inset * hh };
+            else if (from === "left") head = { x: clip.l + hw / 2 + gap + inset * hw, y: egg.y + o };
+            else head = { x: clip.r - hw / 2 - gap - inset * hw, y: egg.y + o };
+            var lay = Object.assign({}, base, { head: head, from: from });
+            var chinX = head.x + (P.chin[0] - 0.5) * hw, chinY = head.y + (P.chin[1] - 0.5) * hh;
+            var full = Math.max(-C.momTiltMax, Math.min(C.momTiltMax, turnDeg(0, 1, egg.x - chinX, egg.y - chinY)));
+            // A turns toward the egg as far as there's room: all the way, half, or not at all
+            for (var k = 0; k < 3; k++) {
+              lay.tilt = full * [1, 0.5, 0][k];
+              if (momClear(lay, ob, clip)) return lay;
+            }
+          }
+        }
+      }
+    }
+    return momNoEdge(v, kind, base, f);
+  }
+  /* E58 (⏳ PENDING, Chat): no edge has room. "nest" (built): she comes down inside her own nest's box, above its
+     readout, smaller if she must be (her head no lower than the egg's middle), so she covers nothing but her own nest.
+     "over": the visit before the kit's edge rule, her full-size head just above the egg (it covers the readout of the
+     nest above). */
+  function momNoEdge(v, kind, base, f) {
+    var C = ET.CONFIG, P = ET.MOM_PARTS[kind], egg = base.egg;
+    var hw = base.headW, hh = hw * P.head[1] / P.head[0];
+    if (C.momNoEdge === "over") {
+      return Object.assign({}, base, { head: { x: egg.x, y: egg.top - hh * 0.38 }, from: "top", tilt: 0, fallback: "over",
+        clip: { l: 0, t: 0, r: f.width, b: f.height } });
+    }
+    var nb = fieldRect(v.el, f), ro = fieldRect(v.readout, f);
+    var clip = { l: nb.l, t: nb.t, r: nb.r, b: ro.t };
+    var room = egg.y - clip.t - 2;
+    if (hh > room) { hh = room; hw = hh * P.head[0] / P.head[1]; }
+    return Object.assign({}, base, { headW: hw, head: { x: egg.x, y: clip.t + 1 + hh / 2 }, from: "top", tilt: 0,
+      fallback: "nest", clip: clip });
   }
   function momFix(v, kind, t) {
     var m = { v: v, kind: kind, t0: t, giggled: false, from: v.crackShown || 0 };
-    m.rig = ET.mom.visit(popups, momLayout(v, kind));
+    var lay = momLayout(v, kind);
+    m.edge = lay.from;
+    m.fallback = lay.fallback;
+    m.rig = ET.mom.visit(popups, lay);
     m.el = m.rig.el;
     fixes.push(m);
     v.mend = m;
@@ -1273,7 +1399,15 @@
       return [{ shown: !t.el.hidden, text: t.el.textContent.trim(), nest: t.nest, done: t.done, line: t.line.style.display !== "none" ? t.line.getAttribute("d") : null }];
     },
     /* For rigs (E55): Mom's repairs showing now: which nest, which Mom, and whether she has giggled yet. */
-    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled, u: m.u }; }); },
+    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled, u: m.u, from: m.edge, fallback: m.fallback || null }; }); },
+    /* For rigs (Mom kit): where she'd go for nest `id` now, without showing her: the edge (or the fallback), her
+       head's box upright and turned, each tentacle's line, and everything she must stay clear of (field px). */
+    momPlan: function (id, kind) {
+      var v = nests[id], f = field.getBoundingClientRect(), lay = momLayout(v, kind || "sweet"), G = ET.mom.geometry(lay);
+      return { lay: lay, from: lay.from, fallback: lay.fallback || null, tilt: lay.tilt, clip: lay.clip, headW: G.hw, headH: G.hh,
+        head: { l: lay.head.x - G.hw / 2, t: lay.head.y - G.hh / 2, r: lay.head.x + G.hw / 2, b: lay.head.y + G.hh / 2 },
+        chin: G.chin, tube: G.tube, tents: G.tents, obstacles: momObstacles(v, f), nest: fieldRect(v.el, f), readout: fieldRect(v.readout, f) };
+    },
 
     /* For rigs: a nest's cord, if one is showing. */
     cord: function (id) {

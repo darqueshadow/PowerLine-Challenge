@@ -43,15 +43,48 @@
     return "face";
   }
 
-  /* Build one visit. lay: { kind, headW, head: {x, y} (where her head's middle rests), egg: {x, y, w} (the egg's
-     middle and width), from: "top" | "left" | "right" | "bottom", clip: {l, t, r, b} (she's drawn only inside it),
-     tilt (deg, A's turn toward the egg, capped) }. Returns { el, paint(u, reduced) }. */
-  function visit(host, lay) {
-    var P = ET.MOM_PARTS[lay.kind];
+  /* Where everything goes for a layout, in the host's px: her head's size, her chin, each tentacle's line (from its
+     stub beside her chin to its tip near an end of the plaster) and how far it must stretch, the plaster. view.js
+     tests a layout with it before she comes; visit() draws by it. lay: { kind, headW, head: {x, y} (where her head's
+     middle rests), egg: {x, y, w} }. */
+  function geometry(lay) {
+    var C = ET.CONFIG, P = ET.MOM_PARTS[lay.kind];
     var hw = lay.headW, hh = hw * P.head[1] / P.head[0];
+    var chin = { x: lay.head.x + (P.chin[0] - 0.5) * hw, y: lay.head.y + (P.chin[1] - 0.5) * hh };
+    var tw = hw * C.momTentacleShare, th = tw * P.tentacle[1] / P.tentacle[0];   // the tentacle picture, unstretched
+    var ax = (P.tentacleTip[0] - P.tentacleBase[0]) * tw, ay = (P.tentacleTip[1] - P.tentacleBase[1]) * th;
+    var natural = Math.hypot(ax, ay);
+    var pw = lay.egg.w * C.momPlasterShare, ph = pw * P.plaster[1] / P.plaster[0];
+    var tents = [-1, 1].map(function (side) {
+      var from = { x: chin.x + hw * 0.16 * side, y: chin.y };             // the stubs, either side of her chin
+      var reach = pw * 0.3 * side;                                         // the tips, near either end of the plaster
+      var to = { x: lay.egg.x + reach * 0.7, y: lay.egg.y - reach * 0.7 };
+      var dist = Math.hypot(to.x - from.x, to.y - from.y);
+      return { side: side, from: from, to: to, dist: dist, stretch: dist / natural };
+    });
+    return { hw: hw, hh: hh, chin: chin, tw: tw, th: th, ax: ax, ay: ay, natural: natural,
+      bx: P.tentacleBase[0] * tw, by: P.tentacleBase[1] * th, tube: tw,   // the band it can swing over (its S-curve)
+      plaster: { x: lay.egg.x - pw / 2, y: lay.egg.y - ph / 2, w: pw, h: ph }, tents: tents };
+  }
+
+  /* Build one visit. lay: geometry()'s, plus from: "top" | "left" | "right" | "bottom" (the edge she slides in from),
+     clip: {l, t, r, b} (her head and tentacles are drawn only inside it; the plaster, on her own egg, is not clipped),
+     tilt (deg, A's turn toward the egg, capped). Returns { el, paint(u, reduced) }. */
+  function visit(host, lay) {
+    var G = geometry(lay);
+    var hw = G.hw, hh = G.hh, P = ET.MOM_PARTS[lay.kind];
     var el = document.createElement("div");
     el.className = "mom-visit " + lay.kind;
     el.dataset.from = lay.from;
+    if (lay.fallback) el.dataset.fallback = lay.fallback;
+
+    // the plaster, on the egg (under the tentacle tips)
+    var plaster = img(lay.kind, "plaster", "mom-plaster");
+    plaster.style.width = G.plaster.w + "px";
+    plaster.style.left = G.plaster.x + "px";
+    plaster.style.top = G.plaster.y + "px";
+    el.appendChild(plaster);
+
     var clip = document.createElement("div");
     clip.className = "mom-clip";
     var c = lay.clip;
@@ -61,44 +94,23 @@
     // everything inside the clip is placed in the host's px, offset by the clip's corner
     var ox = -c.l, oy = -c.t;
 
-    // the plaster, on the egg (under the tentacle tips)
-    var plaster = img(lay.kind, "plaster", "mom-plaster");
-    var pw = lay.egg.w * ET.CONFIG.momPlasterShare;
-    plaster.style.width = pw + "px";
-    plaster.style.left = (lay.egg.x + ox - pw / 2) + "px";
-    plaster.style.top = (lay.egg.y + oy - pw * P.plaster[1] / P.plaster[0] / 2) + "px";
-    clip.appendChild(plaster);
-
     // the rig: her head and the tentacles' stubs ride on it as she slides in and out
     var rig = document.createElement("div");
     rig.className = "mom-rig";
     clip.appendChild(rig);
     var hx = lay.head.x + ox, hy = lay.head.y + oy;
-    var chin = { x: hx + (P.chin[0] - 0.5) * hw, y: hy + (P.chin[1] - 0.5) * hh };
-
-    // two tentacles, one mirrored, from either side of her chin to either end of the plaster
-    var tw = hw * ET.CONFIG.momTentacleShare;            // the tentacle picture's width, before any stretch
-    var th = tw * P.tentacle[1] / P.tentacle[0];
-    var bx = P.tentacleBase[0] * tw, by = P.tentacleBase[1] * th;
-    var ax = (P.tentacleTip[0] - P.tentacleBase[0]) * tw, ay = (P.tentacleTip[1] - P.tentacleBase[1]) * th;
-    var natural = Math.hypot(ax, ay);
-    var tents = [-1, 1].map(function (side) {
+    var bx = G.bx, by = G.by, ax = G.ax, ay = G.ay;
+    // two tentacles, one mirrored (the picture flips about its base, so its axis does too)
+    var tents = G.tents.map(function (g) {
       var t = img(lay.kind, "tentacle", "mom-tentacle");
-      t.style.width = tw + "px";
-      t.style.height = th + "px";
+      t.style.width = G.tw + "px";
+      t.style.height = G.th + "px";
       rig.appendChild(t);
-      var spread = hw * 0.16 * side;                       // the stubs, either side of her chin
-      var from = { x: chin.x + spread, y: chin.y };
-      var reach = pw * 0.3 * side;                          // the tips, near either end of the plaster
-      var to = { x: lay.egg.x + ox + reach * 0.7, y: lay.egg.y + oy - reach * 0.7 };
-      var dx = to.x - from.x, dy = to.y - from.y;
-      var dist = Math.hypot(dx, dy);
-      // mirrored (side -1): the picture flips about its base, so its axis does too
-      var axs = side < 0 ? -ax : ax;
+      var axs = g.side < 0 ? -ax : ax;
       return {
-        el: t, side: side, from: from, dist: dist,
-        stretch: Math.max(0.5, Math.min(ET.CONFIG.momStretchMax, dist / natural)),
-        aim: turn(axs, ay, dx, dy)                        // turns the picture's own axis onto the egg
+        el: t, side: g.side, from: { x: g.from.x + ox, y: g.from.y + oy },
+        stretch: Math.max(0.5, Math.min(ET.CONFIG.momStretchMax, g.stretch)),
+        aim: turn(axs, ay, g.to.x - g.from.x, g.to.y - g.from.y)   // turns the picture's own axis onto the egg
       };
     });
 
@@ -120,7 +132,7 @@
       (lay.from === "top" ? hy : lay.from === "bottom" ? (c.b - c.t) - hy : lay.from === "left" ? hx : (c.r - c.l) - hx);
 
     var api = {
-      el: el, head: head, rig: rig, chin: chin, clip: clip, offset: { x: ox, y: oy }, hw: hw, hh: hh,
+      el: el, head: head, rig: rig, clip: clip, geometry: G,
       paint: function (u, reduced) {
         var T = ET.CONFIG.momTimeline;
         var p = pose(u, reduced);
@@ -171,6 +183,7 @@
 
   ET.mom = {
     visit: visit,
+    geometry: geometry,
     pose: pose,
     /* every picture's path (one kind, or both) */
     sources: function (kind) {

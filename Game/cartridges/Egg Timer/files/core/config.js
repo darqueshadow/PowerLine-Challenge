@@ -54,6 +54,12 @@
     momStretchMax: 2.2,      // [T] the most a tentacle stretches along its length to reach the egg
     momPlasterShare: 0.9,    // [T] the plaster's width, a share of the egg's shell
     momTiltMax: 50,          // [T] the most pose A turns toward the egg (deg)
+    // E58 (⏳ PENDING, Chat): Chat's brief has her come in from the play-field edge nearest the egg without covering
+    // a timer, nest, readout, Command Line, the trough or the sink. For the board's middle nests no edge has room
+    // (and the bottom edge never does). "nest" (built): she comes down inside her own nest's box, above its readout,
+    // smaller if she must be. "over": the visit before the kit, full size just above the egg (it covers the readout
+    // of the nest above).
+    momNoEdge: "nest",
     // E56 (ruled): a placeholder giggle, creepier for creepy Mom; under THONG, the buzz and the hiss, no dip [T]
     giggle: { sweet: 0.05, creepy: 0.06 },
 
