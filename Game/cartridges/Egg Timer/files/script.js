@@ -3,7 +3,7 @@
    Boot, screens, the frame loop and the keyboard. The mechanic is in
    core/game.js; this file only wires it to the page.
 
-   Screens: title → setup (mode buttons + Command Line count, one combined step)
+   Screens: title → setup (the Command Line count and START; E54 took the mode buttons: there's one mode)
             → play → over → setup.
    ⏳ The title and end screens here are functional placeholders: their design
    is deferred (packet §11 item 15). The how-to panel down one side of play
@@ -13,17 +13,10 @@
   var ET = window.ET;
   var C = ET.CONFIG;
 
-  var MODES = [
-    { id: "clear", label: "CLEAR CAVs ONLY" },
-    { id: "progression", label: "FOLLOW PROGRESSION" },
-    { id: "both", label: "BOTH" }
-  ];
-
   var app = {
     screen: "boot",
     data: null,
     game: null,
-    modeIndex: 0,
     boxes: C.boxesDefault,   // E28: 2
     paused: false,
     overTimer: null,
@@ -46,7 +39,7 @@
 
   /* How-to panel everywhere (Andrew approved, 2026-09-23): the ONE panel moves to whichever screen shows, on the
      right as in play. In play it sits in the play row, between the HUD bar and the Command Lines; on the title,
-     mode-selection screens it hangs down the right edge and the screen's content keeps clear of it (since 2026-10-01,
+     options screens it hangs down the right edge and the screen's content keeps clear of it (since 2026-10-01,
      not on the game-over screen). */
   function placeHowTo(name) {
     var panel = $("#howto");
@@ -81,10 +74,7 @@
 
   /* ---------------------------------------------------------------- setup */
   function paintSetup() {
-    paintHowTo(MODES[app.modeIndex].id);   // the panel on the options screen shows the lines of the mode picked
-    document.querySelectorAll("[data-mode]").forEach(function (b) {
-      b.classList.toggle("selected", b.dataset.mode === MODES[app.modeIndex].id);
-    });
+    paintHowTo();
     document.querySelectorAll("[data-boxes]").forEach(function (b) {
       b.classList.toggle("selected", Number(b.dataset.boxes) === app.boxes);
     });
@@ -92,11 +82,7 @@
 
   function setupKey(ev) {
     var k = ev.key;
-    if (k === "ArrowLeft" || k === "ArrowRight") {
-      ev.preventDefault();
-      app.modeIndex = (app.modeIndex + (k === "ArrowRight" ? 1 : -1) + MODES.length) % MODES.length;
-      paintSetup();
-    } else if (k === "ArrowUp" || k === "ArrowDown") {
+    if (k === "ArrowUp" || k === "ArrowDown") {
       ev.preventDefault();
       app.boxes = Math.max(C.boxesMin, Math.min(C.boxesMax, app.boxes + (k === "ArrowUp" ? 1 : -1)));
       paintSetup();
@@ -106,22 +92,24 @@
       paintSetup();
     } else if (k === "Enter") {
       ev.preventDefault();
-      startGame(MODES[app.modeIndex].id, app.boxes);
+      startGame(app.boxes);
     }
   }
 
   /* ----------------------------------------------------------------- play */
-  /* `rig` is for the rigs only (__et.start): a wall-clock start, a list of type codes and a random source, so one exact
-     case (an AD across midnight, say) can be played out in the real page. Players never pass it. */
-  function startGame(mode, boxes, rig) {
+  /* `rig` is for the rigs only (__et.start): a wall-clock start, the share of hospital eggs (0 = all refusals, 1 = all
+     hospital), a stand-in length for the VS in minutes (so a scene can keep an egg running) and a random source, so one
+     exact case can be played out in the real page. Players never pass it. */
+  function startGame(boxes, rig) {
     if (!app.data) return;   // no game without the data (the title's guards keep the player from getting here first)
     rig = rig || {};
     clearTimeout(app.overTimer);
     var types = ET.devmode.on ? app.data.blankTypes : app.data.types;
+    if (rig.minutes) types = types.map(function (t) { return t.code === C.eggType ? Object.assign({}, t, { min: rig.minutes, max: rig.minutes }) : t; });
     app.game = new ET.Game({
-      mode: mode,
       boxes: boxes,
-      types: rig.types ? types.filter(function (t) { return rig.types.indexOf(t.code) >= 0; }) : types,
+      types: types,
+      hospitalShare: rig.hospital,
       units: app.data.units,
       wallStart: rig.wallStart !== undefined ? rig.wallStart : wallStart(),
       rng: rig.rng || (SEED === null ? Math.random : ET.seededRandom(SEED)),
@@ -130,7 +118,6 @@
     app.paused = false;
     document.body.classList.remove("paused");
     $("#pause").hidden = true;
-    $("#hud-mode").textContent = MODES.filter(function (m) { return m.id === mode; })[0].label;
     ET.view.reset();
     ET.aliens.preload();   // E45: the hatchlings' pictures, once, now the data is in
     ET.boxes.setup(boxes);
@@ -139,7 +126,6 @@
     $("#line-hints").innerHTML = (boxes > 1
       ? "<b>TAB</b> / <b>SHIFT+TAB</b> next / previous line (keeps what you typed) &nbsp;·&nbsp; <b>F12</b> next line, cleared"
       : "<b>F12</b> clears the line") + " &nbsp;·&nbsp; <b>ESC</b> pause";
-    paintHowTo(mode);
     show("play");
     app.game.start();
     flush();
@@ -173,7 +159,6 @@
     var s = app.game.snapshot();
     $("#over-score").textContent = s.score;
     $("#over-wave").textContent = s.wave;
-    $("#over-mode").textContent = $("#hud-mode").textContent;
     var byWave = s.stats.skippedByWave;
     $("#over-skipped").textContent = "SKIPPED SPAWNS  " + Object.keys(byWave).map(function (w) {
       return "W" + w + " " + byWave[w];
@@ -181,7 +166,7 @@
     show("over");
   }
 
-  /* The game-over screen's two buttons (Chat ruling, 2026-09-25): TITLE SCREEN and PLAY AGAIN (to the mode selection,
+  /* The game-over screen's two buttons (Chat ruling, 2026-09-25): TITLE SCREEN and PLAY AGAIN (to the options screen,
      where Enter used to go). Leaving fades the game-over music out on the way (show() changes the track). If the player
      does nothing, the game-over track plays to its end and the game goes back to the title screen by itself. */
   function paintOver(which) {
@@ -343,12 +328,9 @@
 
   /* ---------------------------------------------------------------- boot */
   /* Refinement 2 §1: the how-to panel. Simple how-to only; it NEVER lists CAV durations. */
-  function paintHowTo(mode) {
-    // Refinement 3 §2: these lines, in this order; no RCAV syntax, AD or VF lines
+  function paintHowTo() {
+    // Refinement 3 §2: these lines, in this order; no RCAV syntax, AD or VF lines (E54 took E8's PLACE line)
     var lines = [["GOAL", "Clear the CAVs as soon as they're done, as quick as you can."]];
-    // E8 (ruled, kept as is by Refinement 3 until Andrew rewords it): the placement line only in the
-    // modes that place, hidden in Clear CAVs Only
-    if (mode === "both" || mode === "progression") lines.push(["PLACE", "CAV <unit> <type>, e.g. CAV 2101 VS"]);
     // E28 (ruled 2026-09-24): the instructions moved beside their objects: Switch and F12 under the Command Lines, and
     // Cleanup onto the hose's sink. What's left here is only what has no object of its own.
     lines = lines.concat([
@@ -506,7 +488,7 @@
     ET.title.build($("#title-scene"));
     ET.title.buildCritter($("#setup-critter"));
     ET.boxes.build({ submit: submit });
-    paintHowTo("clear");
+    paintHowTo();
     buildDoodles();
     ET.lights.build($("#howto"));
     ET.lights.signs($("#howto .title"), $("#screen-setup"));   // E27: the options screen's HOW / TO / PLAY signs
@@ -526,16 +508,10 @@
       b.addEventListener("click", function () { leaveOver(b.dataset.go); });
     });
     ET.audio.onMusicEnd(function (k) { if (k === "over" && app.screen === "over") show("title"); });
-    document.querySelectorAll("[data-mode]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        app.modeIndex = MODES.map(function (m) { return m.id; }).indexOf(b.dataset.mode);
-        paintSetup();
-      });
-    });
     document.querySelectorAll("[data-boxes]").forEach(function (b) {
       b.addEventListener("click", function () { app.boxes = Number(b.dataset.boxes); paintSetup(); });
     });
-    $("#start").addEventListener("click", function () { startGame(MODES[app.modeIndex].id, app.boxes); });
+    $("#start").addEventListener("click", function () { startGame(app.boxes); });
 
     // E24: the mute button. Pressing it never takes the keyboard from a Command Line (or anything else).
     var mute = $("#mute");
@@ -585,7 +561,7 @@
     screen: function () { return app.screen; },
     ready: function () { return !!app.data; },
     data: function () { return app.data; },
-    start: function (mode, boxes, rig) { startGame(mode, boxes || 1, rig); return true; },
+    start: function (boxes, rig) { startGame(boxes || 1, rig); return true; },
     snapshot: function () { return app.game ? app.game.snapshot() : null; },
     advance: function (seconds) { stepGame(seconds); ET.view.render(app.game.snapshot()); return app.game.snapshot().time; },
     submit: submit,

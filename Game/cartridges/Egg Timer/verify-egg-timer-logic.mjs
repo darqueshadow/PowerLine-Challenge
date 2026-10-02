@@ -42,11 +42,11 @@ eq(R.spawnGapRange(13), [1, 1], "spawn gap is a flat 1 s by wave 13");
 eq(R.cleanupRange(1), [5, 10], "cleanup window wave 1 is 5–10 s");
 eq(R.cleanupRange(5), [3, 8], "cleanup: low end at the 3 s floor by wave 5");
 eq(R.cleanupRange(15), [3, 3], "cleanup is a flat 3 s by wave 15");
-eq([1, 2, 13, 20].map(R.placementTimeout), [20, 19, 8, 8], "auto-open timeout: 20 s, −1 s per wave, floor 8 s at wave 13");
+
 eq([1, 2, 3, 4, 5, 12, 13, 30].map(R.overtimeBaseFor), [6, 6, 5.75, 5.75, 5.5, 4.75, 4.5, 4.5], "overtime: 6 s, −0.25 s every 2 waves (odd waves), floor 4.5 s at wave 13");
 eq([1, 2, 3, 4, 5, 18, 20, 40].map((w) => Math.round(R.clockSpeed(w) * 100) / 100), [1, 1.1, 1.1, 1.2, 1.2, 1.9, 2, 2], "clock speed: 1.0, +10% on even waves, cap 2× at wave 20");
 eq([1, 20].map(R.clockRate), [30, 60], "a displayed minute takes 2 s at base speed, 1 s at the cap (10:00 in 10 s)");
-eq([1, 2, 3, 4, 13, 14].map((w) => Math.round(R.placementChance(w) * 100)), [0, 0, 0, 10, 100, 100], "Follow Progression: 0 in waves 1–3, 10% at wave 4, 100% at wave 13");
+eq(["placementTimeout", "placementChance", "needsPlacement"].filter((k) => k in R), [], "E54: the placement curves (auto-open, Follow Progression) are gone with the modes");
 eq(ET.CONFIG.clearScoring, "tiers", "E26 (ruled): a clear scores by tier, not the old slide");
 eq([0, 0.19, 0.2, 0.39, 0.4, 0.59, 0.6, 0.79, 0.8, 0.99, 1, 1.5].map((t) => R.clearTier(t * 5, 5)), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5], "E26: the tiers are fifths of the egg's own overtime window");
 eq([0.1, 0.3, 0.5, 0.7, 0.9].map((t) => R.clearPoints(t * 5, 5)), [100, 75, 50, 35, 25], "E26: tier points 100 / 75 / 50 / 35 / 25");
@@ -65,8 +65,7 @@ eq([0.1, 0.3, 0.5, 0.7, 0.9].map((t) => R.clearPoints(t * 5, 5)), [100, 75, 50, 
 }
 eq([1, 5, 10].map(R.perfectWaveBonus), [50, 250, 500], "perfect wave bonus: 50 × wave");
 eq([R.minutesFor({ code: "VS", min: 10, max: 10 }, () => 0.5), R.minutesFor({ code: "MB", min: 30, max: 30 }, () => 0.5)], [10, 30], "fixed types go bold at their own minutes");
-eq([0, 0.5, 0.999999].map((u) => R.minutesFor({ code: "AD", min: 10, max: 30 }, () => u)), [10, 20, 30], "AD: whole minutes, 10–30 inclusive");
-ok(!Number.isInteger(R.minutesFor({ code: "VF", min: 10, max: 30 }, () => 0.37)), "VF: still a uniform draw across 10–30 min (hidden, and no note to read)");
+
 {
   const ot = [0, 0.5, 0.999999].map((u) => R.overtimeFor(1, () => u));
   eq(ot.map((x) => Math.round(x * 100) / 100), [5.4, 6, 6.6], "overtime wave 1: 6 s ±10%");
@@ -86,8 +85,15 @@ eq([P("CAV 210 MB"), P("RCAV 21010"), P("CAV MB 2101"), P("RCAV"), P("")], [null
 section("C. data");
 const types = ET.data.parseTypes(read("files/datasets/cav_types.csv"));
 eq(types.map((t) => t.code), ["VS", "STR", "SS", "EOS", "MB", "AD", "VF"], "the type table is the packet's seven codes, in order");
-eq(types.filter((t) => t.twoPhaseOnly).map((t) => t.code), ["VF"], "only VF is two-phase only");
-eq(types.filter((t) => t.hiddenUntilTrigger).map((t) => t.code), ["VF"], "only VF hides until its trigger");
+eq(types.filter((t) => t.code === "VS" || t.code === "STR").map((t) => [t.code, t.min, t.max]), [["VS", 10, 10], ["STR", 10, 10]], "E54: the two types in play come from Andrew's table as it is: VS 10:00 and STR 10:00");
+{
+  // E54: a table (or the Blank Dataset Module) without a VS or an STR row refuses to start, and says which row
+  const refuse = (list, sheet) => { try { ET.data.needed(list, sheet); return null; } catch (e) { return { sheet: e.sheet, message: e.message }; } };
+  const noStr = refuse(types.filter((t) => t.code !== "STR"), "types"), noVs = refuse(types.filter((t) => t.code !== "VS"), "blank");
+  ok(!!noStr && noStr.sheet === "types" && /no "STR" row/.test(noStr.message), `E54: a type table with no STR row refuses to start, and says so   [${noStr && noStr.message}]`);
+  ok(!!noVs && noVs.sheet === "blank" && /no "VS" row/.test(noVs.message), `E54: …and one with no VS row, naming the sheet   [${noVs && noVs.message}]`);
+  eq(refuse(types, "types"), null, "…while the real table passes");
+}
 {
   // D1 (ruled 2026-09-17): a Developer-Mode-only copy of the seven real types, same values
   const blank = ET.data.parseTypes(read("files/datasets/cav_types_blank.csv"));
@@ -116,8 +122,10 @@ ok(units.every((u) => /^\d{4}$/.test(u)), "every unit is four digits");
 
 /* ------------------------------------------------------------------ D. game */
 const T = (code, min, extra = {}) => ({ code, meaning: code, min, max: min, twoPhaseOnly: false, hiddenUntilTrigger: false, ...extra });
-function game(mode, typeList, seed = 7) {
-  const g = new ET.Game({ mode, types: typeList, units, rng: ET.seededRandom(seed) });
+/* E54: one mode, every egg a VS. A test sets the VS's length in minutes (a stand-in, so short or long eggs can be
+   played; the real one is the table's 10:00), the seed and the share of hospital eggs (0: every egg a refusal). */
+function game(minutes = 10, seed = 7, hospital = 0) {
+  const g = new ET.Game({ types: [T("VS", minutes), T("STR", 10)], units, rng: ET.seededRandom(seed), hospitalShare: hospital });
   g.start();
   return g;
 }
@@ -138,16 +146,16 @@ function withoutFarWarp(fn) {
   try { fn(); } finally { ET.CONFIG.warpFar.eggs = was; }
 }
 
-section("D. one CAV, one clear (Clear CAVs Only)");
+section("D. one CAV, one clear (a refusal egg)");
 {
-  const g = game("clear", [T("VS", 10)]);
+  const g = game(10);
   advance(g, 0.05 + LAY);
   const n = inState(g, "active")[0];
   ok(!!n, "a CAV opens on its own at the start of wave 1");
   eq(g.unlocked().length, 5, "wave 1 has 5 nests");
   ok(!g.submit("RCAV " + n.unit).ok, "RCAV before the real duration has passed does nothing");
   eq(g.submit("RCAV " + n.unit).early, true, "…and the game calls it too early (Andrew, 2026-10-01: \"Too Early!\")");
-  eq(g.submit("RCAV 0000").early, undefined, "…but not an RCAV for a unit that isn't running");
+  eq(g.submit("RCAV 0000").early, false, "…but not an RCAV for a unit that isn't running");
   advance(g, 19.9);
   ok(n.state === "active" && !g.submit("RCAV " + n.unit).ok, "…still nothing at 19.95 s");
   advance(g, 0.1);
@@ -162,7 +170,7 @@ section("D. one CAV, one clear (Clear CAVs Only)");
 
 section("E. hatching, the pool, and game over");
 {
-  const g = game("clear", [T("XX", 1)]);
+  const g = game(1);
   const over = [];
   advance(g, 120, (x) => x.events.forEach((e) => e.type === "game-over" && over.push(e)));
   eq(g.phase, "over", "never clearing anything ends the game");
@@ -172,7 +180,7 @@ section("E. hatching, the pool, and game over");
   eq(g.time, t, "a finished game doesn't advance");
 }
 {
-  const g = game("clear", [T("XX", 1)]);
+  const g = game(1);
   let hatchedAt = null;
   advance(g, 30, (x) => { if (hatchedAt === null && x.stats.hatched === 1) hatchedAt = x.pool; });
   eq(hatchedAt, 2, "one hatch costs exactly one from the pool");
@@ -192,7 +200,7 @@ section("E45–E47. hatchlings: cute, then mixed, then horror (Andrew, 2026-09-2
 }
 {
   // let everything hatch through waves 1–3 (the pool kept topped up so the game runs on)
-  const g = new ET.Game({ mode: "clear", types: [T("XX", 1)], units, rng: ET.seededRandom(11), hatchRng: ET.seededRandom(12) });
+  const g = new ET.Game({ types: [T("VS", 1)], units, rng: ET.seededRandom(11), hatchRng: ET.seededRandom(12) });
   g.start();
   const hatches = [], escapes = [];
   advance(g, 400, (x) => {
@@ -221,7 +229,7 @@ section("E45–E47. hatchlings: cute, then mixed, then horror (Andrew, 2026-09-2
 {
   // E45's draws have their own random source, so a seeded replay's spawns don't shift with the hatchlings
   const spawns = (h) => {
-    const g = new ET.Game({ mode: "clear", types: [T("XX", 1), T("YY", 2)], units, rng: ET.seededRandom(5), hatchRng: ET.seededRandom(h) });
+    const g = new ET.Game({ types: [T("VS", 1), T("STR", 2)], units, rng: ET.seededRandom(5), hatchRng: ET.seededRandom(h) });
     g.start();
     const out = [];
     advance(g, 200, (x) => { x.pool = 3; x.drain().forEach((e) => e.type === "active" && out.push(x.nests[e.nest].unit + x.nests[e.nest].type.code)); });
@@ -232,7 +240,7 @@ section("E45–E47. hatchlings: cute, then mixed, then horror (Andrew, 2026-09-2
 
 section("F. waves: quota, perfect bonus, cleanup, growth");
 {
-  const g = game("clear", [T("XX", 1)]);
+  const g = game(1);
   const seen = [];
   const clearAll = (x) => {
     x.events.forEach((e) => seen.push(e));
@@ -254,7 +262,7 @@ section("F. waves: quota, perfect bonus, cleanup, growth");
 }
 {
   // one hatch in wave 1, then a perfect wave 2: the pool comes back
-  const g = game("clear", [T("XX", 1)]);
+  const g = game(1);
   let letOneGo = true, poolAfterW2 = null;
   advance(g, 400, (x) => {
     const ev = x.drain();
@@ -271,7 +279,7 @@ section("F. waves: quota, perfect bonus, cleanup, growth");
 {
   // D4 (ruled 2026-09-17): spawning stops once the wave's quota has spawned. Longer
   // CAVs (30 s) are needed to see it: short ones clear before a 9th spawn is due.
-  const g = game("clear", [T("MID", 15)]);
+  const g = game(15);
   let most = 0;
   advance(g, 200, (x) => {
     if (x.wave === 1) most = Math.max(most, x.spawned);
@@ -282,66 +290,145 @@ section("F. waves: quota, perfect bonus, cleanup, growth");
 
 section("G. a full board skips the spawn");
 withoutFarWarp(() => {
-  const g = game("clear", [T("LONG", 60)]);
+  const g = game(60);
   advance(g, 60);
   eq(inState(g, "active").length + inState(g, "overtime").length, 5, "five long CAVs fill the five nests");
   ok(g.stats.skipped > 0, `further spawns are skipped, not queued   [${g.stats.skipped} skipped]`);
   ok(g.spawned === 5, `a skipped spawn doesn't count toward the wave   [spawned ${g.spawned}]`);
 });
 
-section("H. placement (Both)");
-{
-  const g = game("both", [T("MB", 30), T("VS", 10)]);
+section("H. hospital eggs: RCAV, then CAV #### STR, in the same window (E52, E53, ruled 2026-10-02)");
+/* One egg alone on the board (no more spawns, so nothing else hatches or warps the clocks), cracking: a hospital egg
+   (hospital 1) or a refusal (0), in `wave`. */
+function oneEgg(hospital, wave = 1) {
+  const g = game(10, 7, hospital);
+  if (wave !== 1) g.startWave(wave);
   advance(g, 0.05);
-  const n = inState(g, "trigger")[0];
-  ok(!!n, "in Both, a spawn is a placement trigger");
-  const wrong = n.type.code === "MB" ? "VS" : "MB";
-  ok(!g.submit(`CAV ${n.unit} ${wrong}`).ok, "a real code that doesn't match the nest is rejected");
-  ok(!g.submit(`CAV ${n.unit} XX`).ok, "a code that doesn't exist is rejected");
-  eq(g.pool, 3, "rejections never touch the pool");
-  const s0 = g.score;
-  const r = g.submit(`CAV ${n.unit} ${n.type.code}, running late`);
-  ok(r.ok && n.state === "laying", "the matching CAV (with a comment) places it (the egg is laid first)");
-  eq(g.score - s0, 10, "placement is worth 10 points");
+  g.nextSpawnAt = Infinity;
+  const n = inState(g, "laying")[0];
+  while (n.state !== "overtime") g.step(0.05);
+  return { g, n };
 }
 {
-  const g = game("both", [T("MB", 30)]);
+  // every egg a hospital egg; the first one, alone, played through both windows
+  const g = game(10, 7, 1);
   advance(g, 0.05);
-  const n = inState(g, "trigger")[0];
+  g.nextSpawnAt = Infinity;
+  const n = inState(g, "laying")[0];
+  ok(!!n && n.hospital && g.snapshot().nests.find((x) => x.id === n.id).hospital === true, "a hospital egg is marked as it's laid, and the snapshot says so (the H sign)");
+  eq(g.submit(`CAV ${n.unit} STR`).why, "rcav-first", "E53: CAV STR while the egg is still being laid: \"RCAV first!\"");
+  advance(g, LAY);
+  eq([n.state, g.submit(`CAV ${n.unit} STR`).why], ["active", "rcav-first"], "E53: …and while its VS runs");
+  eq(g.submit("RCAV " + n.unit).why, "early", "an RCAV before the VS's 10:00 is still \"Too Early!\"");
+  while (n.state !== "overtime") g.step(0.05);
+  eq(g.submit(`CAV ${n.unit} STR`).why, "rcav-first", "E53: …and once it's cracking, before the RCAV");
+  eq([n.removed, n.state], [false, "overtime"], "…which leaves the VS on, the egg still cracking");
+  const s0 = g.score, res0 = g.resolved;
+  g.drain();
+  const r1 = g.submit("RCAV " + n.unit);
+  ok(r1.ok && r1.removed && r1.points === 0, "the RCAV is accepted: it takes the VS off, for no points yet");
+  eq([n.state, n.removed, g.score - s0, g.resolved - res0], ["overtime", true, 0, 0], "…the egg keeps cracking (still bold), nothing scored or resolved");
+  const sn = g.snapshot().nests.find((x) => x.id === n.id);
+  eq([sn.code, sn.removed], ["", true], "E53: the readout's type box empties, asking for the STR");
+  ok(g.drain().some((e) => e.type === "removed" && e.nest === n.id), "…and a \"removed\" event says so");
+  eq([g.submit("RCAV " + n.unit).ok, g.submit("RCAV " + n.unit).why], [false, null], "E53: a second RCAV is ERROR (nothing to remove)");
+  eq(g.submit(`CAV ${n.unit} VS`).why, null, "E53: CAV with any other type is ERROR");
+  ok(n.removed && n.state === "overtime", "…and none of those undo the RCAV");
+  g.streak = 4;   // as if four fast clears came before
+  const into = g.time - n.boldAt, span = n.hatchAt - n.boldAt, s1 = g.score;
+  const r2 = g.submit(`cav ${n.unit} str, to hospital`);
+  ok(r2.ok && r2.repaired, "CAV #### STR (any case, with a comment) puts the STR on");
+  eq(g.score - s1, R.clearPoints(into, span), "E52: window 1 scores by tier at the STR, exactly as a clear would");
+  const ev = g.drain(), rep = ev.find((e) => e.type === "repaired");
+  ok(!!rep && rep.tier === R.clearTier(into, span) && rep.points === r2.points && rep.mom === "sweet", `…the "repaired" event carries the tier, the points and wave 1's sweet Mom   [tier ${rep && rep.tier}, ${rep && rep.mom}]`);
+  ok(!ev.some((e) => e.type === "cleared"), "E52: no \"cleared\" event at window 1 (no pan, THONG, splat, mess or pieces)");
+  eq(g.streak, 4, "E52: the egg ladder follows the final clear only: window 1 leaves the streak where it was");
+  eq([n.state, n.type.code, n.removed, n.repaired, g.resolved - res0], ["active", "STR", false, true, 0], "the egg is whole again, on its STR, and not resolved yet");
+  const sr = g.snapshot().nests.find((x) => x.id === n.id);
+  ok(sr.code === "STR" && sr.elapsed < 1e-6 && sr.grow === 1 && sr.retract === null && sr.crack === 0, `the STR's clock starts now from 00:00, the egg stays full size, no cord, no cracks   [${sr.code} ${sr.elapsed} grow ${sr.grow}]`);
+  eq(g.submit(`CAV ${n.unit} STR`).why, null, "E53: a second CAV STR is ERROR");
+  eq(g.submit("RCAV " + n.unit).why, "early", "E53: RCAV during the STR's 10:00 is \"Too Early!\"");
   advance(g, 19.9);
-  eq(n.state, "trigger", "an ignored trigger is still waiting at 19.95 s");
-  advance(g, 0.1);
-  eq([n.state, g.stats.autoOpened], ["laying", 1], "…and opens itself at 20 s (wave 1 timeout)");
+  eq(n.state, "active", "the STR runs its own 10:00 (20 s at wave 1's speed)…");
+  advance(g, 0.15);
+  eq(n.state, "overtime", "…then the egg cracks again for an ordinary window");
+  const s2 = g.score, into2 = g.time - n.boldAt, span2 = n.hatchAt - n.boldAt;
+  g.drain();
+  const r3 = g.submit("RCAV " + n.unit);
+  const cl = g.drain().find((e) => e.type === "cleared");
+  ok(r3.ok && n.state === "splat" && !!cl && cl.hospital === true, "the final RCAV is an ordinary clear: the splat, the mess and the pieces come now, once");
+  eq([g.score - s2, g.resolved - res0, g.stats.cleared], [R.clearPoints(into2, span2), 1, 1], "E52: window 2 scores its own tier, and the egg resolves once");
 }
-
-section("I. modes and VF");
 {
-  const all = [T("VS", 10), T("VF", 10, { max: 30, twoPhaseOnly: true, hiddenUntilTrigger: true })];
-  const g = game("clear", all, 11);
-  const codes = new Set();
-  advance(g, 300, (x) => { x.unlocked().forEach((n) => n.type && codes.add(n.type.code)); inState(x, "overtime").forEach((n) => x.submit("RCAV " + n.unit)); });
-  ok(!codes.has("VF") && codes.has("VS"), `Clear CAVs Only never spawns VF   [${[...codes].join(",")}]`);
-
-  const b = game("both", all, 3);
-  let vf = null;
-  advance(b, 200, (x) => {
-    inState(x, "trigger").forEach((n) => x.submit(`CAV ${n.unit} ${n.type.code}`));
-    const a = x.snapshot().nests.find((n) => n.code === "VF" && n.state === "active");
-    if (a && !vf) vf = a;
-    inState(x, "overtime").forEach((n) => x.submit("RCAV " + n.unit));
+  // a refusal egg: the STR is an ERROR on it
+  const { g, n } = oneEgg(0);
+  eq([n.hospital, g.submit(`CAV ${n.unit} STR`).why], [false, null], "E53: CAV STR on a refusal egg is ERROR");
+  ok(g.submit("RCAV " + n.unit).ok && n.state === "splat", "…and one RCAV clears it, as always");
+}
+{
+  // the window runs out between the RCAV and the STR: it hatches
+  const { g, n } = oneEgg(1);
+  g.submit("RCAV " + n.unit);
+  while (n.state === "overtime") g.step(0.05);
+  eq([n.state, g.pool, g.stats.hatched], ["escape", 2, 1], "E53: the window running out after the RCAV, before the STR: it hatches, and the pool drops");
+}
+{
+  // …and an STR left to run out hatches like any egg
+  const { g, n } = oneEgg(1);
+  g.submit("RCAV " + n.unit);
+  g.submit(`CAV ${n.unit} STR`);
+  while (n.state !== "escape" && g.time < 200) g.step(0.05);
+  eq([n.state, g.pool], ["escape", 2], "a hospital egg left uncleared on its STR hatches as any egg");
+}
+{
+  // E55: creepy Mom from wave 2 on
+  const { g, n } = oneEgg(1, 2);
+  g.submit("RCAV " + n.unit);
+  g.drain();
+  g.submit(`CAV ${n.unit} STR`);
+  eq(g.drain().find((e) => e.type === "repaired").mom, "creepy", "E55: from wave 2 the repair is creepy Mom's");
+}
+{
+  // a hospital egg waiting for its STR is still bold, so it holds Time Warp off
+  const { g, n } = oneEgg(1);
+  g.spawned = g.quota;                         // as if the wave's last egg has spawned
+  g.submit("RCAV " + n.unit);
+  const held = g.warping();
+  g.submit(`CAV ${n.unit} STR`);
+  eq([held, g.warping()], [false, true], "Time Warp waits while a hospital egg waits for its STR, and comes on once the STR runs");
+}
+{
+  // E53's window switch: a hospital egg's first window × hospitalWindowScale; the STR's window is never scaled
+  const was = ET.CONFIG.hospitalWindowScale;
+  ET.CONFIG.hospitalWindowScale = 1.5;
+  try {
+    const { g, n } = oneEgg(1);
+    const w1 = n.hatchAt - n.boldAt;
+    g.submit("RCAV " + n.unit);
+    g.submit(`CAV ${n.unit} STR`);
+    while (n.state !== "overtime") g.step(0.05);
+    const w2 = n.hatchAt - n.boldAt;
+    ok(w1 >= 5.4 * 1.5 - 1e-9 && w1 <= 6.6 * 1.5 + 1e-9 && w2 >= 5.4 - 1e-9 && w2 <= 6.6 + 1e-9, `the switch stretches window 1 only   [${w1.toFixed(2)} s, then ${w2.toFixed(2)} s]`);
+  } finally { ET.CONFIG.hospitalWindowScale = was; }
+}
+{
+  // a player who does both steps fast never loses an egg, over three waves of the real 70%
+  const g = new ET.Game({ types, units, rng: ET.seededRandom(17) });
+  g.start();
+  advance(g, 600, (x) => {
+    inState(x, "overtime").forEach((n) => {
+      if (n.hospital && !n.repaired) { if (!n.removed) x.submit("RCAV " + n.unit); x.submit(`CAV ${n.unit} STR`); }
+      else x.submit("RCAV " + n.unit);
+    });
+    if (x.wave > 3) x.phase = "over";
   });
-  ok(!!vf, "Both does spawn VF");
-  ok(vf && vf.hidden === true, "a running VF nest reports itself hidden until its trigger");
-
-  const p = game("progression", all, 5);
-  let trig = 0;
-  advance(p, 60, (x) => { trig += x.drain().filter((e) => e.type === "trigger").length; inState(x, "overtime").forEach((n) => x.submit("RCAV " + n.unit)); });
-  eq([p.wave <= 2, trig], [true, 0], "Follow Progression wave 1 has no placement triggers");
+  ok(g.stats.hatched === 0 && g.stats.repaired > 10 && g.stats.cleared > 20, `both steps in time: no hatches through wave 3   [${g.stats.repaired} repaired, ${g.stats.cleared} cleared, ${g.stats.rejected} rejected]`);
+  eq(g.stats.rejected, 0, "…and no rejected Enter along the way");
 }
 
 section("J. units");
 {
-  const g = game("clear", [T("LONG", 60)]);
+  const g = game(60);
   let clash = false;
   advance(g, 60, (x) => {
     const busy = x.unlocked().filter((n) => n.state !== "idle").map((n) => n.unit);
@@ -352,21 +439,20 @@ section("J. units");
 }
 {
   // D2 (ruled 2026-09-17): a new random unit per CAV, never one already showing on the board.
-  // Short CAVs, every one placed and cleared, over many waves: units keep turning over as nests reach 12.
-  const g = game("both", [T("VS", 10)], 21);
-  const SHOWING = ["trigger", "laying", "active", "overtime"];
+  // Short CAVs, every one cleared, over many waves: units keep turning over as nests reach 12.
+  const g = game(10, 21);
+  const SHOWING = ["laying", "active", "overtime"];
   const lastUnit = {};
   let clash = false, cavs = 0, changed = 0;
   advance(g, 1500, (x) => {
     x.drain().forEach((e) => {
-      if (e.type !== "trigger") return;
+      if (e.type !== "laying") return;
       const u = x.nests[e.nest].unit;
       if (e.nest in lastUnit) { cavs++; if (lastUnit[e.nest] !== u) changed++; }
       lastUnit[e.nest] = u;
     });
     const showing = x.unlocked().filter((n) => SHOWING.includes(n.state)).map((n) => n.unit);
     if (new Set(showing).size !== showing.length) clash = true;
-    inState(x, "trigger").forEach((n) => x.submit(`CAV ${n.unit} ${n.type.code}`));
     inState(x, "overtime").forEach((n) => x.submit("RCAV " + n.unit));
   });
   ok(g.unlocked().length === 12 && cavs > 100, `a long game reaches 12 nests with plenty of repeat CAVs   [${g.unlocked().length} nests, ${cavs} repeat CAVs, wave ${g.wave}]`);
@@ -376,7 +462,7 @@ section("J. units");
 
 section("K. the activation order (Refinement 3 §8)");
 {
-  const g = game("clear", [T("VS", 10)]);
+  const g = game(10);
   eq("neighborsOf" in g, false, "E15 (ruled): a clear no longer targets neighbouring nests, so the game has no neighbour lookup");
   eq(g.unlocked().map((n) => n.id).sort((a, b) => a - b), [0, 3, 5, 8, 11], "wave 1 activates the four corners and a centre nest, spread across the board");
   eq(Array.from(ET.Game.UNLOCK_ORDER), [0, 3, 8, 11, 5, 6, 1, 10, 2, 9, 4, 7], "the activation order is fixed");
@@ -389,7 +475,7 @@ eq(ET.CONFIG.panSeconds < 0.5, true, "the pan's slam is under 0.5 s");
 eq(ET.CONFIG.ladder, ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Eggs Benny", "Eggs Benny w/ Avocado", "Steak, Eggs & Brew!"], "the ladder's seven dishes, bottom to top");
 {
   // Clear every CAV right at its bold: the streak climbs a rung a clear, then holds at the top, across waves.
-  const g = game("clear", [T("VS", 10)]);
+  const g = game(10);
   const rungs = [], waves = new Set(), tiers = new Set();
   let scoreGap = 0;
   advance(g, 400, (x) => {
@@ -416,9 +502,9 @@ eq(ET.CONFIG.ladder, ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Egg
     g.drain();
     return g;
   };
-  eq(climb(game("clear", [T("VS", 10)]), 3).streak, 3, "three fast clears: the streak is 3");
+  eq(climb(game(10), 3).streak, 3, "three fast clears: the streak is 3");
   {
-    const g = climb(game("clear", [T("VS", 10)]), 2);
+    const g = climb(game(10), 2);
     let e = null;
     for (let i = 0; i < 4000 && !e; i++) {
       g.step(0.05);
@@ -429,21 +515,21 @@ eq(ET.CONFIG.ladder, ["Scrambled", "Sunny-Side Up", "Over Easy", "Poached", "Egg
     ok(e && e.tier >= 3 && e.points === ET.CONFIG.clearTierPoints[e.tier - 1], `E26: that slow clear is tier 3 or later, and scores its tier's points   [tier ${e && e.tier}, ${e && e.points}]`);
   }
   {
-    const g = climb(game("clear", [T("VS", 10)]), 2);
+    const g = climb(game(10), 2);
     g.submit("RCAV 0000");
     eq(g.streak, 0, "any ERROR drops it to the bottom");
   }
   {
-    const g = climb(game("clear", [T("VS", 10)]), 2);
+    const g = climb(game(10), 2);
     for (let i = 0; i < 4000 && !g.stats.hatched; i++) g.step(0.05);
     ok(g.stats.hatched > 0 && g.streak === 0, "a hatch drops it to the bottom");
   }
-  eq(game("clear", [T("VS", 10)]).streak, 0, "a new game starts at the bottom");
+  eq(game(10).streak, 0, "a new game starts at the bottom");
 }
 
-section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock, AD notes");
+section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock");
 {
-  const g = new ET.Game({ mode: "clear", types: [T("VS", 10)], units, rng: ET.seededRandom(7), wallStart: 14 * 3600 });
+  const g = new ET.Game({ types: [T("VS", 10)], units, rng: ET.seededRandom(7), wallStart: 14 * 3600 });
   g.start();
   advance(g, 2);
   eq(Math.round(g.clock), 60, "the clocks run 1 displayed minute per 2 s in wave 1");
@@ -453,14 +539,14 @@ section("M. the Timer Refinement (2026-09-22): two clocks, speed, the wall clock
   ok(Math.abs(el - (g.time - n.startedAt) * 30) < 1e-6, `a nest clock shows displayed seconds, at the same speed   [${el.toFixed(1)} after ${(g.time - n.startedAt).toFixed(2)} s]`);
 }
 {
-  const g = new ET.Game({ mode: "clear", types: [T("VS", 10)], units, rng: ET.seededRandom(7), wallStart: 86400 - 30 });
+  const g = new ET.Game({ types: [T("VS", 10)], units, rng: ET.seededRandom(7), wallStart: 86400 - 30 });
   g.start();
   advance(g, 2);
   ok(g.wall() >= 0 && g.wall() < 60, `the wall clock wraps past midnight   [${g.wall().toFixed(1)}]`);
 }
 withoutFarWarp(() => {
   // Every clock shares one speed: at wave 20 a VS bolds in 10 s, and its overtime is still player seconds.
-  const g = game("clear", [T("VS", 10)]);
+  const g = game(10);
   g.startWave(20);
   advance(g, 0.05 + LAY);
   const n = inState(g, "active")[0];
@@ -475,7 +561,7 @@ withoutFarWarp(() => {
 });
 {
   // The nest clock keeps counting through overtime.
-  const g = game("clear", [T("VS", 10)]);
+  const g = game(10);
   advance(g, 0.05 + LAY);
   const n = inState(g, "active")[0];
   advance(g, 22);
@@ -484,7 +570,7 @@ withoutFarWarp(() => {
 }
 {
   // Speed changes at wave start; the step lands on the even waves.
-  const g = game("clear", [T("XX", 1)]);
+  const g = game(1);
   const speeds = {};
   advance(g, 400, (x) => {
     x.drain().forEach((e) => { if (e.type === "wave-start") speeds[e.wave] = e.speed; });
@@ -493,91 +579,8 @@ withoutFarWarp(() => {
   eq([1, 2, 3, 4].map((w) => speeds[w]), [1, 1.1, 1.1, 1.2], "each wave starts at its own speed (W1 1.0, W2 1.1, W3 1.1, W4 1.2)");
 }
 {
-  // AD post-its: every AD gets one, both kinds turn up, and each goes bold exactly where it says.
-  const AD = { code: "AD", meaning: "AD", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
-  const g = new ET.Game({ mode: "clear", types: [AD, T("VS", 10)], units, rng: ET.seededRandom(9), wallStart: 9 * 3600 + 17 * 60 + 40 });
-  g.start();
-  const seen = { clock: 0, duration: 0 };
-  let adWithout = 0, vsWith = 0, checked = 0;
-  const wrongBold = [];
-  const pending = new Map();
-  advance(g, 900, (x) => {
-    x.unlocked().forEach((n) => {
-      if (n.state === "active" && !pending.has(n)) {
-        if (n.type.code === "VS") { if (n.note) vsWith++; return; }
-        if (!n.note) { adWithout++; return; }
-        seen[n.note.kind]++;
-        pending.set(n, { note: n.note, startClock: n.startedClock });
-      }
-      if (n.state === "overtime" && pending.has(n)) {
-        const p = pending.get(n);
-        const boldNest = n.boldClock - p.startClock;
-        if (p.note.kind === "duration" && Math.abs(boldNest - p.note.minutes * 60) > 1e-6) wrongBold.push("dur " + boldNest);
-        if (p.note.kind === "clock") {
-          const at = (x.wallStart + n.boldClock) % 86400;
-          const run = boldNest / 60;
-          if (at !== p.note.at || at % 60 !== 0 || run < p.note.minutes || run >= p.note.minutes + 1) wrongBold.push("clock " + at + " " + run.toFixed(2));
-        }
-        checked++;
-        pending.delete(n);
-      }
-      if (n.state !== "active" && n.state !== "overtime") pending.delete(n);
-    });
-    inState(x, "overtime").forEach((n) => x.submit("RCAV " + n.unit));
-  });
-  eq([adWithout, vsWith], [0, 0], "every AD shows a post-it, and no other type does");
-  ok(seen.clock > 5 && seen.duration > 5, `both kinds of note turn up   [${seen.clock} "Clear @", ${seen.duration} "min"]`);
-  ok(checked > 10 && wrongBold.length === 0, `each note goes bold where it says: "N min" at N:00 on the nest clock, "Clear @ HH:MM" when the wall clock reads it   [${checked} checked${wrongBold.length ? "; " + wrongBold.slice(0, 3).join(", ") : ""}]`);
-}
-{
-  // E1 (ruled 2026-09-22): round UP. A start at 14:15:40 with a draw of 20 → "Clear @ 14:36", 20:20 later.
-  const AD = { code: "AD", meaning: "AD", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
-  const g = new ET.Game({ mode: "clear", types: [AD], units, wallStart: 14 * 3600 + 15 * 60 + 40 });
-  const seq = [0.5, 0.1];                     // minutes → 20, then the clock-time kind
-  g.rng = () => seq.shift();
-  const n = g.nests[5];
-  n.type = AD;
-  g.activate(n, "auto");
-  g.pop(n);
-  eq([n.note.kind, n.note.minutes, n.note.at, n.boldClock - n.startedClock], ["clock", 20, 14 * 3600 + 36 * 60, 20 * 60 + 20], "E1: 14:15:40 + 20 min reads \"Clear @ 14:36\" and bolds 20:20 later, never before the draw");
-}
-{
-  // Midnight (Andrew, 2026-09-24): the same rule across the date line. A start at 23:59:30 with a draw of 20 →
-  // "Clear @ 00:20", 20:30 later, never before the draw.
-  const AD = { code: "AD", meaning: "AD", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
-  const g = new ET.Game({ mode: "clear", types: [AD], units, wallStart: 23 * 3600 + 59 * 60 + 30 });
-  const seq = [0.5, 0.1];                     // minutes → 20, then the clock-time kind
-  g.rng = () => seq.shift();
-  const n = g.nests[5];
-  n.type = AD;
-  g.activate(n, "auto");
-  g.pop(n);
-  eq([n.note.kind, n.note.minutes, n.note.at, n.boldClock - n.startedClock], ["clock", 20, 20 * 60, 20 * 60 + 30], "midnight: 23:59:30 + 20 min reads \"Clear @ 00:20\" and bolds 20:30 later, never before the draw");
-}
-{
-  // …and played out: an AD that spawns on the first step (0.05 s), pops 1.4 s later at 23:58:43.5 and draws 19 minutes
-  // reads "Clear @ 00:18", and goes bold on the step the wall clock passes 00:18:00. A random source fixed at 0.45
-  // draws 19 minutes and the clock note every time.
-  const AD = { code: "AD", meaning: "AD", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
-  const g = new ET.Game({ mode: "clear", types: [AD], units, rng: () => 0.45, wallStart: 23 * 3600 + 58 * 60 });
-  g.start();
-  // copied as they happen: once the egg hatches its nest is reset, note and all
-  let first = null, rec = null, boldWall = null;
-  advance(g, 60, (x) => {
-    if (!first) {
-      first = x.unlocked().find((m) => m.state === "active" && m.note) || null;
-      if (first) rec = { startedWall: (x.wallStart + first.startedClock) % 86400, note: { ...first.note }, boldMark: (x.wallStart + first.boldClock) % 86400 };
-    }
-    if (first && boldWall === null && first.state === "overtime") boldWall = x.wall();
-  });
-  ok(!!rec && Math.abs(rec.startedWall - (23 * 3600 + 58 * 60 + 43.5)) < 1e-6 && rec.note.kind === "clock" && rec.note.minutes === 19 && rec.note.at === 18 * 60,
-    `midnight, played out: an AD popping at 23:58:43.5 with 19 minutes reads "Clear @ 00:18"   [${rec && JSON.stringify(rec.note)}, popped ${rec && rec.startedWall.toFixed(1)} s past midnight the day before]`);
-  ok(!!rec && boldWall !== null && boldWall >= 18 * 60 && boldWall < 18 * 60 + 1.5 && Math.abs(rec.boldMark - 18 * 60) < 1e-6,
-    `…and goes bold on the step the wall clock passes 00:18:00, on the far side of midnight   [wall ${boldWall && boldWall.toFixed(2)} s past midnight]`);
-}
-{
   // Skipped spawns are logged per wave (Refinement §9).
-  const g = game("clear", [T("LONG", 60)]);
+  const g = game(60);
   advance(g, 60);
   ok(g.stats.skipped > 0 && g.stats.skippedByWave[1] === g.stats.skipped, `skipped spawns are counted against the wave they fell in   [W1 ${g.stats.skippedByWave[1]} of ${g.stats.skipped}]`);
 }
@@ -585,7 +588,7 @@ withoutFarWarp(() => {
 section("O. Refinement 3 §4: Time Warp");
 {
   // MB (30 min, 60 s at base speed): long enough that wave 1 has spawned all 8 while some still run.
-  const g = game("clear", [T("MB", 30)]);
+  const g = game(30);
   let warpedBeforeLast = false, warpWithBold = false, sawWarp = false, sawAfter = false;
   const bolds = [];
   const ot = [];
@@ -610,7 +613,7 @@ section("O. Refinement 3 §4: Time Warp");
 }
 {
   // The rate: 5× the wave's speed, for the nest clocks and the wall clock alike.
-  const g = game("clear", [T("MB", 30)]);
+  const g = game(30);
   g.spawned = g.quota;                         // as if the last egg has spawned
   const n = g.nests[0];
   n.type = T("MB", 30); n.unit = "2101";
@@ -626,7 +629,7 @@ section("O. Refinement 3 §4: Time Warp");
 
 section("Q. Refinement 3 §7: egg-laying");
 {
-  const g = game("clear", [T("VS", 10)]);
+  const g = game(10);
   const ev = [];
   advance(g, 0.05, (x) => ev.push(...x.drain()));
   const n = inState(g, "laying")[0];
@@ -650,52 +653,19 @@ section("Q. Refinement 3 §7: egg-laying");
   eq(n.state, "overtime", "…bold 20 s after the pop");
 }
 {
-  const g = game("both", [T("VS", 10)]);
-  advance(g, 0.05);
-  const n = inState(g, "trigger")[0];
+  // a hospital egg's STR starts on the egg already in the nest: no second lay, no cord
+  const { g, n } = oneEgg(1);
+  g.submit("RCAV " + n.unit);
   g.drain();
-  g.submit(`CAV ${n.unit} VS`);
-  ok(n.state === "laying" && g.drain().some((e) => e.type === "laying" && e.how === "placed"), "a placed CAV lays its egg too");
-  const m = inState(g, "trigger")[0] || null;
-  const b = game("both", [T("VS", 10)]);
-  advance(b, 0.05);
-  const t = inState(b, "trigger")[0];
-  b.drain();
-  advance(b, 20);
-  ok(["laying", "active"].includes(t.state) && b.drain().some((e) => e.type === "laying" && e.how === "auto-open"), "…and so does an auto-opened one");
-}
-{
-  const VF = T("VF", 10, { max: 30, twoPhaseOnly: true, hiddenUntilTrigger: true });
-  const g = game("both", [VF]);
-  advance(g, 0.05);
-  const n = inState(g, "trigger")[0];
-  g.submit(`CAV ${n.unit} VF`);
-  eq(g.snapshot().nests.find((x) => x.id === n.id).hidden, true, "⏳ E16: a VF being laid reports itself hidden (no egg to show until its trigger)");
-}
-
-section("R. E18 (ruled): no Time Warp while a placement trigger is still waiting");
-{
-  // Both: every spawn is a trigger. Place all but the wave's last one and let it wait.
-  const g = game("both", [T("VS", 10)]);
-  let warpedWithTrigger = false, sawLastWaiting = false, warpAfter = false;
-  for (let i = 0; i < 20000 && g.wave === 1; i++) {
-    g.step(0.05);
-    const trig = inState(g, "trigger");
-    trig.forEach((n) => { if (g.spawned < g.quota) g.submit(`CAV ${n.unit} VS`); });
-    if (g.spawned >= g.quota && inState(g, "trigger").length) { sawLastWaiting = true; if (g.warping() && g.farEggs() < ET.CONFIG.warpFar.eggs) warpedWithTrigger = true; }
-    if (g.spawned >= g.quota && !inState(g, "trigger").length && g.warping()) warpAfter = true;
-    inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
-  }
-  ok(sawLastWaiting, "the wave's last spawn sat waiting to be placed");
-  ok(!warpedWithTrigger, "…and the last-CAV rule never warped the clocks while it waited (E39's own rule may)");
-  ok(warpAfter, "once it started (here it auto-opened), the warp came on");
+  g.submit(`CAV ${n.unit} STR`);
+  ok(!g.drain().some((e) => e.type === "laying") && n.state === "active", "a hospital egg's STR lays no new egg: Mom repairs the one in the nest");
 }
 
 section("E39 (Chat, 2026-09-25): Time Warp also runs while 2+ eggs are each over 8:00 from their bold mark");
 {
   eq(ET.CONFIG.warpFar, { eggs: 2, seconds: 480 }, "the rule as ruled: 2 eggs, 8:00 of displayed time");
   // MB is 30 min: a fresh MB is 30:00 from its bold mark. Wave 1 spawns 8, so the last-CAV rule is far off at first.
-  const g = game("clear", [T("MB", 30)]);
+  const g = game(30);
   let one = null, two = null, stops = [], withBold = false, sawFarOnly = false;
   let prev = false;
   for (let i = 0; i < 40000 && g.wave === 1; i++) {
@@ -725,7 +695,7 @@ section("E39 (Chat, 2026-09-25): Time Warp also runs while 2+ eggs are each over
 }
 {
   // the guard: two far eggs and one bold one: no warp
-  const g = game("clear", [T("MB", 30)]);
+  const g = game(30);
   const ns = g.nests.filter((n) => n.unlocked).slice(0, 3);
   ns.forEach((n) => { n.type = T("MB", 30); n.unit = String(2101 + n.id); g.activate(n, "auto"); });
   for (let i = 0; i < 400 && ns.some((n) => n.state !== "active"); i++) g.step(0.05);
@@ -737,8 +707,8 @@ section("E39 (Chat, 2026-09-25): Time Warp also runs while 2+ eggs are each over
 
 section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");
 {
-  // A long game of short CAVs in Both (triggers wait on the board too), watching every spawn.
-  const g = game("both", [T("VS", 10)], 33);
+  // A long game of short CAVs, watching every spawn.
+  const g = game(10, 33);
   const distinct = new Set(units).size;
   eq([units.length, distinct, g.units.length], [54, 54, 54], "the Data Sheet's 54 rows are 54 distinct units (the five doubles removed 2026-09-23); the pool is the 54");
   let dupOnBoard = false, repeatBeforeRefill = 0, spawnsChecked = 0;
@@ -747,7 +717,7 @@ section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");
     g.step(0.05);
     if (g.wave !== wave) { wave = g.wave; seen = new Set(); }
     g.drain().forEach((e) => {
-      if (e.type !== "trigger") return;
+      if (e.type !== "laying") return;
       const u = g.nests[e.nest].unit;
       spawnsChecked++;
       if (seen.has(u) && seen.size < distinct) repeatBeforeRefill++;
@@ -756,16 +726,15 @@ section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");
     });
     const showing = g.unlocked().filter((n) => n.state !== "idle").map((n) => n.unit);
     if (new Set(showing).size !== showing.length) dupOnBoard = true;
-    inState(g, "trigger").forEach((n) => { if (i % 3 === 0) g.submit(`CAV ${n.unit} VS`); });
     inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
   }
   ok(spawnsChecked > 300, `a long game   [${spawnsChecked} CAVs over ${g.wave} waves]`);
-  ok(!dupOnBoard, "a unit is never on two nests at once, waiting triggers included");
+  ok(!dupOnBoard, "a unit is never on two nests at once");
   eq(repeatBeforeRefill, 0, "within a wave, no unit repeats until all 54 have been used");
 }
 {
   // Force the refill: a wave's quota bigger than the pool (5 units, quota 8).
-  const g = new ET.Game({ mode: "clear", types: [T("XX", 1)], units: ["1001", "1002", "1003", "1004", "1005"], rng: ET.seededRandom(3) });
+  const g = new ET.Game({ types: [T("VS", 1)], units: ["1001", "1002", "1003", "1004", "1005"], rng: ET.seededRandom(3) });
   g.start();
   const drawn = [];
   let dup = false;
@@ -780,45 +749,39 @@ section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");
   ok(drawn.length >= 8 && !dup, `then it refills, still never doubling a unit on the board   [${drawn.join(" ")}]`);
 }
 
-section("U. Refinement 4 §4: an even CAV-type mix from a shuffle bag");
+section("U. E54 and E56: one mode, every egg a VS; about 70% hospital eggs, a plain random roll");
 {
-  const real = types;   // the seven real types, from the CSV
-  const run = (mode, seed, waves) => {
-    const g = new ET.Game({ mode, types: real, units, rng: ET.seededRandom(seed) });
+  // the real table, with the game's own share: every egg laid is a VS, and about 70% carry the H sign
+  const run = (seed) => {
+    const g = new ET.Game({ types, units, rng: ET.seededRandom(seed) });
     g.start();
-    const byWave = {};
-    for (let i = 0; i < 60000 && g.phase !== "over" && g.wave <= waves; i++) {
+    const laid = [];
+    for (let i = 0; i < 60000 && g.phase !== "over" && laid.length < 400; i++) {
+      g.pool = 3;
       g.step(0.05);
-      g.drain().forEach((e) => {
-        if (e.type !== "trigger" && !(e.type === "laying" && e.how === "auto")) return;
-        (byWave[g.wave] = byWave[g.wave] || []).push({ code: g.nests[e.nest].type.code, placing: e.type === "trigger" });
-      });
-      inState(g, "trigger").forEach((n) => g.submit(`CAV ${n.unit} ${n.type.code}`));
+      g.drain().forEach((e) => { if (e.type === "laying") laid.push({ code: g.nests[e.nest].type.code, hospital: e.hospital, unit: g.nests[e.nest].unit }); });
       inState(g, "overtime").forEach((n) => g.submit("RCAV " + n.unit));
     }
-    return byWave;
+    return laid;
   };
-  const chunks = (list, k) => { const out = []; for (let i = 0; i + k <= list.length; i += k) out.push(list.slice(i, i + k)); return out; };
-  const both = run("both", 4, 4);
-  const bothOk = Object.values(both).every((w) => chunks(w.map((x) => x.code), 7).every((c) => new Set(c).size === 7));
-  ok(bothOk && Object.keys(both).length >= 4, `Both: each wave's spawns come seven at a time, every type once per seven   [waves ${Object.keys(both).join(",")}]`);
-  const clear = run("clear", 5, 4);
-  const clearCodes = Object.values(clear).flat().map((x) => x.code);
-  ok(!clearCodes.includes("VF") && Object.values(clear).every((w) => chunks(w.map((x) => x.code), 6).every((c) => new Set(c).size === 6)),
-    "Clear CAVs Only: the bag holds the six types it can use, each once per six, never VF");
-  const prog = run("progression", 6, 9);
-  const vfAuto = Object.values(prog).flat().filter((x) => x.code === "VF" && !x.placing).length;
-  const vfAny = Object.values(prog).flat().filter((x) => x.code === "VF").length;
-  ok(vfAuto === 0 && vfAny > 0, `⏳ E19: Follow Progression gives VF only to a spawn that needs placing   [${vfAny} VF, all placed]`);
-  const w1 = both[1].map((x) => x.code);
-  ok(new Set(w1.slice(0, 7)).size === 7, `⏳ E20: each wave starts a fresh bag   [wave 1 opens ${w1.slice(0, 7).join(" ")}]`);
+  const laid = run(4);
+  ok(laid.length >= 400 && laid.every((x) => x.code === "VS"), `E54: every egg is laid with a VS   [${laid.length} eggs]`);
+  const share = laid.filter((x) => x.hospital).length / laid.length;
+  ok(Math.abs(share - 0.7) < 0.06, `E56: about 70% are hospital eggs   [${(share * 100).toFixed(1)}%]`);
+  eq(ET.CONFIG.hospitalShare, 0.7, "E56: the share is a setting, 0.7 [T]");
+  eq(JSON.stringify(run(9).slice(0, 60)), JSON.stringify(run(9).slice(0, 60)), "the roll comes from the game's seeded source, so ?seed= replays which eggs are hospital eggs");
+  const none = new ET.Game({ types, units, rng: ET.seededRandom(3), hospitalShare: 0 });
+  eq([none.first.code, none.second.code], ["VS", "STR"], "the game takes its VS and STR from the table by code");
+  eq(["mode", "typeBag", "pickType"].filter((k) => k in none), [], "E54: no mode, no type shuffle bag");
 }
 
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
-eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, ET.CONFIG.vfHides, "timerDisplay" in ET.CONFIG],
-  ["per-spawn", true, false, "timer", false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · C15(b) timer only · D5's switch is gone");
+eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, "timerDisplay" in ET.CONFIG],
+  ["per-spawn", true, false, false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · D5's switch is gone");
 eq([ET.CONFIG.hoseWhen, ET.CONFIG.errorOnEmpty], ["always", false], "the hose is always the in-game cursor (Hose ruling, replacing E5) · E6 no ERROR on an empty Enter");
-eq([ET.CONFIG.adClockTarget, ET.CONFIG.adNoteFrom], ["full-minutes", "start"], "E1 round up · E2 note at the start (ruled 2026-09-22)");
+eq(["vfHides", "adClockTarget", "adNoteFrom", "postItCodes", "placementPoints", "placementTimeoutStart", "progressionOnePhaseWaves"].filter((k) => k in ET.CONFIG), [], "E54: the VF, AD and placement switches are gone with what they set");
+eq([ET.CONFIG.eggType, ET.CONFIG.hospitalType, ET.CONFIG.hospitalShare, ET.CONFIG.hospitalWindowScale, ET.CONFIG.momSweetUntilWave],
+  ["VS", "STR", 0.7, 1, 1], "E52–E56 (ruled 2026-10-02): VS eggs, STR second, 70% hospital, window 1 the same as every egg's, sweet Mom in wave 1");
 eq(ET.CONFIG.devModePasswordHash, null, "⏳ D3: no phrase set yet, so Developer Mode denies every entry");
 eq(ET.CONFIG.muteKeyInPlay, "ctrl-m", "E25 (ruled 2026-09-24): in play M types; the button and Ctrl+M mute there");
 

@@ -46,26 +46,6 @@
     return two(Math.floor(t / 3600) % 24) + ":" + two(Math.floor(t / 60) % 60);
   }
 
-  function noteText(note) {
-    return note.kind === "clock" ? "Clear @ " + hhmm(note.at) : note.minutes + " min";
-  }
-
-  /* Fill an AD note. The clock kind is two spans: "Clear @ " in chunky rounded cream lettering and HH:MM in the
-     wall clock's own 7-segment face; its text reads the same as noteText's. */
-  function fillNote(el, note) {
-    var nt = noteText(note);
-    if (el.textContent === nt) return;
-    if (note.kind !== "clock") { el.textContent = nt; return; }
-    el.textContent = "";
-    var lbl = document.createElement("span"), hm = document.createElement("span");
-    lbl.className = "led-text";
-    lbl.textContent = "Clear @ ";
-    hm.className = "led-hm";
-    hm.textContent = hhmm(note.at);
-    el.appendChild(lbl);
-    el.appendChild(hm);
-  }
-
   function popup(nestEl, text, cls) {
     var p = document.createElement("div");
     p.className = "popup " + (cls || "");
@@ -228,7 +208,7 @@
      whole time. `now` is the game's own time, so all of it freezes on pause. */
   function drawCord(i, s, now) {
     var c = cords.list[i];
-    var show = !s.hidden && (s.lay !== null || s.retract !== null);   // E16 (ruled): VF has no egg to lay
+    var show = s.lay !== null || s.retract !== null;
     c.g.style.display = show ? "" : "none";
     if (!show) return;
     var C = ET.CONFIG;
@@ -277,7 +257,7 @@
      It slides from the tip down to its base on (0, 20), in the nest's own units, so there's no swap and no drop when it
      lands. Returns how far above its resting place it is (viewBox units), or null outside the pop. */
   function eggDrop(s) {
-    if (s.state !== "laying" || s.lay === null || s.hidden) return null;
+    if (s.state !== "laying" || s.lay === null) return null;
     var C = ET.CONFIG, t = s.lay * (C.layDrop + C.layPop);
     if (t < C.layDrop) return null;
     var u = Math.min(1, (t - C.layDrop) / C.layPop);
@@ -302,14 +282,12 @@
     function mk(cls) { var p = document.createElementNS(NS, "path"); p.setAttribute("class", cls); g.appendChild(p); return p; }
     bolt = { g: g, glow: mk("bolt-glow"), core: mk("bolt-core"), kinks: [], lastJag: -1, log: [], links: 0 };
     cords.svg.appendChild(g);
-    // E28: the first-game tags' leader lines, in the same layer: under every readout, taking no input
-    ["ready", "clock"].forEach(function (k) {
-      var p = document.createElementNS(NS, "path");
-      p.setAttribute("class", "leader");
-      p.style.display = "none";
-      cords.svg.appendChild(p);
-      tips[k].line = p;
-    });
+    // E28: the first-game tag's leader line, in the same layer: under every readout, taking no input
+    var p = document.createElementNS(NS, "path");
+    p.setAttribute("class", "leader");
+    p.style.display = "none";
+    cords.svg.appendChild(p);
+    tips.ready.line = p;
   }
 
   /* Pilot art (Chat ruling, 2026-09-25): each egg is mirrored left/right at random, and about 1 in 6 gets the rare eye
@@ -321,10 +299,10 @@
     v.rolled = true;
   }
   /* The waiting egg's hints (E26, pilot art): each shows from its share of the way from bold to hatch and stays. */
-  function paintHints(v, s) {
-    var at = ET.CONFIG.eggHintsAt, on = s.state === "overtime";
+  function paintHints(v, s, crack) {
+    var at = ET.CONFIG.eggHintsAt, on = s.state === "overtime" || crack > 0;   // (crack > 0 while Mom mends a hospital egg)
     for (var h in at) {
-      var show = on && s.crack >= at[h] && (h !== "hint-eye" || v.el.classList.contains("has-eye"));
+      var show = on && crack >= at[h] && (h !== "hint-eye" || v.el.classList.contains("has-eye"));
       if (v.el.classList.contains("show-" + h) !== show) v.el.classList.toggle("show-" + h, show);
     }
   }
@@ -436,53 +414,84 @@
     if (sign.el.classList.contains("wobble") !== wobble) sign.el.classList.toggle("wobble", wobble);
   }
 
-  /* E28: wave 1's first-game tags. The first egg to go bold gets "Pink = ready! Type RCAV <unit>" and the first
-     "Clear @" note gets "Check the wall clock", each once a game, for as long as that CAV runs. They sit either side of
-     the wall clock, in the band above the board, so they never cover a nest or a readout; a thin leader line (in the
-     cord's layer, under every readout) runs to the egg or the note. Nothing flashes. */
+  /* E28: wave 1's first-game tag. The first egg to go bold gets "Pink = ready! Type RCAV <unit>", once a game, for as
+     long as it's bold; on a hospital egg, once its VS is off, it reads "Now type CAV <unit> STR" (E53). It sits left of
+     the wall clock, in the band above the board, so it never covers a nest or a readout; a thin leader line (in the
+     cord's layer, under every readout) runs to the egg. Nothing flashes. (E54 took the "Check the wall clock" tag.) */
   function paintTips(snap) {
-    var C = ET.CONFIG;
-    if (snap.wave === C.tipsWave && !tips.clock.done) {
-      var noted = snap.nests.filter(function (s) { return s.note && s.note.kind === "clock" && (s.state === "active" || s.state === "overtime"); })[0];
-      if (noted) { tips.clock.nest = noted.id; tips.clock.done = true; }
-    }
     var wr = document.querySelector(".wallclock").getBoundingClientRect(), tr = field.querySelector("#fieldtop").getBoundingClientRect();
-    ["ready", "clock"].forEach(function (k) {
-      var tip = tips[k], s = tip.nest === null ? null : snap.nests.filter(function (x) { return x.id === tip.nest; })[0];   // the snapshot lists nests in play only
-      var live = !!s && (k === "ready" ? s.state === "overtime" : !!s.note && (s.state === "active" || s.state === "overtime"));
-      if (!live) {
-        tip.nest = null;
-        tip.el.hidden = true;
-        tip.line.style.display = "none";
-        return;
-      }
-      if (k === "ready") {
-        var text = "Pink = ready! Type RCAV " + s.unit;
-        if (tip.el.textContent !== text) tip.el.textContent = text;
-      }
-      tip.el.hidden = false;
-      placeTip(k, wr, tr);
-      var sr = cords.screen.getBoundingClientRect(), a = tip.el.getBoundingClientRect();
-      var target = (k === "ready" ? nests[tip.nest].el.querySelector(".egg") : nests[tip.nest].note).getBoundingClientRect();
-      var x0 = (k === "ready" ? a.left + a.width * 0.3 : a.left + a.width * 0.7) - sr.left, y0 = a.bottom - sr.top;
-      var x1 = target.left + target.width / 2 - sr.left, y1 = target.top + target.height / 2 - sr.top;
-      tip.line.setAttribute("d", "M" + x0.toFixed(1) + " " + y0.toFixed(1) + " L" + x1.toFixed(1) + " " + y1.toFixed(1));
-      tip.line.style.display = "";
-    });
+    var tip = tips.ready, s = tip.nest === null ? null : snap.nests.filter(function (x) { return x.id === tip.nest; })[0];   // the snapshot lists nests in play only
+    if (!s || s.state !== "overtime") {
+      tip.nest = null;
+      tip.el.hidden = true;
+      tip.line.style.display = "none";
+      return;
+    }
+    var text = s.removed ? "Now type CAV " + s.unit + " " + ET.CONFIG.hospitalType : "Pink = ready! Type RCAV " + s.unit;
+    if (tip.el.textContent !== text) tip.el.textContent = text;
+    tip.el.hidden = false;
+    placeTip(wr, tr);
+    var sr = cords.screen.getBoundingClientRect(), a = tip.el.getBoundingClientRect();
+    var target = nests[tip.nest].el.querySelector(".egg").getBoundingClientRect();
+    var x0 = a.left + a.width * 0.3 - sr.left, y0 = a.bottom - sr.top;
+    var x1 = target.left + target.width / 2 - sr.left, y1 = target.top + target.height / 2 - sr.top;
+    tip.line.setAttribute("d", "M" + x0.toFixed(1) + " " + y0.toFixed(1) + " L" + x1.toFixed(1) + " " + y1.toFixed(1));
+    tip.line.style.display = "";
   }
-  /* A tag either side of the wall clock: "ready" on its left, "clock" on its right. */
-  function placeTip(k, wr, tr) {
-    var el = tips[k].el;
-    if (k === "ready") { el.style.left = ""; el.style.right = (tr.right - wr.left + 14).toFixed(1) + "px"; }
-    else { el.style.right = ""; el.style.left = (wr.right - tr.left + 14).toFixed(1) + "px"; }
+  /* The tag, left of the wall clock. */
+  function placeTip(wr, tr) {
+    var el = tips.ready.el;
+    el.style.left = "";
+    el.style.right = (tr.right - wr.left + 14).toFixed(1) + "px";
   }
   function resetTips() {
-    ["ready", "clock"].forEach(function (k) {
-      tips[k].nest = null;
-      tips[k].done = false;
-      tips[k].el.hidden = true;
-      if (tips[k].line) tips[k].line.style.display = "none";
+    tips.ready.nest = null;
+    tips.ready.done = false;
+    tips.ready.el.hidden = true;
+    if (tips.ready.line) tips.ready.line.style.display = "none";
+  }
+
+  /* E55 (ruled 2026-10-02): Mom repairs a hospital egg as its STR goes on (⏳ placeholder art: the sweet one is the
+     how-to panel's mommy doodle, the creepy one the scary HUD face, until Chat's two Gemini parts kits come back). Over
+     the nest only, in the popups layer (no pointer, no keyboard), for momRepairSeconds: she pops in, looks down and
+     patches the egg (its cracks close), turns to the player and giggles, and ducks out (style.css, mom-fix). It runs on
+     the game's own seconds, so a pause holds it (body.paused holds the CSS too). Reduced motion: she appears, still,
+     and goes. */
+  var fixes = [];
+  function momFix(v, kind, t) {
+    var C = ET.CONFIG;
+    var box = document.createElement("div");
+    box.className = "momfix " + kind;
+    var r = v.el.getBoundingClientRect(), f = field.getBoundingClientRect(), w = v.el.offsetWidth;
+    box.style.left = (r.left - f.left + r.width / 2) + "px";
+    box.style.top = (r.top - f.top + r.height * 0.32) + "px";
+    box.style.width = w + "px";
+    box.style.setProperty("--fix", C.momRepairSeconds + "s");
+    var head = document.createElement("div");
+    head.className = "head";
+    head.appendChild(kind === "sweet" ? ET.art.doodleEl(1) : ET.art.momFaceSvg());
+    box.appendChild(head);
+    box.appendChild(ET.art.patchSvg());
+    popups.appendChild(box);
+    var m = { el: box, v: v, kind: kind, t0: t, giggled: false, from: v.crackShown || 0 };
+    fixes.push(m);
+    v.mend = m;
+  }
+  // the giggle as she turns to the player, and her exit, on the game's seconds
+  function stepFixes(t) {
+    var T = ET.CONFIG.momRepairSeconds;
+    fixes = fixes.filter(function (m) {
+      var u = (t - m.t0) / T;
+      if (!m.giggled && u >= 0.5) { m.giggled = true; if (ET.audio) ET.audio.giggle(m.kind); }
+      if (u >= 1 || u < 0) { m.el.remove(); if (m.v.mend === m) m.v.mend = null; return false; }
+      return true;
     });
+  }
+  // the egg's cracks while Mom mends it: held as they were, then closing as she patches (0.25 → 0.5 of her visit)
+  function mendedCrack(v, t) {
+    var m = v.mend, T = ET.CONFIG.momRepairSeconds;
+    var u = (t - m.t0) / T;
+    return m.from * Math.max(0, Math.min(1, 1 - (u - 0.25) / 0.25));
   }
   /* Reduced motion: the lightning holds still, and (Andrew, 2026-09-24) the overtime egg stops wobbling and the cord
      stops twitching; style.css stops the CSS loops. One live query, read every frame, so a change applies at once. */
@@ -839,7 +848,6 @@
   }
 
   ET.view = {
-    fillNote: fillNote,   // the layout rig fills every note at its widest the same way
     build: function () {
       field = $("#field");
       board = $("#board");
@@ -847,7 +855,7 @@
       board.insertBefore(floor, board.firstChild);   // first, so it is under everything on the board
       hud = {
         wave: $("#hud-wave"), cavs: $("#hud-cavs"), pool: $("#hud-pool"),
-        poolLabel: $("#hud-pool-label"), score: $("#hud-score"), mode: $("#hud-mode")
+        poolLabel: $("#hud-pool-label"), score: $("#hud-score")
       };
       banner = $("#banner");
       cleanup = { el: $("#cleanup"), result: $("#cleanup .result"), left: $("#cleanup .left") };
@@ -862,7 +870,7 @@
       // E28: the sign and the caption under it
       sign = { el: warp.querySelector(".plaque"), lit: false, last: -Infinity, t0: null, was: false, log: [] };
       warp.querySelector(".caption").textContent = "All clocks " + ET.CONFIG.warpFactor + "× fast. Get your next RCAV ready!";
-      tips = { ready: { el: $("#tip-ready"), nest: null, done: false }, clock: { el: $("#tip-clock"), nest: null, done: false } };
+      tips = { ready: { el: $("#tip-ready"), nest: null, done: false } };
 
       var offs = offsets();
       for (var i = 0; i < ET.Game.COLS * ET.Game.ROWS; i++) {
@@ -887,18 +895,11 @@
         ro.innerHTML = '<span class="unit">----</span><span class="code"></span><span class="clock">--:--</span>';
         n.appendChild(ro);
 
-        // ⏳ placeholder look: the AD post-it (Timer Refinement §4)
-        var note = document.createElement("div");
-        note.className = "postit";
-        note.hidden = true;
-        n.appendChild(note);
-
-        // ⏳ placeholder look: VF's "Clear Fueling" bubble (Timer Refinement §5)
-        var bubble = document.createElement("div");
-        bubble.className = "bubble";
-        bubble.textContent = "Clear Fueling";
-        bubble.hidden = true;
-        n.appendChild(bubble);
+        // E55 (ruled): the hospital road sign, a white H on a blue rounded square on a stake (⏳ placeholder art until
+        // Gemini's), dropped into the nest as the egg pops, on its shoulder clear of the egg and the readout
+        var hsign = ET.art.hSignEl();
+        hsign.hidden = true;
+        n.appendChild(hsign);
 
         // ⏳ placeholder: the frying pan (Refinement 2 §5)
         var pan = ET.art.panEl();
@@ -909,7 +910,7 @@
 
         board.appendChild(n);
         nests.push({
-          el: n, svg: svg, readout: ro, mess: mess, note: note, bubble: bubble, pan: pan,
+          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, pan: pan,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
@@ -930,13 +931,14 @@
         v.el.classList.add("inactive");
         v.el.classList.remove("unlock");
         v.el.dataset.state = "idle";
-        v.el.classList.remove("bold", "hide-readout", "hide-clock", "hide-egg", "scurry", "lunge", "scare", "hop", "freeze", "leapt");
+        v.el.classList.remove("bold", "asks", "hospital", "scurry", "lunge", "scare", "hop", "freeze", "leapt");
         delete v.el.dataset.hatch;
         delete v.el.dataset.alien;
         ET.aliens.clear(v.svg.querySelector(".creature"));
         ET.mess.clear(v.mess);
-        v.note.hidden = true;
-        v.bubble.hidden = true;
+        v.hsign.hidden = true;
+        v.mend = null;
+        v.crackShown = 0;
         v.pan.className = "pan";
       });
       ET.mess.clear(floor);
@@ -960,6 +962,7 @@
       resetTips();
       cords.list.forEach(function (c) { c.g.style.display = "none"; });
       popups.innerHTML = "";
+      fixes = [];
       noTypesShown = false;
       momAt = null;
       momShown = 0;
@@ -982,6 +985,7 @@
       wall.ss.textContent = two(Math.floor(snap.wall) % 60);
       warp.classList.toggle("lit", !!snap.warp);
       stepHatches();   // the hatch's freeze and jump (Andrew, 2026-10-01)
+      stepFixes(snap.time);   // E55: Mom's repairs
       turnHands(snap);
       paintSign(snap);
       paintBackdrop(snap);
@@ -1001,25 +1005,18 @@
           if (!v.squeezed && s.lay >= C.laySqueezeAt) { v.squeezed = true; if (ET.audio) ET.audio.squeeze(); }
         } else if (v.squeezed) v.squeezed = false;
 
-        var shows = s.state === "trigger" || s.state === "laying" || s.state === "active" || s.state === "overtime";
+        var shows = s.state === "laying" || s.state === "active" || s.state === "overtime";
         v.unit.textContent = shows ? s.unit : (C.unitAssignment === "per-nest" && s.unit ? s.unit : "----");
         v.code.textContent = shows ? s.code : "";
         v.clock.textContent = s.state === "active" || s.state === "overtime" ? clockText(s.elapsed) : "--:--";
 
         el.classList.toggle("bold", s.state === "overtime");
         el.classList.toggle("glow", !!snap.warp && (C.warpGlow === "running" ? (s.state === "active" || s.state === "overtime") : !el.classList.contains("inactive")));
-        // C15(b) (ruled): a running VF hides its egg and its timer until "Clear Fuel"; the unit and "VF" stay
-        el.classList.toggle("hide-egg", s.hidden);
-        el.classList.toggle("hide-readout", s.hidden && C.vfHides === "readout");
-        el.classList.toggle("hide-clock", s.hidden && C.vfHides === "timer");
-
-        v.note.hidden = !s.note;
-        if (s.note) {
-          fillNote(v.note, s.note);
-          // two looks (2026-09-23): the clock time as the wall clock, the minutes as a hand-lettered post-it
-          v.note.classList.toggle("at-clock", s.note.kind === "clock");
-          v.note.classList.toggle("minutes", s.note.kind !== "clock");
-        }
+        // E53: between the RCAV and the STR the empty type box takes the cyan "place me" pulse: the nest asks for its STR
+        el.classList.toggle("asks", !!s.removed);
+        // E55: the H sign, from the pop until the egg is cleared or hatches (each time it's shown, its drop plays: style.css)
+        var signed = !!s.hospital && (s.state === "active" || s.state === "overtime");
+        if (v.hsign.hidden === signed) v.hsign.hidden = !signed;
 
         drawCord(s.id, s, snap.time);
 
@@ -1028,14 +1025,16 @@
         var drop = eggDrop(s);
         if (el.classList.contains("popping") !== (drop !== null)) el.classList.toggle("popping", drop !== null);
         v.egg.setAttribute("transform", "translate(0 " + (20 + (drop || 0)).toFixed(2) + ") rotate(" + wobble.toFixed(2) + ") scale(" + scale.toFixed(3) + ") translate(0 -20)");
-        var off = String(1 - s.crack);
+        var crack = v.mend ? mendedCrack(v, snap.time) : s.crack;   // E55: Mom closes the cracks
+        if (!v.mend) v.crackShown = s.crack;
+        var off = String(1 - crack);
         for (var k = 0; k < v.cracks.length; k++) v.cracks[k].style.strokeDashoffset = off;
-        paintHints(v, s);
+        paintHints(v, s, crack);
       });
 
       drawLightning(snap);   // Refinement 6 §2
-      // E30: the Command Lines' grey hint: placing while a nest waits, clearing otherwise
-      if (ET.boxes && ET.boxes.hint) ET.boxes.hint(snap.nests.some(function (s) { return s.state === "trigger"; }) ? "CAV + unit + type" : "RCAV + unit");
+      // E30: the Command Lines' grey hint; E53: "CAV + unit + type" while a hospital egg waits for its STR
+      if (ET.boxes && ET.boxes.hint) ET.boxes.hint(snap.nests.some(function (s) { return s.removed; }) ? "CAV + unit + type" : "RCAV + unit");
       paintTips(snap);       // E28
 
       // Refinement 5 §5: the scary mom face, when this wave's moment comes (never in cleanup or on pause)
@@ -1085,33 +1084,23 @@
             replay(cleanup.el, "", "flash");
             cleanup.el.hidden = false;
             break;
-          case "trigger":
-            v.el.classList.remove("scurry", "lunge");
-            break;
           case "laying":
             v.el.classList.remove("scurry", "lunge");
             rollEgg(v);   // pilot art: this egg's mirror and eye, decided as it's laid
             break;
           case "active":
-            // the pop: the egg is in and the clock starts (Refinement 3 §7); egg-laying's pop (Chat, 2026-09-25), not for VF
+            // the pop: the egg is in and the clock starts (Refinement 3 §7); egg-laying's pop (Chat, 2026-09-25)
             v.el.classList.remove("scurry", "lunge");
-            if (!v.rolled) rollEgg(v);   // a VF lays no egg on a cord (E16): its egg is decided here
-            if (ET.audio && !(game && game.nests[e.nest].type && game.nests[e.nest].type.hiddenUntilTrigger)) ET.audio.pop();
+            if (!v.rolled) rollEgg(v);
+            if (ET.audio) ET.audio.pop();
             break;
           case "bold":
             // E28: wave 1's first egg to go bold gets the "Pink = ready!" tag, once a game
             if (game && game.wave === ET.CONFIG.tipsWave && !tips.ready.done) { tips.ready.nest = e.nest; tips.ready.done = true; }
-            // VF is the only type with a pop-up: "Clear Fueling" as its clock and cracking egg appear
-            var nest = game && game.nests[e.nest];
-            if (nest && nest.type && nest.type.hiddenUntilTrigger) {
-              v.bubble.hidden = false;
-              v.bubble.classList.remove("show");
-              void v.bubble.offsetWidth;
-              v.bubble.style.animationDuration = ET.CONFIG.vfBubbleSeconds + "s";
-              v.bubble.classList.add("show");
-            }
             break;
-          case "placed":
+          case "repaired":
+            // E52/E55: window 1's points; no pan, no THONG, no splat: Mom repairs the egg and giggles
+            momFix(v, e.mom, game ? game.time : 0);
             popup(v.el, "+" + e.points, "good");
             break;
           case "cleared":
@@ -1149,7 +1138,6 @@
             delete v.el.dataset.hatch;
             delete v.el.dataset.alien;
             ET.aliens.clear(v.svg.querySelector(".creature"));
-            v.bubble.hidden = true;
             v.el.classList.remove("scurry", "lunge");
             break;
           case "no-types":
@@ -1267,19 +1255,19 @@
                lights: back.lights.map(function (l) { return { id: l.id, o: Number(l.el.style.opacity) }; }) };
     },
 
-    /* For rigs: Time Warp's sign (lit now, and its change log) and the first-game tags. */
-    /* For rigs: place any shown tag beside the wall clock (the layout rig shows both at their longest to measure them). */
+    /* For rigs: place the tag beside the wall clock, if shown (the layout rig shows it at its longest to measure it). */
     placeTips: function () {
       var wr = document.querySelector(".wallclock").getBoundingClientRect(), tr = field.querySelector("#fieldtop").getBoundingClientRect();
-      ["ready", "clock"].forEach(function (k) { if (!tips[k].el.hidden) placeTip(k, wr, tr); });
+      if (!tips.ready.el.hidden) placeTip(wr, tr);
     },
+    /* For rigs: Time Warp's sign (lit now, and its change log) and the first-game tag. */
     warpSign: function () { return { lit: sign.lit, log: sign.log.slice() }; },
     tips: function () {
-      return ["ready", "clock"].map(function (k) {
-        var t = tips[k];
-        return { shown: !t.el.hidden, text: t.el.textContent.trim(), nest: t.nest, done: t.done, line: t.line.style.display !== "none" ? t.line.getAttribute("d") : null };
-      });
+      var t = tips.ready;
+      return [{ shown: !t.el.hidden, text: t.el.textContent.trim(), nest: t.nest, done: t.done, line: t.line.style.display !== "none" ? t.line.getAttribute("d") : null }];
     },
+    /* For rigs (E55): Mom's repairs showing now: which nest, which Mom, and whether she has giggled yet. */
+    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled }; }); },
 
     /* For rigs: a nest's cord, if one is showing. */
     cord: function (id) {

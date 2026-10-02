@@ -84,6 +84,15 @@
       return units;
     },
 
+    /* E54: every egg is laid with a VS, and a hospital egg's second CAV is an STR, so a table without either row
+       can't start a game: it refuses, saying which row is missing. The other rows stay in the table, unused. */
+    needed: function (types, sheet) {
+      [ET.CONFIG.eggType, ET.CONFIG.hospitalType].forEach(function (code) {
+        if (!types.some(function (t) { return t.code === code; })) throw sheetError(sheet, "The CAV type table has no \"" + code + "\" row.");
+      });
+      return types;
+    },
+
     fetchText: function (path) {
       return fetch(encodeURI(path), { cache: "no-store" }).then(function (r) {
         if (!r.ok) throw new Error(path + " → HTTP " + r.status);
@@ -95,8 +104,8 @@
       var d = ET.data;
       return Promise.all([d.fetchText(PATHS.types), d.fetchText(PATHS.blank), d.fetchText(PATHS.units)])
         .then(function (t) {
-          var types = d.parseTypes(t[0]), blankTypes;
-          try { blankTypes = d.parseTypes(t[1]); } catch (e) { if (e.sheet) e.sheet = "blank"; throw e; }   // name the right file
+          var types = d.needed(d.parseTypes(t[0]), "types"), blankTypes;
+          try { blankTypes = d.needed(d.parseTypes(t[1]), "blank"); } catch (e) { if (e.sheet) e.sheet = "blank"; throw e; }   // name the right file
           return { types: types, blankTypes: blankTypes, units: d.parseUnits(t[2]) };
         });
     }

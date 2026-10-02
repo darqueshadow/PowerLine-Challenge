@@ -342,14 +342,14 @@ try {
   }
 
   /* ------------------------------------------------------------ B. setup */
-  section("B. setup: mode buttons and box count on one screen");
+  section("B. setup: the Command Line count and START (E54: one mode, no mode buttons)");
   await press("Enter");
   eq(await ev("__et.screen()"), "setup", "Enter goes to setup");
   {
-    // E21 (ruled): the first key unlocks sound, and the tune plays on through the mode-selection screen
+    // E21 (ruled): the first key unlocks sound, and the tune plays on through the options screen
     let on = false;
     for (let i = 0; i < 20 && !on; i++) { await wait(100); on = await ev("__et.tune()"); }
-    ok(on, "E21: the title tune plays on the mode-selection screen once the first key has unlocked sound");
+    ok(on, "E21: the title tune plays on the options screen once the first key has unlocked sound");
   }
   {
     // Options creature (Andrew approved, 2026-09-23): a different picture from the title family, eyes on the cursor
@@ -393,10 +393,12 @@ try {
     ok(still.lit.every(Boolean) && still.lit.length === 3 && still.n === n0, `SAFETY: with reduced motion all three signs stay lit, and nothing changes   [${JSON.stringify(still.lit)}, ${still.n - n0} changes]`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
-  eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "clear/2", "defaults: Clear CAVs Only, and (E28) 2 Command Lines");
+  eq(await ev("[document.querySelectorAll('[data-mode]').length, [...document.querySelectorAll('#screen-setup h2')].map(h => h.textContent), document.querySelector('[data-boxes].selected').dataset.boxes]"),
+    [0, ["How Many Command Lines?"], "2"], "E54: no mode buttons, only \"How Many Command Lines?\"; (E28) 2 lines by default");
+  eq(await ev("document.querySelector('#screen-setup .hint').textContent.replace(/\\s+/g, ' ').trim()"), "↑ ↓ LINES · ENTER START", "…and the hint names only the keys that do something here");
   await press("ArrowRight");
   await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp"); await press("ArrowUp");
-  eq(await ev("document.querySelector('[data-mode].selected').dataset.mode + '/' + document.querySelector('[data-boxes].selected').dataset.boxes"), "progression/4", "arrows change mode, and boxes stop at 4");
+  eq(await ev("document.querySelector('[data-boxes].selected').dataset.boxes"), "4", "← → do nothing now; ↑ ↓ change the lines, and they stop at 4");
   await c.key("keyDown", "2", "Digit2", 50, 0); await c.key("keyUp", "2", "Digit2", 50, 0); await wait(30);
   eq(await ev("document.querySelector('[data-boxes].selected').dataset.boxes"), "2", "a digit picks the box count");
   {
@@ -422,18 +424,18 @@ try {
       return { same: JSON.stringify(says('#howto')) === JSON.stringify(says('#howto-title')), shown: strip.height > 100, under: strip.top >= signs.bottom, lines: [...p.querySelectorAll('ul li')].filter(l => l.getBoundingClientRect().height > 0).length }; })()`);
     ok(st.same && st.shown && st.under && st.lines === 0, "E29: the options screen's panel shows the same comic strip, under the HOW / TO / PLAY signs, in place of its lines");
   }
-  ok(!/url\(|none/.test(await ev("getComputedStyle(document.querySelector('[data-mode]')).cursor")) && (await ev("document.querySelector('#nozzle').hidden")), "menus and setup keep the normal pointer (and no drawn nozzle)");
+  ok(!/url\(|none/.test(await ev("getComputedStyle(document.querySelector('[data-boxes]')).cursor")) && (await ev("document.querySelector('#nozzle').hidden")), "menus and setup keep the normal pointer (and no drawn nozzle)");
   eq(await ev("!document.querySelector('#hose') || document.querySelector('#hose').hidden || document.querySelector('#screen-play').hidden"), true, "no hose outside the game");
   await shot("02-setup");
   await press("Enter");
-  eq(await ev("__et.screen() + '/' + __et.snapshot().mode + '/' + __et.boxes().count"), "play/progression/2", "Enter starts Follow Progression with 2 boxes");
+  eq(await ev("__et.screen() + '/' + ('mode' in __et.snapshot()) + '/' + __et.boxes().count + '/' + !!document.querySelector('#hud-mode')"), "play/false/2/false", "Enter starts the one game with 2 lines, and the HUD has no mode label");
   eq(await ev("__et.tune()"), false, "…and the title tune stops when the game starts");
 
   /* ------------------------------------------------------- C. one CAV */
-  section("C. one CAV: grow, bold, clear (Clear CAVs Only)");
+  section("C. one CAV: grow, bold, clear (a refusal egg)");
   // start, step and pause in one go, so the lay below starts at a known point: paused by a separate key press, the live
   // page could run on a little first on a busy machine, and the pop then fell between the fixed steps (steadied 2026-10-01)
-  await ev("__et.start('clear', 1); __et.advance(0.1); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); __et.paused()");
+  await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); __et.paused()");
   eq(await ev("document.querySelectorAll('.nest').length + '/' + document.querySelectorAll('.nest[hidden]').length"), "12/0", "Refinement 3 §8: all 12 nests are on screen");
   eq(await ev("[...document.querySelectorAll('.nest:not(.inactive)')].map(n => n.dataset.id).sort((a, b) => a - b).join(',')"), "0,3,5,8,11", "wave 1 activates 5 of them, spread out");
   eq(await ev("[getComputedStyle(document.querySelector('.nest.inactive .readout')).visibility, getComputedStyle(document.querySelector('.nest.inactive .ooze')).display, getComputedStyle(document.querySelector('.nest:not(.inactive) .ooze')).display]"), ["hidden", "none", "inline"], "an inactive nest is plain and blank; an active one has the alien-nest look");
@@ -613,11 +615,11 @@ try {
       const nest = document.querySelector('.nest[data-id="${n.id}"]');
       const zi = (e) => Number(getComputedStyle(e).zIndex) || 0;
       const board = document.querySelector('#board');
-      return { mess: zi(nest.querySelector('.mess')), readout: zi(nest.querySelector('.readout')), postit: zi(nest.querySelector('.postit')),
+      return { mess: zi(nest.querySelector('.mess')), readout: zi(nest.querySelector('.readout')), hsign: zi(nest.querySelector('.hsign')),
                cords: zi(document.querySelector('#cords')), hose: zi(document.querySelector('#hose')), field: zi(document.querySelector('#field')),
                floorFirst: board.firstElementChild.classList.contains('floor-mess') && zi(board.firstElementChild) === 0 };
     })()`);
-    ok(z.mess > z.readout && z.mess > z.postit, `E14 (ruled): a nest's gunk covers its readout and post-it again   [mess ${z.mess} > ${z.readout}, ${z.postit}]`);
+    ok(z.mess > z.readout && z.mess > z.hsign, `E14 (ruled): a nest's gunk covers its readout (and its H sign, as it did AD's post-it)   [mess ${z.mess} > ${z.readout}, ${z.hsign}]`);
     ok(z.cords < z.field, "…while Time Warp's lightning (the old cord layer) still draws under all text");
     ok(z.floorFirst, "the floor gunk sits under every nest");
   }
@@ -686,7 +688,7 @@ try {
   {
     // a clear's gunk that lands on a nest while it is still growing in (its unlock) is the same size as any other: one
     // smallest blob, pinned (by the random numbers) onto an unlocking nest's canvas, measured once the nest is full size
-    const one = await ev(`(() => { __et.start('clear', 1); __et.advance(0.05);
+    const one = await ev(`(() => { __et.start(1, { hospital: 0 }); __et.advance(0.05);
       const n = document.querySelector('.nest.unlock'), id = +n.dataset.id, cv = ET.view.nest(id).mess; ET.mess.clear(cv);
       const b = document.querySelector('#board').getBoundingClientRect(), m = cv.getBoundingClientRect();
       const seq = [(m.left + m.width / 2 - b.left) / b.width, (m.top + m.height / 2 - b.top) / b.height, 0], R = Math.random;
@@ -701,7 +703,7 @@ try {
 
   /* ------------------------------------------------------ E. hatch, pool */
   section("E. a hatch drains the pool");
-  await ev("__et.start('clear', 1)");                       // fresh: nothing has hatched yet
+  await ev("__et.start(1, { hospital: 0 })");                       // fresh: nothing has hatched yet
   // E37: count every THONG, and every pan that comes down, from here to the hatch
   await ev(`(() => { window.__e37 = { thong: 0, pan: 0 }; const f = ET.audio.thong; ET.audio.thong = function () { __e37.thong++; return f.apply(this, arguments); };
     ET.audio.thong.__orig = f; new MutationObserver((ms) => ms.forEach((m) => { if (m.target.classList && m.target.classList.contains('pan') && m.target.className !== 'pan') __e37.pan++; }))
@@ -781,7 +783,7 @@ try {
     // One real hatch, re-dealt as the case wanted, and recorded in the page every frame (the live page keeps running, so
     // nothing here is a fixed wait). `pause`: [from, to] seconds after the hatch to hold the game with Esc.
     const hatchRun = (set, alien, exit, pause = null) => ev(`new Promise((done) => {
-      __et.start('clear', 1);
+      __et.start(1, { hospital: 0 });
       let n = null;
       for (let i = 0; i < 4000 && !n; i++) { __et.advance(0.1); n = __et.snapshot().nests.find((x) => x.state === 'escape'); }
       if (!n) return done(null);
@@ -848,7 +850,7 @@ try {
 
   /* ------------------------------------------------------ F. command boxes */
   section("F. Command Lines: Tab / Shift+Tab / F12, as in CAD5 (Refinement 3 §1)");
-  await ev("__et.start('clear', 3)");
+  await ev("__et.start(3, { hospital: 0 })");
   let b = await ev("__et.boxes()");
   eq([b.count, b.active, b.focused], [3, 0, true], "3 lines, line 1 active and focused");
   eq(await ev("!!document.querySelector('#switcher')"), false, "the switcher pop-up is gone");
@@ -908,7 +910,7 @@ try {
   ok(reached, "play reaches wave 2 (with the staged text still waiting)");
   eq((await ev("__et.boxes()")).values[0], "", "a new wave clears the text staged in an inactive box");
 
-  await ev("__et.start('clear', 1)");
+  await ev("__et.start(1, { hospital: 0 })");
   await ev("document.querySelector('.box.active input').focus()");
   await c.insert("RCAV 2");
   await press("Tab");
@@ -1042,134 +1044,86 @@ try {
     await ev("__et.hub(undefined)");
   }
 
-  /* ------------------------------------------------ H. placement and VF */
-  section("H. placement (Both) and VF");
-  await ev("__et.start('both', 1)");
-  await ev("__et.advance(0.1)");
-  s = await snap();
-  const trig = s.nests.find((x) => x.state === "trigger");
-  ok(!!trig, `a placement trigger appears   [${trig && trig.unit} ${trig && trig.code}]`);
-  const wrong = trig.code === "MB" ? "VS" : "MB";
-  await typeAndEnter(`CAV ${trig.unit} ${wrong}`);
-  eq((await snap()).nests.find((x) => x.id === trig.id).state, "trigger", "the wrong (real) code is rejected");
-  eq([await ev("__et.boxes().values[0]"), await ev("__et.boxes().error[0]")], ["", true], "…the Command Line clears and shows ERROR (no more silent rejection)");
-  await press("F12");
-  const sc = (await snap()).score;
-  await typeAndEnter(`CAV ${trig.unit} ${trig.code}, on scene late`);
-  s = await snap();
-  eq([s.nests.find((x) => x.id === trig.id).state, s.score - sc], ["laying", 10], "the right code (with a comment) places it for 10 points, and its egg is laid");
-
-  let vf = null;
-  for (let i = 0; i < 400 && !vf; i++) {
-    s = await snap();
-    for (const x of s.nests.filter((y) => y.state === "trigger")) await ev(`__et.submit('CAV ${x.unit} ${x.code}')`);
-    for (const x of s.nests.filter((y) => y.state === "overtime" && y.code !== "VF")) await ev(`__et.submit('RCAV ${x.unit}')`);
-    vf = (await snap()).nests.find((y) => y.code === "VF" && y.state === "active") || null;
-    if (!vf) await ev("__et.advance(0.5)");
-  }
-  ok(!!vf, "a VF gets placed");
-  if (vf) {
-    const vq = (sel) => `document.querySelector('.nest[data-id="${vf.id}"]${sel}')`;
-    await ev("__et.advance(0.01)");   // draw a frame first: a check on the undrawn DOM passes or fails by timing alone
-    eq(await ev(`${vq("")}.dataset.state`), "active", "the VF nest is drawn in its running state");
-    eq(await ev(`getComputedStyle(${vq(" .egg")}).display`), "none", "a running VF shows no egg");
-    const vis = (part) => ev(`getComputedStyle(${vq(" ." + part)}).visibility`);
-    eq([await vis("unit"), await vis("code"), await vis("clock")], ["visible", "visible", "hidden"], "C15(b): …its unit and \"VF\" still show, and only its timer is hidden");
-    eq(await ev(`${vq(" .unit")}.textContent + ' ' + ${vq(" .code")}.textContent`), `${vf.unit} VF`, "…and they read the fuelling unit and VF");
-    await shot("08-vf-hidden");
-    // advance to the VF's trigger, clearing any other egg that goes bold on the way so nothing hatches (an 80 s cap without
-    // the clears sometimes ran out before a long VF got there; steadied 2026-10-01)
-    for (let i = 0; i < 2400; i++) {
-      const x = await snap();
-      if (x.nests.find((y) => y.id === vf.id && y.state === "overtime")) break;
-      for (const y of x.nests.filter((z) => z.state === "overtime" && z.id !== vf.id)) await ev(`__et.submit('RCAV ${y.unit}')`);
-      await ev("__et.advance(0.25)");
-    }
-    eq([await ev(`getComputedStyle(${vq(" .egg")}).display`), await vis("clock"), await ev(`getComputedStyle(${vq(" .readout")}).fontWeight`)], ["inline", "visible", "900"], "at \"Clear Fueling\" (the trigger) the egg and the timer appear, bold");
-    const shown = await ev(`(() => { const b = document.querySelector('.nest[data-id="${vf.id}"] .bubble'); return [!b.hidden, b.classList.contains('show'), b.textContent]; })()`);
-    eq(shown, [true, true, "Clear Fueling"], "…with a \"Clear Fueling\" speech bubble");
-    const vclk = await ev(`${vq(" .clock")}.textContent`);
-    ok(/^\d\d:\d\d$/.test(vclk) && Number(vclk.slice(0, 2)) >= 10, `…and the clock appears already showing the time elapsed   [${vclk}]`);
-    const eggVis = await ev(`Number(document.querySelector('.nest[data-id="${vf.id}"] .crack').style.strokeDashoffset) < 1`);
-    ok(eggVis, "…and the egg appears already cracking");
-    await shot("08b-vf-bubble");
-    // poll rather than wait a fixed time: a busy machine can hold a CSS animation back a little
-    let faded = "";
-    for (let i = 0; i < 50 && faded !== "0"; i++) {
-      await wait(100);
-      faded = await ev(`getComputedStyle(document.querySelector('.nest[data-id="${vf.id}"] .bubble')).opacity`);
-    }
-    eq(faded, "0", "the bubble has faded a moment later");
-    eq(await ev("document.querySelectorAll('.bubble.show').length"), 1, "no other nest has a bubble (VF is the only type with a pop-up)");
-  }
-
-  /* ---------------------------------------------------------- H2. AD note */
-  section("H2. the AD post-it");
-  await ev("__et.start('clear', 1)");
-  let kinds = new Set(), adOk = true, otherNotes = 0, sawBold = false, looks = {};
-  for (let i = 0; i < 600 && (kinds.size < 2 || !sawBold); i++) {
-    s = await snap();
-    for (const x of s.nests) {
-      const txt = await ev(`(() => { const p = document.querySelector('.nest[data-id="${x.id}"] .postit'); return p.hidden ? null : p.textContent; })()`);
-      if (x.state !== "active" && x.state !== "overtime") continue;
-      if (x.code !== "AD") { if (txt !== null) otherNotes++; continue; }
-      if (!x.note || txt === null) { adOk = false; continue; }
-      if (x.note.kind === "clock") {
-        if (txt !== "Clear @ " + hms(x.note.at).slice(0, 5)) adOk = false;   // the note's own time, not just its shape
-      } else if (txt !== x.note.minutes + " min") adOk = false;
-      kinds.add(x.note.kind);
-      if (!looks[x.note.kind] && x.note.kind === "duration") await shot("11b-ad-minutes");
-      if (!looks[x.note.kind]) looks[x.note.kind] = await ev(`(() => { const p = document.querySelector('.nest[data-id="${x.id}"] .postit'), cs = getComputedStyle(p), w = getComputedStyle(document.querySelector('.wallclock'));
-        const hm = p.querySelector('.led-hm'), lbl = p.querySelector('.led-text');
-        return { cls: p.className, font: cs.fontFamily, hmFont: hm && getComputedStyle(hm).fontFamily, hmText: hm && hm.textContent, lblFont: lbl && getComputedStyle(lbl).fontFamily, lblColor: lbl && getComputedStyle(lbl).color, hmColor: hm && getComputedStyle(hm).color,
-                 color: cs.color, bg: cs.backgroundColor, border: cs.borderTopColor, wallFont: w.fontFamily, wallColor: w.color, wallBg: w.backgroundColor, wallBorder: w.borderTopColor }; })()`);
-      if (x.state === "overtime" && !sawBold) {
-        sawBold = (await ev(`getComputedStyle(document.querySelector('.nest[data-id="${x.id}"] .postit')).fontWeight`)) === "900";
-        if (sawBold) await shot("11-ad-postit");
-      }
-    }
-    for (const x of s.nests.filter((y) => y.state === "overtime" && !(y.code === "AD" && !sawBold))) await ev(`__et.submit('RCAV ${x.unit}')`);
-    await ev("__et.advance(0.5)");
-  }
-  ok(adOk, "every running AD shows its note, reading its own \"N min\" or \"Clear @ HH:MM\"");
+  /* ------------------------------------------------ H. hospital eggs */
+  section("H. hospital eggs in the page: the H sign, RCAV then CAV STR, Mom's repair (E52–E56, ruled 2026-10-02)");
   {
-    // Midnight, exactly (Andrew, 2026-09-24). A rig-only start: the wall clock at 23:55, ADs only, and a random source
-    // fixed at 0.1, which draws 12 minutes and the clock note every time. The first AD spawns on the page's first frame
-    // and pops 1.4 s later, at 23:55:42 plus that frame (under 23:56), so its note must read "Clear @ 00:08" (the next
-    // whole minute, 23:56, + 12, across midnight), and it must go bold as the wall clock passes 00:08:00. The wall
-    // clock is recorded at the very step the egg goes bold.
-    // the start and the watch in one evaluation, so no step of the game before it can slip a bold of its own in
-    // between (review fix, 2026-09-24); starting a game emits no bold of its own
-    await ev(`(() => { __et.start('clear', 1, { wallStart: 23 * 3600 + 55 * 60, types: ['AD'], rng: () => 0.1 });
-      const h = ET.view.handle; window.__boldWall = null;
-      ET.view.handle = function (events, game) { events.forEach((e) => { if (e.type === 'bold' && window.__boldWall === null) window.__boldWall = game.wall(); }); return h.apply(this, arguments); };
-      window.__unwatchBold = () => { ET.view.handle = h; };
-      return 1; })()`);
-    const first = await until((x) => x.nests.find((y) => y.state === "active" && y.note), 10, 0.1);
-    const note = first.hit ? await ev(`(() => { __et.advance(0); const s = __et.snapshot(), x = s.nests.find((y) => y.id === ${first.hit.id});
-      return { text: document.querySelector('.nest[data-id="${first.hit.id}"] .postit').textContent, started: ((s.wall - x.elapsed) % 86400 + 86400) % 86400 }; })()`) : null;
-    ok(!!note && note.text === "Clear @ 00:08" && note.started >= 23 * 3600 + 55 * 60 + 42 && note.started < 23 * 3600 + 56 * 60,
-      `midnight: an AD started at 23:55 with a 12-minute draw reads "Clear @ 00:08"   [${note && note.text}, started ${note && hms(note.started)}]`);
-    const b = await until((x) => x.nests.some((y) => y.state === "overtime"), 40, 0.25);
-    const bw = await ev("window.__boldWall");
-    await ev("window.__unwatchBold(), 1");
-    ok(!!b.hit && bw !== null && bw >= 8 * 60 && bw < 8 * 60 + 3.5, `…and goes bold as the wall clock passes 00:08:00, after midnight   [the wall read ${hms(bw)} at the bold step]`);
-    await ev("__et.start('clear', 1), 1");   // an ordinary game again for what follows
+    // every egg a hospital egg; the first one, played through both windows by real keys in the Command Line
+    await ev("(() => { __et.start(1, { hospital: 1 }); __et.advance(0.1); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return __et.paused(); })()");
+    s = await snap();
+    const h = s.nests.find((x) => x.state === "laying");
+    const q = (sel) => `document.querySelector('.nest[data-id="${h.id}"]${sel}')`;
+    ok(!!h && h.hospital, `a hospital egg is laid   [${h && h.unit}]`);
+    eq(await ev(`${q(" .hsign")}.hidden`), true, "…its H sign isn't there while the egg is still on the cord");
+    await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })), 1)");
+    await ev(`(() => { for (let i = 0; i < 200 && __et.snapshot().nests.find(n => n.id === ${h.id}).state !== 'active'; i++) __et.advance(0.05); return 1; })()`);
+    const sign = await ev(`(() => { const e = ${q(" .hsign")}, r = e.getBoundingClientRect(), ro = ${q(" .readout")}.getBoundingClientRect(), eg = ${q(" .egg")}.getBoundingClientRect();
+      const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      return { shown: !e.hidden && r.width > 8, anim: getComputedStyle(e).animationName, plate: getComputedStyle(e.querySelector('.plate')).fill, h: getComputedStyle(e.querySelector('.h')).stroke, onReadout: hit(r, ro), onEgg: hit(r, eg) }; })()`);
+    ok(sign.shown && sign.anim === "hsign-drop", `E55: as the egg pops the H sign drops into the nest   [${sign.anim}]`);
+    eq([sign.plate, sign.h], ["rgb(20, 86, 200)", "rgb(255, 255, 255)"], "E55: the hospital road sign: a white H on blue (never a red cross)");
+    eq([sign.onReadout, sign.onEgg], [false, false], "…on the nest's shoulder, clear of the readout and the egg");
+    await typeAndEnter(`CAV ${h.unit} STR`);
+    eq([await ev("__et.boxes().values[0]"), await ev("__et.boxes().error[0]"), await ev("document.querySelector('.box .err').textContent")], ["", true, "RCAV first!"], "E53: CAV STR before the RCAV: the line clears and says \"RCAV first!\"");
+    await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${h.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
+    await press("F12");
+    await typeAndEnter(`RCAV ${h.unit}`);
+    await ev("__et.advance(0.01)");
+    const asks = await ev(`(() => { const n = ${q("")}, c = n.querySelector('.readout .code');
+      return { cls: n.classList.contains('asks'), text: c.textContent, anim: getComputedStyle(c).animationName, others: getComputedStyle(n.querySelector('.readout .unit')).animationName, bold: n.classList.contains('bold'),
+               hint: document.querySelector('#console .box input').placeholder, tip: ET.view.tips()[0].text }; })()`);
+    ok(asks.cls && asks.text === "" && asks.anim === "cue" && asks.others === "none" && asks.bold, `E53: the RCAV empties the type box, which takes the cyan "place me" pulse; the egg stays bold   [${JSON.stringify(asks.text)} ${asks.anim}]`);
+    eq(asks.hint, "CAV + unit + type", "E53: …and the empty Command Line's grey hint asks for the CAV");
+    eq(asks.tip, `Now type CAV ${h.unit} STR`, "E28's wave-1 tag follows the step: it asks for the STR now");
+    await shot("08-hospital-asks");
+    const sc0 = (await snap()).score;
+    await typeAndEnter(`CAV ${h.unit} STR`);
+    // paused at once, so the live page can't run her visit on between the timed checks below (__et.advance still steps)
+    await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })), __et.advance(0.01), 1)");
+    const fix = await ev(`(() => { const m = document.querySelector('#popups .momfix'); if (!m) return null; const f = m.getBoundingClientRect(), n = ${q("")}.getBoundingClientRect();
+      return { kind: m.className, head: getComputedStyle(m.querySelector('.head')).animationName, patch: getComputedStyle(m.querySelector('.patch')).animationName, sweet: !!m.querySelector('.head svg.doodle'),
+               over: Math.abs((f.left + f.right) / 2 - (n.left + n.right) / 2) < 4, pointer: getComputedStyle(document.querySelector('#popups')).pointerEvents,
+               pan: ${q(" .pan")}.className, code: ${q(" .code")}.textContent, asks: ${q("")}.classList.contains('asks'), list: ET.view.momFixes() }; })()`);
+    ok(!!fix && fix.kind === "momfix sweet" && fix.sweet && fix.head === "mom-fix" && fix.patch === "mom-patch", `E55: the STR brings wave 1's sweet Mom over the nest, with her patch   [${fix && fix.kind}]`);
+    ok(!!fix && fix.over && fix.pointer === "none", "…over that nest only, in the layer that takes no pointer or keys");
+    ok(!!fix && fix.pan === "pan" && fix.code === "STR" && !fix.asks, `E52: no pan at window 1; the type box reads STR again   [${fix && fix.pan}]`);
+    ok((await snap()).score > sc0, "E52: window 1 scores at the STR");
+    ok(await ev("document.activeElement === document.querySelector('.box.active input') || __et.paused()"), "…and the Command Line keeps the keys while she's there");
+    await ev(`__et.advance(${0.3 * 1.5})`);
+    const mid = await ev(`({ crack: Number(${q(" .crack")}.style.strokeDashoffset), giggled: ET.view.momFixes()[0] && ET.view.momFixes()[0].giggled })`);
+    await shot("08b-hospital-mom");
+    await ev(`__et.advance(${0.3 * 1.5})`);
+    const later = await ev(`({ crack: Number(${q(" .crack")}.style.strokeDashoffset), giggled: ET.view.momFixes()[0] && ET.view.momFixes()[0].giggled })`);
+    ok(mid.crack < 1 && later.crack === 1 && !mid.giggled && later.giggled, `E55: she patches the cracks closed, then turns and giggles   [crack ${(1 - mid.crack).toFixed(2)} → ${(1 - later.crack).toFixed(2)}]`);
+    await ev("__et.advance(0.7)");
+    eq(await ev("[document.querySelectorAll('#popups .momfix').length, ET.view.momFixes().length]"), [0, 0], `E55: …and ducks out after ${await ev("ET.CONFIG.momRepairSeconds")} s`);
+    eq(await ev(`${q(" .hsign")}.hidden`), false, "the H sign stays on through the STR");
+    // the final clear: the ordinary pan, splat and break stage
+    await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${h.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
+    await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })), 1)");
+    await typeAndEnter(`RCAV ${h.unit}`);
+    await ev("__et.advance(0.01)");
+    eq(await ev(`[${q("")}.dataset.state, ${q(" .pan")}.classList.contains('hit'), ${q(" .hsign")}.hidden]`), ["splat", true, true], "the final RCAV is an ordinary clear: the pan and the splat, and the sign goes");
   }
-  eq([...kinds].sort(), ["clock", "duration"], "both kinds of note turn up");
-  eq(otherNotes, 0, "no other type shows a note");
-  ok(sawBold, "an AD's note goes bold with the nest");
   {
-    // AD note styles (Andrew approved, 2026-09-23)
-    const k = looks.clock, d = looks.duration;
-    ok(!!k && k.cls.includes("at-clock") && k.hmFont === k.wallFont && k.hmColor === k.wallColor && k.border === k.wallBorder,
-      `the "Clear @ HH:MM" note's time mirrors the wall clock: its colour and its digital font   [${k && k.hmFont} ${k && k.hmColor}]`);
-    ok(!!k && /^"?DSEG7 Classic/.test(k.wallFont) && /^\d\d:\d\d$/.test(k.hmText), `…the digits in DSEG7 (7-segment LED)   [${k && k.hmText}]`);
-    // Andrew, 2026-09-23 night: the wording in a chunky rounded cream font, on a dark charcoal note
-    ok(!!k && /^"?Fredoka/.test(k.lblFont || "") && k.lblColor === "rgb(255, 243, 209)" && k.bg === "rgb(43, 42, 46)",
-      `…"Clear @" in chunky rounded cream (Fredoka), on dark charcoal   [${k && k.lblFont} ${k && k.lblColor} on ${k && k.bg}]`);
-    ok(!!k && !!d && k.bg !== d.bg && k.font !== d.font, `…and clearly not the yellow "N min" post-it   [${k && k.bg} vs ${d && d.bg}]`);
-    ok(!!d && d.cls.includes("minutes") && /Patrick Hand/.test(d.font) && d.bg === "rgb(255, 233, 92)", `the "N min" note stays a post-it, hand-lettered   [${d && d.font}]`);
+    // creepy Mom from wave 2 (momSweetUntilWave), and a pause holds her
+    const kind = await ev(`(() => { const was = ET.CONFIG.momSweetUntilWave; ET.CONFIG.momSweetUntilWave = 0; __et.start(1, { hospital: 1 }); __et.advance(0.1);
+      let n = null; for (let i = 0; i < 1200 && !(n = __et.snapshot().nests.find(x => x.state === 'overtime')); i++) __et.advance(0.05);
+      __et.submit('RCAV ' + n.unit); __et.submit('CAV ' + n.unit + ' STR'); __et.advance(0.01); ET.CONFIG.momSweetUntilWave = was;
+      const m = document.querySelector('#popups .momfix'); return m ? [m.className, !!m.querySelector('svg.mom-face')] : null; })()`);
+    eq(kind, ["momfix creepy", true], "E55: creepy Mom from wave 2 on, matching the scary HUD face");
+    const held = await ev(`new Promise((done) => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      setTimeout(() => { const n = ET.view.momFixes().length, a = getComputedStyle(document.querySelector('#popups .momfix .head')).animationPlayState;
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); done([n, a]); }, 2200); })`);
+    eq(held, [1, "paused"], "a pause holds her, however long it lasts");
+  }
+  {
+    // E56: the placeholder giggles sit under THONG (rendered offline, each alone)
+    const g = await ev(`Promise.all([ET.audio.measure('thong', [], 1), ET.audio.measure('giggle', ['sweet'], 1), ET.audio.measure('giggle', ['creepy'], 1)]).then(r => r.map(x => [x.peak, x.active]))`);
+    ok(g[1][0] > 1e-3 && g[2][0] > 1e-3 && g[1][0] < g[0][0] && g[2][0] < g[0][0] && g[1][1] < g[0][1] && g[2][1] < g[0][1],
+      `E56: Mom's giggles, sweet and creepy, sound under THONG   [peak ${g[1][0].toFixed(3)} / ${g[2][0].toFixed(3)} vs ${g[0][0].toFixed(3)}]`);
+  }
+  {
+    // the fonts the game bundles (the wall clock's DSEG7, and Patrick Hand and Fredoka, still served)
     await ev(`Promise.all(['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "Fredoka"'].map(f => document.fonts.load(f))).then(() => 1)`);
     const f = await ev(`({ ok: ['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "Fredoka"'].every(x => document.fonts.check(x)),
                           src: performance.getEntriesByType('resource').map(e => e.name).filter(n => /PatrickHand|DSEG|Fredoka/.test(n)) })`);
@@ -1210,7 +1164,7 @@ try {
     eq([blurs(w.text), blurs(w.box)], [[], []], "…with no glow: its shadows are hard offsets, no blur");
   }
   eq(await ev("ET.audio.state()"), "running", "sound is unlocked by the first key press");
-  await ev("__et.start('clear', 1)");
+  await ev("__et.start(1, { hospital: 0 })");
   await ev("__et.advance(0.2)");
   {
     // Hose ruling (2026-09-22): in-game the cursor is always the nozzle; menus keep the normal pointer
@@ -1272,21 +1226,21 @@ try {
     ok(mid > 0, `mid-wave, dragging sprays water   [${mid} drops]`);
   }
   {
-    // E30 (ruled): the Place hint moved into the empty Command Line, while a nest waits to be placed
+    // E30 (ruled): the hint in the empty Command Line; E53: "CAV + unit + type" while a hospital egg waits for its STR
     const ph = () => ev("document.querySelector('#console .box input').placeholder");
-    eq(await ph(), "RCAV + unit", "E30: in Clear CAVs Only the empty line always says \"RCAV + unit\"");
-    const w = await ev(`(() => { __et.start('both', 1); __et.advance(0.1);
-      for (let i = 0; i < 400 && !__et.snapshot().nests.some(n => n.state === 'trigger'); i++) __et.advance(0.05);
-      const t = __et.snapshot().nests.find(n => n.state === 'trigger'), during = document.querySelector('#console .box input').placeholder;
-      if (t) __et.submit('CAV ' + t.unit + ' ' + t.code);
-      __et.advance(0.05);
-      const busy = __et.snapshot().nests.some(n => n.state === 'trigger');
-      return { t: !!t, during, after: document.querySelector('#console .box input').placeholder, busy }; })()`);
-    ok(w.t && w.during === "CAV + unit + type" && (w.busy || w.after === "RCAV + unit"), `E30: while a nest waits to be placed it says "CAV + unit + type", and "RCAV + unit" again once none waits   [${w.during} → ${w.after}]`);
+    eq(await ph(), "RCAV + unit", "E30: with no hospital egg waiting for its STR the empty line says \"RCAV + unit\"");
+    const w = await ev(`(() => { __et.start(1, { hospital: 1 }); __et.advance(0.1);
+      let t = null; for (let i = 0; i < 1200 && !(t = __et.snapshot().nests.find(n => n.state === 'overtime')); i++) __et.advance(0.05);
+      const before = document.querySelector('#console .box input').placeholder;
+      __et.submit('RCAV ' + t.unit); __et.advance(0.01);
+      const during = document.querySelector('#console .box input').placeholder;
+      __et.submit('CAV ' + t.unit + ' STR'); __et.advance(0.01);
+      return { t: !!t, before, during, after: document.querySelector('#console .box input').placeholder }; })()`);
+    ok(w.t && w.before === "RCAV + unit" && w.during === "CAV + unit + type" && w.after === "RCAV + unit", `E53: while a hospital egg waits for its STR it says "CAV + unit + type", and "RCAV + unit" again once none waits   [${w.before} → ${w.during} → ${w.after}]`);
   }
-  ok(await ev("(() => { const t = document.querySelector('#screen-setup').innerText; return /Command Lines/.test(document.querySelector('#screen-setup h2:nth-of-type(2)').textContent) && !/Command Box/i.test(t); })()"), "E7: players see \"Command Line\" on the setup screen, never \"Command Box\" (E29's heading)");
+  ok(await ev("(() => { const t = document.querySelector('#screen-setup').innerText; return /Command Lines/.test(document.querySelector('#screen-setup h2').textContent) && !/Command Box/i.test(t); })()"), "E7: players see \"Command Line\" on the setup screen, never \"Command Box\" (E29's heading)");
   eq([await ev("'FRIED' in ET.art"), await ev("ET.art.DISHES")], [false, 7], "the egg ladder replaces the fried eggs: seven dishes, no fried-egg art");
-  await ev("__et.start('clear', 1)");
+  await ev("__et.start(1, { hospital: 0 })");
   await ev("__et.advance(0.2)");
   {
     let cleanup = false;
@@ -1345,11 +1299,11 @@ try {
   }
 
   /* ------------------------------------------------------ I. developer mode */
-  section("W. wave 1's first-game tags (E28)");
+  section("W. wave 1's first-game tag (E28; E54 took the wall-clock tag)");
   {
-    // only ADs, so a "Clear @" note turns up; every clear right at its bold
+    // every clear right at its bold
     const run = await ev(`(() => {
-      __et.start('clear', 1, { types: ['AD', 'VS'] }); __et.advance(0.1);
+      __et.start(1, { hospital: 0 }); __et.advance(0.1);
       const out = { ready: null, clock: null, readyAgain: false, clockAgain: false, hitNest: 0, anim: [], after: null, wave2: false };
       const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
       const covers = (el) => { const r = el.getBoundingClientRect(); return [...document.querySelectorAll('.nest')].filter(n => hit(r, n.getBoundingClientRect()) || hit(r, n.querySelector('.readout').getBoundingClientRect())).length; };
@@ -1357,21 +1311,19 @@ try {
         __et.advance(0.05);
         const s = __et.snapshot(), t = ET.view.tips();
         if (t[0].shown && !out.ready) { const b = s.nests.find(n => n.id === t[0].nest); out.ready = { text: t[0].text, unit: b && b.unit, bold: b && b.state === 'overtime', line: !!t[0].line, pink: getComputedStyle(document.querySelector('#tip-ready')).backgroundColor }; out.hitNest += covers(document.querySelector('#tip-ready')); out.anim.push(getComputedStyle(document.querySelector('#tip-ready')).animationName); }
-        if (t[1].shown && !out.clock) { out.clock = { text: t[1].text, line: !!t[1].line, wave: s.wave }; out.hitNest += covers(document.querySelector('#tip-clock')); out.anim.push(getComputedStyle(document.querySelector('#tip-clock')).animationName); }
         if (out.ready && out.after === null && !t[0].shown) out.after = true;
         if (out.ready && out.after && t[0].shown) out.readyAgain = true;
-        if (out.clock && !t[1].shown && s.nests.some(n => n.note && n.note.kind === 'clock' && n.id !== t[1].nest) && t[1].shown) out.clockAgain = true;
-        if (s.wave >= 2 && (t[0].shown || t[1].shown)) out.wave2 = true;
+        if (s.wave >= 2 && t[0].shown) out.wave2 = true;
         s.nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit));
       }
       return out;
     })()`);
     ok(!!run.ready && run.ready.bold && run.ready.text === "Pink = ready! Type RCAV " + run.ready.unit && run.ready.line, `E28: in wave 1 the first egg to go bold gets a tag, with a leader line to it   [${run.ready && run.ready.text}]`);
     eq(run.ready && run.ready.pink, "rgb(209, 0, 106)", "…in the bold timer's pink (E33)");
-    ok(!!run.clock && run.clock.text === "◀ Check the wall clock" && run.clock.line && run.clock.wave === 1, `E28: the first "Clear @" note gets "Check the wall clock", beside the wall clock, with a leader line to the note   [${run.clock && run.clock.text}]`);
-    eq(run.hitNest, 0, "E28: neither tag covers a nest or a readout");
-    ok(run.after === true && !run.readyAgain && !run.wave2, "E28: the ready tag goes when that egg is cleared, and neither tag comes back that game (wave 2 included)");
-    ok(run.anim.length === 2 && run.anim.every((a) => a === "none"), `E28: neither tag flashes   [${run.anim.join(", ")}]`);
+    eq([await ev("ET.view.tips().length"), await ev("!!document.querySelector('#tip-clock')")], [1, false], "E54: the \"Check the wall clock\" tag is gone with AD's notes");
+    eq(run.hitNest, 0, "E28: the tag covers no nest or readout");
+    ok(run.after === true && !run.readyAgain && !run.wave2, "E28: the ready tag goes when that egg is cleared, and doesn't come back that game (wave 2 included)");
+    ok(run.anim.length === 1 && run.anim.every((a) => a === "none"), `E28: it doesn't flash   [${run.anim.join(", ")}]`);
     await shot("17-first-game-tags");
   }
 
@@ -1393,7 +1345,7 @@ try {
 
   /* ---------------------------------------------------------- J. game over */
   section("J. game over");
-  await ev("__et.start('clear', 1)");
+  await ev("__et.start(1, { hospital: 0 })");
   const o = await until((x) => x.phase === "over", 400, 1);
   ok(!!o.hit, "an empty pool ends the game");
   for (let i = 0; i < 80 && (await ev("__et.screen()")) !== "over"; i++) await wait(100);   // the hatch's 3.2 s + 0.5 s
@@ -1434,7 +1386,7 @@ try {
 
   /* ------------------------------------------------------ L. full-board layout */
   section("L. layout: all 12 nests across the whole board (E30: no side panel in play), at every measured size");
-  await ev("__et.start('both', 4)");
+  await ev("__et.start(4, { hospital: 0 })");
   await ev("__et.advance(0.1)");
   // measure in the real faces, not the fallback they swap from (the LED faces are wider than Courier)
   await ev(`Promise.all(['16px "Patrick Hand"', '700 16px "DSEG7 Classic"', '700 16px "Fredoka"'].map(f => document.fonts.load(f))).then(() => document.fonts.ready).then(() => 1)`);
@@ -1443,21 +1395,21 @@ try {
     await ev(`(() => { document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()`);
     await wait(150);   // measure settled boxes, not nests mid pop-in (the unlock animation scales them)
     const lay = await ev(`(() => {
-      // Refinement 4 §5: every box holds its widest reading (bold, as in overtime), and every post-it its longest
+      // Refinement 4 §5: every box holds its widest reading (bold, as in overtime), and (E55) every nest its H sign
       document.querySelectorAll('.nest').forEach(n => {
         n.classList.add('bold');
         n.querySelector('.unit').textContent = '8888';
-        n.querySelector('.code').textContent = 'EOS';
+        n.querySelector('.code').textContent = 'STR';
         n.querySelector('.clock').textContent = '88:88';
-        // AD note styles: both kinds, each at its widest (every other nest), under a coat of gunk
-        const p = n.querySelector('.postit'), clock = n.dataset.id % 2 === 0;
-        p.hidden = false; p.textContent = ''; ET.view.fillNote(p, clock ? { kind: 'clock', at: 23 * 3600 + 58 * 60 } : { kind: 'duration', minutes: 30 });
-        p.classList.toggle('at-clock', clock); p.classList.toggle('minutes', !clock);
+        n.querySelector('.hsign').hidden = false;
+        n.querySelector('.hsign').style.animation = 'none';   // at rest: shown, its drop would start from the top
         ET.mess.splatter(n.querySelector('.mess'), 6);
       });
-      const spill = [...document.querySelectorAll('.readout > span, .postit')].filter(e => e.scrollWidth > e.clientWidth + 0.5 || e.scrollHeight > e.clientHeight + 0.5).length;
+      const spill = [...document.querySelectorAll('.readout > span')].filter(e => e.scrollWidth > e.clientWidth + 0.5 || e.scrollHeight > e.clientHeight + 0.5).length;
       const f = document.querySelector('#board').getBoundingClientRect();
-      const postitsInside = [...document.querySelectorAll('.postit')].every(p => { const r = p.getBoundingClientRect(); return r.left >= f.left - 1 && r.right <= f.right + 1 && r.top >= f.top - 1; });
+      const signs = [...document.querySelectorAll('.nest .hsign')].map(e => e.getBoundingClientRect());
+      const signsInside = signs.every(r => r.left >= f.left - 1 && r.right <= f.right + 1 && r.top >= f.top - 1);
+      const signOnReadout = signs.filter(r => [...document.querySelectorAll('.nest .readout')].some(o => { const q = o.getBoundingClientRect(); return r.left < q.right && q.left < r.right && r.top < q.bottom && q.top < r.bottom; })).length;
       const nests = [...document.querySelectorAll('.nest')].map(n => {
         const s = n.querySelector('.nest-art').getBoundingClientRect();
         // the egg-and-twigs part of the art (the viewBox has empty margins at the sides and top)
@@ -1473,11 +1425,11 @@ try {
         if (hit(nests[i].r, nests[j].art)) covered++;
       }
       const howto = document.querySelector('#howto').getBoundingClientRect();
-      // E28: both first-game tags shown at their longest, beside the wall clock, measured with the band
-      const tr = document.querySelector('#tip-ready'), tc = document.querySelector('#tip-clock');
-      tr.hidden = false; tr.textContent = 'Pink = ready! Type RCAV 8888'; tc.hidden = false;
+      // E28: the first-game tag shown at its longest, beside the wall clock, measured with the band
+      const tr = document.querySelector('#tip-ready');
+      tr.hidden = false; tr.textContent = 'Pink = ready! Type RCAV 8888';
       ET.view.placeTips();
-      const tipsIn = [tr, tc].every(t => { const r = t.getBoundingClientRect(), f = document.querySelector('#field').getBoundingClientRect(); return r.left >= f.left && r.right <= f.right && r.width > 40; });
+      const tipsIn = [tr].every(t => { const r = t.getBoundingClientRect(), f = document.querySelector('#field').getBoundingClientRect(); return r.left >= f.left && r.right <= f.right && r.width > 40; });
       const top = [...document.querySelectorAll('#fieldtop > *')].map(e => e.getBoundingClientRect());
       const W = document.querySelector('#warp').getBoundingClientRect(), B = document.querySelector('#board').getBoundingClientRect();
       // E50 (Andrew, 2026-10-01, option A): about 1.5× bigger, and where it meets a nest the nest draws over it
@@ -1503,12 +1455,12 @@ try {
       ds.forEach((d, i) => { d.style.setProperty('--turn', was[i]); d.style.transition = ''; });
       const clock = document.querySelector('.wallclock').getBoundingClientRect();
       const field = document.querySelector('#field').getBoundingClientRect();
-      document.querySelectorAll('.nest .postit').forEach(p => { p.hidden = true; });
+      document.querySelectorAll('.nest .hsign').forEach(p => { p.hidden = true; p.style.animation = ''; });
       // E24: the mute button in the HUD bar's left end, clear of its words, the wall clock and the board
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, postitsInside, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1518,8 +1470,8 @@ try {
       const dim = await ev(`(() => { const n = [...document.querySelectorAll('.nest')].find(x => x.dataset.state === 'idle'); return n ? getComputedStyle(n.querySelector('.readout .unit')).filter : null; })()`);
       ok(!!dim && /brightness\(0\.[0-4]\d*\)|brightness\(0\.45\)/.test(dim), `a blank nest's display boxes are darkened further, reading "not in play"   [${dim}]`);
     }
-    eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading, and both kinds of AD note (gunk-covered), fit inside their boxes   ${at}`);
-    ok(lay.postitsInside, `every post-it stays on the board   ${at}`);
+    eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading fits inside its box   ${at}`);
+    ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);
@@ -1531,9 +1483,9 @@ try {
           cv.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily; return Math.round(i.clientWidth - cv.measureText('CAV + unit + type').width); }); })()`);
       ok(fit.length === 4 && fit.every((x) => x >= 0), `E30: "CAV + unit + type" fits in each of 4 Command Lines   ${at} [${fit.join(", ")} px spare]`);
     }
-    eq(lay.clearOfTop, 0, `the wall clock and both first-game tags (E28) sit clear of every nest   ${at}`);
-    ok(lay.tipsIn, `E28: both first-game tags fit on the board beside the wall clock   ${at}`);
-    await ev("(() => { document.querySelector('#tip-ready').hidden = true; document.querySelector('#tip-clock').hidden = true; return 1; })()");
+    eq(lay.clearOfTop, 0, `the wall clock and the first-game tag (E28) sit clear of every nest   ${at}`);
+    ok(lay.tipsIn, `E28: the first-game tag fits on the board beside the wall clock   ${at}`);
+    await ev("(() => { document.querySelector('#tip-ready').hidden = true; return 1; })()");
     ok(lay.clockCentre, `Refinement 6 §3: the wall clock is at the top centre of the playing field   ${at}`);
     ok(lay.warpCentre && lay.warpBehind && lay.warpBig > 1.45 && lay.warpBig < 1.55, `E50 (option A): Time Warp's grandfather clock, sign and caption sit in the centre of the board, about 1.5× bigger, every nest and readout drawn over it where they meet   ${at} [×${lay.warpBig.toFixed(2)}]`);
     ok(lay.tagged === 0 && lay.tagIn, `Refinement 5 §6: the hose tag stays on the board and touches no nest or readout   ${at}`);
@@ -1547,7 +1499,7 @@ try {
 
   /* ------------------------------------------------------- P. Time Warp */
   section("P. Time Warp (Refinement 3 §4, E27, E28)");
-  await ev("__et.start('clear', 1)");
+  await ev("__et.start(1, { hospital: 0 })");
   await ev("__et.advance(0.1)");
   eq(await ev("document.querySelector('#warp').classList.contains('lit')"), false, "Time Warp is dark at the start of a wave");
   {
@@ -1562,7 +1514,7 @@ try {
     // E28: the sign's flash, watched by drawing a steady Time Warp frame by frame (a real one can end, when the next
     // egg goes bold, before the flashes are done); the game's own Time Warp is checked below. All in one evaluation.
     const watchSign = `(() => {
-      __et.start('clear', 1); __et.advance(0.1);
+      __et.start(1, { hospital: 0 }); __et.advance(0.1);
       const s = __et.snapshot(), t0 = s.time + 0.05, seen = [];
       ET.view.render(Object.assign({}, s, { warp: false }));
       for (let i = 0; i < 60; i++) { ET.view.render(Object.assign({}, s, { warp: true, time: t0 + i * 0.05 })); seen.push(ET.view.warpSign().lit ? 1 : 0); }
@@ -1570,7 +1522,7 @@ try {
       let worst = 0;
       for (let i = 0; i < ons.length; i++) { let n = 0; for (let j = i; j < ons.length && ons[j] < ons[i] + 1; j++) n++; worst = Math.max(worst, n); }
       const out = { seen: seen.join(''), offs: log.filter(e => !e.on).length, ons: ons.length, worst, gaps: log.slice(1).map((e, i) => e.t - log[i].t), anim: getComputedStyle(document.querySelector('#warp .plaque')).animationName };
-      __et.start('clear', 1); __et.advance(0.1);
+      __et.start(1, { hospital: 0 }); __et.advance(0.1);
       return out;
     })()`;
     const fl = await ev(watchSign);
@@ -1582,7 +1534,7 @@ try {
     const rm = await ev(watchSign);
     ok(/^1+$/.test(rm.seen) && rm.offs === 0, `SAFETY: with reduced motion the sign lights at once and doesn't flash   [${rm.seen}]`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
-    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
   }
   {
     // E31 (ruled 2026-09-24): after the flashes, while Time Warp runs, the letters wobble and stretch; the sign's brightness
@@ -1591,7 +1543,7 @@ try {
     const esc = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
     const held = await ev(`(() => {
       ET.CONFIG.__flashes = ET.CONFIG.warpSignFlashes; ET.CONFIG.warpSignFlashes = 0;
-      __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1);
+      __et.start(1, { hospital: 0, minutes: 30 }); __et.advance(0.1);
       for (let i = 0; i < 6000 && !__et.snapshot().warp; i++) { __et.snapshot().nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit)); __et.advance(0.05); }
       const warp = __et.snapshot().warp;
       ${esc};                                        // pause at once: nothing steps in between
@@ -1625,7 +1577,7 @@ try {
     const still = await watch();
     ok(still.warp && still.lit && !still.wobble && still.anim === "none" && still.shapes === 1 && still.changes === 0, `SAFETY: with reduced motion the sign stays lit and doesn't wobble   [${still.anim}, ${still.shapes} shape]`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
-    await ev(`(() => { ${esc}; ET.CONFIG.warpSignFlashes = ET.CONFIG.__flashes; delete ET.CONFIG.__flashes; __et.start('clear', 1); __et.advance(0.1); return 1; })()`);
+    await ev(`(() => { ${esc}; ET.CONFIG.warpSignFlashes = ET.CONFIG.__flashes; delete ET.CONFIG.__flashes; __et.start(1, { hospital: 0 }); __et.advance(0.1); return 1; })()`);
   }
   {
     let lit = null;
@@ -1638,13 +1590,13 @@ try {
     ok(!!lit && lit.spawned === lit.quota, "the clocks warp once the wave's last egg has spawned");
     {
       // E39: with its rule on, two eggs each over 8:00 from bold light Time Warp early in a wave (one ev: nothing between)
-      const e39 = await ev(`(() => { ET.CONFIG.warpFar.eggs = 2; __et.start('clear', 1, { types: ['MB'] }); let s = null;
+      const e39 = await ev(`(() => { ET.CONFIG.warpFar.eggs = 2; __et.start(1, { hospital: 0, minutes: 30 }); let s = null;
         for (let i = 0; i < 4000; i++) { __et.advance(0.02); s = __et.snapshot(); if (s.nests.filter(n => n.state === 'active').length >= 2) break; }
         __et.advance(0.02); s = __et.snapshot();
         const r = { warp: s.warp, early: s.spawned < s.quota, lit: document.querySelector('#warp').classList.contains('lit') };
         ET.CONFIG.warpFar.eggs = Infinity; return r; })()`);
       eq(e39, { warp: true, early: true, lit: true }, "E39: two eggs each over 8:00 from bold light Time Warp, before the wave's last CAV has spawned");
-      await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+      await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
       lit = null;
       for (let t = 0; t < 300 && !lit; t += 0.25) {
         const x = await snap();
@@ -1762,22 +1714,25 @@ try {
   }
 
   /* ------------------------------------------------------- R. reduced motion */
-  section("R. reduced motion (Andrew, 2026-09-24): the place-me cue, the overtime wobble, the cord twitch and the legs hold still");
+  section("R. reduced motion (Andrew, 2026-09-24): the place-me cue, the H sign's drop, Mom's repair, the overtime wobble, the cord twitch and the legs hold still");
   {
     // each is read first without reduced motion, so a check that can't fail can't hide here
-    await ev("__et.start('both', 1)");
+    await ev("__et.start(1, { hospital: 1 })");
     await ev("__et.advance(0.1)");
-    const cue = () => ev(`(() => { const s = document.querySelector('.nest[data-state="trigger"] .readout > span'); if (!s) return null; const cs = getComputedStyle(s); return { anim: cs.animationName, border: cs.borderTopColor }; })()`);
+    const cue = () => ev(`(() => { const s = document.querySelector('.nest.asks .readout .code'); if (!s) return null; const cs = getComputedStyle(s); return { anim: cs.animationName, border: cs.borderTopColor }; })()`);
+    // E55: the H sign's drop and Mom's repair, read the moment the STR goes on
+    const hosp = (b) => ev(`(() => { __et.submit('CAV ${b.unit} STR'); __et.advance(0.01); const m = document.querySelector('#popups .momfix');
+      return { sign: getComputedStyle(document.querySelector('.nest[data-id="${b.id}"] .hsign')).animationName, head: m && getComputedStyle(m.querySelector('.head')).animationName,
+               patch: m && getComputedStyle(m.querySelector('.patch')).animationName, there: !!m && m.querySelector('.head').getBoundingClientRect().height > 10 }; })()`);
     const legs = () => ev(`(() => { const n = document.querySelector('.nest[data-id="0"]'); n.classList.add('scurry'); const a = getComputedStyle(n.querySelector('.legs')).animationName; n.classList.remove('scurry'); return a; })()`);
     // E45: every moving piece of all six aliens, built in nest 0's slot one at a time: its animation's name
     const aliens = () => ev(`(() => { const c = document.querySelector('.nest[data-id="0"] .creature'), out = {};
       Object.keys(ET.aliens.RIGS).forEach((a) => { ET.aliens.fill(c, a);
         out[a] = [...c.querySelectorAll('.wig, .squish, .drip')].map((g) => getComputedStyle(g).animationName); });
       ET.aliens.clear(c); return out; })()`);
-    // one evaluation, so the live page can't step in between: place the CAV, then read the cord's x at every point
-    // and how far it spreads, over six moments of the lay
+    // one evaluation, so the live page can't step in between: read the cord's x at every point and how far it spreads,
+    // over six moments of the lay
     const layCord = (t) => ev(`(() => {
-      __et.submit('CAV ${t.unit} ${t.code}');
       const out = [];
       for (let i = 0; i < 6; i++) {
         __et.advance(0.1);
@@ -1803,25 +1758,27 @@ try {
         const x = await snap();
         const hit = find(x);
         if (hit) return hit;
-        for (const y of x.nests.filter((z) => z.state === "overtime" && z.id !== keep)) await ev(`__et.submit('RCAV ${y.unit}')`);
+        for (const y of x.nests.filter((z) => z.state === "overtime" && z.id !== keep)) await ev(`(__et.submit('RCAV ${y.unit}'), __et.submit('CAV ${y.unit} STR'), 1)`);
         await ev("__et.advance(0.25)");
       }
       return null;
     };
-    // a trigger that isn't VF (VF lays no egg, E16), and later that same egg in overtime
-    const trigger = () => seek((x) => x.nests.find((y) => y.state === "trigger" && y.code !== "VF"));
+    // an egg at the start of its lay, and later that same egg in overtime; its RCAV puts up the cue, its STR Mom
+    const laying = () => seek((x) => x.nests.find((y) => y.state === "laying" && y.lay < 0.1));
     const bold = (id) => seek((x) => x.nests.find((y) => y.id === id && y.state === "overtime"), id);
     const motion = async (label) => {
-      const t = await trigger();
-      const cu = await cue();
+      const t = await laying();
       const cord = t ? await layCord(t) : [];
       const b = t ? await bold(t.id) : null;
       const w = b ? await tilts(b.id) : [];
-      if (b) await ev(`__et.submit('RCAV ${b.unit}')`);
-      return { label, t: !!t, cue: cu, cord, bold: !!b, wobble: w, legs: await legs(), aliens: await aliens() };
+      if (b) await ev(`(__et.submit('RCAV ${b.unit}'), __et.advance(0.01), 1)`);
+      const cu = b ? await cue() : null;
+      const hs = b ? await hosp(b) : null;
+      return { label, t: !!t, cue: cu, hosp: hs, cord, bold: !!b, wobble: w, legs: await legs(), aliens: await aliens() };
     };
     const live = await motion("normal");
     ok(live.t && !!live.cue && live.cue.anim === "cue", `without reduced motion the place-me cue blinks   [${live.cue && live.cue.anim}]`);
+    ok(!!live.hosp && live.hosp.sign === "hsign-drop" && live.hosp.head === "mom-fix" && live.hosp.patch === "mom-patch", `…the H sign drops in, and Mom moves through her repair   [${live.hosp && [live.hosp.sign, live.hosp.head, live.hosp.patch].join(", ")}]`);
     ok(live.cord.some((d) => d !== null && d > 0), `…the laying cord twitches   [spread ${live.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(live.bold && live.wobble.some((a) => a !== null && a > 0), `…the egg wobbles in overtime   [${live.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
     eq(live.legs, "legs", "…and the escaping hatchling's legs shuffle");
@@ -1831,6 +1788,7 @@ try {
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const still = await motion("reduced");
     ok(still.t && !!still.cue && still.cue.anim === "none" && still.cue.border === "rgb(34, 227, 255)", `SAFETY: with reduced motion the place-me cue stops blinking and holds a steady cyan border   [${still.cue && still.cue.anim}, ${still.cue && still.cue.border}]`);
+    ok(!!still.hosp && still.hosp.sign === "none" && still.hosp.head === "none" && still.hosp.patch === "none" && still.hosp.there, `SAFETY: …the H sign is simply there, and Mom appears, still, and goes   [${still.hosp && [still.hosp.sign, still.hosp.head, still.hosp.patch].join(", ")}]`);
     ok(still.cord.length === 6 && still.cord.every((d) => d === 0), `SAFETY: …the laying cord hangs straight, no twitch   [spread ${still.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(still.bold && still.wobble.length === 6 && still.wobble.every((a) => a === 0), `SAFETY: …the overtime egg doesn't wobble   [${still.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
     eq(still.legs, "none", "SAFETY: …and the hatchling's legs hold still");
@@ -1875,7 +1833,7 @@ try {
     const tops = Object.fromEntries(files.map((f) => [f.k, +(f.peak * mix.M[f.k].level * mix.LEVEL).toFixed(3)]));
     ok(Object.values(tops).every((v) => v < mix.KNEE), `E36: at those levels the music's loudest sample stays under the ceiling's knee (${mix.KNEE}): never rounded off   [${Object.entries(tops).map(([k, v]) => k + " " + v).join(", ")}]`);
     // the menus share one track: title → options doesn't restart it; into play it fades over to the gameplay track
-    await ev("__et.start('clear', 1); 1");
+    await ev("__et.start(1, { hospital: 0 }); 1");
     if (await ev("__et.paused()")) await ev(`(() => { ${esc}; return 1; })()`);   // start unpaused
     const into = async (screen, want) => { await ev(`__et.show('${screen}')`); for (let i = 0; i < 60; i++) { const m = await ev("__et.music()"); if (m.playing === want) return m; await wait(50); } return ev("__et.music()"); };
     const t1 = await into("title", "title"), n1 = t1.log.filter((e) => e.started === "title").length;
@@ -1937,7 +1895,7 @@ try {
     await ev(`(() => { window.__lay = []; ['squeeze', 'pop'].forEach(k => { const f = ET.audio[k]; if (f.__wrapped) return;
       const w = function () { const s = __et.snapshot(), n = s.nests.find(x => x.state === 'laying'); const j = f.apply(this, arguments);
         window.__lay.push({ k, t: s.time, lay: n ? n.lay : null, j }); return j; }; w.__wrapped = true; ET.audio[k] = w; }); return 1; })()`);
-    const lays = await ev(`(() => { window.__lay = []; __et.start('clear', 1, { types: ['VS'] }); __et.advance(0.1); const starts = [];
+    const lays = await ev(`(() => { window.__lay = []; __et.start(1, { hospital: 0 }); __et.advance(0.1); const starts = [];
       for (let i = 0; i < 2400 && starts.length < 3; i++) { const b = __et.snapshot(); __et.advance(0.02); const a = __et.snapshot();
         a.nests.forEach(n => { const was = b.nests.find(x => x.id === n.id); if (n.state === 'active' && was && was.state === 'laying') starts.push(a.time); });
         a.nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit)); }
@@ -1950,12 +1908,9 @@ try {
     const pitches = lays.log.map((x) => x.j).filter((j) => typeof j === "number");
     ok(pitches.length >= 4 && new Set(pitches.map((j) => j.toFixed(4))).size === pitches.length && pitches.every((j) => Math.abs(j - 1) <= 0.08 + 1e-9),
       `…each at its own small pitch shift, so repeats don't sound identical   [${pitches.map((j) => j.toFixed(3)).join(" ")}]`);
-    const vf = await ev(`(() => { window.__lay = []; __et.start('clear', 1, { types: ['VF'] }); __et.advance(0.1);
-      for (let i = 0; i < 1500; i++) { __et.advance(0.02); __et.snapshot().nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit)); }
-      return window.__lay.length; })()`);
-    eq(vf, 0, "a VF lays no egg on a cord (E16), so it makes neither sound");
+
     // pause holds the squeeze: stop just before it, wait, see nothing
-    const held = await ev(`new Promise((done) => { window.__lay = []; __et.start('clear', 1, { types: ['VS'] }); __et.advance(0.1);
+    const held = await ev(`new Promise((done) => { window.__lay = []; __et.start(1, { hospital: 0 }); __et.advance(0.1);
       for (let i = 0; i < 2000; i++) { const n = __et.snapshot().nests.find(x => x.state === 'laying'); if (n && n.lay > ${at} - 0.1) break; __et.advance(0.02); }
       ${esc}; const n0 = window.__lay.length; setTimeout(() => { const n1 = window.__lay.length; ${esc}; done({ n0, n1 }); }, 1200); })`);
     ok(held.n0 === 0 && held.n1 === 0, "pause holds the squeeze (it follows the lay's own progress)");
@@ -1975,14 +1930,14 @@ try {
     const [msq, mpop, th, bz, hs, msl, mbl] = m, cues = [th, bz, hs], quiet = { peak: Math.min(...cues.map((c) => c.peak)), rms: Math.min(...cues.map((c) => c.rms)) };
     ok([msq, mpop, msl, mbl].every((s) => s.peak <= 0.6 * quiet.peak && s.rms <= 0.6 * quiet.rms),
       `the squeeze and the pop (and E38's squelch and bloop) sit clearly under THONG, the buzz and the hiss (under 60% of the quietest cue's peak and loudness)   [squeeze ${msq.peak}/${msq.rms}, pop ${mpop.peak}/${mpop.rms}, squelch ${msl.peak}/${msl.rms}, bloop ${mbl.peak}/${mbl.rms}; cues ${cues.map((c) => c.peak + "/" + c.rms).join(", ")}]`);
-    await ev("__et.start('clear', 2); __et.advance(0.1); 1");
+    await ev("__et.start(2, { hospital: 0 }); __et.advance(0.1); 1");
   }
 
   /* ------------------------------------------------------- U. board lights and Time Warp dark */
   section("U. board lights and Time Warp dark (Chat ruling, 2026-09-25)");
   {
     const esc = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
-    await ev("__et.start('clear', 2); __et.advance(0.1); 1");
+    await ev("__et.start(2, { hospital: 0 }); __et.advance(0.1); 1");
     // colours: WCAG relative luminance and contrast, compositing an rgba colour over an opaque one
     const colours = await ev(`(() => {
       const rgba = (s) => { const m = s.match(/[\\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m.length > 3 ? m[3] : 1 }; };
@@ -2010,7 +1965,7 @@ try {
     ok(colours.capOff >= 4.5 && colours.capOn >= 4.5, `…and text drawn straight on the board (Time Warp's caption) keeps 4.5:1 over a light at its brightest, under any of the three tints   [${colours.capOff}, ${colours.capOn}]`);
     // the beat lights, over 60 s of the player's seconds, in one evaluation
     const run = await ev(`(() => {
-      __et.start('clear', 2); __et.advance(0.1);
+      __et.start(2, { hospital: 0 }); __et.advance(0.1);
       const seen = {}, beat = 60 / ET.view.backdrop().bpm; let most = 0;
       for (let i = 0; i < 1200; i++) {
         __et.advance(0.05);
@@ -2038,13 +1993,13 @@ try {
     const frozen = await ev(`new Promise((done) => { const a = JSON.stringify(ET.view.backdrop().lights); ${esc};
       setTimeout(() => { const b = JSON.stringify(ET.view.backdrop().lights); ${esc}; done({ same: a === b, any: a !== '[]' }); }, 1000); })`);
     ok(frozen.same, `pause freezes the lights   [${frozen.any ? "lights showing" : "none showing"}]`);
-    const muted = await ev(`(() => { __et.start('clear', 2); __et.advance(0.1); const was = ET.audio.muted(); if (!was) document.querySelector('#mute').click(); const n0 = ET.view.backdrop().starts.length;
+    const muted = await ev(`(() => { __et.start(2, { hospital: 0 }); __et.advance(0.1); const was = ET.audio.muted(); if (!was) document.querySelector('#mute').click(); const n0 = ET.view.backdrop().starts.length;
       for (let i = 0; i < 400; i++) { __et.advance(0.05); __et.snapshot().nests.filter(n => n.state === 'overtime').forEach(n => __et.submit('RCAV ' + n.unit)); }
       const n1 = ET.view.backdrop().starts.length; const m = ET.audio.muted(); if (!was) document.querySelector('#mute').click(); return { m, more: n1 - n0 }; })()`);
     ok(muted.m && muted.more > 0, `mute doesn't stop the lights (they follow the beat clock)   [${muted.more} new while muted]`);
     // Time Warp dark: a steady Time Warp drawn frame by frame (all in one evaluation)
     const dark = await ev(`(() => {
-      __et.start('clear', 2); __et.advance(0.1);
+      __et.start(2, { hospital: 0 }); __et.advance(0.1);
       const s = __et.snapshot(), t0 = s.time;
       const keep = ['.nest .nest-art', '.nest .readout > span', '#warp svg.clock-art', '#warp .plaque', '#warp .caption', '#cords .lightning'];
       const look = () => keep.map(q => [...document.querySelectorAll(q)].slice(0, 3).map(e => { const c = getComputedStyle(e); return c.opacity + '|' + (c.filter.includes('brightness') ? 'dim' : '') + '|' + !!e.closest('#backdrop'); }).join(','));
@@ -2059,7 +2014,7 @@ try {
       // rapid Time Warp on and off, every 0.1 s: the veil's guard
       for (let i = 0; i < 40; i++) ET.view.render(Object.assign({}, s, { warp: i % 2 === 0, time: t0 + 1.5 + i * 0.1 }));
       const log = ET.view.backdrop().darkLog.filter(e => e.t >= t0 + 1.5);
-      __et.start('clear', 2); __et.advance(0.1);
+      __et.start(2, { hospital: 0 }); __et.advance(0.1);
       return { on, off, same: JSON.stringify(before) === JSON.stringify(during), gaps: log.slice(1).map((e, i) => +(e.t - log[i].t).toFixed(2)) };
     })()`);
     ok(dark.on.dark && dark.on.cls && dark.on.fade === "0.5s" && dark.on.prop === "opacity" && !dark.off,
@@ -2069,12 +2024,12 @@ try {
     // reduced motion: no lights; the Time Warp dark still happens, as a fade
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
-    const rm = await ev(`(() => { __et.start('clear', 2); __et.advance(0.1); let most = 0;
+    const rm = await ev(`(() => { __et.start(2, { hospital: 0 }); __et.advance(0.1); let most = 0;
       for (let i = 0; i < 200; i++) { __et.advance(0.05); most = Math.max(most, ET.view.backdrop().lights.length); }
       const s = __et.snapshot(); ET.view.render(Object.assign({}, s, { warp: true, time: s.time + 0.05 }));
       const v = getComputedStyle(document.querySelector('#backdrop .veil'));
       const out = { most, starts: ET.view.backdrop().starts.length, dark: ET.view.backdrop().dark, fade: v.transitionDuration };
-      __et.start('clear', 2); __et.advance(0.1); return out; })()`);
+      __et.start(2, { hospital: 0 }); __et.advance(0.1); return out; })()`);
     ok(rm.most === 0 && rm.starts === 0 && rm.dark && rm.fade === "0.5s", `SAFETY: with reduced motion there are no lights, and the Time Warp dark is still a fade   [${rm.starts} lights, ${rm.fade}]`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
@@ -2084,7 +2039,7 @@ try {
   section("E38. pieces, the hose's push and the trough (Chat, 2026-09-25)");
   {
     const escK = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
-    await ev(`(() => { __et.start('clear', 1); __et.advance(0.1); ${escK}; return 1; })()`);   // paused: only the rig moves things
+    await ev(`(() => { __et.start(1, { hospital: 0 }); __et.advance(0.1); ${escK}; return 1; })()`);   // paused: only the rig moves things
     for (let i = 0; i < 60 && !(await ev("ET.pieces.state().ready")); i++) await wait(100);
     // helpers, in board px: a drag as the player makes one, the physics stepped on its own, a row clear of every readout
     await ev(`(() => {
@@ -2251,7 +2206,7 @@ try {
     await ev(`(() => { ET.pieces.reset(); ${escK}; return 1; })()`);   // resume
 
     // what's left at the end of cleanup carries into the next wave: nothing removed
-    const carry = await ev(`(() => { __et.start('clear', 2, { types: ['VS'] }); __et.advance(0.1); ET.pieces.bench(30); const ids = ET.pieces.list().map((p) => p.id);
+    const carry = await ev(`(() => { __et.start(2, { hospital: 0 }); __et.advance(0.1); ET.pieces.bench(30); const ids = ET.pieces.list().map((p) => p.id);
       for (let i = 0; i < 20000 && __et.snapshot().wave === 1; i++) { __et.advance(0.05); __et.snapshot().nests.filter((n) => n.state === 'overtime').forEach((n) => __et.submit('RCAV ' + n.unit)); }
       const now = ET.pieces.list().map((p) => p.id); return { wave: __et.snapshot().wave, kept: ids.every((id) => now.includes(id)), more: now.length > ids.length }; })()`);
     ok(carry.wave === 2 && carry.kept && carry.more, `pieces left at the end of cleanup carry into the next wave, none removed (and the wave's clears added more)   [wave ${carry.wave}]`);
@@ -2261,7 +2216,7 @@ try {
   section("E42. the hose's blast: a jet, not a trickle (Chat, 2026-09-25)");
   {
     const escK = "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))";
-    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
     if (await ev("__et.paused()")) await ev(`(() => { ${escK}; return 1; })()`);
     const fireJs = "const f = document.querySelector('#field'), b = document.querySelector('#board').getBoundingClientRect(); const fire = (t, x, y) => f.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: b.left + x, clientY: b.top + y, pointerId: 11, buttons: 1 }));";
     // press, drag right, hold still 0.4 s, release: all in one evaluation, timed in the page
@@ -2330,7 +2285,7 @@ try {
     ok(paused.a && !paused.b && !paused.shown, `Esc mid-spray pauses the game and ends the jet and its blast   [${JSON.stringify(paused)}]`);
     const gone = await ev(`(() => { ${fireJs} fire('pointerdown', 400, 300); const a = ET.audio.blasting(); __et.show('over'); const z = ET.audio.blasting(); return { a, b: z }; })()`);
     ok(gone.a && !gone.b, "leaving the play screen mid-spray ends the blast");
-    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
     if (await ev("__et.paused()")) await ev(`(() => { ${escK}; return 1; })()`);
 
     // the sound: under the music with no dip; under THONG, the buzz and the hiss; on the overlap cap; muted with the rest
@@ -2373,7 +2328,7 @@ try {
   /* ------------------------------------------------------ E44. the nozzle turns with the jet */
   section("E44 and E51. the nozzle picture turns with the jet, at once, the way the mouse is going (Chat, 2026-09-25; Andrew, 2026-10-01)");
   {
-    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
     if (await ev("__et.paused()")) await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })), 1)");
     const UL = -3 * Math.PI / 4;
     // where the drawn nozzle's tip is, its turn, and the hose's end, with the pointer at (x, y)
@@ -2411,7 +2366,7 @@ try {
     const dl = await ev(`new Promise((done) => { ${fireJs} fire('pointerdown', 700, 300); fire('pointermove', 680, 320); fire('pointermove', 660, 340);
       setTimeout(() => { const q = ${look}; fire('pointerup', 660, 340); done(q); }, 400); })`);
     ok(near(dl.at, 3 * Math.PI / 4), `it follows any direction (down-left here)   [${(dl.at * 180 / Math.PI).toFixed(0)}°]`);
-    const fresh = await ev(`(() => { __et.start('clear', 1); __et.advance(0.1); return ${look}; })()`);
+    const fresh = await ev(`(() => { __et.start(1, { hospital: 0 }); __et.advance(0.1); return ${look}; })()`);
     ok(near(fresh.at, UL) && near(fresh.want, UL), "each new game starts it pointing up-left");
     // reduced motion: the same snap (there's no swing to still)
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
@@ -2419,13 +2374,13 @@ try {
     const snapTurn = await ev(`(() => { ${fireJs} fire('pointerdown', 600, 420); fire('pointermove', 600, 460); const q = ${look}; fire('pointerup', 600, 460); return q; })()`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
     ok(near(snapTurn.at, Math.PI / 2) && near(snapTurn.turn, Math.PI / 2 - UL), `SAFETY: with reduced motion it snaps to the new direction at once, no swing   [${(snapTurn.at * 180 / Math.PI).toFixed(0)}°]`);
-    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
   }
 
   /* ------------------------------------------------------ E43. Time Warp's sound */
   section("E43. Time Warp's sound (Chat, 2026-09-25)");
   {
-    await ev("__et.start('clear', 1); __et.advance(0.1); 1");
+    await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
     if (await ev("__et.paused()")) await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })), 1)");
     // every zap, as the board draws: warp off, on (and 3 s of frames), off again (one evaluation: nothing steps between)
     const z = await ev(`(() => { const log = [], o = ET.audio.warp; ET.audio.warp = function (on) { log.push(on); return o(on); };
@@ -2457,7 +2412,7 @@ try {
   }
 
   section("Q. the scary mom face (Refinement 5 §5)");
-  await ev("__et.start('both', 4)");
+  await ev("__et.start(4, { hospital: 0 })");
   await ev("__et.advance(0.1)");
   {
     const C0 = await ev("JSON.stringify([ET.CONFIG.momFaceChance, ET.CONFIG.momFaceWindow])");
@@ -2499,13 +2454,13 @@ try {
     }
     ok((await ev("window.__hiss")) >= 4, `each one comes with the hiss and gurgle   [${await ev("window.__hiss")} of 4]`);
     // the schedule: at most once a wave, sometimes not at all, held by a pause
-    await ev("ET.CONFIG.momFaceChance = 1; ET.CONFIG.momFaceWindow = [0.5, 1]; __et.start('clear', 1); __et.advance(0.1); 1");
+    await ev("ET.CONFIG.momFaceChance = 1; ET.CONFIG.momFaceWindow = [0.5, 1]; __et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
     await ev("__et.advance(3)");
     const once = await ev("ET.view.momState()");
     await ev("__et.advance(12)");
     const still = await ev("ET.view.momState()");
     ok(once.shown === 1 && still.shown === 1 && (await snap()).wave === 1, `at most once a wave   [${once.shown}, then ${still.shown} later in wave 1]`);
-    await ev("ET.CONFIG.momFaceChance = 0; __et.start('clear', 1); __et.advance(0.1); __et.advance(20); 1");
+    await ev("ET.CONFIG.momFaceChance = 0; __et.start(1, { hospital: 0 }); __et.advance(0.1); __et.advance(20); 1");
     eq((await ev("ET.view.momState()")).shown, 0, "…and some waves get none");
     await ev(`(() => { const c0 = ${C0}; ET.CONFIG.momFaceChance = c0[0]; ET.CONFIG.momFaceWindow = c0[1]; return 1; })()`);
   }
@@ -2536,7 +2491,7 @@ try {
       const s = JSON.parse(JSON.stringify(__et.snapshot())); s.warp = false;
       const n = s.nests[0], el = document.querySelector('.nest[data-id="' + n.id + '"]');
       el.classList.remove('unlock'); el.classList.toggle('inactive', ${!!st.inactive}); el.classList.toggle('mirrored', ${!!st.mirror}); el.classList.toggle('has-eye', ${!!st.eye});
-      if (${!st.inactive}) Object.assign(n, { state: '${st.state || "idle"}', grow: ${st.grow ?? 0}, crack: ${st.crack ?? 0}, elapsed: 600, hidden: false, lay: null, retract: null, note: null }); else n.state = 'idle';
+      if (${!st.inactive}) Object.assign(n, { state: '${st.state || "idle"}', grow: ${st.grow ?? 0}, crack: ${st.crack ?? 0}, elapsed: 600, lay: null, retract: null }); else n.state = 'idle';
       ET.view.render(s);
       const art = el.querySelector('.nest-art').getBoundingClientRect(), seen = (q) => { const e = el.querySelector(q); return !!e && e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== 'none'; };
       const hints = ['hint-3', 'hint-4', 'hint-5', 'hint-eye'].filter(h => seen('.' + h));
@@ -2554,7 +2509,7 @@ try {
       ["mirrored", { state: "overtime", grow: 1, crack: 0.85, eye: true, mirror: true }, (r) => r.mirror === "matrix(-1, 0, 0, 1, 0, 0)" && r.hints.length === 4],
     ];
     // (each state is drawn and measured inside one evaluation, so the page's own drawing can't get in between)
-    await ev(`(() => { __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1); ${"document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))"}; return 1; })()`);
+    await ev(`(() => { __et.start(1, { hospital: 0, minutes: 30 }); __et.advance(0.1); ${"document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))"}; return 1; })()`);
     for (const [w, h] of [[1920, 1080], [1024, 640]]) {
       await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
       await wait(200);
@@ -2574,7 +2529,7 @@ try {
     const lay = await ev(`(() => {
       const C = ET.CONFIG, pop = (u) => (C.layDrop + u * C.layPop) / (C.layDrop + C.layPop);
       const frame = (patch, mirror) => { const s = JSON.parse(JSON.stringify(__et.snapshot())); s.warp = false; const n = s.nests[0];
-        Object.assign(n, { hidden: false, note: null, crack: 0, elapsed: 0, grow: 0, retract: null }, patch);
+        Object.assign(n, { crack: 0, elapsed: 0, grow: 0, retract: null }, patch);
         const el = document.querySelector('.nest[data-id="' + n.id + '"]'); el.classList.remove('inactive', 'unlock'); el.classList.toggle('mirrored', mirror);
         ET.view.render(s);
         const egg = el.querySelector('.egg'), shell = el.querySelector('.egg .shell'), r = shell.getBoundingClientRect(), cord = ET.view.cord(n.id);
@@ -2587,7 +2542,7 @@ try {
       `the cord egg: from the pop the egg coming out of the cord is the nest's own egg picture (mirrored as laid), above its resting place, with no oval of the cord's own   [${lay.mid.box[1]} px → ${lay.land.box[1]} px]`);
     ok(lay.land.box.every((v, i) => Math.abs(v - lay.start.box[i]) < 0.6) && lay.land.tilt === lay.start.tilt,
       `…it lands exactly as the 35% egg that starts its clock: no swap and no drop, tilted with the nest   [${lay.land.box.join(",")} vs ${lay.start.box.join(",")}]`);
-    await ev(`(() => { ${"document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))"}; __et.start('clear', 2); __et.advance(0.1); return 1; })()`);
+    await ev(`(() => { ${"document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))"}; __et.start(2, { hospital: 0 }); __et.advance(0.1); return 1; })()`);
   }
 
   /* ------------------------------------------------ BR. the break stages */
@@ -2613,7 +2568,7 @@ try {
     ok(Math.max(...big) / Math.min(...big) < 1.1, `all five show at the same size: only the grossness changes   [${big.map((b) => b.toFixed(1)).join(", ")} units]`);
 
     // fill(): the stage's splat, a count of fragments that climbs with the stage, every one inside the splat's outline
-    await ev(`(() => { __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1); ${escK}; return 1; })()`);
+    await ev(`(() => { __et.start(1, { hospital: 0, minutes: 30 }); __et.advance(0.1); ${escK}; return 1; })()`);
     const fills = await ev(`(() => { const g = document.querySelector('.nest .break'), C = ET.CONFIG.breakShells, out = [];
       for (let st = 1; st <= 5; st++) { let lo = 99, hi = 0, outside = 0, onFeature = 0, inZone = 0, href = '', flips = 0, big = 0, seen = new Set(); const want = C.count[st], Z = ET.breaks.zones(st);
         for (let i = 0; i < 150; i++) { const n = ET.breaks.fill(g, st), c = ET.breaks.check(g); lo = Math.min(lo, n); hi = Math.max(hi, n); outside += c.outside; onFeature += c.onFeature;
@@ -2643,7 +2598,7 @@ try {
     // in play: a clear shows the stage for its tier (fifths from bold to hatch) while the nest is "splat", then it's gone.
     // (unpaused, since a paused game refuses commands; the whole case runs inside this one evaluation)
     const play = async (share) => ev(`(() => {
-      __et.start('clear', 1, { types: ['MB'] }); __et.advance(0.1);
+      __et.start(1, { hospital: 0, minutes: 30 }); __et.advance(0.1);
       for (let i = 0; i < 40000; i++) { const s = __et.snapshot(), n = s.nests.find((x) => x.state === 'overtime' && x.crack >= ${share});
         if (n) { const crack = n.crack; __et.submit('RCAV ' + n.unit); __et.advance(0.01);
           const el = document.querySelector('.nest[data-id="' + n.id + '"]'), g = el.querySelector('.break'), st = __et.snapshot().nests.find((x) => x.id === n.id).state;
@@ -2660,7 +2615,7 @@ try {
       ok(r && r.after === "none" && r.afterState !== "splat", `…and it's gone when the nest idles (${await ev("ET.CONFIG.splatSeconds")} s of the player's time)`);
     }
     await shot("br-break-stages");
-    await ev(`(() => { ${escK}; __et.start('clear', 2); __et.advance(0.1); return 1; })()`);
+    await ev(`(() => { ${escK}; __et.start(2, { hospital: 0 }); __et.advance(0.1); return 1; })()`);
   }
 
   /* ------------------------------------------------ V. while the data loads */

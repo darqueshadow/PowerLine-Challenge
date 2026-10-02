@@ -29,10 +29,24 @@
     overtimeFloor: 4.5,      // [T] reached at wave 13
     overtimeJitter: 0.10,    // [T] fixed ±10%, every wave
 
-    // ── Wall clock and the AD post-it (Timer Refinement §3–§4) ──────────────
-    postItCodes: ["AD"],     // the only type with a note; it draws whole minutes
-    postItClockChance: 0.5,  // [T] 50/50: "Clear @ 14:35" vs "20 min"
-    vfBubbleSeconds: 1.6,    // [T] how long "Clear Fueling" stays before it has faded
+    // ── One mode: hospital eggs (Andrew's handoff, 2026-10-01; E52–E56 ruled 2026-10-02) ─────────────────────
+    // E54: the three modes, placement triggers, AD's post-it, VF's hidden egg and the type shuffle bag are gone. Every
+    // egg is laid with a VS; a hospital egg needs RCAV, then CAV #### STR, in the same hatch window (E53). Both CAVs'
+    // durations come from Andrew's table as it is: the game won't start without a VS and an STR row.
+    eggType: "VS",
+    hospitalType: "STR",
+    hospitalShare: 0.7,      // [T] E56 (ruled): about 70% are hospital eggs, a plain random roll per egg
+    // E53 (ruled: "playtest the window early; if it's too tight, propose a longer window for hospital eggs only"): a
+    // hospital egg's FIRST window × this. 1 = the same window as every egg, as ruled; a longer one is a proposal first.
+    hospitalWindowScale: 1,  // [T]
+    // E55 (ruled): Mom repairs the egg as the STR goes on: sweet Mom on hospital eggs up to this wave, creepy Mom after
+    // (matching the scary HUD face). ⏳ placeholder art until Chat's Gemini prompts come back (two parts kits).
+    momSweetUntilWave: 1,
+    // E55: pops in, looks down and patches the egg, turns to the player and giggles, ducks out; over the nest only,
+    // never blocking typing. ⚠️ style.css's mom-fix keyframes use these shares: in 0.2, patch to 0.5, giggle to 0.85.
+    momRepairSeconds: 1.5,   // [T]
+    // E56 (ruled): a placeholder giggle, creepier for creepy Mom; under THONG, the buzz and the hiss, no dip [T]
+    giggle: { sweet: 0.05, creepy: 0.06 },
 
     // ── Nests and waves (packet §4) ──────────────────────────────────────────
     nestsStart: 5,
@@ -46,15 +60,6 @@
     cleanupStart: [5, 10],   // between-wave cleanup window (seconds)
     cleanupShrink: 0.5,
     cleanupFloor: 3,
-
-    // ── Placement (packet §6) ────────────────────────────────────────────────
-    placementTimeoutStart: 20, // an ignored trigger auto-opens after this…
-    placementTimeoutShrink: 1, // …minus 1 s per wave…
-    placementTimeoutFloor: 8,  // …floored at 8 s
-
-    // ── Follow Progression (packet §5) ───────────────────────────────────────
-    progressionOnePhaseWaves: 2, // waves 1–2 are pure one-phase
-    progressionChanceStep: 0.10, // 0% at wave 3, +10% per wave
 
     // ── Pool (packet §9) ─────────────────────────────────────────────────────
     poolKey: "POOL",         // placeholder key; no display name until Andrew's roundtable
@@ -70,7 +75,6 @@
     clearTierPoints: [100, 75, 50, 35, 25],    // tier 1 … tier 5
     clearPointsMax: 100,     // "slide": cleared right as it goes bold…
     clearPointsMin: 25,      // …decaying linearly to this at the hatch
-    placementPoints: 10,
     perfectWavePerWave: 50,  // 50 × wave number
 
     // ── Command Boxes (packet §12) ───────────────────────────────────────────
@@ -180,22 +184,11 @@
     // D2: a new unit per CAV, never one already showing on the board.
     unitAssignment: "per-spawn",   // "per-spawn" | "per-nest"
     // (D5's game-seconds timer is superseded by the Timer Refinement: the clocks show displayed time.)
-    // C15(b): VF hides only its timer until "Clear Fuel"; the unit and "VF" stay.
-    vfHides: "timer",              // "timer" | "readout"
     // D4: a wave stops spawning once its quota has spawned.
     // (false keeps spawning, but what happens to CAVs left running at the wave's end was never designed.)
     stopSpawningAtQuota: true,
     // D6 is superseded by Refinement 2 §6: ANY rejected Enter clears the box and shows ERROR.
     keepTextOnReject: false,
-
-    // ── Timer Refinement gaps, ruled 2026-09-22 (E1–E4) ──────────────────────
-    // E1: "Clear @" is the next whole minute after start + draw, so it never bolds before
-    //   the draw has passed (14:15:40 + 20 → "Clear @ 14:36"). The other value still works:
-    //   "shown-minute" = the minute on the wall clock at the start + the draw (can be shorter).
-    adClockTarget: "full-minutes",   // "full-minutes" | "shown-minute"
-    // E2: an AD placement trigger shows its note when the CAV starts, not at the trigger.
-    //   Only "start" is built.
-    adNoteFrom: "start",
 
     // ── Refinement 2 (2026-09-22): pan, ERROR, hose (its switcher is retired by Refinement 3)
     panSeconds: 0.32,        // [T] the frying pan's slam, well under 0.5 s; never holds the keyboard
@@ -409,9 +402,9 @@
 
     // ── E28 (ruled 2026-09-24): first-game tags ─────────────────────────────
     // In wave 1 only, and then never again that game: a tag for the first egg to go bold ("Pink = ready! Type RCAV
-    // <unit>"), and one for the first "Clear @" note ("Check the wall clock"). They sit in the band above the board, so
-    // they never cover a nest or a readout, with a thin leader line (under every readout) to what they point at.
-    // Neither flashes.
+    // <unit>"; on a hospital egg whose VS is off, "Now type CAV <unit> STR"). It sits in the band above the board, so
+    // it never covers a nest or a readout, with a thin leader line (under every readout) to the egg. It doesn't flash.
+    // (E54 took the "Check the wall clock" tag with AD's post-it.)
     tipsWave: 1,
     // ── How To Play (Andrew, 2026-10-01): Andrew's own five lines, one per panel of E29's strip ──────────────
     // Panel 5 ("Clear too slow....") shows a goofy, happy cute alien: deliberate bait (players expect cute; the horror

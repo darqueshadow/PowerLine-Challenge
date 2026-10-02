@@ -25,16 +25,10 @@
     </aside>
   </section>
 
-  <!-- SETUP: mode buttons + Command Line count, one combined step (packet §5, §12; players see "Command Line", E7) -->
+  <!-- SETUP: the Command Line count and START (packet §12; players see "Command Line", E7). E54 took the mode buttons -->
   <section id="screen-setup" class="screen" hidden>
     <!-- options creature (Andrew approved, 2026-09-23): ⏳ placeholder art, built by core/title.js -->
     <div id="setup-critter"></div>
-    <h2>SELECT MODE</h2>
-    <div class="button-bank modes">
-      <button type="button" data-mode="clear">CLEAR CAVs<br>ONLY</button>
-      <button type="button" data-mode="progression">FOLLOW<br>PROGRESSION</button>
-      <button type="button" data-mode="both">BOTH</button>
-    </div>
     <!-- E29: each option in its Command Line's colour; the one picked is lit, the rest dimmed -->
     <h2>How Many Command Lines?</h2>
     <div class="button-bank counts">
@@ -44,7 +38,7 @@
       <button type="button" data-boxes="4">Four</button>
     </div>
     <button type="button" id="start" class="start">START</button>
-    <p class="hint">← → MODE &nbsp;·&nbsp; ↑ ↓ BOXES &nbsp;·&nbsp; ENTER START</p>
+    <p class="hint">↑ ↓ LINES &nbsp;·&nbsp; ENTER START</p>
     <p id="setup-dev" class="dev-note" hidden>DEVELOPER MODE: BLANK DATASET</p>
     <!-- Refinement 2 §1: how to play, down one side. Never lists CAV durations.
          Refinement 5 §3: a cartoon look with alien-family doodles, kept clear of the text (⏳ placeholder art) -->
@@ -64,7 +58,6 @@
       <div><span class="label">CAVs</span> <span id="hud-cavs">0/8</span></div>
       <div><span class="label" id="hud-pool-label">POOL</span> <span id="hud-pool" class="pool"></span></div>
       <div><span class="label">SCORE</span> <span id="hud-score">0</span></div>
-      <div id="hud-mode" class="mode"></div>
       <!-- Refinement 3 §3: the cleanup banner, across the top of the screen over this bar, never over the board -->
       <!-- E28: its words -->
       <div id="cleanup" hidden><span class="result"></span><span class="call"><span class="head">CLEAN-UP TIME! <b class="left"></b></span><span class="sub">Hose down the mess before the next wave.</span></span></div>
@@ -77,9 +70,8 @@
           <!-- ⏳ placeholder look: the wall clock (Timer Refinement §3), 24-hour, same speed as the nest clocks;
                larger again (Refinement 3 §6), at the top centre of the playing field (Refinement 6 §3) -->
           <div class="wallclock" aria-label="Wall clock"><span id="wall-hm">00:00</span><span id="wall-ss">00</span></div>
-          <!-- E28: wave 1's first-game tags, either side of the wall clock (view.js places them and draws their leaders) -->
+          <!-- E28: wave 1's first-game tag, left of the wall clock (view.js places it and draws its leader) -->
           <div id="tip-ready" class="tip" hidden></div>
-          <div id="tip-clock" class="tip" hidden><span class="arrow" aria-hidden="true">◀</span> Check the wall clock</div>
         </div>
         <div id="board">
           <!-- ⏳ placeholder look: Time Warp (Refinement 3 §4), in the centre of the board (Refinement 6 §2). E27: a
@@ -120,7 +112,7 @@
   <section id="screen-over" class="screen" hidden>
     <h2 class="over">GAME OVER</h2>
     <p><span class="label">SCORE</span> <span id="over-score">0</span></p>
-    <p><span class="label">WAVE</span> <span id="over-wave">1</span> &nbsp; <span id="over-mode" class="label"></span></p>
+    <p><span class="label">WAVE</span> <span id="over-wave">1</span></p>
     <!-- playtest stand-in (Timer Refinement §9): spawns lost to a full board, per wave -->
     <p id="over-skipped" class="skip-log"></p>
     <!-- Chat ruling, 2026-09-25: always a clear way back to the title screen; ← → pick, Enter presses the lit one -->

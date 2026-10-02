@@ -1,5 +1,5 @@
 /* verify-egg-timer-theme-baseline.mjs: section T's record of every rule of the game's stylesheets, resolved
-   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-10-01.
+   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-10-02.
    Rewrite it ONLY when a style is changed on purpose, in the same commit. Never published (verify-*.mjs). */
 export default {
  "@font-face": {
@@ -1178,10 +1178,6 @@ export default {
   "padding-right": "22px",
   "padding-top": "16px"
  },
- ".modes button": {
-  "min-height": "92px",
-  "min-width": "210px"
- },
  ".button-bank button.selected": {
   "background-attachment": "initial",
   "background-clip": "initial",
@@ -1387,12 +1383,6 @@ export default {
  },
  ".hud #2": {
   "position": "relative"
- },
- ".hud .mode": {
-  "color": "rgb(154, 143, 184)",
-  "font-size": "0.6em",
-  "letter-spacing": "0.1em",
-  "margin-left": "auto"
  },
  ".pool": {
   "color": "rgb(255, 61, 127)",
@@ -1744,22 +1734,6 @@ export default {
   "background-repeat": "initial",
   "background-size": "initial",
   "color": "rgb(255, 255, 255)"
- },
- "#tip-clock": {
-  "background-attachment": "initial",
-  "background-clip": "initial",
-  "background-color": "rgb(255, 243, 209)",
-  "background-image": "initial",
-  "background-origin": "initial",
-  "background-position-x": "initial",
-  "background-position-y": "initial",
-  "background-repeat": "initial",
-  "background-size": "initial",
-  "color": "rgb(26, 13, 46)"
- },
- "#tip-clock .arrow": {
-  "color": "rgb(57, 255, 20)",
-  "text-shadow": "rgb(26, 13, 46) 1px 1px 0px"
  },
  "#cords .leader": {
   "fill": "none",
@@ -2511,39 +2485,39 @@ export default {
   "transition-property": "transform",
   "transition-timing-function": "cubic-bezier(0.3, 1.8, 0.5, 1)"
  },
- ".howto-panel .doodle .ink": {
+ ":is(.howto-panel, .momfix) .doodle .ink": {
   "fill": "none",
   "stroke": "rgb(26, 13, 46)",
   "stroke-linecap": "round",
   "stroke-linejoin": "round",
   "stroke-width": "3"
  },
- ".howto-panel .doodle .green": {
+ ":is(.howto-panel, .momfix) .doodle .green": {
   "fill": "rgb(125, 255, 106)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "3"
  },
- ".howto-panel .doodle .lilac": {
+ ":is(.howto-panel, .momfix) .doodle .lilac": {
   "fill": "rgb(199, 155, 255)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "3"
  },
- ".howto-panel .doodle .pink": {
+ ":is(.howto-panel, .momfix) .doodle .pink": {
   "fill": "rgb(255, 143, 199)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "2.5"
  },
- ".howto-panel .doodle .shell": {
+ ":is(.howto-panel, .momfix) .doodle .shell": {
   "fill": "rgb(125, 255, 106)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "3"
  },
- ".howto-panel .doodle .eye": {
+ ":is(.howto-panel, .momfix) .doodle .eye": {
   "fill": "rgb(255, 255, 255)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "2.5"
  },
- ".howto-panel .doodle .dot": {
+ ":is(.howto-panel, .momfix) .doodle .dot": {
   "fill": "rgb(26, 13, 46)"
  },
  ".howto-panel": {
@@ -2691,9 +2665,6 @@ export default {
  },
  ".nest[data-state=\"laying\"].popping .egg, .nest[data-state=\"active\"] .egg, .nest[data-state=\"overtime\"] .egg": {
   "display": "inline"
- },
- ".nest.hide-egg .egg": {
-  "display": "none"
  },
  ".crack": {
   "fill": "none",
@@ -2993,7 +2964,7 @@ export default {
  ".nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip": {
   "animation-play-state": "paused"
  },
- "body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg": {
+ "body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg, body.paused .momfix *": {
   "animation-play-state": "paused"
  },
  "@keyframes hatch-scare » 0%": {
@@ -3277,7 +3248,7 @@ export default {
  ".nest[data-state=\"idle\"] .readout > span, .nest[data-state=\"splat\"] .readout > span, .nest[data-state=\"escape\"] .readout > span": {
   "filter": "brightness(0.45) saturate(0.5)"
  },
- ".nest[data-state=\"trigger\"] .readout > span": {
+ ".nest.asks .readout .code": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "0.6s",
@@ -3296,11 +3267,156 @@ export default {
   "border-right-color": "rgb(34, 227, 255)",
   "border-top-color": "rgb(34, 227, 255)"
  },
- ".nest.hide-readout .readout > span": {
-  "visibility": "hidden"
+ ".hsign": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.45s",
+  "animation-fill-mode": "both",
+  "animation-iteration-count": "1",
+  "animation-name": "hsign-drop",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "cubic-bezier(0.3, 0.8, 0.4, 1.3)",
+  "pointer-events": "none",
+  "position": "absolute",
+  "right": "-10%",
+  "top": "10%",
+  "transform-origin": "50% 100%",
+  "width": "19%",
+  "z-index": "4"
  },
- ".nest.hide-clock .readout .clock": {
-  "visibility": "hidden"
+ ".hsign svg": {
+  "display": "block",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "width": "100%"
+ },
+ ".hsign .plate": {
+  "fill": "rgb(20, 86, 200)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "3"
+ },
+ ".hsign .h": {
+  "fill": "none",
+  "stroke": "rgb(255, 255, 255)",
+  "stroke-linecap": "square",
+  "stroke-width": "5"
+ },
+ ".hsign .stake": {
+  "fill": "rgb(138, 90, 43)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2.5"
+ },
+ "@keyframes hsign-drop » 0%": {
+  "transform": "translateY(-160%) rotate(-24deg)"
+ },
+ "@keyframes hsign-drop » 70%": {
+  "transform": "translateY(0px) rotate(5deg)"
+ },
+ "@keyframes hsign-drop » 85%": {
+  "transform": "translateY(-6%) rotate(-2deg)"
+ },
+ "@keyframes hsign-drop » 100%": {
+  "transform": "translateY(0px) rotate(0deg)"
+ },
+ ".momfix": {
+  "aspect-ratio": "1 / 1",
+  "pointer-events": "none",
+  "position": "absolute",
+  "transform": "translate(-50%, -50%)"
+ },
+ ".momfix .head": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "1.5s",
+  "animation-fill-mode": "both",
+  "animation-iteration-count": "1",
+  "animation-name": "mom-fix",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in-out",
+  "left": "12%",
+  "position": "absolute",
+  "top": "-70%",
+  "transform-origin": "50% 100%",
+  "width": "76%"
+ },
+ ".momfix .head svg": {
+  "display": "block",
+  "height": "auto",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "width": "100%"
+ },
+ ".momfix .patch": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "1.5s",
+  "animation-fill-mode": "both",
+  "animation-iteration-count": "1",
+  "animation-name": "mom-patch",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-out",
+  "left": "28%",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "position": "absolute",
+  "top": "20%",
+  "transform-origin": "50% 50%",
+  "width": "44%"
+ },
+ ".momfix .patch .strip": {
+  "fill": "rgb(242, 201, 160)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2.5"
+ },
+ ".momfix .patch .pad": {
+  "fill": "rgb(255, 243, 230)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
+ },
+ ".momfix .patch .hole": {
+  "fill": "rgb(26, 13, 46)"
+ },
+ "@keyframes mom-fix » 0%": {
+  "transform": "translateY(-90%) scale(0.2)"
+ },
+ "@keyframes mom-fix » 20%": {
+  "transform": "translateY(0px) scale(1) rotate(0deg)"
+ },
+ "@keyframes mom-fix » 30%, 46%": {
+  "transform": "translateY(14%) scale(1) rotate(16deg)"
+ },
+ "@keyframes mom-fix » 52%": {
+  "transform": "translateY(0px) scale(1.06) rotate(0deg)"
+ },
+ "@keyframes mom-fix » 60%, 76%": {
+  "transform": "translateY(-4%) scale(1.06) rotate(-4deg)"
+ },
+ "@keyframes mom-fix » 68%, 84%": {
+  "transform": "translateY(3%) scale(1.06) rotate(4deg)"
+ },
+ "@keyframes mom-fix » 100%": {
+  "transform": "translateY(-90%) scale(0.2)"
+ },
+ "@keyframes mom-patch » 0%, 28%": {
+  "transform": "scale(0) rotate(-30deg)"
+ },
+ "@keyframes mom-patch » 38%": {
+  "transform": "scale(1.15) rotate(-12deg)"
+ },
+ "@keyframes mom-patch » 44%, 85%": {
+  "transform": "scale(1) rotate(-12deg)"
+ },
+ "@keyframes mom-patch » 100%": {
+  "transform": "scale(0) rotate(-12deg)"
  },
  ".pan": {
   "left": "50%",
@@ -3499,197 +3615,6 @@ export default {
   "fill": "none",
   "stroke": "rgb(0, 0, 0)",
   "stroke-width": "3"
- },
- ".postit": {
-  "background-attachment": "initial",
-  "background-clip": "initial",
-  "background-color": "rgb(255, 233, 92)",
-  "background-image": "initial",
-  "background-origin": "initial",
-  "background-position-x": "initial",
-  "background-position-y": "initial",
-  "background-repeat": "initial",
-  "background-size": "initial",
-  "border-bottom-color": "rgb(0, 0, 0)",
-  "border-bottom-style": "solid",
-  "border-bottom-width": "2px",
-  "border-image-outset": "0",
-  "border-image-repeat": "stretch",
-  "border-image-slice": "100%",
-  "border-image-source": "none",
-  "border-image-width": "1",
-  "border-left-color": "rgb(0, 0, 0)",
-  "border-left-style": "solid",
-  "border-left-width": "2px",
-  "border-right-color": "rgb(0, 0, 0)",
-  "border-right-style": "solid",
-  "border-right-width": "2px",
-  "border-top-color": "rgb(0, 0, 0)",
-  "border-top-style": "solid",
-  "border-top-width": "2px",
-  "box-shadow": "rgb(0, 0, 0) 3px 3px 0px",
-  "color": "rgb(42, 26, 0)",
-  "font-family": "\"Trebuchet MS\", Verdana, sans-serif",
-  "font-size": "clamp(10px, 1.05vw, 15px)",
-  "font-weight": "400",
-  "padding-bottom": "3px",
-  "padding-left": "5px",
-  "padding-right": "5px",
-  "padding-top": "3px",
-  "position": "absolute",
-  "right": "-16%",
-  "text-wrap-mode": "nowrap",
-  "top": "2%",
-  "transform": "rotate(6deg)",
-  "white-space-collapse": "collapse",
-  "z-index": "4"
- },
- ".nest.bold .postit": {
-  "font-weight": "900"
- },
- ".postit.at-clock": {
-  "background-attachment": "initial",
-  "background-clip": "initial",
-  "background-color": "rgb(43, 42, 46)",
-  "background-image": "initial",
-  "background-origin": "initial",
-  "background-position-x": "initial",
-  "background-position-y": "initial",
-  "background-repeat": "initial",
-  "background-size": "initial",
-  "border-bottom-color": "rgb(57, 255, 20)",
-  "border-bottom-style": "solid",
-  "border-bottom-width": "3px",
-  "border-image-outset": "0",
-  "border-image-repeat": "stretch",
-  "border-image-slice": "100%",
-  "border-image-source": "none",
-  "border-image-width": "1",
-  "border-left-color": "rgb(57, 255, 20)",
-  "border-left-style": "solid",
-  "border-left-width": "3px",
-  "border-right-color": "rgb(57, 255, 20)",
-  "border-right-style": "solid",
-  "border-right-width": "3px",
-  "border-top-color": "rgb(57, 255, 20)",
-  "border-top-style": "solid",
-  "border-top-width": "3px",
-  "box-shadow": "rgb(255, 61, 127) 3px 3px 0px",
-  "color": "rgb(57, 255, 20)",
-  "font-family": "\"DSEG7 Classic\", \"Courier New\", Courier, monospace",
-  "font-weight": "900",
-  "line-height": "1.1",
-  "padding-bottom": "2px",
-  "padding-left": "6px",
-  "padding-right": "6px",
-  "padding-top": "2px",
-  "text-shadow": "rgb(15, 58, 0) 1px 1px 0px",
-  "transform": "none"
- },
- ".postit.at-clock .led-text": {
-  "color": "rgb(255, 243, 209)",
-  "font-family": "Fredoka, \"Arial Rounded MT Bold\", \"Trebuchet MS\", sans-serif",
-  "font-weight": "700",
-  "text-shadow": "rgb(0, 0, 0) 1px 1px 0px"
- },
- ".postit.minutes": {
-  "font-family": "\"Patrick Hand\", \"Trebuchet MS\", Verdana, sans-serif",
-  "font-size": "clamp(13px, 1.3vw, 19px)",
-  "line-height": "1.05",
-  "padding-bottom": "2px",
-  "padding-left": "7px",
-  "padding-right": "7px",
-  "padding-top": "2px"
- },
- ".bubble": {
-  "background-attachment": "initial",
-  "background-clip": "initial",
-  "background-color": "rgb(255, 247, 232)",
-  "background-image": "initial",
-  "background-origin": "initial",
-  "background-position-x": "initial",
-  "background-position-y": "initial",
-  "background-repeat": "initial",
-  "background-size": "initial",
-  "border-bottom-color": "rgb(0, 0, 0)",
-  "border-bottom-left-radius": "14px",
-  "border-bottom-right-radius": "14px",
-  "border-bottom-style": "solid",
-  "border-bottom-width": "3px",
-  "border-image-outset": "0",
-  "border-image-repeat": "stretch",
-  "border-image-slice": "100%",
-  "border-image-source": "none",
-  "border-image-width": "1",
-  "border-left-color": "rgb(0, 0, 0)",
-  "border-left-style": "solid",
-  "border-left-width": "3px",
-  "border-right-color": "rgb(0, 0, 0)",
-  "border-right-style": "solid",
-  "border-right-width": "3px",
-  "border-top-color": "rgb(0, 0, 0)",
-  "border-top-left-radius": "14px",
-  "border-top-right-radius": "14px",
-  "border-top-style": "solid",
-  "border-top-width": "3px",
-  "color": "rgb(11, 7, 22)",
-  "font-family": "\"Arial Black\", Impact, Haettenschweiler, sans-serif",
-  "font-size": "clamp(11px, 1.2vw, 17px)",
-  "left": "50%",
-  "opacity": "0",
-  "padding-bottom": "4px",
-  "padding-left": "9px",
-  "padding-right": "9px",
-  "padding-top": "4px",
-  "pointer-events": "none",
-  "position": "absolute",
-  "text-wrap-mode": "nowrap",
-  "top": "-14%",
-  "transform": "translateX(-50%)",
-  "white-space-collapse": "collapse",
-  "z-index": "25"
- },
- ".bubble::after": {
-  "border-bottom-color": "currentcolor",
-  "border-bottom-style": "none",
-  "border-bottom-width": "0px",
-  "border-image-outset": "0",
-  "border-image-repeat": "stretch",
-  "border-image-slice": "100%",
-  "border-image-source": "none",
-  "border-image-width": "1",
-  "border-left-color": "transparent",
-  "border-left-style": "solid",
-  "border-left-width": "8px",
-  "border-right-color": "transparent",
-  "border-right-style": "solid",
-  "border-right-width": "8px",
-  "border-top-color": "rgb(0, 0, 0)",
-  "border-top-style": "solid",
-  "border-top-width": "8px",
-  "bottom": "-11px",
-  "content": "\"\"",
-  "left": "30%",
-  "position": "absolute"
- },
- ".bubble.show": {
-  "animation-delay": "0s",
-  "animation-direction": "normal",
-  "animation-duration": "1.6s",
-  "animation-fill-mode": "forwards",
-  "animation-iteration-count": "1",
-  "animation-name": "bubble",
-  "animation-play-state": "running",
-  "animation-range-end": "normal",
-  "animation-range-start": "normal",
-  "animation-timeline": "auto",
-  "animation-timing-function": "steps(12)"
- },
- "@keyframes bubble » 0%, 60%": {
-  "opacity": "1"
- },
- "@keyframes bubble » 100%": {
-  "opacity": "0"
  },
  ".skip-log": {
   "color": "rgb(154, 143, 184)",
@@ -4486,7 +4411,7 @@ export default {
  "#over-buttons": {
   "margin-top": "12px"
  },
- "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state=\"trigger\"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cord-top .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest.asks .readout .code, .hsign, .momfix .head, .momfix .patch, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cord-top .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",
@@ -4518,10 +4443,13 @@ export default {
  "@media (prefers-reduced-motion: reduce) » #title-scene .note, #setup-critter .note": {
   "opacity": "1"
  },
- "@media (prefers-reduced-motion: reduce) » .nest[data-state=\"trigger\"] .readout > span": {
+ "@media (prefers-reduced-motion: reduce) » .nest.asks .readout .code": {
   "border-bottom-color": "rgb(34, 227, 255)",
   "border-left-color": "rgb(34, 227, 255)",
   "border-right-color": "rgb(34, 227, 255)",
   "border-top-color": "rgb(34, 227, 255)"
+ },
+ "@media (prefers-reduced-motion: reduce) » .momfix .patch": {
+  "transform": "rotate(-12deg)"
  }
 };

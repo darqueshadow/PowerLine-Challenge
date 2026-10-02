@@ -55,13 +55,15 @@
     if (!text.trim() && !ET.CONFIG.errorOnEmpty) return;   // E6: an empty Enter does nothing
     var r = hooks.submit ? hooks.submit(text) : { ok: false };
     if (r.ok || !ET.CONFIG.keepTextOnReject) b.input.value = "";
-    if (!r.ok && !r.blocked) showError(b, r.early);
+    if (!r.ok && !r.blocked) showError(b, r.why);
   }
 
   /* Refinement 2 §6: a red ERROR under the Command Line for about a second, and a buzz. Andrew, 2026-10-01: an RCAV
-     before its CAV's real duration has passed says "Too Early!" instead. */
-  function showError(b, early) {
-    b.el.querySelector(".err").textContent = early ? "Too Early!" : "ERROR";
+     before its CAV's real duration has passed says "Too Early!" instead. E53 (ruled 2026-10-02): a CAV STR on a hospital
+     egg whose VS is still on says "RCAV first!". */
+  var WHY = { early: "Too Early!", "rcav-first": "RCAV first!" };
+  function showError(b, why) {
+    b.el.querySelector(".err").textContent = WHY[why] || "ERROR";
     b.el.classList.remove("rejected");
     void b.el.offsetWidth;
     b.el.style.setProperty("--error", ET.CONFIG.errorSeconds + "s");

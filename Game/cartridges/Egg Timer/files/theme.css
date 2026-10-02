@@ -43,6 +43,14 @@
   --note-clock-label: #fff3d1;            /* cream ("Clear @" wording) */
   --postit: #ffe95c;                      /* post-it yellow */
   --postit-ink: #2a1a00;                  /* dark brown pencil */
+  /* (E54 took AD's notes out of play; the four note colours above stay, as other copies may read them) */
+
+  /* E55: the hospital sign and Mom's patch (⏳ placeholder until Gemini's) */
+  --hospital-blue: #1456c8;               /* road-sign blue (white on it 6.6:1) */
+  --hospital-ink: #fff;                   /* the sign's white H */
+  --stake: #8a5a2b;                       /* the sign's wooden stake */
+  --plaster: #f2c9a0;                     /* Mom's sticking plaster */
+  --plaster-pad: #fff3e6;                 /* its pad */
 
   /* How-to card, title card and arcade bulbs */
   --card: #fff3d1;                        /* cream (how-to card, title card, hose tag) */

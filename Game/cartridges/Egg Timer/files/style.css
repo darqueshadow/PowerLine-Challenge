@@ -231,7 +231,7 @@ h2 {
   cursor: pointer;
   box-shadow: 6px 6px 0 var(--shadow);
 }
-.modes button { min-width: 210px; min-height: 92px; }
+
 .button-bank button.selected {
   background: var(--gold);
   color: var(--bg);
@@ -288,7 +288,7 @@ h2 {
   font-size: clamp(16px, 2.2vw, 26px);
 }
 .hud { position: relative; }
-.hud .mode { margin-left: auto; color: var(--dim); font-size: 0.6em; letter-spacing: 0.1em; }
+
 .pool { color: var(--hot); letter-spacing: 0.15em; }
 .pool.hit { animation: hit 0.5s steps(4); }
 @keyframes hit { 0%, 50% { color: var(--ink); background: var(--hot); } }
@@ -386,11 +386,10 @@ h2 {
 .counts button[data-boxes="3"] { --line: var(--line-3); }
 .counts button[data-boxes="4"] { --line: var(--line-4); }
 .button-bank.counts button.selected { opacity: 1; background: var(--line); color: var(--shadow); border-color: var(--shadow); box-shadow: 2px 2px 0 var(--shadow), 0 0 14px 3px var(--line); }
-/* E28: wave 1's first-game tags, either side of the wall clock (view.js sets their left / right); they never flash */
+/* E28: wave 1's first-game tag, left of the wall clock (view.js sets its right); it never flashes */
 #fieldtop .tip { position: absolute; top: 50%; transform: translateY(-50%); max-width: 30%; padding: 3px 8px; border: 2px solid var(--outline); border-radius: 7px; box-shadow: 3px 3px 0 var(--shadow); font-family: var(--font-display); font-size: clamp(10px, 0.95vw, 15px); letter-spacing: 0.04em; line-height: 1.15; white-space: normal; pointer-events: none; }
 #tip-ready { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
-#tip-clock { background: var(--card); color: var(--outline); }
-#tip-clock .arrow { color: var(--led); text-shadow: 1px 1px 0 var(--outline); }
+
 #cords .leader { fill: none; stroke: var(--leader); stroke-width: 2px; stroke-dasharray: 6 5; opacity: 0.85; }
 #fieldtop { position: relative; z-index: 25; flex: none; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 10px 16px 4px; }
 #board { position: relative; flex: 1; min-height: 0; container-type: size; }
@@ -582,13 +581,13 @@ h2 {
 /* sized and placed so a doodle turned the full doodleTurnMax still clears the text above it */
 #howto .doodles .doodle { position: absolute; width: min(34cqw, 40cqh, 64px); height: auto; aspect-ratio: 1; }
 #howto .doodle { overflow: visible; transform: rotate(var(--turn, 0deg)); transition: transform 0.45s cubic-bezier(0.3, 1.8, 0.5, 1); }
-.howto-panel .doodle .ink { fill: none; stroke: var(--outline); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.howto-panel .doodle .green { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
-.howto-panel .doodle .lilac { fill: var(--lilac); stroke: var(--outline); stroke-width: 3; }
-.howto-panel .doodle .pink { fill: var(--pink); stroke: var(--outline); stroke-width: 2.5; }
-.howto-panel .doodle .shell { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
-.howto-panel .doodle .eye { fill: var(--white); stroke: var(--outline); stroke-width: 2.5; }
-.howto-panel .doodle .dot { fill: var(--outline); }
+:is(.howto-panel, .momfix) .doodle .ink { fill: none; stroke: var(--outline); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+:is(.howto-panel, .momfix) .doodle .green { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
+:is(.howto-panel, .momfix) .doodle .lilac { fill: var(--lilac); stroke: var(--outline); stroke-width: 3; }
+:is(.howto-panel, .momfix) .doodle .pink { fill: var(--pink); stroke: var(--outline); stroke-width: 2.5; }
+:is(.howto-panel, .momfix) .doodle .shell { fill: var(--alien-green); stroke: var(--outline); stroke-width: 3; }
+:is(.howto-panel, .momfix) .doodle .eye { fill: var(--white); stroke: var(--outline); stroke-width: 2.5; }
+:is(.howto-panel, .momfix) .doodle .dot { fill: var(--outline); }
 
 /* Arcade attract lights (2026-09-23, ⏳ placeholder look): bulbs on the panel's border line, so they're never
    behind a word. Lit ones pop bright on the menus; in play (.calm) a lit bulb is dim and fades slowly. The
@@ -637,7 +636,7 @@ h2 {
 .nest[data-state="laying"].popping .egg,   /* the cord egg (Chat's answers, 2026-09-25): the nest's own egg, coming out of the cord */
 .nest[data-state="active"] .egg,
 .nest[data-state="overtime"] .egg { display: inline; }
-.nest.hide-egg .egg { display: none; }
+
 /* the cracks stay vector over the egg picture: bold, drawn in from their first point */
 .crack { fill: none; stroke: var(--crack); stroke-width: 3.5; stroke-dasharray: 1; stroke-dashoffset: 1; stroke-linejoin: miter; }
 /* the egg mirrored left/right about x = 0 (its whole picture, cracks and hints with it) */
@@ -732,7 +731,7 @@ h2 {
 .nest.hop .creature { animation: hatch-hop var(--hatch, 3.2s) ease-in-out forwards; }
 .nest.leapt .creature { visibility: hidden; }
 .nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip { animation-play-state: paused; }
-body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg { animation-play-state: paused; }
+body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg, body.paused .momfix * { animation-play-state: paused; }
 @keyframes hatch-scare {
   0% { transform: translate(0, 0); }
   9% { transform: translate(0, -14px); }
@@ -832,11 +831,52 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .nest[data-state="idle"] .readout > span,
 .nest[data-state="splat"] .readout > span,
 .nest[data-state="escape"] .readout > span { filter: brightness(var(--blank-dim, 0.45)) saturate(0.5); }
-/* ⏳ placeholder cue: a nest asking for a CAV to be placed */
-.nest[data-state="trigger"] .readout > span { animation: cue 0.6s steps(2) infinite; }
+/* ⏳ placeholder cue (E53): a hospital egg whose VS is off asks for its STR: the empty type box pulses cyan */
+.nest.asks .readout .code { animation: cue 0.6s steps(2) infinite; }
 @keyframes cue { 50% { border-color: var(--cyan); } }
-.nest.hide-readout .readout > span { visibility: hidden; }
-.nest.hide-clock .readout .clock { visibility: hidden; }
+
+/* E55 (ruled 2026-10-02; ⏳ placeholder art): the hospital sign on the nest's shoulder, clear of the egg, its readout
+   and the readout of the nest above it (the layout rig measures every sign at every size). Each time it's shown it drops in from above and lands with a little bounce (Andrew's handoff: the Queen drops
+   it as the egg is laid). Under reduced motion it's simply there. */
+.hsign { position: absolute; right: -10%; top: 10%; width: 19%; z-index: 4; pointer-events: none; transform-origin: 50% 100%; animation: hsign-drop 0.45s cubic-bezier(0.3, 0.8, 0.4, 1.3) both; }
+.hsign svg { display: block; width: 100%; overflow: visible; }
+.hsign .plate { fill: var(--hospital-blue); stroke: var(--outline); stroke-width: 3; }
+.hsign .h { fill: none; stroke: var(--hospital-ink); stroke-width: 5; stroke-linecap: square; }
+.hsign .stake { fill: var(--stake); stroke: var(--outline); stroke-width: 2.5; }
+@keyframes hsign-drop {
+  0% { transform: translateY(-160%) rotate(-24deg); }
+  70% { transform: translateY(0) rotate(5deg); }
+  85% { transform: translateY(-6%) rotate(-2deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+
+/* E55 (ruled 2026-10-02; ⏳ placeholder art): Mom repairs a hospital egg, over the nest only (the popups layer: no
+   pointer). Sweet Mom is the how-to panel's mommy doodle, in its colours; creepy Mom the scary HUD face. One timeline, --fix (momRepairSeconds): 0–20% she pops in from above; to 50% she looks down and slaps the
+   patch on (the cracks close: view.js); 50–85% she turns to the player and giggles (a bob); then she ducks out. The patch
+   goes with her. Movement only: nothing flashes or changes brightness. A pause holds it (body.paused). ⚠️ 20%, 50% and
+   85% are config's momRepairSeconds comment's shares. */
+.momfix { position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1; pointer-events: none; }
+.momfix .head { position: absolute; left: 12%; top: -70%; width: 76%; transform-origin: 50% 100%; animation: mom-fix var(--fix, 1.5s) ease-in-out both; }
+.momfix .head svg { display: block; width: 100%; height: auto; overflow: visible; }
+.momfix .patch { position: absolute; left: 28%; top: 20%; width: 44%; overflow: visible; transform-origin: 50% 50%; animation: mom-patch var(--fix, 1.5s) ease-out both; }
+.momfix .patch .strip { fill: var(--plaster); stroke: var(--outline); stroke-width: 2.5; }
+.momfix .patch .pad { fill: var(--plaster-pad); stroke: var(--outline); stroke-width: 1.5; }
+.momfix .patch .hole { fill: var(--outline); }
+@keyframes mom-fix {
+  0% { transform: translateY(-90%) scale(0.2); }
+  20% { transform: translateY(0) scale(1) rotate(0); }
+  30%, 46% { transform: translateY(14%) scale(1) rotate(16deg); }    /* looking down at the egg */
+  52% { transform: translateY(0) scale(1.06) rotate(0); }             /* turns to the player */
+  60%, 76% { transform: translateY(-4%) scale(1.06) rotate(-4deg); }
+  68%, 84% { transform: translateY(3%) scale(1.06) rotate(4deg); }    /* the giggle */
+  100% { transform: translateY(-90%) scale(0.2); }
+}
+@keyframes mom-patch {
+  0%, 28% { transform: scale(0) rotate(-30deg); }
+  38% { transform: scale(1.15) rotate(-12deg); }
+  44%, 85% { transform: scale(1) rotate(-12deg); }
+  100% { transform: scale(0) rotate(-12deg); }
+}
 
 /* ⏳ placeholder: the frying pan slams down in well under half a second (Refinement 2 §5). Pure CSS,
    so it can never hold up the keyboard. */
@@ -895,79 +935,11 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .dish .foam { fill: var(--foam); stroke: var(--shadow); stroke-width: 1.5; }
 .dish .handle { fill: none; stroke: var(--shadow); stroke-width: 3; }
 
-/* ⏳ placeholder look: the AD post-it, on the nest's shoulder (Timer Refinement §4) */
-.postit {
-  position: absolute;
-  right: -16%;
-  top: 2%;
-  padding: 3px 5px;
-  background: var(--postit);
-  color: var(--postit-ink);
-  border: 2px solid var(--shadow);
-  box-shadow: 3px 3px 0 var(--shadow);
-  transform: rotate(6deg);
-  font-family: var(--font-ui);
-  font-weight: 400;
-  font-size: clamp(10px, 1.05vw, 15px);
-  white-space: nowrap;
-  z-index: 4;
-}
-.nest.bold .postit { font-weight: 900; }
-/* AD note styles (Andrew approved, 2026-09-23; ⏳ placeholder look). Two distinct looks:
-   "Clear @ HH:MM": the HH:MM mirrors the WALL CLOCK exactly (its LED colour and 7-segment font): watch the wall
-   clock. The wording is chunky rounded cream lettering, on a dark charcoal note (Andrew, 2026-09-23 night).
-   "20 min" stays a post-it, hand-lettered: watch this nest's timer. The layout rig fits both at all four sizes. */
-.postit.at-clock {
-  padding: 2px 6px;
-  background: var(--note-clock-bg);
-  color: var(--led);
-  border: 3px solid var(--led);
-  box-shadow: 3px 3px 0 var(--hot);
-  transform: none;
-  font-family: var(--font-led);
-  font-weight: 900;
-  text-shadow: 1px 1px 0 var(--led-shadow);
-  line-height: 1.1;
-}
-/* HH:MM in the wall clock's own DSEG7; "Clear @" in Fredoka, cream, with a hard black offset (no glow) */
-.postit.at-clock .led-text { font-family: var(--font-rounded); font-weight: 700; color: var(--note-clock-label); text-shadow: 1px 1px 0 var(--shadow); }
-.postit.minutes { font-family: "Patrick Hand", var(--font-ui); font-size: clamp(13px, 1.3vw, 19px); line-height: 1.05; padding: 2px 7px; }
-
-/* ⏳ placeholder look: VF's "Clear Fueling" speech bubble, shown briefly then faded */
-.bubble {
-  position: absolute;
-  left: 50%;
-  top: -14%;
-  padding: 4px 9px;
-  background: var(--ink);
-  color: var(--bg);
-  border: 3px solid var(--shadow);
-  border-radius: 14px;
-  font-family: var(--font-display);
-  font-size: clamp(11px, 1.2vw, 17px);
-  white-space: nowrap;
-  opacity: 0;
-  transform: translateX(-50%);
-  z-index: 25;
-  pointer-events: none;
-}
-.bubble::after {
-  content: "";
-  position: absolute;
-  left: 30%;
-  bottom: -11px;
-  border: 8px solid transparent;
-  border-top-color: var(--shadow);
-  border-bottom: 0;
-}
-.bubble.show { animation: bubble 1.6s steps(12) forwards; }
-@keyframes bubble { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
 
 .skip-log { color: var(--dim); font-family: var(--font-mono); font-size: 13px; max-width: 80vw; }
 
-/* Refinement 3 rulings (E14): a nest's gunk sits over its egg, its readout AND its post-it again, as in the
-   original design (the VF bubble, the pan and the fx stay above it); the board-wide floor mess sits under
-   every nest */
+/* Refinement 3 rulings (E14): a nest's gunk sits over its egg and its readout again, as in the original design (the
+   pan and the fx stay above it); the board-wide floor mess sits under every nest */
 .mess { position: absolute; left: -6%; top: 6%; width: 112%; height: 100%; pointer-events: none; z-index: 5; }
 .readout { position: relative; z-index: 3; }
 .floor-mess { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -1197,10 +1169,12 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 #over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
-  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest[data-state="trigger"] .readout > span, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cord-top .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest.asks .readout .code, .hsign, .momfix .head, .momfix .patch, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cord-top .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
   .nest.scare .creature, .nest.hop .creature { animation: none; }   /* Andrew, 2026-10-01: the alien sits still in its nest */
   #title-scene .note, #setup-critter .note { opacity: 1; }
-  /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24) */
-  .nest[data-state="trigger"] .readout > span { border-color: var(--cyan); }
+  /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24; E53: for its STR) */
+  .nest.asks .readout .code { border-color: var(--cyan); }
+  /* E55: Mom appears, still, with her patch on the egg, and goes (view.js removes her at the end of her visit) */
+  .momfix .patch { transform: rotate(-12deg); }
 }

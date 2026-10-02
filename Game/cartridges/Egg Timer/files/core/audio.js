@@ -441,6 +441,25 @@
       tone("sine", 180, 520, 0.12, v);
       tone("sine", 520, 260, 0.22, v * 0.8, 0.1);
     },
+    /* E56 (ruled 2026-10-02; ⏳ synthesized placeholder until recorded): Mom's giggle as she turns to the player after
+       repairing a hospital egg. Sweet Mom: four quick bright "hee"s, falling. Creepy Mom (wave 2 on): slower, lower,
+       two voices a little apart, with a breathy hiss under it. Both under THONG, the buzz and the hiss, with no dip. */
+    giggle: function (kind) {
+      var G = ET.CONFIG.giggle;
+      if (kind === "creepy") {
+        [0, 0.17, 0.34, 0.53].forEach(function (d, i) {
+          var f = 520 - i * 45;
+          tone("triangle", f, f * 0.82, 0.15, G.creepy, d);
+          tone("sawtooth", f * 1.06, f * 0.8, 0.14, G.creepy * 0.35, d + 0.01);   // the second voice, a little off
+        });
+        noise(0.7, G.creepy * 0.5, 2400);
+        return;
+      }
+      [0, 0.11, 0.22, 0.33].forEach(function (d, i) {
+        var f = 1250 - i * 90;
+        tone("sine", f, f * 1.3, 0.09, G.sweet, d);
+      });
+    },
 
     /* Music: which track should play (null for none). The same track carries on; another fades the current one out and
        itself in. Before sound is allowed it waits, and starts on the first key or click. */

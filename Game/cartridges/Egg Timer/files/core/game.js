@@ -9,19 +9,27 @@
      clock  the displayed seconds every clock on screen shows. It runs sped up, at one
             shared rate that steps up on even waves, and a CAV goes bold on it.
    The wall clock is wallStart + clock, wrapped at midnight.
-   Time Warp (Refinement 3 §4, E18): once the wave's last CAV has started (none
-   still waiting to be placed) and no egg is bold, `clock` runs warpFactor times as fast, until the next egg goes bold.
+   Time Warp (Refinement 3 §4, E18): once the wave's last CAV has started and no egg is bold, `clock` runs warpFactor
+   times as fast, until the next egg goes bold.
    E39: it also runs while 2 or more eggs are each over 8:00 (displayed) from their bold mark, again never while an
    egg is bold.
    `time` never warps, so the overtime window is never shortened.
 
+   One mode (Andrew's hospital eggs handoff, 2026-10-01; E52–E56 ruled 2026-10-02): every egg is laid with a VS, and
+   about 70% (hospitalShare) are HOSPITAL eggs, with an H sign on the nest. A refusal egg is cleared with one RCAV as
+   always. A hospital egg needs RCAV and then CAV #### STR inside the same hatch window; the STR is window 1's clear
+   (E52: its tier's points, no splat: Mom repairs the egg), its clock starts at once, and when the STR runs out the
+   egg cracks again for an ordinary last window and an ordinary RCAV.
+
    A nest's life (packet §6–§7):
-     idle ─spawn─▶ trigger (two-phase: waits for CAV #### TYPE, auto-opens on timeout)
-          └───────▶ laying  (Refinement 3 §7: the cord lowers the egg in; no clock yet)
-                    ─the pop─▶ active  (timer counts up from here, egg grows; RCAV does nothing yet)
-                    ─real duration on the clock─▶ overtime (bold + RCAV valid + egg cracks, one event)
-                    ─RCAV─▶ splat ─▶ idle          (cleared: points; a small splat on the nest, the rest over the board, E15)
-                    ─overtime runs out─▶ escape ─▶ idle   (hatched: pool −1)
+     idle ─spawn─▶ laying  (Refinement 3 §7: the cord lowers the egg in; no clock yet)
+                   ─the pop─▶ active  (timer counts up from here, egg grows; RCAV does nothing yet)
+                   ─real duration on the clock─▶ overtime (bold + RCAV valid + egg cracks, one event)
+                   ─RCAV─▶ splat ─▶ idle          (cleared: points; a small splat on the nest, the rest over the board, E15)
+                   ─overtime runs out─▶ escape ─▶ idle   (hatched: pool −1)
+     a hospital egg's first window (still "overtime"):
+                   ─RCAV─▶ (removed: the VS is off, the STR not yet on; it keeps cracking)
+                   ─CAV #### STR─▶ active again on the STR (repaired), then on as above
    ========================================================================= */
 (function (root) {
   var ET = (root.ET = root.ET || {});
@@ -39,11 +47,18 @@
   var COLS = 4, ROWS = 3;
   var UNLOCK_ORDER = [0, 3, 8, 11, 5, 6, 1, 10, 2, 9, 4, 7];
 
+  function byCode(types, code) {
+    return (types || []).filter(function (t) { return t.code === code; })[0] || null;
+  }
+
   function Game(opts) {
     var C = ET.CONFIG;
-    this.mode = opts.mode;                 // "clear" | "progression" | "both"
     this.boxes = opts.boxes || 1;
     this.types = opts.types || [];
+    // E54: every egg is laid with a VS; a hospital egg's second CAV is the STR. Both from the table as it is.
+    this.first = byCode(this.types, C.eggType);
+    this.second = byCode(this.types, C.hospitalType);
+    this.hospitalShare = opts.hospitalShare !== undefined ? opts.hospitalShare : C.hospitalShare;
     // the pool is the distinct unit numbers (Refinement 4 §3); the sheet's five doubles were removed 2026-09-23, this stays as a guard
     this.units = (opts.units || []).filter(function (u, i, all) { return all.indexOf(u) === i; });
     this.rng = opts.rng || Math.random;
@@ -66,11 +81,10 @@
     this.escapes = 0;
     this.streak = 0;                       // consecutive fast clears: the egg ladder (cosmetic, carries across waves)
     this.unitsUsed = {};                   // units drawn this wave (Refinement 4 §3)
-    this.typeBag = [];                     // the wave's shuffle bag of CAV types (Refinement 4 §4)
     this.nextSpawnAt = 0;
     this.cleanupEndsAt = 0;
     this.events = [];
-    this.stats = { placed: 0, autoOpened: 0, cleared: 0, hatched: 0, skipped: 0, rejected: 0, perfectWaves: 0, skippedByWave: {} };
+    this.stats = { hospital: 0, removed: 0, repaired: 0, cleared: 0, hatched: 0, skipped: 0, rejected: 0, perfectWaves: 0, skippedByWave: {} };
     this.nests = [];
     for (var i = 0; i < COLS * ROWS; i++) {
       this.nests.push({ id: i, col: i % COLS, row: Math.floor(i / COLS), unlocked: false, fixedUnit: null });
@@ -93,12 +107,12 @@
     n.state = "idle";
     n.unit = ET.CONFIG.unitAssignment === "per-nest" ? n.fixedUnit : null;
     n.type = null;
-    n.placement = false;
-    n.timeoutAt = 0;
+    n.hospital = false;    // the H sign: this egg needs RCAV, then CAV #### STR
+    n.removed = false;     // a hospital egg's VS is off and its STR not yet on
+    n.repaired = false;    // a hospital egg on its STR (Mom has repaired it)
     n.startedAt = 0;
     n.startedClock = 0;
     n.boldClock = 0;
-    n.note = null;
     n.boldAt = 0;
     n.hatchAt = 0;
     n.busyUntil = 0;
@@ -123,7 +137,6 @@
     this.rate = ET.rules.clockRate(wave);
     this.stats.skippedByWave[wave] = 0;
     this.unitsUsed = {};                   // a fresh unit pool each wave
-    this.typeBag = [];                     // …and a fresh bag of CAV types (⏳ E20)
     this.phase = "wave";
     this.nextSpawnAt = this.time;
     this.emit("wave-start", { wave: wave, quota: this.quota, speed: this.speed });
@@ -146,9 +159,8 @@
     return this.nests.filter(function (n) { return n.unlocked; });
   };
 
-  /* A unit not currently on the board, so no two nests ever share a number (a trigger waiting to be
-     placed counts as on the board). Refinement 4 §3: within a wave no unit repeats until the whole unit
-     pool has been used; then the pool refills, still never giving out one that's on the board. */
+  /* A unit not currently on the board, so no two nests ever share a number. Refinement 4 §3: within a wave no unit
+     repeats until the whole unit pool has been used; then the pool refills, still never giving out one that's on the board. */
   Game.prototype.freeUnit = function () {
     var perNest = ET.CONFIG.unitAssignment === "per-nest";
     var onBoard = {}, usedThisWave = this.unitsUsed;
@@ -167,30 +179,6 @@
     return unit;
   };
 
-  /* Refinement 4 §4: CAV types come out of a shuffle bag holding each type once; when it empties it is
-     refilled and reshuffled, so the mix stays even (the old draw was uniform at random, with no weights).
-     A two-phase-only type (VF) can only be drawn for a spawn that needs placing: where none can (Clear CAVs
-     Only, and Follow Progression's waves with a 0% placement chance) the bag leaves it out; otherwise a VF
-     the spawn can't take waits in the bag for the next placement spawn, and isn't added again while it
-     waits (⏳ E19). */
-  Game.prototype.pickType = function (placement) {
-    var self = this;
-    var noPlacing = this.mode === "clear" || (this.mode === "progression" && ET.rules.placementChance(this.wave) <= 0);
-    var fits = function (t) { return placement || !t.twoPhaseOnly; };
-    var i = this.typeBag.findIndex(fits);
-    if (i < 0) {
-      var fresh = this.types.filter(function (t) { return !(noPlacing && t.twoPhaseOnly) && self.typeBag.indexOf(t) < 0; });
-      for (var k = fresh.length - 1; k > 0; k--) {        // Fisher–Yates, on the game's own random source
-        var j = Math.floor(this.rng() * (k + 1)), tmp = fresh[k];
-        fresh[k] = fresh[j];
-        fresh[j] = tmp;
-      }
-      this.typeBag = this.typeBag.concat(fresh);
-      i = this.typeBag.findIndex(fits);
-    }
-    return i < 0 ? null : this.typeBag.splice(i, 1)[0];
-  };
-
   Game.prototype.spawn = function () {
     var idle = this.unlocked().filter(function (n) { return n.state === "idle"; });
     if (!idle.length) {
@@ -199,77 +187,55 @@
       this.emit("spawn-skipped");   // packet §4: a full board loses the spawn, no queueing
       return false;
     }
-    var placement = ET.rules.needsPlacement(this.mode, this.wave, this.rng);
-    var type = this.pickType(placement);
-    if (!type) {
+    if (!this.first) {
       this.emit("no-types");
       return false;
     }
     var n = idle[Math.floor(this.rng() * idle.length)];
     n.unit = ET.CONFIG.unitAssignment === "per-nest" ? n.fixedUnit : this.freeUnit();
-    n.type = type;
-    n.placement = placement;
+    n.type = this.first;
+    // E56 (ruled): a plain random roll per egg, on the game's own source (so ?seed= replays it)
+    n.hospital = !!this.second && this.rng() < this.hospitalShare;
+    if (n.hospital) this.stats.hospital++;
     this.spawned++;
-    if (placement) {
-      n.state = "trigger";
-      n.timeoutAt = this.time + ET.rules.placementTimeout(this.wave);
-      this.emit("trigger", { nest: n.id });
-    } else {
-      this.activate(n, "auto");
-    }
+    this.activate(n, "auto");
     return true;
   };
 
-  /* A CAV starts (spawned, placed or auto-opened): Refinement 3 §7's cord lays the egg first, and its
-     clock starts at the pop (step()). */
+  /* A CAV starts: Refinement 3 §7's cord lays the egg first, and its clock starts at the pop (step()). */
   Game.prototype.activate = function (n, how) {
     var C = ET.CONFIG;
     n.state = "laying";
     n.how = how;
     n.layAt = this.time;
     n.layUntil = this.time + C.layDrop + C.layPop;
-    this.emit("laying", { nest: n.id, how: how });
+    this.emit("laying", { nest: n.id, how: how, hospital: n.hospital });
   };
 
   /* The pop: the egg is in and the CAV's clock starts. `late` is how far past the pop this step ran, in
      player seconds, at `rate`, so the clock starts on the exact instant. */
   Game.prototype.pop = function (n, late, rate) {
-    var C = ET.CONFIG;
     late = late || 0;
-    var minutes = ET.rules.minutesFor(n.type, this.rng);
     n.state = "active";
     n.startedAt = this.time - late;
     n.startedClock = this.clock - late * (rate === undefined ? this.rate : rate);
-    n.boldClock = n.startedClock + minutes * 60;
-    n.note = null;
-    if (C.postItCodes.indexOf(n.type.code) >= 0) {
-      if (this.rng() < C.postItClockChance) {
-        // "Clear @ 14:35": bold when the WALL clock reads it, whatever the nest clock says (E1: the next whole minute after start + draw)
-        var wall = this.wallStart + n.startedClock;
-        var minute = C.adClockTarget === "full-minutes" ? Math.ceil(wall / 60) : Math.floor(wall / 60);
-        var target = (minute + minutes) * 60;
-        n.boldClock = target - this.wallStart;
-        n.note = { kind: "clock", minutes: minutes, at: ((target % 86400) + 86400) % 86400 };
-      } else {
-        n.note = { kind: "duration", minutes: minutes };   // "20 min": bold at 20:00 on the nest clock
-      }
-    }
-    this.emit("active", { nest: n.id, how: n.how });
+    n.boldClock = n.startedClock + ET.rules.minutesFor(n.type, this.rng) * 60;
+    this.emit("active", { nest: n.id, how: n.how, hospital: n.hospital });
   };
 
   Game.prototype.wall = function () {
     return (((this.wallStart + this.clock) % 86400) + 86400) % 86400;
   };
 
-  /* Time Warp is on once the wave's last CAV has spawned AND started, and no egg is bold; or (E39) while 2 or more
-     eggs are each over 8:00 from their bold mark, again with no egg bold (checked every step, so it re-checks after
-     each clear, hatch and pop). */
+  /* Time Warp is on once the wave's last CAV has spawned (it starts at once: nothing waits to be placed now, E54), and
+     no egg is bold; or (E39) while 2 or more eggs are each over 8:00 from their bold mark, again with no egg bold
+     (checked every step, so it re-checks after each clear, hatch and pop). A hospital egg waiting for its STR is still
+     bold (overtime), so it holds the warp off too. */
   Game.prototype.warping = function () {
     if (this.phase !== "wave") return false;
     var live = this.nests.filter(function (n) { return n.unlocked; });
     if (live.some(function (n) { return n.state === "overtime"; })) return false;   // never while an egg is bold
-    // E18 (ruled): the last CAV must have started (placed or auto-opened): none still waiting to be placed
-    if (this.spawned >= this.quota && !live.some(function (n) { return n.state === "trigger"; })) return true;
+    if (this.spawned >= this.quota) return true;
     return this.farEggs() >= ET.CONFIG.warpFar.eggs;
   };
   /* E39: how many running eggs are more than warpFar.seconds (displayed) from their bold mark. */
@@ -304,17 +270,15 @@
     var nests = this.unlocked();
     for (var i = 0; i < nests.length; i++) {
       var n = nests[i];
-      if (n.state === "trigger" && this.time >= n.timeoutAt) {
-        this.stats.autoOpened++;
-        this.activate(n, "auto-open");
-      }
       if (n.state === "laying" && this.time >= n.layUntil) this.pop(n, this.time - n.layUntil, rate);
       if (n.state === "active" && this.clock >= n.boldClock) {
         // overtime is player seconds from the moment the clock crossed the mark, not from this step
         n.boldAt = this.time - (this.clock - n.boldClock) / rate;
-        n.hatchAt = n.boldAt + ET.rules.overtimeFor(this.wave, this.rng);
+        // E53: a hospital egg's first window can be tuned on its own (hospitalWindowScale, 1 = the same as every egg)
+        var scale = n.hospital && !n.repaired ? C.hospitalWindowScale : 1;
+        n.hatchAt = n.boldAt + ET.rules.overtimeFor(this.wave, this.rng) * scale;
         n.state = "overtime";
-        this.emit("bold", { nest: n.id });
+        this.emit("bold", { nest: n.id, hospital: n.hospital, repaired: n.repaired });
       }
       if (n.state === "overtime" && this.time >= n.hatchAt) {
         this.hatch(n);
@@ -393,59 +357,95 @@
     });
   };
 
-  /* One Enter from the active Command Box. Returns what happened; anything that
-     doesn't act on the board is rejected silently (no pool damage, no penalty). */
+  /* E52 (ruled 2026-10-02): CAV #### STR on a hospital egg whose VS is off. Window 1 scores here, by the same tiers as
+     any clear, at this moment (the egg is saved). No pan, no THONG, no splat, mess or pieces: Mom repairs the egg. The
+     egg ladder follows the final clear only, so the streak stays where it is. The STR's clock starts now. */
+  Game.prototype.repair = function (n) {
+    var C = ET.CONFIG;
+    var into = this.time - n.boldAt, span = n.hatchAt - n.boldAt;
+    var points = ET.rules.clearPoints(into, span);
+    var tier = ET.rules.clearTier(into, span);
+    this.score += points;
+    this.stats.repaired++;
+    n.removed = false;
+    n.repaired = true;
+    n.type = this.second;
+    n.state = "active";
+    n.startedAt = this.time;
+    n.startedClock = this.clock;
+    n.boldClock = this.clock + ET.rules.minutesFor(n.type, this.rng) * 60;
+    n.boldAt = 0;
+    n.hatchAt = 0;
+    // E55 (ruled): sweet Mom in the first wave(s), creepy Mom after (matching the scary HUD face)
+    var mom = this.wave <= C.momSweetUntilWave ? "sweet" : "creepy";
+    this.emit("repaired", { nest: n.id, points: points, tier: tier, mom: mom });
+    return { ok: true, kind: "cav", nest: n.id, points: points, repaired: true };
+  };
+
+  /* One Enter from the active Command Line. Returns what happened. Anything that doesn't act on the board is a rejected
+     Enter (E6: the line clears, ERROR and a buzz, no pool damage); some say why instead of ERROR (`why`). */
   Game.prototype.submit = function (text) {
     var cmd = ET.commands.parse(text);
     var nests = this.unlocked();
     var live = this.phase === "wave" || this.phase === "cleanup";
-    var hit = null;
-
-    if (live && cmd && cmd.kind === "cav") {
-      hit = nests.filter(function (n) { return n.state === "trigger" && n.unit === cmd.unit; })[0];
-      if (hit && hit.type.code === cmd.type) {
-        this.activate(hit, "placed");
-        this.score += ET.CONFIG.placementPoints;
-        this.stats.placed++;
-        this.emit("placed", { nest: hit.id, points: ET.CONFIG.placementPoints });
-        return { ok: true, kind: "cav", nest: hit.id, points: ET.CONFIG.placementPoints };
-      }
-    }
+    var hit = null, why = null;
+    var onUnit = function (unit) { return nests.filter(function (n) { return n.state !== "idle" && n.unit === unit; })[0] || null; };
 
     if (live && cmd && cmd.kind === "rcav") {
-      hit = nests.filter(function (n) { return n.state === "overtime" && n.unit === cmd.unit; })[0];
-      if (hit) {
-        var into = this.time - hit.boldAt, span = hit.hatchAt - hit.boldAt;
-        var points = ET.rules.clearPoints(into, span);
-        this.score += points;
-        hit.state = "splat";
-        hit.busyUntil = this.time + ET.CONFIG.splatSeconds;
-        this.resolved++;
-        this.stats.cleared++;
-        // the egg ladder: a fast clear climbs a rung (and stays at the top); a slow one drops to the bottom
-        var fast = ET.rules.isFastClear(into, span);
-        this.streak = fast ? this.streak + 1 : 0;
-        this.emit("cleared", {
-          nest: hit.id,
-          points: points,
-          tier: ET.rules.clearTier(into, span),   // E26: 1 (fast, elegant) … 5 (slow, alien); the break stage it will show
-          fast: fast,
-          rung: fast ? Math.min(this.streak, ET.CONFIG.ladder.length) - 1 : -1,   // which dish, or none
-          streak: this.streak
-        });
-        return { ok: true, kind: "rcav", nest: hit.id, points: points };
+      hit = onUnit(cmd.unit);
+      if (hit && hit.state === "overtime" && !hit.removed) {
+        // E53: a hospital egg's first RCAV takes the VS off; the egg keeps cracking until the STR is on
+        if (hit.hospital && !hit.repaired) {
+          hit.removed = true;
+          this.stats.removed++;
+          this.emit("removed", { nest: hit.id });
+          return { ok: true, kind: "rcav", nest: hit.id, points: 0, removed: true };
+        }
+        return this.clear(hit);
       }
+      // Andrew, 2026-10-01: an RCAV for a CAV whose real duration hasn't passed yet (its egg still laying or running,
+      // the STR's included) is "Too Early!", not ERROR. E53: a second RCAV on a removed VS is ERROR (nothing to remove).
+      if (hit && (hit.state === "laying" || hit.state === "active")) why = "early";
     }
 
-    // Andrew, 2026-10-01: an RCAV for a CAV whose real duration hasn't passed yet (its egg still laying or running) is
-    // "Too Early!", not ERROR. It's still a rejected Enter in every other way (E6: no penalty; the egg ladder drops).
-    var early = live && cmd && cmd.kind === "rcav" && nests.some(function (n) {
-      return (n.state === "laying" || n.state === "active") && n.unit === cmd.unit;
-    });
+    if (live && cmd && cmd.kind === "cav") {
+      hit = onUnit(cmd.unit);
+      var str = this.second && cmd.type === this.second.code;
+      if (hit && str && hit.hospital && !hit.repaired && hit.state === "overtime" && hit.removed) return this.repair(hit);
+      // E53: the STR before the VS is off (laying, running, or cracking with the VS still on) is "RCAV first!"; the STR on
+      // a refusal egg, on one already on its STR, or any other type is ERROR
+      if (hit && str && hit.hospital && !hit.repaired && !hit.removed &&
+          (hit.state === "laying" || hit.state === "active" || hit.state === "overtime")) why = "rcav-first";
+    }
+
     this.stats.rejected++;
-    this.streak = 0;                 // any ERROR drops the egg ladder to the bottom
-    this.emit("rejected", { text: text, early: !!early });
-    return early ? { ok: false, early: true } : { ok: false };
+    this.streak = 0;                 // any rejected Enter drops the egg ladder to the bottom (E6)
+    this.emit("rejected", { text: text, why: why, early: why === "early" });
+    return { ok: false, why: why, early: why === "early" };
+  };
+
+  /* The final clear of any egg: a refusal egg's only RCAV, or a hospital egg's RCAV on its STR. */
+  Game.prototype.clear = function (hit) {
+    var into = this.time - hit.boldAt, span = hit.hatchAt - hit.boldAt;
+    var points = ET.rules.clearPoints(into, span);
+    this.score += points;
+    hit.state = "splat";
+    hit.busyUntil = this.time + ET.CONFIG.splatSeconds;
+    this.resolved++;
+    this.stats.cleared++;
+    // the egg ladder: a fast clear climbs a rung (and stays at the top); a slow one drops to the bottom
+    var fast = ET.rules.isFastClear(into, span);
+    this.streak = fast ? this.streak + 1 : 0;
+    this.emit("cleared", {
+      nest: hit.id,
+      points: points,
+      tier: ET.rules.clearTier(into, span),   // E26: 1 (fast, elegant) … 5 (slow, alien); the break stage it will show
+      fast: fast,
+      rung: fast ? Math.min(this.streak, ET.CONFIG.ladder.length) - 1 : -1,   // which dish, or none
+      streak: this.streak,
+      hospital: hit.hospital
+    });
+    return { ok: true, kind: "rcav", nest: hit.id, points: points };
   };
 
   Game.prototype.drain = function () {
@@ -462,7 +462,6 @@
       wall: this.wall(),
       speed: this.speed,
       warp: this.warping(),
-      mode: this.mode,
       wave: this.wave,
       phase: this.phase,
       pool: this.pool,
@@ -479,14 +478,17 @@
         var C = ET.CONFIG;
         return {
           id: n.id, col: n.col, row: n.row, state: n.state, unit: n.unit,
-          code: n.type ? n.type.code : null,
-          hidden: !!(n.type && n.type.hiddenUntilTrigger && (n.state === "active" || n.state === "laying")),
-          // the cord (Refinement 3 §7): 0–1 through the lay, then 0–1 through the retract after the pop
+          // E53: between the RCAV and the STR the type box is empty, asking for the STR
+          code: n.type && !n.removed ? n.type.code : n.removed ? "" : null,
+          hospital: n.hospital,
+          removed: n.removed,
+          repaired: n.repaired,
+          // the cord (Refinement 3 §7): 0–1 through the lay, then 0–1 through the retract after the pop (not the STR's start)
           lay: n.state === "laying" ? Math.min(1, (t - n.layAt) / Math.max(0.001, C.layDrop + C.layPop)) : null,
-          retract: running && t - n.startedAt < C.layRetract ? (t - n.startedAt) / C.layRetract : null,
+          retract: running && !n.repaired && t - n.startedAt < C.layRetract ? (t - n.startedAt) / C.layRetract : null,
           elapsed: running ? self.clock - n.startedClock : 0,   // displayed seconds, still counting through overtime
-          grow: running ? Math.min(1, (self.clock - n.startedClock) / Math.max(0.001, n.boldClock - n.startedClock)) : 0,
-          note: running && n.note ? { kind: n.note.kind, minutes: n.note.minutes, at: n.note.at } : null,
+          // a repaired egg is already full grown: the STR's clock doesn't shrink it
+          grow: running ? (n.repaired ? 1 : Math.min(1, (self.clock - n.startedClock) / Math.max(0.001, n.boldClock - n.startedClock))) : 0,
           crack: n.state === "overtime" ? Math.min(1, (t - n.boldAt) / Math.max(0.001, n.hatchAt - n.boldAt)) : 0
         };
       })
