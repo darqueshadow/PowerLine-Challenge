@@ -195,9 +195,10 @@
   }
 
   /* The drool. R: { x, y (her mouth, in the host's px), len (the strand's full length, px), land: { x, y } or null (where
-     the drop lands: view.js picks a spot clear of everything; null, there's none, and it just falls away), onLand }.
-     The strand shows only while she faces the player (pose B); the drop, once let go, falls on its own. Reduced motion:
-     nothing moves, and the splat is simply there once the drop would have let go. */
+     the drop lands: view.js picks a spot clear of everything; null, there's none, and it just falls away), glow (the
+     halo's radius, px), onLand }. The strand shows only while she faces the player (pose B); the drop, once let go,
+     falls on its own. Glowing purple (Chat, 2026-10-02): a steady halo that follows the shapes (style.css's
+     drop-shadow). Reduced motion: nothing moves, and the splat is simply there once the drop would have let go. */
   function buildDrool(clip, R, ox, oy, hw) {
     var NS = "http://www.w3.org/2000/svg";
     var svg = document.createElementNS(NS, "svg");
@@ -205,6 +206,7 @@
     svg.setAttribute("aria-hidden", "true");
     var mk = function (tag, cls) { var e = document.createElementNS(NS, tag); e.setAttribute("class", cls); svg.appendChild(e); return e; };
     var strand = mk("path", "strand"), shine = mk("path", "shine"), bulb = mk("ellipse", "mom-drop bulb"), drop = mk("ellipse", "mom-drop falling"), glint = mk("circle", "glint");
+    if (R.glow) svg.style.setProperty("--glow", R.glow.toFixed(1) + "px");
     clip.appendChild(svg);
     var D = ET.CONFIG.momDrool, T = ET.CONFIG.momRepairSeconds;
     var mx = R.x + ox, my = R.y + oy, rb = R.drop || Math.max(4, hw * 0.065), w0 = rb * 0.9;

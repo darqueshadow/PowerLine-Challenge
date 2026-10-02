@@ -3468,6 +3468,7 @@ export default {
   "visibility": "visible"
  },
  ".mom-visit .mom-drool": {
+  "filter": "drop-shadow(rgba(199, 125, 255, 0.7) 0px 0px 4px)",
   "height": "100%",
   "left": "0px",
   "overflow-x": "visible",
@@ -3477,7 +3478,7 @@ export default {
   "width": "100%"
  },
  ".mom-visit .mom-drool .strand, .mom-visit .mom-drool .mom-drop": {
-  "fill": "rgb(255, 212, 58)",
+  "fill": "rgb(176, 77, 255)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-linejoin": "round",
   "stroke-width": "1.6",
@@ -3485,13 +3486,13 @@ export default {
  },
  ".mom-visit .mom-drool .shine": {
   "fill": "none",
-  "stroke": "rgb(255, 244, 214)",
+  "stroke": "rgb(243, 220, 255)",
   "stroke-linecap": "round",
   "stroke-width": "1.2",
   "visibility": "hidden"
  },
  ".mom-visit .mom-drool .glint": {
-  "fill": "rgb(255, 244, 214)",
+  "fill": "rgb(243, 220, 255)",
   "visibility": "hidden"
  },
  ".mom-defs": {

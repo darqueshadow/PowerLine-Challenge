@@ -1226,6 +1226,8 @@ try {
     if (d) {
       eq(d.s.map((x) => [x.pose, x.strand, x.splat]).concat([d.s[2].drop]), [["down", false, false], ["face", true, false], ["face", true, false], ["giggle", false, true], ["face", false, true], true],
         `Mom kit: creepy Mom drools in pose B only: the strand, then the drop falling, then the splat where it lands   [nest ${d.id}]`);
+      ok(d.fill === "#b04dff" && d.purple > 50 && /drop-shadow/.test(d.glow), `Chat's colour ruling: the drool, the drop and the splat are glowing purple, a halo that follows the shapes   [${d.fill}, ${d.purple} purple px, ${d.glow}]`);
+      eq(d.onObstacle, 0, "Chat's colour ruling: the splat's glow, like the splat, touches no nest, readout, sign, timer, the sink tag or the trough");
       ok(d.bobs > 3, `Chat's giggle ruling: pose C bobs gently while it's held   [${d.bobs} heights]`);
       ok(d.clear && d.cov > 0, `Mom kit: the splat lands on the floor, clear of every nest, readout, sign, timer, the sink tag and the trough   [coverage ${(d.cov * 100).toFixed(2)}%]`);
       ok(d.after < d.cov * 0.05, `Mom kit: …and washes off like any goo (the floor's own wipe)   [${(d.cov * 100).toFixed(2)}% → ${(d.after * 100).toFixed(2)}%]`);

@@ -64,8 +64,9 @@
     // In the visit's seconds (as momTimeline): the strand stretches from her mouth over grow, a drop swells at its end
     // until drop, where it lets go and falls (the strand snaps back by snap). length: the strand, a share of her head's
     // height; splat, drop_r: the splat's size and the drop's, shares of her head's width; gravity: px/s² (more if it
-    // must land before she goes). [T]
-    momDrool: { grow: [0.75, 0.87], drop: 0.93, snap: 0.99, length: 0.32, splat: 0.18, drop_r: 0.065, gravity: 2200 },
+    // must land before she goes); glow: Chat's colour ruling (2026-10-02), the soft halo round the strand, the drop and
+    // the splat, a share of her head's width, steady (no pulse, so reduced motion needs nothing more). [T]
+    momDrool: { grow: [0.75, 0.87], drop: 0.93, snap: 0.99, length: 0.32, splat: 0.18, drop_r: 0.065, gravity: 2200, glow: 0.06 },
     // Mom kit (Chat's brief, 2026-10-02): creepy Mom's tongue wobbles while she giggles: a small warp of the tongue's
     // own oval (mom-parts.js), fading to nothing at its edge, so there's no seam. shift: the most it moves, a share of
     // her head's width; hz: how fast. The giggle ruling (2026-10-02): it runs for the whole of pose C's hold, reduced

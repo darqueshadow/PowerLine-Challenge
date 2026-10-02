@@ -603,20 +603,21 @@
      nest, readout, sign, timer, the sink tag or the trough; the drop's own fall (a straight line, drifting a little to
      the side at most) must cross none of them either. So the spot is searched for: straight down first, then further
      to either side, nearest first. None clear: `stop`, how far straight down it can fall before it would touch
-     anything; it fades out before then and leaves no splat. */
+     anything; it fades out before then and leaves no splat. The glow (Chat, 2026-10-02: glowing purple) counts as part
+     of it everywhere: the splat's clear zone and the drop's path are both widened by the halo's radius. */
   function momDroolPlan(lay, v, f, ob) {
     var C = ET.CONFIG, D = C.momDrool, P = ET.MOM_PARTS.creepy, G = ET.mom.geometry(lay);
     var mouth = { x: lay.head.x + (P.mouth[0] - 0.5) * G.hw, y: lay.head.y + (P.mouth[1] - 0.5) * G.hh };
-    var len = G.hh * D.length, r = G.hw * D.splat, rb = Math.max(4, G.hw * D.drop_r);
+    var len = G.hh * D.length, r = G.hw * D.splat, rb = Math.max(4, G.hw * D.drop_r), glow = Math.max(2, G.hw * D.glow);
     var fl = fieldRect(floor, f), clip = lay.clip;
     var area = { l: Math.max(fl.l, clip.l), t: Math.max(fl.t, clip.t), r: Math.min(fl.r, clip.r), b: Math.min(fl.b, clip.b) };
-    var all = ob.all.concat(ob.own), reach = r * 2.4 + 4, flat = 0.65;
+    var all = ob.all.concat(ob.own), reach = r * 2.4 + 4 + glow, flat = 0.65;
     var start = mouth.y + len + rb;
     var hits = function (box) { return all.some(function (o) { return overlaps(box, o); }); };
     var pathClear = function (x1, y1) {
       var n = Math.max(2, Math.ceil(Math.hypot(x1 - mouth.x, y1 - start) / 6));
       for (var i = 0; i <= n; i++) {
-        var x = mouth.x + (x1 - mouth.x) * i / n, y = start + (y1 - start) * i / n, m = rb + 2;
+        var x = mouth.x + (x1 - mouth.x) * i / n, y = start + (y1 - start) * i / n, m = rb + 2 + glow;
         var d = { l: x - m, t: y - m, r: x + m, b: y + m };
         if (d.l < clip.l || d.r > clip.r || d.b > clip.b || hits(d)) return false;
       }
@@ -627,10 +628,10 @@
       var x = mouth.x + dx * G.hw;
       for (var y = Math.max(start + reach * flat, area.t + reach * flat); y < area.b; y += 6) {
         if (Math.abs(dx * G.hw) > (y - start) * 0.6) continue;           // it drifts, it isn't thrown
-        var box = { l: x - reach, r: x + reach, t: y - reach * flat, b: y + reach * flat };
+        var box = { l: x - reach, r: x + reach, t: y - reach * flat - glow, b: y + reach * flat + glow };
         if (box.l < area.l || box.r > area.r || box.t < area.t || box.b > area.b || hits(box)) continue;
         if (!pathClear(x, y)) break;                                      // anything further down this line is no better
-        best = { x: x, y: y, dx: dx, r: r, box: box };
+        best = { x: x, y: y, dx: dx, r: r, glow: glow, box: box };
         return true;
       }
       return false;
@@ -638,18 +639,18 @@
     var stop = start;
     if (!best) {
       for (var y = start; y < clip.b; y += 3) {
-        var m = rb + 2;
+        var m = rb + 2 + glow;
         if (hits({ l: mouth.x - m, t: y - m, r: mouth.x + m, b: y + m })) break;
         stop = y;
       }
     }
-    return { x: mouth.x, y: mouth.y, len: len, drop: rb, land: best, stop: stop };
+    return { x: mouth.x, y: mouth.y, len: len, drop: rb, glow: glow, land: best, stop: stop };
   }
-  // the splat, on the floor, where the drop landed
+  // the splat, on the floor, where the drop landed (its glow on the floor too, so it washes off with it)
   function momSplat(at) {
     var fr = floor.getBoundingClientRect(), f = field.getBoundingClientRect();
     if (!fr.width || !fr.height) return null;
-    return ET.mess.drool(floor, at.x - (fr.left - f.left), at.y - (fr.top - f.top), at.r, floor.width / fr.width, floor.height / fr.height);
+    return ET.mess.drool(floor, at.x - (fr.left - f.left), at.y - (fr.top - f.top), at.r, floor.width / fr.width, floor.height / fr.height, at.glow);
   }
   function momFix(v, kind, t) {
     var m = { v: v, kind: kind, t0: t, giggled: false, from: v.crackShown || 0 };

@@ -231,14 +231,17 @@
        (the floor), so it washes off like any goo. (x, y) and r are in screen px; kx, ky the canvas's own px per screen
        px, so it isn't stretched with the canvas. Every one is different: its size, its shape (lobes, flatness, a few
        long runs), how rugged its edge is and how many droplets it flings. Flat colours (the goo's, theme.css), the
-       thick cartoon outline and a few glossy streaks; never round, never a ball, never red. `rnd` is the random
-       source (cosmetic: Math.random). Returns the box it covers, in screen px. */
-    drool: function (canvas, x, y, r, kx, ky, rnd) {
+       thick cartoon outline and a few glossy streaks; never round, never a ball, never red. Glowing purple (Chat,
+       2026-10-02): `glow` (screen px) is a steady halo round the splat and its droplets, drawn on this canvas under
+       them, so it follows their shapes and washes off with them. `rnd` is the random source (cosmetic: Math.random).
+       Returns the box it covers, halo and all, in screen px. */
+    drool: function (canvas, x, y, r, kx, ky, glow, rnd) {
       rnd = rnd || Math.random;
       var css = getComputedStyle(document.documentElement);
       var col = function (n, d) { return (css.getPropertyValue(n) || d).trim() || d; };
-      var fill = col("--mom-drool", "#ffd43a"), deep = col("--mom-drool-deep", "#c98a2b");
-      var shine = col("--mom-drool-shine", "#fff4d6"), ink = col("--outline", "#1a0d2e");
+      var fill = col("--mom-drool", "#b04dff"), deep = col("--mom-drool-deep", "#6a1fb0");
+      var shine = col("--mom-drool-shine", "#f3dcff"), ink = col("--outline", "#1a0d2e"), halo = col("--mom-drool-glow", "#c77dff");
+      glow = glow || 0;
       var g = canvas.getContext("2d");
       g.save();
       g.setTransform(kx, 0, 0, ky, x * kx, y * ky);
@@ -268,11 +271,13 @@
       var line = Math.max(2, r * 0.11);
       g.lineJoin = "round";
       g.lineCap = "round";
-      // the splat: the darker shade, then the goo's colour lifted a little inside it (a darker rim along its lower
-      // edge, so it reads as a puddle, not a ball), then the thick outline
+      // the splat: the darker shade (casting the glow), then the goo's colour lifted a little inside it (a darker rim
+      // along its lower edge, so it reads as a puddle, not a ball), then the thick outline
       shape(pts, 1);
       g.fillStyle = deep;
+      if (glow) { g.shadowColor = halo; g.shadowBlur = glow * kx; }
       g.fill();
+      g.shadowBlur = 0;
       g.save();
       g.clip();
       g.fillStyle = fill;
@@ -308,14 +313,16 @@
         g.arc(0, 0, dr, 0, Math.PI * 2);
         g.restore();
         g.fillStyle = fill;
+        if (glow) { g.shadowColor = halo; g.shadowBlur = glow * kx * 0.6; }
         g.fill();
+        g.shadowBlur = 0;
         g.strokeStyle = ink;
         g.lineWidth = Math.max(1.2, line * 0.5);
         g.stroke();
       }
       g.restore();
-      var w = r * Math.max(reach, 2.1) + line;
-      return { l: x - w, r: x + w, t: y - w * flat - line, b: y + w * flat + line };
+      var w = r * Math.max(reach, 2.1) + line + glow;
+      return { l: x - w, r: x + w, t: y - w * flat - line - glow, b: y + w * flat + line + glow };
     }
   };
 })(window);
