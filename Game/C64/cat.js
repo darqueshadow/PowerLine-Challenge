@@ -89,7 +89,15 @@
   var sidePower  = document.getElementById("c64-power");
   var sidePort1  = document.getElementById("c64-port1");
   var sidePort2  = document.getElementById("c64-port2");
-  var sideKeys   = document.getElementById("c64-keys");
+  /* 🔄 2026-10-02 — the Keyboard part is gone (the keyboard is always live);
+     the Arrows switch and Help take its place */
+  var sideArrows   = document.getElementById("c64-arrows");
+  var arrowsStick  = document.getElementById("c64-arrows-stick");
+  var arrowsCursor = document.getElementById("c64-arrows-cursor");
+  var sideHelp     = document.getElementById("c64-help");
+  var helpPanel    = document.getElementById("c64-help-panel");
+  var helpKeys     = document.getElementById("c64-help-keys");
+  var deckStart    = document.getElementById("deck-start");
   var sideStatus = document.getElementById("c64-side-status");
   /* 🆕 2026-09-16 — the multi-disk side swap (his second addendum) */
   var sideSwap   = document.getElementById("side-swap");
@@ -1103,10 +1111,11 @@
 
      THE INPUT A TITLE STARTS ON (his ruling, replacing two earlier drafts).
      Every title starts on joystick port 2; a title the manifest marks `port: 1`
-     starts on port 1. After the hub has typed LOAD and RUN (which needs the
-     keyboard), it switches to that. 🔄 And it LEARNS: whatever the player
-     switches to during a game — F2, F9, a port, the keyboard — is remembered
-     for that title and used on its next load. Stored in this browser's
+     starts on port 1. After the hub has typed LOAD and RUN, it switches to
+     that. 🔄 And it LEARNS: whatever the player switches to during a game — F9
+     or a port, F2 or the Arrows switch — is remembered for that title and used
+     on its next load. 🔄 2026-10-02: that is {port, arrows} now; the keyboard
+     is always live, so there is no keyboard to switch to. Stored in this browser's
      localStorage under INPUT_STORE (Fang Rock keeps it in its own profile for
      the arcade:// origin) — never in the repo, and losing it only means the
      next load starts on the default again.
@@ -1243,15 +1252,26 @@
       return all && typeof all === "object" && !Array.isArray(all) ? all : {};
     } catch (e) { return {}; }
   }
+  /* 🔄 2026-10-02 — {port, arrows} per title (his ruling). A value stored
+     before that is ONE string and is read as: "1"/"2" = that port, "keyboard" =
+     the arrows on the cursor keys (that player wanted keys for this title) with
+     the manifest's port. It is rewritten in the new shape the next time the
+     player changes something for that title. */
   function startingInput(disk) {
     var v = readInputs()[disk.id];
-    if (v === "1" || v === "2" || v === "keyboard") return v;
-    return disk.port === 1 ? "1" : "2";
+    var want = { port: disk.port === 1 ? "1" : "2", arrows: "stick" };
+    if (v === "1" || v === "2") want.port = v;
+    else if (v === "keyboard") want.arrows = "cursor";
+    else if (v && typeof v === "object") {
+      if (v.port === "1" || v.port === "2") want.port = v.port;
+      if (v.arrows === "stick" || v.arrows === "cursor") want.arrows = v.arrows;
+    }
+    return want;
   }
   function rememberInput(disk, v) {
-    var all = readInputs();
-    if (all[disk.id] === v) return;
-    all[disk.id] = v;
+    var all = readInputs(), was = all[disk.id];
+    if (was && typeof was === "object" && was.port === v.port && was.arrows === v.arrows) return;
+    all[disk.id] = { port: v.port, arrows: v.arrows };
     try { window.localStorage.setItem(INPUT_STORE, JSON.stringify(all)); } catch (e) { /* private window: nothing learned, nothing broken */ }
   }
   /* after LOAD and RUN: the keyboard the typing needed hands over to the
@@ -1261,8 +1281,7 @@
     var want = startingInput(disk);
     learnFor = disk;
     learnWant = want;
-    if (want === "keyboard") postMachine({ type: "cat:keyboard" });
-    else postMachine({ type: "cat:joystick", port: want });
+    postMachine({ type: "cat:setinput", port: want.port, arrows: want.arrows });
   }
   /* 🚨 Only while a game is running and the hub is not typing: the hub's own
      typing switches the machine to the keyboard, and that is not the player's
@@ -1273,9 +1292,16 @@
      rig's control caught exactly that). Learned from the machine's REPORTS, so
      what is remembered is what actually took, never what was clicked. */
   function learnInput() {
-    if (!learnFor || learnFor !== inserted || busy || side.keyboard === null) return;
-    var now = side.keyboard ? "keyboard" : (side.port || "2");
-    if (learnWant !== null) { if (now === learnWant) learnWant = null; return; }
+    if (!learnFor || learnFor !== inserted || busy || side.arrows === null || side.port === null) return;
+    var now = { port: side.port, arrows: side.arrows };
+    if (learnWant !== null) { if (now.port === learnWant.port && now.arrows === learnWant.arrows) learnWant = null; return; }
+    /* 🚨 port and arrows come back as TWO reports. The second one landing after
+       the handover had already matched would otherwise be learned, writing the
+       title's default down as if the player had chosen it (measured: verify-c64
+       §Q's control caught every title learned). Only a real change is a lesson. */
+    /* `start` already reflects anything stored, so "same as start" means nothing changed */
+    var start = startingInput(learnFor);
+    if (now.port === start.port && now.arrows === start.arrows) return;
     rememberInput(learnFor, now);
   }
 
@@ -1528,7 +1554,11 @@
      📌 THE PORT SWAP IS REAL, measured 2026-09-16 on the running core: a BASIC
      loop printing PEEK(56320),PEEK(56321) read the stick on port 2 ($DC00 126),
      then after one live switch on port 1 ($DC01 254), then back. */
-  var side = { keyboard: null, port: null };
+  /* 🔄 2026-10-02 — {arrows, port}: no input mode any more (his rulings,
+     "keyboard and joystick live together"). The keyboard is always live, so
+     nothing greys: the live port is lit, and the Arrows switch shows whether
+     the arrow keys move the stick or the C64's cursor. */
+  var side = { arrows: null, port: null };
 
   /* THE KEY POSITIONS — his ruling of 2026-09-17, and what is left of the key
      card. The machine types on a real C64's key POSITIONS (emu.js,
@@ -1570,19 +1600,20 @@
      off the DOM. Putting the card back is markup; re-measuring is a morning. */
 
   function paintSide() {
-    var kbd = side.keyboard === true, joy = side.keyboard === false;
-    var lit = function (el, on, grey) {
+    var lit = function (el, on) {
       el.classList.toggle("is-lit", on);
-      el.classList.toggle("is-grey", grey);
       el.setAttribute("aria-pressed", String(on));
     };
-    lit(sideKeys, kbd, joy);
-    lit(sidePort1, joy && side.port === "1", kbd || (joy && side.port !== "1"));
-    lit(sidePort2, joy && side.port === "2", kbd || (joy && side.port !== "2"));
-    sidePanel.dataset.mode = kbd ? "keyboard" : joy ? "joystick" : "";
+    lit(sidePort1, side.port === "1");
+    lit(sidePort2, side.port === "2");
+    lit(arrowsStick, side.arrows === "stick");
+    lit(arrowsCursor, side.arrows === "cursor");
+    sideArrows.dataset.arrows = side.arrows || "";
+    sidePanel.dataset.arrows = side.arrows || "";
     sidePanel.dataset.port = side.port || "";
-    sideStatus.textContent = kbd ? "Input: keyboard" : joy ? "Input: joystick in port " + side.port : "";
-    paintCable(joy ? (side.port === "1" ? sidePort1 : sidePort2) : null);
+    sideStatus.textContent = side.port === null ? ""
+      : "Joystick in port " + side.port + ". Arrow keys " + (side.arrows === "cursor" ? "are cursor keys." : "move the joystick.");
+    paintCable(side.port === "1" ? sidePort1 : side.port === "2" ? sidePort2 : null);
   }
 
   /* 🔄 2026-09-17 — A JOYSTICK, NOT A CABLE. This drew a black cable running
@@ -1700,7 +1731,7 @@
       medium = null;
       paintLoad();
       renderSwap(null);
-      side.keyboard = side.port = null;
+      side.arrows = side.port = null;
       paintSide();
       paintPower(false);
       forgetPause();
@@ -1761,11 +1792,13 @@
   var ejectHome = document.createComment(" Eject's place in the crates ");
   var swapHome  = document.createComment(" the side swap's place in the crates ");
   /* 🆕 2026-10-01 — Load comes into the strip too (his ruling, amending the
-     2026-09-25 one), so the Load choice can be made without leaving full screen */
-  var loadHome  = document.createComment(" Load's place on the deck ");
+     2026-09-25 one), so the Load choice can be made without leaving full screen.
+     🔄 2026-10-02 — as its GROUP (Chat's item 8: "keep the same grouping in the
+     strip"), so Run comes with it, inside the same etched outline. */
+  var loadHome  = document.createComment(" the Start group's place on the deck ");
   /* the parts a paused machine does not take; Power, Eject and Full Screen are
      deliberately not in it */
-  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-keys, #c64-port1, #c64-port2, #c64-pick button, #btn-load";
+  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-arrows button, #c64-port1, #c64-port2, #c64-pick button, #btn-load";
 
   function setBusy(on) {
     busy = on;
@@ -1816,7 +1849,87 @@
   function forgetPause() {
     paused = false;
     pauseAsk = false;
+    helpPaused = false;
     paintPause();
+  }
+
+  /* =======================================================================
+     🆕 2026-10-02 — HELP (Chat's handoff item 7). A label on the side panel,
+     drawn like the rating sticker on the back of a breadbin, and so in the
+     full-screen strip too (it is the same panel). MOUSE ONLY.
+     ⭐ OPENING IT PAUSES THE MACHINE, AND CLOSING IT RESUMES — ONLY IF HELP DID
+     THE PAUSING. A machine the player had already paused stays paused; one the
+     player resumed while reading stays running. While a load or typing is going
+     the machine cannot pause (Pause's own rule), so Help opens without pausing.
+     🚨 THE KEYS LIST IS BUILT FROM THE HOTKEY CONSTANTS, not written out in the
+     markup, for the reason HOTKEY_INPUT's banner gives: a hint that names a key
+     the code no longer uses is believed, and worse than none.
+     ===================================================================== */
+  var helpPaused = false;   /* Help paused the machine and owes it a resume */
+
+  function openHelp() {
+    if (!helpPanel.hidden) return;
+    closePick();
+    helpPanel.hidden = false;
+    sideHelp.classList.add("is-lit");
+    sideHelp.setAttribute("aria-expanded", "true");
+    helpPaused = false;
+    if (!MACHINE || !machineStarted || machineOff || paused || pauseAsk || busy) return;
+    pauseAsk = true;
+    paintPause();
+    machineCall({ type: "cat:pause" }, ["cat:paused", "cat:pausefailed"], 5000)
+      .then(function (m) {
+        if (m.type !== "cat:paused") return;
+        paused = true;
+        helpPaused = true;
+      })
+      .catch(function () { /* help is still worth reading on a machine that would not stop */ })
+      .then(function () {
+        pauseAsk = false;
+        paintPause();
+        /* closed before the pause landed: hand the machine straight back */
+        if (helpPanel.hidden && helpPaused) { helpPaused = false; pressPause(); }
+      });
+  }
+
+  function closeHelp() {
+    if (helpPanel.hidden) return;
+    helpPanel.hidden = true;
+    sideHelp.classList.remove("is-lit");
+    sideHelp.setAttribute("aria-expanded", "false");
+    if (pauseAsk) return;                  /* openHelp's answer will see it closed */
+    var owed = helpPaused && paused;
+    helpPaused = false;
+    if (owed) pressPause(); else focusMachine();
+  }
+
+  /* [what you press, what it does] — every key the corner gives a meaning to.
+     MEASURED 2026-10-02 on the running core (scratch probe: each key pressed
+     for real, the C64's own key code and shift flags read back): see the
+     Keyboard-and-joystick entry in docs/decisions.md. */
+  function renderHelpKeys() {
+    var rows = [
+      ["Ctrl (either one)", "Fire."],
+      ["Arrow keys", "Move the joystick. Or, with Arrows set to Cursor, move the C64's cursor."],
+      [HOTKEY_INPUT, "Switch the arrow keys between Stick and Cursor. Remembered for each game."],
+      [HOTKEY_PORT, "Move the joystick to the other port (1 or 2). Remembered for each game."],
+      [HOTKEY_EXIT, "Reset the C64, back to READY. The disk stays in."],
+      ["Esc", "RUN/STOP."],
+      ["Shift + Esc", "Load from tape (Shift + RUN/STOP)."],
+      ["Tab", "The C64's CTRL key."],
+      ["Left Alt", "The C64's Commodore key (C=)."],
+      ["F1, F3 to F8", "The C64's own function keys."],
+      ["Every other key", "Types on the C64. Symbols come out as printed on your key."]
+    ];
+    helpKeys.textContent = "";
+    rows.forEach(function (r) {
+      var dt = document.createElement("dt");
+      dt.textContent = r[0];
+      var dd = document.createElement("dd");
+      dd.textContent = r[1];
+      helpKeys.appendChild(dt);
+      helpKeys.appendChild(dd);
+    });
   }
 
   function setFull(on) {
@@ -1825,12 +1938,12 @@
     closePick();
     fullView = on;
     if (on) {
-      if (!loadHome.parentNode) btnLoad.parentNode.insertBefore(loadHome, btnLoad);
-      sidePanel.insertBefore(btnLoad, sidePause);
+      if (!loadHome.parentNode) deckStart.parentNode.insertBefore(loadHome, deckStart);
+      sidePanel.insertBefore(deckStart, sidePause);
       sidePanel.insertBefore(btnEject, sidePause);
       sidePanel.insertBefore(sideSwap, sidePause);
     } else {
-      loadHome.parentNode.insertBefore(btnLoad, loadHome);
+      loadHome.parentNode.insertBefore(deckStart, loadHome);
       ejectHome.parentNode.insertBefore(btnEject, ejectHome);
       swapHome.parentNode.insertBefore(sideSwap, swapHome);
     }
@@ -1852,12 +1965,13 @@
     /* his F-key addendum: [F2] at the keyboard, [F9] at the ports, [F12] at
        Reset — each rendered from its constant, like the play bar's hints.
        🔄 2026-09-17: Reset moved F10 -> F12, away from the port key. */
-    document.getElementById("c64-keys-hint").textContent = HOTKEY_INPUT;
+    document.getElementById("c64-arrows-hint").textContent = HOTKEY_INPUT;
     document.getElementById("c64-port-hint").textContent = HOTKEY_PORT;
     document.getElementById("btn-reset-hint").textContent = HOTKEY_EXIT;
     sidePort1.title = "Joystick in port 1 (" + HOTKEY_PORT + " swaps ports)";
     sidePort2.title = "Joystick in port 2 (" + HOTKEY_PORT + " swaps ports)";
-    sideKeys.title = "Type on the keyboard (" + HOTKEY_INPUT + ")";
+    arrowsStick.title = "The arrow keys move the joystick (" + HOTKEY_INPUT + " switches)";
+    arrowsCursor.title = "The arrow keys are the C64's cursor keys (" + HOTKEY_INPUT + " switches)";
     /* 🆕 2026-09-17 — the monitor bezel, and ONLY here. See the .is-monitor note
        in cat.css: the ordinary hub's screen is the 1970s PET-era terminal. */
     screenShell.classList.add("is-monitor");
@@ -1865,7 +1979,14 @@
     paintPower(true);
     paintSide();
     sidePower.addEventListener("click", pressPower);
-    sideKeys.addEventListener("click", function () { postMachine({ type: "cat:keyboard" }); focusMachine(); });
+    [arrowsStick, arrowsCursor].forEach(function (b) {
+      b.addEventListener("click", function () { postMachine({ type: "cat:arrows", arrows: b.dataset.arrows }); focusMachine(); });
+    });
+    sideHelp.addEventListener("click", function () { if (helpPanel.hidden) openHelp(); else closeHelp(); });
+    document.getElementById("c64-help-close").addEventListener("click", closeHelp);
+    helpPanel.addEventListener("mousedown", function (e) { if (e.target.closest && e.target.closest("button")) e.preventDefault(); });
+    renderHelpKeys();
+    deckTop.classList.add("is-grouped");
     [sidePort1, sidePort2].forEach(function (p) {
       p.addEventListener("click", function () { postMachine({ type: "cat:joystick", port: p.dataset.port }); focusMachine(); });
     });
@@ -2294,8 +2415,10 @@
        never sets it. The button asks for a flip and waits to be told what
        happened; it does not toggle its own label optimistically, because a
        label that disagrees with the machine is worse than no label at all. */
-    if (m.type === "cat:inputmode" && fromMachine) {
-      side.keyboard = !!m.keyboard;
+    /* 🔄 2026-10-02 — the machine has no input mode; it reports its arrows */
+    if (m.type === "cat:inputmode" && fromMachine) return;
+    if (m.type === "cat:arrowsmode" && fromMachine) {
+      side.arrows = m.arrows === "cursor" ? "cursor" : "stick";   /* clamped, like the port */
       paintSide();
       learnInput();
       return;
@@ -2512,12 +2635,10 @@
        to the machine rather than lost. */
     if (MACHINE && machineStarted) {
       if (e.key === HOTKEY_EXIT)  { e.preventDefault(); exitGame(); return; }
-      /* 🔄 2026-09-17, his call: F2 SELECTS THE KEYBOARD, it does not toggle.
-         Toggling meant F2 could take you AWAY from the keyboard, which is the
-         opposite of what someone reaching for it wants — they are reaching for
-         it in order to type. Pressing it when the keyboard is already live is
-         now a no-op instead of a trap. */
-      if (e.key === HOTKEY_INPUT) { e.preventDefault(); postMachine({ type: "cat:keyboard" }); focusMachine(); return; }
+      /* 🔄 2026-10-02, his ruling: F2 FLIPS THE ARROWS (stick / cursor keys).
+         The keyboard is always live now, so there is no keyboard to select.
+         (2026-09-17 it selected the keyboard; before that it toggled modes.) */
+      if (e.key === HOTKEY_INPUT) { e.preventDefault(); postMachine({ type: "cat:arrows" }); focusMachine(); return; }
       if (e.key === HOTKEY_PORT)  { e.preventDefault(); postMachine({ type: "cat:port" }); focusMachine(); return; }
     }
     if (busy) return;
@@ -2844,7 +2965,14 @@
         fastLoad: fastLoad,
         fastSeated: btnFast.classList.contains("is-seated"),
         fastBlocked: btnFast.disabled,
-        keys: { keyboard: HOTKEY_INPUT, port: HOTKEY_PORT, reset: HOTKEY_EXIT }
+        keys: { arrows: HOTKEY_INPUT, port: HOTKEY_PORT, reset: HOTKEY_EXIT },
+        arrows: sideArrows.dataset.arrows || null,
+        groups: Array.prototype.map.call(document.querySelectorAll("#deck .deck-group, #c64-side .deck-group"), function (g) {
+          return { id: g.id, label: g.querySelector(".deck-group__label").textContent,
+                   buttons: Array.prototype.filter.call(g.querySelectorAll("button"), function (b) { return !b.hidden; }).map(function (b) { return b.id; }),
+                   inStrip: sidePanel.contains(g) };
+        }),
+        help: helpPanel.hidden ? null : { paused: helpPaused, text: helpPanel.textContent }
       };
     },
     reset: machineReset,

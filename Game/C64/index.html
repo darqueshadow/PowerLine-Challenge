@@ -145,10 +145,22 @@
            C64 needs them as separate presses (a LIST typed ahead during a
            directory load is lost — measured), and each button types exactly
            what it says. -->
-      <button class="btn" id="btn-load" type="button" data-cmd='LOAD"*",8,1'>Load&nbsp;"*",8,1</button>
-      <button class="btn" id="btn-list" type="button" data-cmd='LOAD"$",8'>List&nbsp;&mdash;&nbsp;Load&nbsp;"$",8</button>
-      <button class="btn" id="btn-listing" type="button" data-cmd="LIST" hidden>List</button>
-      <button class="btn" id="btn-run" type="button" data-cmd="RUN" hidden>Run</button>
+      <!-- 🆕 2026-10-02 — THE DECK'S GROUPS (Chat's item 8): an etched outline
+           with a small etched label round the buttons that do one job together.
+           START = Load and Run, starting a game. DIRECTORY = seeing what is on the
+           disk. Only drawn in the corner (cat.js puts .is-grouped on #deck-top);
+           elsewhere a group is display:contents and the buttons sit as before.
+           In full screen the START group moves into the strip whole (setFull). -->
+      <div class="deck-group" id="deck-start" role="group" aria-labelledby="deck-start-label">
+        <span class="deck-group__label" id="deck-start-label">Start</span>
+        <button class="btn" id="btn-load" type="button" data-cmd='LOAD"*",8,1'>Load&nbsp;"*",8,1</button>
+        <button class="btn" id="btn-run" type="button" data-cmd="RUN" hidden>Run</button>
+      </div>
+      <div class="deck-group" id="deck-dir" role="group" aria-labelledby="deck-dir-label">
+        <span class="deck-group__label" id="deck-dir-label">Directory</span>
+        <button class="btn" id="btn-list" type="button" data-cmd='LOAD"$",8'>List&nbsp;&mdash;&nbsp;Load&nbsp;"$",8</button>
+        <button class="btn" id="btn-listing" type="button" data-cmd="LIST" hidden>List</button>
+      </div>
       <button class="btn" id="btn-insert" type="button" disabled>Insert&nbsp;Disk</button>
       <!-- 🔄 2026-09-25 — in the corner this is drawn as the 1541's door LEVER
            (his ruling: restyle it, no second control). Upright = the door is
@@ -282,16 +294,20 @@
         </span>
       </div>
 
-      <button type="button" class="c64-part c64-keys" id="c64-keys" aria-pressed="false" title="Type on the keyboard">
-        <span class="c64-keys__board" aria-hidden="true">
-          <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-          <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-          <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-          <span class="c64-keys__row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-          <span class="c64-keys__row"><i class="space"></i></span>
+      <!-- 🔄 2026-10-02 — THE KEYBOARD PART IS GONE (his rulings, "keyboard and
+           joystick live together"): the keyboard is always live, so there is no
+           keyboard to select. In its place, the ARROWS switch: what the arrow
+           keys do on this title — move the STICK, or be the C64's CURSOR keys.
+           Never both: measured, a stick and a cursor key at once does not move
+           the cursor on either port. Two halves, each a real button; the lit half
+           is what the machine reported. [F2] flips it. Remembered per title. -->
+      <div class="c64-part c64-arrows" id="c64-arrows" role="group" aria-labelledby="c64-arrows-label">
+        <span class="c64-part__label c64-part__label--over" id="c64-arrows-label">Arrows<span class="c64-part__hint" id="c64-arrows-hint" aria-hidden="true"></span></span>
+        <span class="c64-arrows__switch">
+          <button type="button" class="c64-arrows__opt" id="c64-arrows-stick" data-arrows="stick" aria-pressed="false">Stick</button>
+          <button type="button" class="c64-arrows__opt" id="c64-arrows-cursor" data-arrows="cursor" aria-pressed="false">Cursor</button>
         </span>
-        <span class="c64-part__label">Keyboard<span class="c64-part__hint" id="c64-keys-hint"></span></span>
-      </button>
+      </div>
 
       <!-- 🆕 2026-09-25 — PAUSE and FULL SCREEN (Chat's handoff, his rulings).
            🚫 MOUSE ONLY, NO KEY: Esc stays RUN/STOP, and every free key is a key
@@ -310,6 +326,17 @@
         <span class="c64-full__glyph" aria-hidden="true"></span>
         <span class="c64-part__label" id="c64-full-label">Full&nbsp;Screen</span>
       </button>
+      <!-- 🆕 2026-10-02 — HELP (Chat's item 7), drawn as the rating label on the
+           back of a breadbin: a small foil sticker with fine print. Mouse only.
+           Opening it pauses the machine; closing it resumes, if Help paused it. -->
+      <button type="button" class="c64-part c64-help" id="c64-help" aria-expanded="false" aria-controls="c64-help-panel"
+              title="How to use the C64, and what the keys do">
+        <span class="c64-help__sticker" aria-hidden="true">
+          <span class="c64-help__brand">HELP</span>
+          <span class="c64-help__fine"><i></i><i></i><i></i></span>
+        </span>
+        <span class="c64-part__label">Help</span>
+      </button>
       <!-- what is live, for a screen reader; the parts above carry aria-pressed -->
       <span class="sr-only" id="c64-side-status" aria-live="polite"></span>
     </div>
@@ -319,6 +346,35 @@
          what it has to say (a disk that would not go in, a key that is not
          available here) goes on this line instead. Cracked mode only. -->
     <div id="deck-note" role="status" aria-live="polite" hidden></div>
+
+    <!-- 🆕 2026-10-02 — THE HELP SHEET (Chat's item 7). One screen, plain words,
+         two parts. The keys list is written by cat.js from its hotkey constants
+         (renderHelpKeys), so it cannot name a key the code does not use.
+         📌 Wording PENDING ANDREW'S APPROVAL before this merges. -->
+    <div class="c64-help-panel" id="c64-help-panel" role="dialog" aria-labelledby="c64-help-title" hidden>
+      <h2 class="c64-help-panel__title" id="c64-help-title">Using the C64</h2>
+      <div class="c64-help-panel__cols">
+        <section>
+          <h3>How to use it</h3>
+          <ol>
+            <li><b>Pick a disk</b> from the crates on the left.</li>
+            <li><b>Insert Disk</b> puts it in the drive. A tape goes in the datasette.</li>
+            <li><b>Load</b> starts it. If it asks, choose <b>Play</b> or <b>Instructions</b>.</li>
+            <li>When the game asks for <b>another disk or side</b>, click it under Insert Disk.</li>
+            <li><b>Pause</b> freezes the game. Click it again to carry on.</li>
+            <li><b>Full Screen</b> fills the window with the game. <b>Exit Full Screen</b> brings the disks back.</li>
+            <li><b>Eject</b> takes the disk out, so you can put in another game.</li>
+            <li><b>Power</b> leaves the Arcade.</li>
+          </ol>
+          <p>Joystick not working? Press <b>F9</b> to try the other port.</p>
+        </section>
+        <section>
+          <h3>Keys</h3>
+          <dl class="c64-help-panel__keys" id="c64-help-keys"></dl>
+        </section>
+      </div>
+      <button type="button" class="btn c64-help-panel__close" id="c64-help-close">Close</button>
+    </div>
 
   </div>
 </div><!-- /#machine -->

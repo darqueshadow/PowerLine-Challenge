@@ -791,3 +791,29 @@ session commits to main in the same tree.
   per pointer event through `ET.view.stream(dt)`, which also advances the nozzle's E44 turn.
 - Open at park: E48, the exit to the Arcade room (the hub's Exit Game / F12 / `cat:exit` exist; F12 and Esc are taken in
   Egg Timer; Code proposed [Q] on the pause panel with a "Quit this game?" confirm). Next: F3 → COM (all-games rule).
+
+## 2026-10-02 — the C64 corner: keyboard and joystick live together, Help, the deck's groups (built, not merged)
+
+**Solved (on branch `c64-both-live`, pending Andrew's hand-test and his approval of the Help wording):** Chat's
+handoff "Keyboard and Joystick Live Together" and his rulings the same day, plus Chat's items 7 (Help) and 8 (groups).
+The corner has no keyboard/joystick mode: every key types on the C64, Ctrl (either) is fire, the arrow keys drive the
+stick by default or are the C64's cursor keys per title (side panel's Arrows switch, or F2), F9 and the ports only change
+the port, Left Alt is C=, and VICE's Right Ctrl port-swap hotkey is off. Remembered input is `{port, arrows}` per title;
+old one-string values migrate ("keyboard" → arrows on the cursor keys). Help is a breadbin-sticker label that pauses
+the machine and resumes it on close only if Help paused it. The deck's Load + Run and Load "$" + List sit in etched
+Start / Directory groups; in full screen the Start group moves into the strip whole.
+**Approach:** Measured first, on the running core (BASIC loop printing `$DC00/$DC01/197/653`): `simulateInput` drives
+the stick with `keyboardInput` on, so emu.js drives the stick itself; EmulatorJS's `keyChange()` is what made the old
+modes exclusive. Double duty (an arrow as stick AND cursor key) was DROPPED: at READY a pushed port-2 stick hides the
+row-0 cursor keys from the C64's scan (cursor never moves, even on a tap) and a port-1 stick types its own characters —
+the machine's wiring, not a setting. Keys struck while firing go to the C64 as clean copies without the Ctrl flag.
+**If you touch this again:** Left Ctrl was the C64's C= key and Tab is its CTRL (positional keymap, measured). A held
+port-2 fire or stick masks the KERNAL keyboard scan, and port-1 stick/keys cross-talk: authentic, ruled no workaround.
+Fang Rock's Ctrl+M (minimise) is taken by the shell before the page sees it, so fire + M minimises the arcade — out of
+scope here, Andrew is raising it with the Nerva Beacon session. The ordinary hub's play overlay keeps the old F2/F9
+input-mode behaviour (non-MACHINE paths in emu.js are unchanged).
+**Tests (2026-10-02, worktree served on :8897):** verify-cat **214/0**. verify-c64 **206/1**: the one red is the opening
+`[control] the machine is running` (14 frames in its first second); a scratch probe measured main and the branch alike at
+6–15 frames in the first second after boot on this loaded machine, so it is load, not this change. One earlier run
+cascaded from a stray empty-drive `LOAD"*",8,1` stuck at SEARCHING after §F2 — the intermittent already logged on
+main; it did not recur.

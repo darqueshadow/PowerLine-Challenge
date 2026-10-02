@@ -205,6 +205,13 @@
     window.EJS_defaultOptions.vice_keyboard_keymap = "positional";
     window.EJS_defaultOptions.vice_virtual_device_traps = "disabled";   /* on only while a tape is in */
     window.EJS_defaultOptions.keyboardInput = "enabled";
+    /* 🆕 2026-10-02 — VICE's own port-swap hotkey OFF. It is Right Ctrl, and
+       MEASURED that day: with the keyboard live, Right Ctrl reaching the core
+       moved the stick to the other port while allSettings.vice_joyport (and so
+       the hub's port light) kept the old value. Ctrl is fire now and never
+       reaches the core, but the hotkey is switched off as well, so nothing can
+       move the port behind the label's back. */
+    window.EJS_defaultOptions.vice_mapper_joyport_switch = "---";
   }
 
   /* -----------------------------------------------------------------------
@@ -280,10 +287,16 @@
        Someone pressing F2 is reaching for the keyboard in order to type; a
        toggle could take them the other way, which is the one thing they did
        not want. Pressing it when the keyboard is already live does nothing. */
+    /* 🔄 2026-10-02 — ON THE MACHINE, F2 IS THE ARROWS TOGGLE (his ruling, with
+       "keyboard and joystick live together"). There is no keyboard mode to
+       select any more: the keyboard is always live. F2 now flips what the
+       arrow keys do — the stick, or the C64's cursor keys. The ordinary hub's
+       play overlay keeps the old meaning. */
     if (e.key === "F2") {
       e.preventDefault();
       e.stopPropagation();
-      if (!kbdMode) setInputMode(true);
+      if (MACHINE) setArrows(arrows === "stick" ? "cursor" : "stick");
+      else if (!kbdMode) setInputMode(true);
       return;
     }
     /* 🆕 F9 — JOYSTICK PORT, his ask 2026-09-09. Same capture-phase reasoning as
@@ -310,6 +323,43 @@
       return;
     }
 
+    /* 🆕 2026-10-02 — KEYBOARD AND JOYSTICK LIVE TOGETHER (Chat's handoff, his
+       rulings the same day). On the machine there is no input mode: every key
+       types on the C64, and the stick is driven from here at the same time.
+         - CTRL, either one, is FIRE on the stick's port, and never reaches the
+           C64. (Left Ctrl used to be the C64's C= key — measured — so:)
+         - LEFT ALT is the C64's C= key now: passed to the core as the Left
+           Ctrl it maps to, which is exactly the key Ctrl used to send.
+         - THE ARROWS drive the stick while `arrows` is "stick" (the default),
+           and are the C64's cursor keys while it is "cursor". Never both.
+       ⭐ WHY NEVER BOTH, measured 2026-10-02 before any of this was built: an
+       arrow sent as stick AND cursor key at once does not move the cursor on
+       either port. On port 2 a pushed stick hides the cursor keys from the
+       C64's keyboard scan (even a tap); on port 1 the stick types characters of
+       its own (Down = ←, Right = 2, Left = CTRL). That is the real machine's
+       wiring, not an emulator setting, so "double duty" was dropped.
+       ⭐ The stick goes in through gameManager.simulateInput, which works with
+       the keyboard live (measured: port 2 Up -> $DC00 126). EmulatorJS's own
+       control table is NOT used for this: its keyChange() returns early while
+       keyboardInput is enabled, which was the whole reason for the old modes.
+       🚨 `relaying` FIRST. relayKey's own synthetic keys, and the Left Ctrl
+       this handler sends for Alt, come back through here and must reach the
+       core untouched — the C= key would otherwise fire the stick. */
+    if (MACHINE && !relaying) {
+      var stickIdx = stickIndex(e);
+      if (stickIdx !== null) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (padHeld[e.code] === undefined) { padHeld[e.code] = stickIdx; pad(stickIdx, true); }
+        return;
+      }
+      if (e.code === "AltLeft") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!altHeld) { altHeld = true; commodoreKey("keydown"); }
+        return;
+      }
+    }
     /* 🆕 2026-09-17 — WHAT IS ON YOUR PC KEY IS WHAT THE C64 PRINTS.
        His ask: "have the special characters on the PC keyboard be the same on
        the C64 — us humans need that visual reference."
@@ -330,7 +380,12 @@
        `relaying` guards it. Without that it recurses until the stack blows.
        ⚠️ Only in KEYBOARD mode, and never with Ctrl/Alt/Meta held — those are
        the browser's and the shell's, not the machine's. */
-    if (kbdMode && !relaying && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== "Shift") {
+    /* 🔄 2026-10-02 — on the machine Ctrl is the fire button and never reaches
+       the C64, so a key struck WHILE FIRING is an ordinary key and is
+       translated like one. Holding Ctrl must not change what a key types.
+       And nothing typed while it is held may reach the browser as a shortcut:
+       the default is refused below, at the end of this handler. */
+    if (kbdMode && !relaying && (MACHINE || !e.ctrlKey) && !e.altKey && !e.metaKey && e.key !== "Shift") {
       var pos = null;
       if (typeof e.key === "string" && e.key.length === 1) {
         var found = KEYS[e.key.toUpperCase()];
@@ -372,7 +427,33 @@
         return;
       }
     }
+    /* 🆕 2026-10-02 — A KEY STRUCK WHILE FIRING. The player's own event carries
+       the Ctrl flag; it is refused (so fire + a letter can never be a browser
+       shortcut — Ctrl+R, Ctrl+P ...) and the C64 is handed a CLEAN COPY instead,
+       without the flag, held and released exactly as the real key is.
+       📌 MEASURED the same day: letting the original through with its default
+       refused typed NOTHING (fire + A: $C5 stayed 64). The copy types the A.
+       📌 Inside Fang Rock there are no browser shortcuts to hit — the shell has
+       no menu — except Ctrl+M, which the shell takes before this page ever sees
+       it; that one is the Nerva Beacon session's. */
+    if (MACHINE && !relaying && e.ctrlKey && e.key !== "Shift") {
+      e.preventDefault();
+      e.stopPropagation();
+      firing[e.code] = { code: e.code, key: e.key, keyCode: e.keyCode, location: e.location, shiftKey: false };
+      firingCopy("keydown", e);
+    }
   }, true);
+  var firing = {};                       /* keys struck while Ctrl was held, until released */
+  function firingCopy(type, e) {
+    var t = keyTarget();
+    if (!t) return;
+    relaying = true;
+    try {
+      t.dispatchEvent(new KeyboardEvent(type, { code: e.code, key: e.key, keyCode: e.keyCode, which: e.keyCode,
+                                                location: e.location, repeat: e.repeat, shiftKey: e.shiftKey,
+                                                bubbles: true, cancelable: true }));
+    } finally { relaying = false; }
+  }
 
   /* true when the key the player actually pressed IS already the position we
      would send — nothing to translate, let it through untouched */
@@ -399,10 +480,40 @@
   var claimed = {};
   /* a window that loses focus never delivers the keyup, so the record would
      stay stuck down; alt-tab away holding Shift and back proves it */
-  window.addEventListener("blur", function () { heldShift = {}; claimed = {}; });
+  window.addEventListener("blur", function () {
+    heldShift = {}; claimed = {}; releaseStick();
+    /* a copy sent in while firing is let go too, or the C64 holds it forever */
+    Object.keys(firing).forEach(function (code) { firingCopy("keyup", firing[code]); });
+    firing = {};
+  });
   document.addEventListener("keyup", function (e) {
     if (e.key === "Shift") delete heldShift[e.code];
     if (relaying) return;                  /* our own release, on its way to the core */
+    /* 🆕 2026-10-02 — the stick's keys and Alt (= C=) let go here. Keyed by what
+       was PRESSED (padHeld), not by what `arrows` says now: flipping F2 while an
+       arrow is held must not strand the stick pushed. */
+    if (MACHINE && padHeld[e.code] !== undefined) {
+      pad(padHeld[e.code], false);
+      delete padHeld[e.code];
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (MACHINE && e.code === "AltLeft") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (altHeld) { altHeld = false; commodoreKey("keyup"); }
+      return;
+    }
+    /* a key that went in as a clean copy while firing comes out the same way,
+       whether or not Ctrl is still down when it is let go */
+    if (MACHINE && firing[e.code]) {
+      delete firing[e.code];
+      e.preventDefault();
+      e.stopPropagation();
+      firingCopy("keyup", e);
+      return;
+    }
     if (claimed[e.code]) {
       delete claimed[e.code];
       e.preventDefault();
@@ -505,13 +616,76 @@
      caret happened to be. 📌 Found by the 2026-09-17 audit; fixed 2026-09-18.
      ⭐ THE MACHINE DECIDES, as it does for every other flip here: the hub asks
      for the KEY, never for a state, and is told what actually took. */
+  /* 🔄 2026-10-02 — ON THE MACHINE F9 ONLY SWAPS THE PORT (his ruling, with
+     "keyboard and joystick live together"). The 2026-09-17 ruling above made
+     the first press select the stick, because the keyboard and the stick could
+     not both be live; now they always are, so there is nothing to select and
+     every press is a swap. The ordinary hub's overlay keeps the old rule. */
   function portKey() {
-    if (kbdMode) setInputMode(false);
+    if (!MACHINE && kbdMode) setInputMode(false);
     else setPort(port === "1" ? "2" : "1");
   }
 
   /* -----------------------------------------------------------------------
+     🆕 2026-10-02 — THE STICK, DRIVEN FROM THE KEYBOARD, ON THE MACHINE.
+     See the key handler ("KEYBOARD AND JOYSTICK LIVE TOGETHER") for the why.
+     Indices are EmulatorJS's RetroPad numbers, the same as EJS_defaultControls
+     above: 0 = fire, 4..7 = up, down, left, right. The core puts them on the
+     port `vice_joyport` names, so F9 moves them with no help from here.
+     --------------------------------------------------------------------- */
+  var arrows = "stick";                 /* "stick" | "cursor" — what the arrow keys do */
+  var STICK_ARROWS = { ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7 };
+  var padHeld = {};                     /* key code -> RetroPad index, while held */
+  var altHeld = false;
+
+  function stickIndex(e) {
+    if (e.code === "ControlLeft" || e.code === "ControlRight") return 0;
+    if (arrows === "stick" && STICK_ARROWS[e.code] !== undefined) return STICK_ARROWS[e.code];
+    return null;
+  }
+  function pad(idx, on) {
+    var e = window.EJS_emulator;
+    if (e && e.gameManager && typeof e.gameManager.simulateInput === "function") {
+      try { e.gameManager.simulateInput(0, idx, on ? 1 : 0); } catch (err) { /* no machine yet */ }
+    }
+  }
+  /* everything the keyboard is holding on the stick, let go — on blur (the
+     keyup never comes), and for the arrows when F2 changes what they are */
+  function releaseStick(onlyArrows) {
+    Object.keys(padHeld).forEach(function (code) {
+      if (onlyArrows && STICK_ARROWS[code] === undefined) return;
+      pad(padHeld[code], false);
+      delete padHeld[code];
+    });
+    if (!onlyArrows && altHeld) { altHeld = false; commodoreKey("keyup"); }
+  }
+  /* the C64's C= key. The positional keymap puts it on the PC's Left Ctrl
+     (measured 2026-10-02: Left Ctrl held -> $028D = 2, the C= flag), so Left
+     Alt presses THAT, as a synthetic key the handlers above let through */
+  function commodoreKey(type) {
+    var t = keyTarget();
+    if (!t) return;
+    relaying = true;
+    try {
+      t.dispatchEvent(new KeyboardEvent(type, { code: "ControlLeft", key: "Control", keyCode: 17, which: 17,
+                                                location: 1, ctrlKey: type === "keydown", bubbles: true, cancelable: true }));
+    } finally { relaying = false; }
+  }
+
+  /* the machine owns the truth and reports it, as it does for the port */
+  function reportArrows() { toHub({ type: "cat:arrowsmode", arrows: arrows }); }
+  function setArrows(next) {
+    next = next === "cursor" ? "cursor" : "stick";
+    if (next !== arrows) { releaseStick(true); arrows = next; }
+    reportArrows();
+  }
+
+  /* -----------------------------------------------------------------------
      INPUT MODE — joystick or keyboard, and never both at once.
+
+     🔄 2026-10-02 — THE ORDINARY HUB'S PLAY OVERLAY ONLY, NOW. The machine
+     (the C64 corner) keeps the keyboard live for good and drives the stick
+     itself; see "KEYBOARD AND JOYSTICK LIVE TOGETHER" in the key handler.
 
      🚨 THAT EXCLUSIVITY IS EmulatorJS'S, NOT A CHOICE MADE HERE. keyChange()
      returns early while its "keyboardInput" setting is "enabled", so the
@@ -541,6 +715,16 @@
       kbdMode = (e.getSettingValue("keyboardInput") === "enabled");
     }
     toHub({ type: "cat:inputmode", keyboard: kbdMode });
+  }
+
+  /* 🆕 2026-10-02 — the machine's keyboard is live for good, but `kbdMode` is
+     still what the translator (relayKey) and typeText test before they act. It
+     used to be set as a side effect of reportInputMode(), which the machine no
+     longer calls; without this, every key went in UNTRANSLATED (measured by
+     verify-c64 §B: `"` typed `;` and `-` typed `+`). Read, not reported. */
+  function syncKeyboard() {
+    var e = window.EJS_emulator;
+    if (e && typeof e.getSettingValue === "function") kbdMode = (e.getSettingValue("keyboardInput") === "enabled");
   }
 
   function setInputMode(on) {
@@ -1324,7 +1508,7 @@
       toHub({ type: kind, reason: "the c64 is paused", note: "could not swap: the c64 is paused", ready: false, why: "paused" });
       return;
     }
-    if (paused && /^cat:(key|input|port|joystick|keyboard)$/.test(m.type)) return;
+    if (paused && /^cat:(key|input|port|joystick|keyboard|arrows|setinput)$/.test(m.type)) return;
     switch (m.type) {
       /* 🆕 2026-09-25 — PAUSE and RESUME. EmulatorJS's own pause()/play(), which
          stop and restart the core's main loop (GameManager.toggleMainLoop). The
@@ -1397,19 +1581,25 @@
       case "cat:focus":
         if (keyTarget()) keyTarget().focus();
         break;
-      case "cat:input": setInputMode(!kbdMode); break;
+      /* 🔄 2026-10-02 — no input mode on the machine any more (the keyboard is
+         always live), so cat:input and cat:keyboard are gone from here. */
       /* the hub's F9, and it goes through portKey() for the reason written there.
          🚫 Not a bare setPort: that is what made the same key behave two ways. */
       case "cat:port":  portKey(); break;
-      /* 🆕 the side panel's ports and keyboard ask for a STATE, not a flip: a
-         click on port 1 means "the stick, in port 1". Still answered with what
-         actually took — both reports go back either way. */
+      /* 🔄 2026-10-02 — a click on a port only CHOOSES THE PORT now. Still
+         answered with what actually took. */
       case "cat:joystick":
         if (String(m.port) === "1" || String(m.port) === "2") { if (port !== String(m.port)) setPort(String(m.port)); else reportPort(); }
-        if (kbdMode) setInputMode(false); else reportInputMode();
         break;
-      case "cat:keyboard":
-        if (!kbdMode) setInputMode(true); else reportInputMode();
+      /* 🆕 2026-10-02 — the hub's F2 and its Arrows control. No `arrows` = flip
+         (the key); a value = that state (the control's two halves). */
+      case "cat:arrows":
+        setArrows(m.arrows === "stick" || m.arrows === "cursor" ? m.arrows : (arrows === "stick" ? "cursor" : "stick"));
+        break;
+      /* 🆕 2026-10-02 — what a title starts on: its port and its arrows, together */
+      case "cat:setinput":
+        if (String(m.port) === "1" || String(m.port) === "2") { if (port !== String(m.port)) setPort(String(m.port)); else reportPort(); }
+        setArrows(m.arrows);
         break;
     }
   }
@@ -1640,7 +1830,9 @@
     }
     /* Report the mode the moment there is a game to have one. The hub paints a
        label from this and never assumes a default of its own. */
-    reportInputMode();
+    /* 🔄 2026-10-02 — the machine has no input mode; it reports what its
+       arrow keys do instead */
+    if (MACHINE) { syncKeyboard(); reportArrows(); } else reportInputMode();
     /* ...and the port, for the same reason and at the same moment. Until this
        fires the hub shows no port control at all — a plain cartridge has no
        joystick port to have, exactly as it has no input mode. */
@@ -1655,7 +1847,7 @@
     /* the machine's own view of itself, for the rig. 🚫 read-only */
     machine: function () {
       return { on: MACHINE, started: machine.started, failed: machine.failed, slot: machine.slot,
-               medium: machine.medium, side: machine.side, keyboard: kbdMode, port: port, paused: paused,
+               medium: machine.medium, side: machine.side, keyboard: kbdMode, arrows: arrows, port: port, paused: paused,
                /* 🆕 2026-09-25 — where this page thinks the C64's screen is ($0400
                   in the heap), and how its hunt is going. 🚫 read-only */
                screen: screenAt >= 0 ? screenAt : null,

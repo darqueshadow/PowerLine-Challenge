@@ -362,12 +362,16 @@ async function runRig() {
      while the machine was still working, and everything after it read a screen
      that was still moving. */
   const idleLoad = () => until("!__cat.machine().busy", 200000, 200);
-  /* the side panel, as the player sees it: each part lit, grey, or neither */
+  /* the side panel, as the player sees it: each part lit, grey, or neither.
+     🔄 2026-10-02 — no Keyboard part and no input mode any more (his rulings,
+     "keyboard and joystick live together"): the Arrows switch's two halves and
+     the two ports, and `grey` counts any greyed part (there should be none). */
   const SIDE = `(function () {
     var st = function (id) { var e = document.getElementById(id); return e.classList.contains("is-lit") ? "lit" : e.classList.contains("is-grey") ? "grey" : "plain"; };
     var p = document.getElementById("c64-side");
-    return { shown: !p.hidden && p.getBoundingClientRect().height > 20, mode: p.dataset.mode, port: p.dataset.port,
-             keys: st("c64-keys"), p1: st("c64-port1"), p2: st("c64-port2"),
+    return { shown: !p.hidden && p.getBoundingClientRect().height > 20, arrows: p.dataset.arrows, port: p.dataset.port,
+             stick: st("c64-arrows-stick"), cursor: st("c64-arrows-cursor"), p1: st("c64-port1"), p2: st("c64-port2"),
+             grey: p.querySelectorAll(".is-grey").length,
              power: document.getElementById("c64-power").getAttribute("aria-pressed"),
              oldButtons: ["btn-input", "btn-port", "btn-power"].filter(function (id) { var b = document.getElementById(id); return !b.hidden && b.getBoundingClientRect().width > 0; }).length };
   })()`;
@@ -459,19 +463,23 @@ async function runRig() {
       reset: !document.getElementById("btn-reset").hidden,
       load: document.getElementById("btn-load").dataset.cmd, slot: document.getElementById("drive-slot").textContent })`));
     ok(deck.out === "none" && deck.frame > 300, `the hub's terminal is off the glass and the machine fills it   [out ${deck.out}, frame ${deck.frame}px]`);
-    const tSide = await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 10000);
+    /* 🔄 2026-10-02 — there is no keyboard mode to open in: the keyboard is
+       always live AND the stick is in port 2, with the arrows on the stick */
+    const tSide = await until("document.getElementById('c64-side').dataset.arrows === 'stick' && document.getElementById('c64-side').dataset.port === '2'", 10000);
     const sideNow = await ev(SIDE);
-    ok(tSide >= 0 && sideNow.keys === "lit" && sideNow.p1 === "grey" && sideNow.p2 === "grey" && (await inMachine("CAT_EMU.machine().keyboard")) === true,
-       `it opens in KEYBOARD mode: the side panel lights the keyboard and greys both ports, from the machine's report   [${JSON.stringify(sideNow)}]`);
+    ok(tSide >= 0 && sideNow.stick === "lit" && sideNow.cursor === "plain" && sideNow.p2 === "lit" && sideNow.p1 === "plain" && sideNow.grey === 0 &&
+       (await inMachine("CAT_EMU.machine().keyboard")) === true && (await inMachine("CAT_EMU.machine().arrows")) === "stick",
+       `it opens with the keyboard live AND the stick in port 2, arrows on the stick, nothing greyed, from the machine's report   [${JSON.stringify(sideNow)}]`);
+    ok(!(await ev("!!document.getElementById('c64-keys')")), "the Keyboard part is gone: there is no keyboard to select");
     ok(sideNow.shown && sideNow.power === "true" && sideNow.oldButtons === 0,
        "the side panel replaces the Input / Port / Power Off buttons, and its power light is on");
     ok(deck.list && deck.run && deck.reset, "the deck has List, Run and Reset");
     ok(await ev("document.getElementById('btn-insert').parentNode.id === 'crates' && document.getElementById('btn-insert').classList.contains('btn--insert')"),
        "Insert Disk sits where the disks are, styled as the primary action (his addendum)");
     /* his F-key addendum: each hint names the key that emu.js and cat.js actually catch */
-    const hints = await ev(`[document.getElementById("c64-keys-hint").textContent, document.getElementById("c64-port-hint").textContent,
+    const hints = await ev(`[document.getElementById("c64-arrows-hint").textContent, document.getElementById("c64-port-hint").textContent,
       document.getElementById("btn-reset-hint").textContent]`);
-    ok(hints.join(" ") === "F2 F9 F12", `the side panel and Reset carry their keys: [F2] keyboard, [F9] ports, [F12] reset   [${hints.join(" ")}]`);
+    ok(hints.join(" ") === "F2 F9 F12", `the side panel and Reset carry their keys: [F2] arrows, [F9] ports, [F12] reset   [${hints.join(" ")}]`);
     ok(deck.load === 'LOAD"*",8,1' && /empty/i.test(deck.slot), `Load types LOAD"*",8,1; the drive is empty   [${deck.load} / ${deck.slot}]`);
     /* his ruling, 2026-09-17: people type on the C64's key positions, as the buttons do */
     const keymap = await inMachine("EJS_emulator.allSettings.vice_keyboard_keymap || EJS_emulator.getSettingValue('vice_keyboard_keymap') || null");
@@ -765,20 +773,26 @@ async function runRig() {
        on where the caret was. Both routes go through portKey() now.
        🚫 Do not weaken this back to "the port changed". A port flip is exactly
        the pre-ruling behaviour, so that assertion would go green on the bug. */
+    /* 🔄 2026-10-02 — F9 ONLY SWAPS THE PORT now (his rulings, "keyboard and
+       joystick live together"): there is no keyboard mode for it to take you
+       out of, so every press is a swap, from either side. The 2026-09-17/18
+       version of this check (first press = "onto the stick", port unchanged)
+       described a machine that no longer has modes. */
     const portWas = String(await ev("document.getElementById('c64-side').dataset.port"));
+    const portWant = portWas === "1" ? "2" : "1";
     await press("F9");
-    const tStick = await until("document.getElementById('c64-side').dataset.mode === 'joystick'", 5000);
-    const portNow = String(await ev("document.getElementById('c64-side').dataset.port"));
-    ok(tStick >= 0 && portNow === portWas,
-       `F9 on the hub's side reaches the machine and puts it on the STICK, without swapping an unused port   [port ${portWas} -> ${portNow}]`);
+    const tSwapG = await until(`document.getElementById('c64-side').dataset.port === '${portWant}'`, 5000);
+    ok(tSwapG >= 0, `F9 on the hub's side reaches the machine and swaps the port   [port ${portWas} -> ${await ev("document.getElementById('c64-side').dataset.port")}]`);
     await click("#btn-listing");
     await idle();
-    const tKbd = await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
     /* LIST can print a long program and scroll its own line up, so look for it
        anywhere after the PRINT 3 that came before it */
     const tTyped = await untilScreen((r) => after(r, /^PRINT 3$/).includes("LIST"), 8000);
-    ok(tKbd >= 0 && tTyped >= 0,
-       `a command button in joystick mode switches back to keyboard and still types   [label ${took(tKbd)}, LIST ${took(tTyped)}; ${(await screen()).filter(Boolean).slice(-4).join(" | ")}]`);
+    const portAfterG = String(await ev("document.getElementById('c64-side').dataset.port"));
+    ok(tTyped >= 0 && portAfterG === portWant,
+       `a command button types with the stick live, and nothing switches   [LIST ${took(tTyped)}, port still ${portAfterG}; ${(await screen()).filter(Boolean).slice(-4).join(" | ")}]`);
+    await press("F9");
+    await until(`document.getElementById('c64-side').dataset.port === '${portWas}'`, 5000);
 
     /* --- H. the side panel's ports move the REAL stick ---------------------
        His addendum: click a port (or F9) and that port lights, the other port and
@@ -786,49 +800,83 @@ async function runRig() {
        do anything". So the machine itself is asked: a BASIC loop prints both
        joystick registers, PEEK(56320) = control port 2 and PEEK(56321) = port 1
        (idle 127 and 255; the stick pushed UP clears bit 0). */
-    section("H. the side panel: a clicked port lights, and the stick really is in that port");
+    section("H. keyboard and joystick live together: every key, as the C64 itself reads it");
     const typeCmd = async (cmd) => {
       await ev(`__cat.execute(${JSON.stringify(cmd)})`);
       await until("__cat.machine().busy", 3000, 20);
       await idle();
     };
     await typeCmd("NEW");
-    await typeCmd("10 PRINT PEEK(56320),PEEK(56321)");
+    /* 🔄 2026-10-02 — FOUR registers now: the two joystick ports, and the C64's
+       own keyboard scan — PEEK(197), the matrix code of the key down (64 = none),
+       and PEEK(653), the shift flags (1 Shift, 2 C=, 4 CTRL). So one loop says
+       both what the STICK did and what the KEYBOARD did for the same press. */
+    await typeCmd("10 PRINT PEEK(56320),PEEK(56321),PEEK(197),PEEK(653)");
     await typeCmd("20 GOTO 10");
     await typeCmd("RUN");
     const registers = async () => {
-      const rows = (await screen()).filter((r) => /^\s*\d+\s+\d+$/.test(r));
+      const rows = (await screen()).filter((r) => /^\s*\d+\s+\d+\s+\d+\s+\d+$/.test(r));
       return rows.length ? rows[rows.length - 1].trim().split(/\s+/).map(Number) : null;
     };
-    ok((await untilScreen((r) => r.filter((x) => /^\s*127\s+255$/.test(x)).length >= 3, 8000)) >= 0,
-       `[control] the loop is running and the stick is idle   [${JSON.stringify(await registers())}]`);
-    const holdUp = async () => {
-      wc.sendInputEvent({ type: "keyDown", keyCode: "Up" });
+    ok((await untilScreen((r) => r.filter((x) => /^\s*127\s+255\s+64\s+0$/.test(x)).length >= 3, 8000)) >= 0,
+       `[control] the loop is running, the stick is idle and no key is down   [${JSON.stringify(await registers())}]`);
+    const holdKey = async (keyCode, modifiers = []) => {
+      wc.sendInputEvent({ type: "keyDown", keyCode, modifiers });
       await frames(40);
       const held = await registers();
-      wc.sendInputEvent({ type: "keyUp", keyCode: "Up" });
+      wc.sendInputEvent({ type: "keyUp", keyCode, modifiers });
       await frames(25);
       return held;
     };
+    const holdUp = () => holdKey("Up");
+    /* a key Electron cannot name by side (Right Ctrl), sent as the browser would */
+    const holdSynth = async (code, key, keyCode, location) => {
+      const mk = (t) => `${FRAME}.EJS_emulator.elements.parent.dispatchEvent(new KeyboardEvent("${t}", { code: "${code}", key: "${key}", keyCode: ${keyCode}, which: ${keyCode}, location: ${location}, ctrlKey: ${t === "keydown"}, bubbles: true, cancelable: true }))`;
+      await ev(mk("keydown")); await frames(40);
+      const held = await registers();
+      await ev(mk("keyup")); await frames(25);
+      return held;
+    };
     await click("#c64-port1");
-    const tP1 = await until("document.getElementById('c64-side').dataset.mode === 'joystick' && document.getElementById('c64-side').dataset.port === '1'", 5000);
+    const tP1 = await until("document.getElementById('c64-side').dataset.port === '1'", 5000);
     let sp = await ev(SIDE);
-    ok(tP1 >= 0 && sp.p1 === "lit" && sp.p2 === "grey" && sp.keys === "grey",
-       `clicking Port 1 lights it and greys Port 2 and the keyboard   [${JSON.stringify(sp)}]`);
+    ok(tP1 >= 0 && sp.p1 === "lit" && sp.p2 === "plain" && sp.grey === 0 && sp.stick === "lit",
+       `clicking Port 1 lights it, Port 2 goes plain, and nothing greys: the keyboard stays live   [${JSON.stringify(sp)}]`);
     const up1 = await holdUp();
-    ok(up1 && up1[0] === 127 && up1[1] === 254, `and the stick pushed up reads on port 1's register, not port 2's   [${JSON.stringify(up1)}]`);
+    ok(up1 && up1[0] === 127 && up1[1] === 254, `the arrow pushed up reads on port 1's register, not port 2's   [${JSON.stringify(up1)}]`);
     await press("F9");
     const tP2 = await until("document.getElementById('c64-side').dataset.port === '2'", 5000);
     sp = await ev(SIDE);
-    ok(tP2 >= 0 && sp.p2 === "lit" && sp.p1 === "grey" && sp.keys === "grey", `F9 swaps to Port 2, and the panel follows   [${JSON.stringify(sp)}]`);
+    ok(tP2 >= 0 && sp.p2 === "lit" && sp.p1 === "plain" && sp.grey === 0, `F9 swaps to Port 2, and the panel follows   [${JSON.stringify(sp)}]`);
     const up2 = await holdUp();
-    ok(up2 && up2[0] === 126 && up2[1] === 255, `and now the same stick reads on port 2's register   [${JSON.stringify(up2)}]`);
-    await click("#c64-keys");
-    const tK = await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
+    ok(up2 && up2[0] === 126 && up2[1] === 255 && up2[2] === 64,
+       `the same arrow reads on port 2, and is the STICK ONLY: no cursor key reached the C64   [${JSON.stringify(up2)}]`);
+    const fire = await holdKey("Control");
+    ok(fire && fire[0] === 111 && fire[3] === 0, `Ctrl is FIRE on the stick's port, and is not passed to the C64 (no C= flag)   [${JSON.stringify(fire)}]`);
+    const fireR = await holdSynth("ControlRight", "Control", 17, 2);
+    const portR = String(await ev("document.getElementById('c64-side').dataset.port"));
+    const upR = await holdUp();
+    ok(fireR && fireR[0] === 111 && portR === "2" && upR && upR[0] === 126,
+       `Right Ctrl is fire too, and it no longer swaps the port behind the label's back   [${JSON.stringify(fireR)}; port ${portR}; up ${JSON.stringify(upR)}]`);
+    const cbm = await holdKey("Alt");
+    ok(cbm && cbm[0] === 127 && cbm[3] === 2, `Left Alt is the C64's C= key (the flag Left Ctrl used to set), and does not fire   [${JSON.stringify(cbm)}]`);
+    const ctl = await holdKey("Tab");
+    ok(ctl && ctl[3] === 4, `Tab is the C64's CTRL key   [${JSON.stringify(ctl)}]`);
+    const fk1 = await holdKey("F1"), fk4 = await holdKey("F4");
+    ok(fk1 && fk1[2] === 4 && fk1[3] === 0 && fk4 && fk4[2] === 5 && fk4[3] === 1,
+       `F1 is the C64's f1, and F4 is its f4 (Shift + f3), as the Help sheet says   [${JSON.stringify(fk1)} ${JSON.stringify(fk4)}]`);
+    await press("F2");
+    const tCur = await until("document.getElementById('c64-side').dataset.arrows === 'cursor'", 5000);
     sp = await ev(SIDE);
-    ok(tK >= 0 && sp.keys === "lit" && sp.p1 === "grey" && sp.p2 === "grey", `clicking the keyboard lights it and greys both ports   [${JSON.stringify(sp)}]`);
-    const upK = await holdUp();
-    ok(upK && upK[0] === 127 && upK[1] === 255, `and in keyboard mode the arrow is not a joystick   [${JSON.stringify(upK)}]`);
+    ok(tCur >= 0 && sp.cursor === "lit" && sp.stick === "plain" && sp.p2 === "lit",
+       `F2 flips the arrows to the C64's cursor keys; the port stays lit   [${JSON.stringify(sp)}]`);
+    const upC = await holdUp();
+    ok(upC && upC[0] === 127 && upC[2] === 7 && upC[3] === 1,
+       `and now the arrow is the CURSOR key only (Shift + CRSR, as on a real C64), the stick untouched   [${JSON.stringify(upC)}]`);
+    await click("#c64-arrows-stick");
+    const tStk = await until("document.getElementById('c64-side').dataset.arrows === 'stick'", 5000);
+    const upS = await holdUp();
+    ok(tStk >= 0 && upS && upS[0] === 126 && upS[2] === 64, `clicking Stick puts the arrows back on the joystick   [${JSON.stringify(upS)}]`);
     /* 🚨 STOP THE LOOP, AND KNOW IT STOPPED. Measured: one RUN/STOP was not
        always enough to break this loop, and a loop left running swallowed
        everything §I typed after it, which read as four swap failures. */
@@ -940,7 +988,7 @@ async function runRig() {
        `it typed LOAD"RIG ONE",8,1 and RUN: the named program ran, not the disk's first file   [${took(tOne)}; ${(await screen()).filter(Boolean).slice(-3).join(" / ")}]`);
     const sideQ = () => ev(SIDE);
     let spQ = await sideQ();
-    ok(spQ.mode === "joystick" && spQ.port === "2", `after RUN the hub hands over to the title's input: joystick, port 2 by default   [${spQ.mode} ${spQ.port}]`);
+    ok(spQ.arrows === "stick" && spQ.port === "2", `after RUN the hub hands over to the title's input: arrows on the stick, port 2 by default   [${spQ.arrows} ${spQ.port}]`);
 
     /* the same, from the full-screen strip */
     await ev("__cat.full(true)");
@@ -986,27 +1034,30 @@ async function runRig() {
     ok(tHelp >= 0, `Instructions types LOAD"RIG HELP",8,1 and RUN: its own program ran   [${took(tHelp)}]`);
     ok((await until("document.activeElement === document.getElementById('machine-frame')", 3000)) >= 0, "and the keyboard is back in the machine");
     spQ = await sideQ();
-    ok(spQ.mode === "joystick" && spQ.port === "1", `a title the manifest marks port 1 starts on port 1   [${spQ.mode} ${spQ.port}]`);
+    ok(spQ.arrows === "stick" && spQ.port === "1", `a title the manifest marks port 1 starts on port 1   [${spQ.arrows} ${spQ.port}]`);
 
     /* learning: the player's switch is remembered for that title */
     await click("#c64-port2");
     await until(`document.getElementById("c64-side").dataset.port === "2"`, 5000);
     await wait(300);
     let mem = await ev("__cat.inputs()");
-    ok(mem[rid(RIG_CHOICE)] === "2", `the player moves the stick to port 2 during the game, and it is remembered   [${JSON.stringify(mem)}]`);
+    const memOf = (id) => mem[rid(id)] || {};
+    ok(memOf(RIG_CHOICE).port === "2" && memOf(RIG_CHOICE).arrows === "stick",
+       `the player moves the stick to port 2 during the game, and it is remembered as {port, arrows}   [${JSON.stringify(mem)}]`);
     await clearScreen();
     await click("#btn-load");
     await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
     const tPlayQ = await ran("RIG PLAY RAN");
     await idleLoad();
-    await until(`document.getElementById("c64-side").dataset.mode === "joystick"`, 5000);
+    await until(`document.getElementById("c64-side").dataset.port === "2"`, 5000);
     spQ = await sideQ();
-    ok(tPlayQ >= 0 && spQ.mode === "joystick" && spQ.port === "2", `next load: Play runs, and the remembered port 2 beats the manifest's port 1   [${took(tPlayQ)}; ${spQ.mode} ${spQ.port}]`);
-    await click("#c64-keys");
-    await until(`document.getElementById("c64-side").dataset.mode === "keyboard"`, 5000);
+    ok(tPlayQ >= 0 && spQ.arrows === "stick" && spQ.port === "2", `next load: Play runs, and the remembered port 2 beats the manifest's port 1   [${took(tPlayQ)}; ${spQ.arrows} ${spQ.port}]`);
+    await click("#c64-arrows-cursor");
+    await until(`document.getElementById("c64-side").dataset.arrows === "cursor"`, 5000);
     await wait(300);
     mem = await ev("__cat.inputs()");
-    ok(mem[rid(RIG_CHOICE)] === "keyboard", `switching to the keyboard is remembered too   [${mem[rid(RIG_CHOICE)]}]`);
+    ok(memOf(RIG_CHOICE).arrows === "cursor" && memOf(RIG_CHOICE).port === "2",
+       `switching the arrows to cursor keys is remembered too, with the port   [${JSON.stringify(mem[rid(RIG_CHOICE)])}]`);
     await clearScreen();
     await click("#btn-load");
     await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
@@ -1014,15 +1065,38 @@ async function runRig() {
     await idleLoad();
     await wait(800);
     spQ = await sideQ();
-    ok(spQ.mode === "keyboard", `a keyboard title stays on the keyboard after RUN   [${spQ.mode}]`);
+    ok(spQ.arrows === "cursor" && spQ.port === "2", `a cursor-keys title starts on the cursor keys after RUN, on its remembered port   [${spQ.arrows} ${spQ.port}]`);
     mem = await ev("__cat.inputs()");
     ok(mem[rid(RIG_ONE)] === undefined, `[control] nothing was learned for a title the player did not change   [${JSON.stringify(mem)}]`);
+
+    /* 🆕 2026-10-02 — A VALUE STORED BEFORE {port, arrows} (his ruling): one
+       string, read as "1"/"2" = that port, and "keyboard" = arrows on the cursor
+       keys with the manifest's port. Planted by hand, as an old browser holds it. */
+    const plant = (v) => ev(`(function () { var all = JSON.parse(localStorage.getItem("plc.c64.input") || "{}");
+      all[${JSON.stringify(rid(RIG_ONE))}] = ${JSON.stringify(v)}; localStorage.setItem("plc.c64.input", JSON.stringify(all)); return true; })()`);
+    for (const [old, wantPort, wantArrows] of [["keyboard", "2", "cursor"], ["1", "1", "stick"]]) {
+      await plant(old);
+      await insertRig(rid(RIG_ONE));
+      await clearScreen();
+      await click("#btn-load");
+      await ran("RIG ONE RAN");
+      await idleLoad();
+      await until(`document.getElementById("c64-side").dataset.port === "${wantPort}" && document.getElementById("c64-side").dataset.arrows === "${wantArrows}"`, 5000);
+      spQ = await sideQ();
+      ok(spQ.port === wantPort && spQ.arrows === wantArrows,
+         `an old stored "${old}" migrates: port ${wantPort}, arrows on the ${wantArrows === "cursor" ? "cursor keys" : "stick"}   [${spQ.port} ${spQ.arrows}]`);
+    }
+    mem = await ev("__cat.inputs()");
+    ok(mem[rid(RIG_ONE)] === "1", `[control] an old value is only rewritten when the player changes something   [${JSON.stringify(mem[rid(RIG_ONE)])}]`);
+    await insertRig(rid(RIG_CHOICE));
 
     /* full screen (his ruling, 2026-10-01): Load is in the strip, and its
        prompt opens above the strip, as the disk picker's does */
     await ev("__cat.full(true)");
     await until("__cat.machine().full", 3000);
-    ok((await ev("document.getElementById('btn-load').parentNode.id")) === "c64-side", "in full screen, Load is in the strip");
+    /* 🔄 2026-10-02 — Load goes into the strip inside its START group, with Run */
+    ok((await ev("document.getElementById('deck-start').parentNode.id")) === "c64-side" && (await ev("document.getElementById('btn-load').parentNode.id")) === "deck-start",
+       "in full screen, Load is in the strip, inside its Start group");
     await click("#btn-load");
     pk = await pick();
     const stripQ = await ev("JSON.stringify(document.getElementById('c64-side').getBoundingClientRect())").then(JSON.parse);
@@ -1036,7 +1110,7 @@ async function runRig() {
        `and Play from there loads and runs, still in full screen   [${took(tFullPlay)}; note "${await ev("__cat.note()")}"]`);
     await ev("__cat.full(false)");
     await until("!__cat.machine().full", 3000);
-    ok((await ev("document.getElementById('btn-load').parentNode.id")) === "deck-top", "leaving full screen puts Load back on the deck");
+    ok((await ev("document.getElementById('deck-start').parentNode.id")) === "deck-top", "leaving full screen puts the Start group, Load in it, back on the deck");
     /* paused: no prompt */
     await ev("__cat.pause()");
     await until("__cat.machine().paused", 5000);
@@ -1163,14 +1237,11 @@ async function runRig() {
     /* his ruling froze the port labels black, so the CABLE is the only thing left
        that says which port the stick is in — and it must follow the machine's
        report, not the click */
-    ok(corner.cable === false, "[control] no joystick shown while the keyboard is the input");
-    await press("F9");   /* F9 selects the stick; F2 only ever selects the keyboard */
-    await until("document.getElementById('c64-side').dataset.mode === 'joystick'", 5000);
-    await wait(300);
-    const onPort = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
+    /* 🔄 2026-10-02 — THE STICK IS ALWAYS IN A PORT now (there is no keyboard
+       mode), so it shows from the start, on the port the machine reported */
     const litPort = String(await ev("document.getElementById('c64-side').dataset.port"));
-    ok(onPort.cable === true && onPort.cablePort === litPort,
-       `a joystick shows on the port the stick is really in   [port ${litPort}, stick on ${onPort.cablePort}]`);
+    ok(corner.cable === true && corner.cablePort === litPort,
+       `a joystick shows on the port the stick is really in, with nothing selected first   [port ${litPort}, stick on ${corner.cablePort}]`);
     await press("F9");
     await until("document.getElementById('c64-side').dataset.port === " + JSON.stringify(litPort === "1" ? "2" : "1"), 5000);
     await wait(300);
@@ -1180,36 +1251,26 @@ async function runRig() {
     /* 🚨 the joystick sits inside the port button: it must never eat a click
        meant for the port itself (pointer-events:none). The rig clicks a port at
        its CENTRE, so this is exactly the failure mode. */
+    const hitPort = swapped.cablePort;
     const hit = String(await ev(`(function () {
-      var r = document.getElementById("c64-port" + ${JSON.stringify(litPort)}).getBoundingClientRect();
+      var r = document.getElementById("c64-port" + ${JSON.stringify(hitPort)}).getBoundingClientRect();
       var e = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
       return e ? (e.closest(".c64-port") ? "port" : (e.id || e.tagName)) : "none"; })()`));
     ok(hit === "port", `and it cannot swallow a click meant for the port   [hit ${hit}]`);
-    await press("F2");
-    await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
-    await wait(300);
-    ok(JSON.parse(await ev("JSON.stringify(__cat.corner())")).cable === false,
-       "and it goes away again when the keyboard is chosen");
-
-    /* 🆕 2026-09-17 — F2 SELECTS the keyboard, it does not toggle. Pressing it
-       when the keyboard is already live must be a NO-OP: a toggle there would
-       throw the player onto the joystick, which is the opposite of what someone
-       reaching for the keyboard wants. */
-    await press("F2");
-    await wait(500);
-    ok(String(await ev("document.getElementById('c64-side').dataset.mode")) === "keyboard",
-       "F2 pressed again keeps the keyboard, it does not toggle away from it");
-    /* and F9 from the keyboard puts you ON the stick, rather than silently
-       swapping a port you are not using */
     await press("F9");
-    await until("document.getElementById('c64-side').dataset.mode === 'joystick'", 5000);
-    ok(String(await ev("document.getElementById('c64-side').dataset.mode")) === "joystick",
-       "F9 from the keyboard selects the joystick, instead of swapping an unused port");
+    await until("document.getElementById('c64-side').dataset.port === " + JSON.stringify(litPort), 5000);
+    /* F2 flips the arrows and flips them back, and never moves the stick */
+    const arrowsWas = String(await ev("document.getElementById('c64-side').dataset.arrows"));
     await press("F2");
-    await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
-    /* the F-key hints: his ask was weight and colour, which no assertion can
+    const tFlip = await until(`document.getElementById('c64-side').dataset.arrows !== ${JSON.stringify(arrowsWas)}`, 5000);
+    await press("F2");
+    const tBack = await until(`document.getElementById('c64-side').dataset.arrows === ${JSON.stringify(arrowsWas)}`, 5000);
+    const afterF2 = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
+    ok(tFlip >= 0 && tBack >= 0 && afterF2.cablePort === litPort,
+       `F2 toggles the arrows (stick / cursor) and back, and the stick stays in its port   [${arrowsWas}; stick on ${afterF2.cablePort}]`);
+    /* the F-key hints    /* the F-key hints: his ask was weight and colour, which no assertion can
        judge — but the TEXT must stay bare, because §A asserts exactly "F2 F9 F12" */
-    const caps = JSON.parse(await ev(`JSON.stringify(["c64-keys-hint", "c64-port-hint", "btn-reset-hint"].map(function (id) {
+    const caps = JSON.parse(await ev(`JSON.stringify(["c64-arrows-hint", "c64-port-hint", "btn-reset-hint"].map(function (id) {
       var e = document.getElementById(id), s = getComputedStyle(e);
       return { t: e.textContent, w: s.fontWeight, cap: s.backgroundImage.indexOf("gradient") >= 0 }; }))`));
     ok(caps.every((c) => c.w === "700" && c.cap) && caps.map((c) => c.t).join(" ") === "F2 F9 F12",
@@ -1260,14 +1321,14 @@ async function runRig() {
     await press("F2");
     await press("F12");
     await click("#c64-port1");
-    await click("#c64-keys");
+    await click("#c64-arrows-cursor");
     await click("#btn-list");
     await wait(800);
     ok(text(await screen()) === screenBefore && (await peek(198)) === 0,
        `keys typed while paused reach nothing: the screen is unchanged and the C64's key buffer is empty   [$C6 ${await peek(198)}]`);
     const sideDuring = await ev(SIDE);
-    ok(sideDuring.mode === sideBefore.mode && sideDuring.port === sideBefore.port,
-       `F9, F2 and clicks on the ports and keyboard change nothing while paused   [${sideBefore.mode}/${sideBefore.port} -> ${sideDuring.mode}/${sideDuring.port}]`);
+    ok(sideDuring.arrows === sideBefore.arrows && sideDuring.port === sideBefore.port,
+       `F9, F2 and clicks on the ports and the Arrows switch change nothing while paused   [${sideBefore.arrows}/${sideBefore.port} -> ${sideDuring.arrows}/${sideDuring.port}]`);
     ok(!(await ev("__cat.machine().busy")) && (await frameNow()) === fB,
        "Load does not start, and F12 does not reset: the clock never moved");
     /* resume with the MOUSE, then type straight away — no click on the glass first */
@@ -1280,13 +1341,8 @@ async function runRig() {
     await type("PRINT X*6\n");
     ok((await untilScreen((r) => toReady(after(r, /^PRINT X\*6$/))[0] === " 42", 6000)) >= 0,
        `the very next keys go into BASIC, and X is still 7: nothing was lost and nothing reset   [${(await screen()).filter(Boolean).slice(-2).join(" | ")}]`);
-    /* the held key — a raw key reaches the C64 only in KEYBOARD mode, and since
-       2026-10-01 a Load ends by handing the title over to its joystick port
-       (his ruling), so the rig takes the keyboard first, as a player would */
-    if ((await ev(SIDE)).mode !== "keyboard") {
-      await press("F2");
-      await until(`document.getElementById("c64-side").dataset.mode === "keyboard"`, 5000);
-    }
+    /* the held key. 🔄 2026-10-02 — the keyboard is always live now, so there is
+       no keyboard to take first (this used to press F2) */
     wc.sendInputEvent({ type: "keyDown", keyCode: "Space" });
     await frames(10);
     const held0 = await peek(203);
@@ -1340,10 +1396,12 @@ async function runRig() {
       return { win: { w: innerWidth, h: innerHeight }, frame: r("machine-frame"), side: r("c64-side"), crates: r("crates"),
                ejectIn: document.getElementById("btn-eject").parentNode.id, swapIn: document.getElementById("side-swap").parentNode.id,
                loadIn: document.getElementById("btn-load").parentNode.id,
+               startIn: document.getElementById("deck-start").parentNode.id,
+               runIn: document.getElementById("btn-run").parentNode.id,
                insertIn: document.getElementById("btn-insert").parentNode.id,
                cart: d("c64-cart"), iec: d("c64-iec"), deckTop: d("deck-top"),
                label: document.getElementById("c64-full-label").textContent,
-               ids: ["c64-power", "c64-port1", "c64-port2", "c64-keys", "c64-pause", "c64-full", "btn-eject", "side-swap", "btn-load"]
+               ids: ["c64-power", "c64-port1", "c64-port2", "c64-arrows", "c64-pause", "c64-full", "c64-help", "btn-eject", "side-swap", "deck-start", "btn-load", "btn-run"]
                  .map(function (id) { return document.querySelectorAll("#" + id).length; }).join("") }; })())`;
     const L = JSON.parse(await ev(FULL_LOOK));
     ok(L.crates.w === 0 && L.frame.w >= L.win.w - 2 && L.frame.h >= L.win.h * 0.8,
@@ -1351,8 +1409,9 @@ async function runRig() {
     ok(L.side.t >= L.frame.b - 1 && L.side.b <= L.win.h + 1,
        `the strip sits UNDER the screen, not over it   [screen ends ${L.frame.b}, strip ${L.side.t}-${L.side.b}]`);
     /* 🔄 2026-10-01 — Load joins them (his ruling, amending 2026-09-25's) */
-    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.loadIn === "c64-side" && L.ids === "111111111",
-       `Load, Eject and the side swap MOVED into the strip, and nothing was copied   [load ${L.loadIn}, eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
+    /* 🔄 2026-10-02 — Load comes as its START group, so Run comes too */
+    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.startIn === "c64-side" && L.loadIn === "deck-start" && L.runIn === "deck-start" && L.ids === "111111111111",
+       `the Start group (Load and Run), Eject and the side swap MOVED into the strip, and nothing was copied   [start ${L.startIn}, eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
     ok(L.cart === "none" && L.iec === "none" && L.deckTop === "none",
        `the cartridge port, the drive port and Reset stay out of the strip   [${L.cart}/${L.iec}/${L.deckTop}]`);
     ok(L.label === "Exit Full Screen", `the Full Screen part reads Exit Full Screen   [${L.label}]`);
@@ -1370,17 +1429,19 @@ async function runRig() {
     ok(pic && Math.max(pic.w / pic.W, pic.h / pic.H) > 0.95,
        `the C64's picture scales up to fit the space above the strip   [${pic ? Math.round(pic.w) + "x" + Math.round(pic.h) + " in " + pic.W + "x" + pic.H : "no canvas"}]`);
     await click("#c64-port1");
-    await until("document.getElementById('c64-side').dataset.mode === 'joystick' && document.getElementById('c64-side').dataset.port === '1'", 5000);
+    await until("document.getElementById('c64-side').dataset.port === '1'", 5000);
     let fs = await ev(SIDE);
-    ok(fs.p1 === "lit" && fs.p2 === "grey" && fs.keys === "grey", `in the strip, clicking Port 1 lights it and greys the rest   [${JSON.stringify(fs)}]`);
+    ok(fs.p1 === "lit" && fs.p2 === "plain" && fs.grey === 0, `in the strip, clicking Port 1 lights it   [${JSON.stringify(fs)}]`);
     await press("F9");
     await until("document.getElementById('c64-side').dataset.port === '2'", 5000);
     fs = await ev(SIDE);
-    ok(fs.p2 === "lit" && fs.p1 === "grey" && fs.keys === "grey", `F9 swaps to Port 2 in the strip   [${JSON.stringify(fs)}]`);
-    await click("#c64-keys");
-    await until("document.getElementById('c64-side').dataset.mode === 'keyboard'", 5000);
+    ok(fs.p2 === "lit" && fs.p1 === "plain", `F9 swaps to Port 2 in the strip   [${JSON.stringify(fs)}]`);
+    await click("#c64-arrows-cursor");
+    await until("document.getElementById('c64-side').dataset.arrows === 'cursor'", 5000);
     fs = await ev(SIDE);
-    ok(fs.keys === "lit" && fs.p1 === "grey" && fs.p2 === "grey", `and the keyboard lights, greying both ports   [${JSON.stringify(fs)}]`);
+    ok(fs.cursor === "lit" && fs.stick === "plain" && fs.p2 === "lit", `and the Arrows switch works from the strip   [${JSON.stringify(fs)}]`);
+    await click("#c64-arrows-stick");
+    await until("document.getElementById('c64-side').dataset.arrows === 'stick'", 5000);
     await type("PRINT X\n");
     ok((await untilScreen((r) => toReady(after(r, /^PRINT X$/))[0] === " 7", 6000)) >= 0,
        "the machine carried on through the change of view: X is still 7");
@@ -1412,6 +1473,66 @@ async function runRig() {
     await type("PRINT X+1\n");
     ok((await untilScreen((r) => toReady(after(r, /^PRINT X\+1$/))[0] === " 8", 6000)) >= 0,
        "with the keyboard straight back in BASIC, and nothing lost: X is still 7");
+
+    /* --- R. Help (2026-10-02, Chat's item 7) ----------------------------------
+       A label on the side panel (so in the strip too). Opening it pauses the
+       machine; closing it resumes ONLY IF HELP DID THE PAUSING. The keys list is
+       written from the hub's own hotkey constants. */
+    section("R. Help: one sheet, it pauses the machine, and closing it hands the machine back");
+    const helpOf = () => ev("JSON.stringify(__cat.corner().help)").then(JSON.parse);
+    await click("#c64-help");
+    const tHelpOpen = await until("__cat.corner().help && __cat.machine().paused === true", 5000);
+    const fH0 = await frameNow(); await wait(800); const fH1 = await frameNow();
+    let hp = await helpOf();
+    ok(tHelpOpen >= 0 && hp && hp.paused === true && fH1 === fH0, `Help opens and pauses the machine: the clock stops   [${took(tHelpOpen)}, ${fH1 - fH0} frames]`);
+    const keysNamed = await ev("JSON.stringify(__cat.corner().keys)").then(JSON.parse);
+    ok(!!hp && [keysNamed.arrows, keysNamed.port, keysNamed.reset, "Ctrl", "Left Alt", "Tab", "Esc", "Insert Disk", "Load", "Eject", "Pause", "Full Screen", "Power"].every((w) => hp.text.includes(w)),
+       `the sheet covers how to use it and every special key, named from the hub's own constants   [${keysNamed.arrows}/${keysNamed.port}/${keysNamed.reset}]`);
+    const hpBox = JSON.parse(await ev(`JSON.stringify((function () { var b = document.getElementById("c64-help-panel").getBoundingClientRect(); return { t: b.top, b: b.bottom, l: b.left, r: b.right, W: innerWidth, H: innerHeight }; })())`));
+    ok(hpBox.t >= 0 && hpBox.l >= 0 && hpBox.b <= hpBox.H && hpBox.r <= hpBox.W, `it fits on one screen   [${Math.round(hpBox.r - hpBox.l)}x${Math.round(hpBox.b - hpBox.t)} in ${hpBox.W}x${hpBox.H}]`);
+    await click("#c64-help-close");
+    const tHC = await until("!__cat.corner().help && __cat.machine().paused === false", 5000);
+    await frames(5);
+    ok(tHC >= 0 && (await frameNow()) > fH1, `closing it resumes the machine Help paused   [${took(tHC)}]`);
+    await type("PRINT 6*7\n");
+    ok((await untilScreen((r) => toReady(after(r, /^PRINT 6\*7$/))[0] === " 42", 6000)) >= 0, "and the keyboard is straight back in BASIC, no click needed");
+    /* a machine the PLAYER paused stays paused */
+    await click("#c64-pause");
+    await until("__cat.machine().paused === true", 5000);
+    await click("#c64-help");
+    await until("!!__cat.corner().help", 3000);
+    hp = await helpOf();
+    await click("#c64-help-close");
+    await wait(600);
+    ok(hp && hp.paused === false && (await ev("__cat.machine().paused")) === true,
+       "[control] opened on a machine the player had paused, Help does not resume it on close");
+    await click("#c64-pause");
+    await until("__cat.machine().paused === false", 5000);
+    /* and from the full-screen strip */
+    await ev("__cat.full(true)");
+    await until("__cat.machine().full", 3000);
+    const helpInStrip = await ev("document.getElementById('c64-side').contains(document.getElementById('c64-help')) && document.getElementById('c64-help').getBoundingClientRect().width > 0");
+    await click("#c64-help");
+    const tHF = await until("__cat.corner().help && __cat.machine().paused === true", 5000);
+    await click("#c64-help-close");
+    const tHF2 = await until("!__cat.corner().help && __cat.machine().paused === false", 5000);
+    ok(helpInStrip && tHF >= 0 && tHF2 >= 0, `Help is in the full-screen strip too, and pauses and resumes the same way   [${took(tHF)} / ${took(tHF2)}]`);
+    await ev("__cat.full(false)");
+    await until("!__cat.machine().full", 3000);
+
+    /* --- S. the deck's groups (2026-10-02, Chat's item 8) ---------------------- */
+    section("S. the deck's buttons in etched groups: Start, and Directory");
+    const groups = await ev("JSON.stringify(__cat.corner().groups)").then(JSON.parse);
+    const gOf = (id) => groups.find((g) => g.id === id) || { buttons: [] };
+    ok(gOf("deck-start").label === "Start" && gOf("deck-start").buttons.join(",") === "btn-load,btn-run",
+       `START holds Load and Run   [${JSON.stringify(gOf("deck-start"))}]`);
+    ok(gOf("deck-dir").label === "Directory" && gOf("deck-dir").buttons.join(",") === "btn-list,btn-listing",
+       `DIRECTORY holds Load "$",8 and List   [${JSON.stringify(gOf("deck-dir"))}]`);
+    const etch = JSON.parse(await ev(`JSON.stringify(["deck-start", "deck-dir"].map(function (id) {
+      var g = document.getElementById(id), s = getComputedStyle(g), l = getComputedStyle(g.querySelector(".deck-group__label"));
+      return { border: s.borderTopStyle, w: s.borderTopWidth, label: l.display, shown: g.getBoundingClientRect().width > 0 }; }))`));
+    ok(etch.every((e) => e.border === "solid" && parseFloat(e.w) > 0 && parseFloat(e.w) <= 1 && e.label !== "none" && e.shown),
+       `each group is drawn as an etched outline with its label   [${JSON.stringify(etch)}]`);
 
     /* --- P3. the corner's own screen hunt (2026-09-25) ---------------------------
        His rulings: the hunt keeps going until it finds the screen, WITHOUT slowing

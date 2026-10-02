@@ -1409,28 +1409,41 @@ html.cat-link #cat { visibility: hidden; }
 }
 .c64-port.is-lit .c64-port__plug { opacity: 1; transform: translateY(0); }
 
-/* the keyboard: a small board of keys that ripple while it is the input */
-.c64-keys__board {
-  display: grid;
+/* 🔄 2026-10-02 — THE KEYBOARD PART'S RULES WERE HERE (the rippling board).
+   The keyboard is always live now, so the part went, and with it .c64-keys,
+   its rows and key-ripple. In its place:
+
+   THE ARROWS SWITCH — a two-position slide set into the case: STICK | CURSOR.
+   The lit half is the machine's report, lit the way a live port is lit. Small
+   on purpose (Chat: "keep it small"). Each half is a real button. */
+.c64-arrows { cursor: default; }
+.c64-arrows__switch {
+  display: inline-flex;
+  padding: 2px;
   gap: 2px;
-  padding: 4px 5px;
-  border-radius: 3px;
+  border-radius: 4px;
   background: #3a2f22;
-  box-shadow: inset 0 1px 0 #5a4a36;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 246, 219, .35);
 }
-.c64-keys__row { display: flex; gap: 2px; justify-content: center; }
-.c64-keys__row i { width: 6px; height: 5px; border-radius: 1px; background: #6d5a44; box-shadow: inset 0 1px 0 #8f7a60; }
-.c64-keys__row i.space { width: 38px; }
-.c64-keys.is-lit .c64-keys__row i {
-  background: #e9dcc0;
-  box-shadow: inset 0 -1px 0 #9c8a6c;
-  animation: key-ripple 2.4s ease-in-out infinite;
+.c64-arrows__opt {
+  appearance: none;
+  border: 0;
+  padding: 3px 7px;
+  border-radius: 3px;
+  background: linear-gradient(#5b5246, #3d362d);
+  color: #cfc3a6;
+  font: 700 clamp(8px, 1vh, 10px) var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 #7a6f60;
 }
-.c64-keys.is-lit .c64-keys__row:nth-child(2) i { animation-delay: .15s; }
-.c64-keys.is-lit .c64-keys__row:nth-child(3) i { animation-delay: .3s; }
-.c64-keys.is-lit .c64-keys__row:nth-child(4) i { animation-delay: .45s; }
-.c64-keys.is-lit .c64-keys__row:nth-child(5) i { animation-delay: .6s; }
-@keyframes key-ripple { 0%, 70%, 100% { background: #e9dcc0; } 80% { background: #ffd479; } }
+.c64-arrows__opt:focus-visible { outline: 2px solid #3f329b; outline-offset: 1px; }
+.c64-arrows__opt.is-lit {
+  background: linear-gradient(#fff1c4, #ffd479);
+  color: #2b2517;
+  box-shadow: inset 0 1px 0 #fffaea, 0 0 8px rgba(255, 212, 121, .6);
+}
 
 /* ---- the book reader ----------------------------------------------------
    🆕 2026-09-17. A paper object resting on top of the machine: cream stock and
@@ -1876,7 +1889,6 @@ html.cat-link #cat { visibility: hidden; }
   .drive-latch, .drive-led, .drive-door, .drive-key--play { animation-duration: .45s; }
   .c64-power[aria-pressed="true"] .c64-led,
   .c64-port.is-lit .c64-port__pins i,
-  .c64-keys.is-lit .c64-keys__row i { animation: none; }
   .c64-rocker__paddle { transition: none; }
 }
 
@@ -1990,7 +2002,7 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-paused #btn-insert,
 #cat.is-paused #side-swap .btn,
 #cat.is-paused #btn-fastload,
-#cat.is-paused #c64-keys,
+#cat.is-paused #c64-arrows .c64-arrows__opt,
 #cat.is-paused #c64-port1,
 #cat.is-paused #c64-port2 { opacity: .4; cursor: not-allowed; animation: none; }
 
@@ -2052,7 +2064,7 @@ html.cat-link #cat { visibility: hidden; }
   padding: 6px clamp(8px, 1.4vw, 18px);
 }
 #cat.is-full #c64-side > #btn-eject { align-self: center; }
-#cat.is-full #c64-side > #btn-load { align-self: center; }
+#cat.is-full #c64-side > #deck-start { align-self: center; }
 #cat.is-full #c64-side > #side-swap { align-self: center; }
 #cat.is-full #c64-side > #side-swap[hidden] { display: none; }
 
@@ -2115,3 +2127,87 @@ html.cat-link #cat { visibility: hidden; }
   border: 1px solid #c9bd94;
   border-radius: 4px;
 }
+
+
+/* ---- 🆕 2026-10-02 — THE DECK'S GROUPS (Chat's item 8) -----------------------
+   An ETCHED outline with a small etched label, the way markings are moulded
+   into the breadbin: a dark line with a light line just under it, no fill, no
+   colour of its own (Andrew may add colour later). Only in the corner — cat.js
+   puts .is-grouped on #deck-top there; everywhere else a group is invisible
+   (display: contents) and its buttons sit in the row exactly as before. */
+.deck-group { display: contents; }
+.deck-group__label { display: none; }
+#deck-top.is-grouped .deck-group,
+#c64-side > .deck-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(6px, .9vw, 12px);
+  padding: 15px 9px 7px;
+  border: 1px solid rgba(58, 48, 28, .55);
+  border-radius: 7px;
+  box-shadow: 0 1px 0 rgba(255, 248, 221, .65), inset 0 1px 0 rgba(255, 248, 221, .65);
+}
+#deck-top.is-grouped .deck-group__label,
+#c64-side > .deck-group .deck-group__label {
+  display: block;
+  position: absolute;
+  top: 2px; left: 9px;
+  font: 700 9px/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #6a5c3c;
+  text-shadow: 0 1px 0 rgba(255, 248, 221, .7);
+  pointer-events: none;
+}
+/* a group whose buttons are all hidden draws nothing */
+#deck-top.is-grouped .deck-group:not(:has(> button:not([hidden]))) { display: none; }
+
+/* ---- 🆕 2026-10-02 — HELP: the label on the back of the breadbin -------------
+   A real C64's underside carries a small foil rating sticker — silver, with a
+   bold mark and lines of fine print. This is that sticker, as a button. */
+.c64-help__sticker {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  width: 38px;
+  padding: 3px 4px 4px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #f3f3ee, #b9bab4 45%, #e6e7e1 60%, #a7a8a2);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(60, 60, 55, .35);
+}
+.c64-help__brand { font: 900 9px/1 var(--mono); letter-spacing: .12em; color: #23221e; }
+.c64-help__fine { display: grid; gap: 2px; width: 100%; }
+.c64-help__fine i { display: block; height: 1px; background: rgba(35, 34, 30, .55); }
+.c64-help__fine i:nth-child(2) { width: 80%; }
+.c64-help__fine i:nth-child(3) { width: 60%; }
+
+/* ---- the Help sheet: the corner's paper, like the Load prompt ---------------- */
+.c64-help-panel {
+  position: fixed;
+  z-index: 75;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 16px 20px 14px;
+  background: #f4ecd6;
+  color: #2b2418;
+  border: 1px solid #8d8058;
+  border-radius: 8px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .6), inset 0 1px 0 #fffaea;
+  font: 14px/1.45 var(--mono);
+}
+.c64-help-panel[hidden] { display: none; }
+.c64-help-panel__title { margin: 0 0 10px; font-size: 18px; letter-spacing: .06em; text-transform: uppercase; }
+.c64-help-panel__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; }
+@media (max-width: 720px) { .c64-help-panel__cols { grid-template-columns: 1fr; } }
+.c64-help-panel h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: #5a4b2c; }
+.c64-help-panel ol { margin: 0; padding-left: 1.4em; }
+.c64-help-panel li { margin: 0 0 4px; }
+.c64-help-panel p { margin: 8px 0 0; }
+.c64-help-panel__keys { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
+.c64-help-panel__keys dt { font-weight: 700; white-space: nowrap; }
+.c64-help-panel__keys dd { margin: 0; }
+.c64-help-panel__close { display: block; margin: 12px 0 0 auto; }
