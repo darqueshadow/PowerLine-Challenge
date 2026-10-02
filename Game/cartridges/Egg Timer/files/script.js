@@ -374,113 +374,14 @@
     }, C.doodleTurnEvery * 1000);
   }
 
-  /* E29 (ruled 2026-09-24): How To Play is a five-panel comic strip, one design on the title card and on the options
-     screen's panel (under its signs). One panel a step: a heading, a picture (⏳ enlarged how-to doodles for now; the art
-     is Gemini's, brief slots 16–20) and the step's words in a speech bubble. Panel 3 is split, fast and slow.
-     E29's rulings: no panel headings, only a number badge in each panel's corner (the heading stays as the panel's
-     accessible name); the words are TITLE_STEPS, as ruled; the old hose step is gone (the sink says it). */
-  /* Andrew, 2026-10-01: his own five lines (TITLE_STEPS), one a panel, on both screens; the Time Warp panel is gone.
-     The pictures: the Queen (the mommy doodle) and a running CAV; the egg cracking as the timer turns pink, with the
-     RCAV shout; a fast clear's fancy plate; a slow one's broken egg; and a goofy cute alien (CONFIG.howtoAlien, the
-     puppet itself, filled in once the data has loaded, so its pictures never hold the data back). */
-  var STRIP = [
-    { head: "The Queen lays eggs", pics: [[1], [3, "small"]], chip: ["04:21", "timer"] },
-    { head: "The CAV runs out", pics: [[3]], chip: ["10:00", "timer bold"], shout: "RCAV 2101!" },
-    { head: "Fast", dish: true },
-    { head: "Slow", pics: [[3]], mess: true },
-    { head: "Too slow", alien: true }
-  ];
-  function buildStrip() {
-    var ol = document.createElement("ol");
-    ol.className = "strip";
-    STRIP.forEach(function (p, i) {
-      var li = document.createElement("li");
-      li.className = "cell";
-      li.dataset.step = i + 1;
-      li.setAttribute("aria-label", (i + 1) + ". " + p.head);
-      var num = document.createElement("span");
-      num.className = "num";
-      num.setAttribute("aria-hidden", "true");
-      num.textContent = String(i + 1);
-      li.appendChild(num);
-      var scene = document.createElement("div");
-      scene.className = "scene" + (p.split ? " split" : "");
-      function pic(spec) {
-        var el = spec[0] === "clock" ? ET.art.clockSvg(C.warpFactor) : ET.art.doodleEl(spec[0]);
-        el.setAttribute("class", (spec[0] === "clock" ? "clock-art" : "doodle") + " pic" + (spec[1] ? " " + spec[1] : ""));
-        return el;
-      }
-      if (p.dish) {
-        var d = ET.art.dishEl(5, "");   // a fancy plate (the ladder's sixth dish), held still
-        d.className = "dish pic";
-        d.removeChild(d.querySelector(".caption"));
-        scene.appendChild(d);
-      } else if (p.alien) {
-        // the puppet goes in once the data is in (fillStripAliens)
-        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", "-40 -36 80 64");
-        svg.setAttribute("class", "alien-pic pic");
-        svg.setAttribute("aria-hidden", "true");
-        var slot = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        slot.setAttribute("class", "creature");
-        svg.appendChild(slot);
-        scene.appendChild(svg);
-      } else {
-        (p.pics || []).forEach(function (s) { scene.appendChild(pic(s)); });
-        if (p.chip) {
-          var chip = document.createElement("span");
-          chip.className = "chip " + p.chip[1];
-          chip.textContent = p.chip[0];
-          scene.appendChild(chip);
-        }
-        if (p.shout) {
-          var sh = document.createElement("span");
-          sh.className = "shout";
-          sh.textContent = p.shout;
-          scene.appendChild(sh);
-        }
-        if (p.mess) {
-          var m = document.createElement("span");
-          m.className = "goo";
-          m.setAttribute("aria-hidden", "true");
-          scene.appendChild(m);
-        }
-        if (p.keys) {
-          var k = document.createElement("span");
-          k.className = "keys";
-          k.setAttribute("aria-hidden", "true");
-          k.innerHTML = "<i></i><i></i>";
-          scene.appendChild(k);
-        }
-      }
-      li.appendChild(scene);
-      var bubble = document.createElement("p");
-      bubble.className = "say";
-      bubble.textContent = TITLE_STEPS[i];
-      li.appendChild(bubble);
-      ol.appendChild(li);
-    });
-    return ol;
-  }
-
-  /* Refinement 6 §1: the title screen's How To Play card. Andrew, 2026-10-01: his own words, the same on the title and
-     options screens (they replace E28's wording and E27's Time Warp step). */
-  var TITLE_STEPS = [
-    "The Queen is laying eggs in your CAVs",
-    "Once the CAV runs out, the egg starts to hatch",
-    "Clear the CAV fast, more points",
-    "Clear slow, more mess",
-    "Clear too slow...."
-  ];
-  // the "too slow" panel's alien, in both strips, once the data has loaded
-  function fillStripAliens() {
-    document.querySelectorAll(".strip .alien-pic .creature").forEach(function (slot) { ET.aliens.fill(slot, C.howtoAlien); });
-  }
+  /* E57 (ruled 2026-10-02: approved as proposed): How To Play is a six-step animated cartoon (core/howto.js), the same
+     on the title card and on the options screen's panel, under its signs; it replaces E29's five-panel strip and
+     Andrew's five lines of 2026-10-01 with his six captions. Under reduced motion each copy shows the still strip. */
   function buildTitleCard() {
-    $("#howto-title").appendChild(buildStrip());   // E29: the comic strip
-    // E29: the same strip on the options screen, under the HOW / TO / PLAY signs (CSS shows it only there)
-    $("#howto").insertBefore(buildStrip(), $("#howto ul"));
+    $("#howto-title").appendChild(ET.howto.build());
+    $("#howto").insertBefore(ET.howto.build(), $("#howto ul"));   // CSS shows it only on the options screen
     ET.lights.build($("#howto-title"));   // it keeps the arcade lights
+    ET.howto.start();
   }
 
   function wire() {
@@ -539,7 +440,7 @@
   ET.data.load().then(function (data) {
     app.data = data;
     paintPrompt();
-    fillStripAliens();   // How To Play's cute alien (Andrew, 2026-10-01), after the data: its pictures never hold it back
+    ET.howto.ready();   // E57: the crab and the still strip's splats, after the data: their pictures never hold it back
   }).catch(function (err) {
     app.screen = "error";   // nothing on this screen starts a game (Andrew, 2026-09-24)
     var sheet = err && err.sheet;

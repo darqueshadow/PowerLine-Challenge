@@ -87,45 +87,55 @@ button { font: inherit; }
   text-shadow: 2px 2px 0 var(--outline);
   white-space: nowrap;
 }
-/* E29 (⏳ placeholder look): How To Play as a five-panel comic strip, the same on the title card and on the options
-   screen's panel. Each panel: a numbered heading, a picture on the left and the step's words in a speech bubble. */
-.strip { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: clamp(4px, 1vh, 10px); text-align: left; }
-.strip .cell { position: relative; display: grid; grid-template-columns: 26% 1fr; align-items: center; gap: 2px 7px; padding: 5px 6px 5px; border: 3px solid var(--outline); border-radius: 4px; box-shadow: 3px 3px 0 var(--outline); }
-/* E29 ruling: no headings, a small number badge in each panel's corner */
-.strip .num { position: absolute; top: -9px; left: -9px; z-index: 1; display: grid; place-items: center; width: 1.6em; height: 1.6em; border: 2px solid var(--outline); border-radius: 50%; box-shadow: 2px 2px 0 var(--outline); font-family: var(--font-display); font-size: 0.95em; color: var(--outline); }
+/* E57 (ruled 2026-10-02; core/howto.js): How To Play is a six-step animated cartoon, the same on the title card and
+   on the options screen's panel: a stage (one big nest, the game's own art, with its readout, H sign, pan and Mom), a
+   mini Command Line that types itself, the step's caption in a speech bubble and six step dots (the current one lit;
+   they change once a step, never flash). Under reduced motion the still strip shows instead: six panels, each its
+   step's key frame, with the same captions. */
+.cartoon { display: flex; flex-direction: column; min-height: 0; }
+.toon-anim { display: flex; flex-direction: column; align-items: center; gap: clamp(4px, 1vh, 9px); }
+.toon-still { display: none; }
+.toon-stage { position: relative; width: min(100%, 48vh); aspect-ratio: 1 / 1; overflow: hidden; background: var(--bg); border: 3px solid var(--outline); border-radius: 10px; box-shadow: 3px 3px 0 var(--outline); }
+.toon { position: absolute; left: 22%; top: 30%; width: 56%; --dir: 0.4; }   /* the hatch's scurry, short enough to stay on the stage */
+.toon .twigs .look-slate { display: none; }
+.toon .readout { font-size: clamp(9px, min(0.9vw, 1.6vh), 14px); }
+.toon-fx { position: absolute; inset: 0; pointer-events: none; z-index: 26; }
+.toon .momfix .head { top: -30%; left: 22%; width: 56%; }   /* kept inside the stage, which clips */
+.toon .popup { left: 88%; top: 18%; font-size: clamp(14px, min(1.5vw, 2.6vh), 22px); }
+.toon .dish { left: 50%; top: 0; width: 70%; }
+.toon .goo { position: absolute; width: 1.4em; height: 0.8em; background: var(--yolk); border: 2px solid var(--outline); border-radius: 55% 45% 60% 40% / 60% 55% 45% 40%; }
+.toon-cord { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; overflow: visible; --cord: 7px; }
+.toon-mini { display: flex; align-items: center; gap: 6px; width: min(100%, 48vh); box-sizing: border-box; padding: 3px 6px; background: var(--bg); border: 3px solid var(--line-1); border-radius: 6px; font-family: var(--font-mono); font-weight: 700; font-size: clamp(11px, min(1vw, 1.8vh), 15px); color: var(--ink); min-height: 1.9em; }
+.toon-mini .num { display: grid; place-items: center; width: 1.3em; height: 1.3em; background: var(--line-1); color: var(--bg); }
+.toon-mini .typed::after { content: "\258C"; color: var(--line-1); }   /* a still caret: nothing blinks */
+.cartoon .say { position: relative; margin: 0; padding: 4px 9px; background: var(--comic-bubble); border: 2px solid var(--outline); border-radius: 12px; font-family: var(--font-ui); font-weight: 700; line-height: 1.22; color: var(--outline); }
+.toon-anim .say { display: grid; place-items: center; min-height: 2.5em; text-align: center; }
+.toon-anim .say::before { content: ""; position: absolute; top: -10px; left: 50%; margin-left: -5px; border: 5px solid transparent; border-bottom: 5px solid var(--outline); }
+.cartoon .dots { list-style: none; display: flex; gap: 7px; margin: 0; padding: 0; }
+.cartoon .dots li { width: 10px; height: 10px; border: 2px solid var(--outline); border-radius: 50%; background: var(--card); }
+.cartoon .dots li.on { background: var(--hot); }
+/* the still strip: E29's panels, a key frame on the left and the caption on the right */
+.strip { list-style: none; margin: 0; padding: 0; flex-direction: column; gap: clamp(3px, 0.8vh, 8px); text-align: left; }
+.strip .cell { position: relative; display: grid; grid-template-columns: 30% 1fr; align-items: center; gap: 2px 7px; padding: 4px 6px; border: 3px solid var(--outline); border-radius: 4px; box-shadow: 3px 3px 0 var(--outline); }
+.strip .num { position: absolute; top: -9px; left: -9px; z-index: 31; display: grid; place-items: center; width: 1.6em; height: 1.6em; border: 2px solid var(--outline); border-radius: 50%; box-shadow: 2px 2px 0 var(--outline); font-family: var(--font-display); font-size: 0.95em; color: var(--outline); }
 .strip .cell:nth-child(1) .num { background: var(--cyan); }
 .strip .cell:nth-child(2) .num { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }   /* E33: white, as on the timer (dark was 3.4:1) */
 .strip .cell:nth-child(3) .num { background: var(--gold); }
 .strip .cell:nth-child(4) .num { background: var(--pink); }
-.strip .cell:nth-child(5) .num { background: var(--warp); }
-.strip .scene { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; min-width: 0; padding: 0.75em 0 0 0.7em; }   /* clear of the corner badge */
-.strip .pic { display: block; width: 52%; max-width: 48px; height: auto; overflow: visible; transform: none; }
-.strip .pic.small { width: 34%; }
-.strip .clock-art.pic { width: 30%; }
-.strip .dish.pic { position: static; transform: none; animation: none; width: 70%; }
-/* Andrew, 2026-10-01: panel 4's mess (a yolk splat beside the broken egg), and panel 5's goofy cute alien, the hatchling
-   puppet itself (its swings still under reduced motion, as in play) */
-.strip .goo { display: block; width: 1.5em; height: 0.85em; background: var(--yolk); border: 2px solid var(--outline); border-radius: 55% 45% 60% 40% / 60% 55% 45% 40%; }
-.strip .alien-pic.pic { width: 92%; max-width: 74px; }
-.strip .alien-pic .creature { display: inline; }
-.strip .chip { padding: 0 3px; border: 2px solid var(--outline); font-family: var(--font-mono); font-weight: 700; font-size: 0.72em; background: var(--readout-timer-bg); color: var(--readout-timer-ink); }
-.strip .chip.bold { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
-.strip .shout { padding: 0 4px; background: var(--comic-bubble); border: 2px solid var(--outline); border-radius: 8px; font-family: var(--font-display); font-size: 0.62em; white-space: nowrap; }
-.strip .keys { display: flex; gap: 2px; }
-.strip .keys i { display: block; width: 1.3em; height: 0.7em; background: var(--pan-rim); border: 2px solid var(--outline); border-radius: 2px; }
-.strip .say { position: relative; margin: 0; padding: 3px 7px; background: var(--comic-bubble); border: 2px solid var(--outline); border-radius: 12px; font-family: var(--font-ui); font-weight: 700; line-height: 1.22; color: var(--outline); }
+.strip .cell:nth-child(5) .num { background: var(--hospital-blue); color: var(--hospital-ink); }
+.strip .cell:nth-child(6) .num { background: var(--warp); }
+.strip .toon-stage { width: 100%; border-width: 2px; box-shadow: none; }
+.strip .toon .popup { font-size: 0.85em; }
+.strip .toon .readout { font-size: clamp(6px, min(0.55vw, 1vh), 9px); }
+.strip .say { font-size: 0.9em; line-height: 1.2; padding: 3px 7px; }
 .strip .say::before { content: ""; position: absolute; left: -9px; top: 50%; margin-top: -5px; border: 5px solid transparent; border-right: 5px solid var(--outline); border-left-width: 4px; }
-/* the strip's little clock: the same placeholder as Time Warp's, held still */
-.strip .clock-art .case { fill: var(--clock-case); stroke: var(--outline); stroke-width: 3; }
-.strip .clock-art .window { fill: var(--clock-window); stroke: var(--outline); stroke-width: 2; }
-.strip .clock-art .rod { stroke: var(--clock-brass); stroke-width: 2.5; }
-.strip .clock-art .bob, .strip .clock-art .cap { fill: var(--clock-brass); stroke: var(--outline); stroke-width: 2; }
-.strip .clock-art .face { fill: var(--clock-face); stroke: var(--outline); stroke-width: 2.5; }
-.strip .clock-art .tick, .strip .clock-art .hand { stroke: var(--outline); stroke-width: 3; stroke-linecap: round; }
-.strip .clock-art .fivex { display: none; }
-/* E29: on the options screen the panel shows the strip under its signs, in place of its lines and doodles */
-#howto .strip { display: none; }
-#screen-setup #howto .strip { display: flex; }
+/* held: the still strip's points and dish stay where they are */
+.popup.held, .dish.held { animation: none; }
+.popup.held { transform: translate(-50%, -80%); }
+.dish.held { transform: translate(-50%, -20%) scale(0.8); }
+/* E29: on the options screen the panel shows the cartoon under its signs, in place of its lines and doodles */
+#howto .cartoon { display: none; }
+#screen-setup #howto .cartoon { display: flex; }
 #screen-setup #howto ul, #screen-setup #howto .doodles { display: none; }
 
 .label { color: var(--dim); font-size: 0.75em; letter-spacing: 0.12em; }
@@ -432,18 +442,18 @@ h2 {
 #backdrop .veil.dark { opacity: var(--dark-opacity, 0.8); }
 /* Refinement 6 §4 (⏳ placeholder): thick [T], striped blood red and purple, deeply ribbed. The stripes creep
    slowly down the cord (movement, not a flash); timing and layering are unchanged. */
-#cord-top path[class^="cord-"] { fill: none; stroke-linejoin: round; }
-#cord-top .cord-outline { stroke: var(--cord-outline); stroke-width: calc(var(--cord, 10px) + 4px); stroke-linecap: round; }
-#cord-top .cord-line { stroke: var(--cord-red); stroke-width: var(--cord, 10px); stroke-linecap: round; }
-#cord-top .cord-stripes { stroke: var(--cord-purple); stroke-width: var(--cord, 10px); stroke-dasharray: 9 9; animation: cord-creep 1.4s linear infinite; }
-#cord-top .cord-ribs { stroke: var(--cord-ribs); stroke-width: calc(var(--cord, 10px) + 3px); stroke-dasharray: 2 5; opacity: 0.8; }
+:is(#cord-top, .toon-cord) path[class^="cord-"] { fill: none; stroke-linejoin: round; }
+:is(#cord-top, .toon-cord) .cord-outline { stroke: var(--cord-outline); stroke-width: calc(var(--cord, 10px) + 4px); stroke-linecap: round; }
+:is(#cord-top, .toon-cord) .cord-line { stroke: var(--cord-red); stroke-width: var(--cord, 10px); stroke-linecap: round; }
+:is(#cord-top, .toon-cord) .cord-stripes { stroke: var(--cord-purple); stroke-width: var(--cord, 10px); stroke-dasharray: 9 9; animation: cord-creep 1.4s linear infinite; }
+:is(#cord-top, .toon-cord) .cord-ribs { stroke: var(--cord-ribs); stroke-width: calc(var(--cord, 10px) + 3px); stroke-dasharray: 2 5; opacity: 0.8; }
 @keyframes cord-creep { to { stroke-dashoffset: -18; } }
 /* Refinement 6 §2 (⏳ placeholder look): the Time Warp lightning, in the cord's layer under every readout. Its
    kinks re-jag in view.js (never over 3 a second); nothing here animates. */
 #cords .lightning path { fill: none; stroke-linejoin: miter; stroke-linecap: round; }
 #cords .bolt-glow { stroke: var(--warp); stroke-width: 7px; opacity: 0.35; }
 #cords .bolt-core { stroke: var(--bolt-core); stroke-width: 2.5px; }
-#cord-top .cord-bulge { fill: var(--cord-bulge); stroke: var(--cord-bulge-edge); stroke-width: 2px; }
+:is(#cord-top, .toon-cord) .cord-bulge { fill: var(--cord-bulge); stroke: var(--cord-bulge-edge); stroke-width: 2px; }
 #cord-top .cord-egg { fill: var(--shell); stroke: var(--crack); stroke-width: 2px; }
 #hose .pipe { fill: var(--tap-pipe); stroke: var(--black); stroke-width: 2; }
 #hose .valve { fill: var(--tap-valve); stroke: var(--black); stroke-width: 2; }
@@ -633,24 +643,24 @@ h2 {
 .nest-art { display: block; width: 100%; overflow: visible; transform: rotate(var(--tilt)); }
 
 .egg { display: none; }
-.nest[data-state="laying"].popping .egg,   /* the cord egg (Chat's answers, 2026-09-25): the nest's own egg, coming out of the cord */
-.nest[data-state="active"] .egg,
-.nest[data-state="overtime"] .egg { display: inline; }
+:is(.nest, .toon)[data-state="laying"].popping .egg,   /* the cord egg (Chat's answers, 2026-09-25): the nest's own egg, coming out of the cord */
+:is(.nest, .toon)[data-state="active"] .egg,
+:is(.nest, .toon)[data-state="overtime"] .egg { display: inline; }
 
 /* the cracks stay vector over the egg picture: bold, drawn in from their first point */
 .crack { fill: none; stroke: var(--crack); stroke-width: 3.5; stroke-dasharray: 1; stroke-dashoffset: 1; stroke-linejoin: miter; }
 /* the egg mirrored left/right about x = 0 (its whole picture, cracks and hints with it) */
-.nest.mirrored .egg .mirror { transform: scaleX(-1); }
+:is(.nest, .toon).mirrored .egg .mirror { transform: scaleX(-1); }
 /* the waiting egg's hints: each hidden until view.js shows it (E26; the eye only on an egg that has one) */
 .egg .hint { display: none; }
-.nest.show-hint-3 .hint-3, .nest.show-hint-4 .hint-4, .nest.show-hint-5 .hint-5, .nest.show-hint-eye .hint-eye { display: inline; }
+:is(.nest, .toon).show-hint-3 .hint-3, :is(.nest, .toon).show-hint-4 .hint-4, :is(.nest, .toon).show-hint-5 .hint-5, :is(.nest, .toon).show-hint-eye .hint-eye { display: inline; }
 
 
 .break { display: none; }   /* E26: the break stage, only while the cleared nest is "splat" */
-.nest[data-state="splat"] .break { display: inline; }
+:is(.nest, .toon)[data-state="splat"] .break { display: inline; }
 .shells, .creature { display: none; }
-.nest[data-state="escape"] .shells,
-.nest[data-state="escape"] .creature { display: inline; }
+:is(.nest, .toon)[data-state="escape"] .shells,
+:is(.nest, .toon)[data-state="escape"] .creature { display: inline; }
 .shells .half { fill: var(--shell); stroke: var(--crack); stroke-width: 3; }
 .creature { transform-box: fill-box; transform-origin: center; }
 /* Refinement 5 §4: the hatchling is horrific, against the cute family (⏳ placeholder colours) */
@@ -728,7 +738,7 @@ h2 {
    brightness, nothing flashes. ⚠️ 55% and 78% are config's hatchScare shares. A pause holds it (body.paused). */
 .nest.scare, .nest.hop { z-index: 20; }
 .nest.scare .creature { animation: hatch-scare var(--hatch, 3.2s) ease-in-out forwards; }
-.nest.hop .creature { animation: hatch-hop var(--hatch, 3.2s) ease-in-out forwards; }
+:is(.nest, .toon).hop .creature { animation: hatch-hop var(--hatch, 3.2s) ease-in-out forwards; }
 .nest.leapt .creature { visibility: hidden; }
 .nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip { animation-play-state: paused; }
 body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg, body.paused .momfix * { animation-play-state: paused; }
@@ -821,18 +831,18 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 /* Refinement 5 §2: at the limit all three boxes change on the same instant (one class, .bold): every box goes
    bold, the unit's type turns dark green (on white, [T]), the type box keeps its colours, and the timer turns
    hot pink with white type (unchanged, approved) */
-.nest.bold .readout { font-weight: 900; }
-.nest.bold .readout .unit { color: var(--readout-bold-unit-ink); }
-.nest.bold .readout .clock { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
+:is(.nest, .toon).bold .readout { font-weight: 900; }
+:is(.nest, .toon).bold .readout .unit { color: var(--readout-bold-unit-ink); }
+:is(.nest, .toon).bold .readout .clock { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
 .nest[data-state="idle"] .readout,
-.nest[data-state="splat"] .readout,
-.nest[data-state="escape"] .readout { opacity: 0.55; }
+:is(.nest, .toon)[data-state="splat"] .readout,
+:is(.nest, .toon)[data-state="escape"] .readout { opacity: 0.55; }
 /* blank boxes (a nest in play with no CAV): darkened further so they read as "not in play" (2026-09-23) [T] */
 .nest[data-state="idle"] .readout > span,
-.nest[data-state="splat"] .readout > span,
-.nest[data-state="escape"] .readout > span { filter: brightness(var(--blank-dim, 0.45)) saturate(0.5); }
+:is(.nest, .toon)[data-state="splat"] .readout > span,
+:is(.nest, .toon)[data-state="escape"] .readout > span { filter: brightness(var(--blank-dim, 0.45)) saturate(0.5); }
 /* ⏳ placeholder cue (E53): a hospital egg whose VS is off asks for its STR: the empty type box pulses cyan */
-.nest.asks .readout .code { animation: cue 0.6s steps(2) infinite; }
+:is(.nest, .toon).asks .readout .code { animation: cue 0.6s steps(2) infinite; }
 @keyframes cue { 50% { border-color: var(--cyan); } }
 
 /* E55 (ruled 2026-10-02; ⏳ placeholder art): the hospital sign on the nest's shoulder, clear of the egg, its readout
@@ -859,7 +869,7 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .momfix .head { position: absolute; left: 12%; top: -70%; width: 76%; transform-origin: 50% 100%; animation: mom-fix var(--fix, 1.5s) ease-in-out both; }
 .momfix .head svg { display: block; width: 100%; height: auto; overflow: visible; }
 .momfix .patch { position: absolute; left: 28%; top: 20%; width: 44%; overflow: visible; transform-origin: 50% 50%; animation: mom-patch var(--fix, 1.5s) ease-out both; }
-.momfix .patch .strip { fill: var(--plaster); stroke: var(--outline); stroke-width: 2.5; }
+.momfix .patch .band { fill: var(--plaster); stroke: var(--outline); stroke-width: 2.5; }
 .momfix .patch .pad { fill: var(--plaster-pad); stroke: var(--outline); stroke-width: 1.5; }
 .momfix .patch .hole { fill: var(--outline); }
 @keyframes mom-fix {
@@ -1169,12 +1179,15 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 #over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
-  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, .nest.asks .readout .code, .hsign, .momfix .head, .momfix .patch, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, #cord-top .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .momfix .head, .momfix .patch, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
-  .nest.scare .creature, .nest.hop .creature { animation: none; }   /* Andrew, 2026-10-01: the alien sits still in its nest */
+  .nest.scare .creature, :is(.nest, .toon).hop .creature { animation: none; }   /* Andrew, 2026-10-01: the alien sits still in its nest */
   #title-scene .note, #setup-critter .note { opacity: 1; }
   /* the "place me" cue holds steady instead of blinking, so the nest still asks (Andrew, 2026-09-24; E53: for its STR) */
-  .nest.asks .readout .code { border-color: var(--cyan); }
+  :is(.nest, .toon).asks .readout .code { border-color: var(--cyan); }
+  /* E57: the still strip in place of the cartoon */
+  .toon-anim { display: none; }
+  .toon-still { display: flex; }
   /* E55: Mom appears, still, with her patch on the egg, and goes (view.js removes her at the end of her visit) */
   .momfix .patch { transform: rotate(-12deg); }
 }
