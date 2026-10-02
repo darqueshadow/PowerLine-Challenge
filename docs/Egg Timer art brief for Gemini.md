@@ -134,6 +134,12 @@ or any other existing character.
 
 ---
 
+> **Done, 2026-10-02: Mom's repair, both kits (E55).** Not one of the numbered slots: Chat wrote these prompts
+> separately. Andrew's ten approved pictures (sweet Mom and creepy Mom: head looking down, facing the player and
+> giggling; one tentacle; the plaster) are in the game, cut by `make-mom-art.py` (`files/art/mom-*`). Creepy Mom's drool,
+> splat and tongue wobble are drawn by code (no slot). Slot 5, the scary HUD mom face, is unchanged and still
+> placeholder.
+
 ## The slots at a glance
 
 | # | Slot | Shape (viewBox) | Largest on screen | Format | Moving parts |
