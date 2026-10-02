@@ -1,3 +1,8 @@
+> **FILING NOTE — Claude Code, 2026-10-01 (hospital eggs: one mode).** The handoff is filed verbatim as
+> `Previous Versions/EGG_TIMER_HOSPITAL_EGGS_HANDOFF_2026-10-01.md`. It asks for a proposal before building, so **nothing
+> is built**. Code's proposal is **E52–E56** (§11): scoring and mess across a hospital egg's two windows, the commands and
+> every wrong order, what removing the modes takes out, the new art, and the smaller calls it raises.
+
 > **FILING NOTE — Claude Code, 2026-10-01 (later: E49–E51 ruled).** Andrew's rulings are filed verbatim as
 > `Previous Versions/EGG_TIMER_E49-E51_RULINGS_2026-10-01.md`: **E50 option A**, **E51 as proposed**, **E49 "still"
 > kept**, **the crab confirmed**, **the hatch's sound as proposed**; the close-up art is coming from Gemini. Each is
@@ -789,6 +794,88 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   had the pan come down late, 0.35 s after a hatch, on the empty nest, with a dull clunk. The late pan, the clunk and
   `hatchPanDelay` are gone. The browser rig counts every THONG and every pan from a game's start to past its first hatch:
   none.)*
+
+### Raised by the hospital eggs handoff (2026-10-01) — E52 to E56 open (Code's proposal; nothing built)
+
+*How it fits:* today's **Clear CAVs Only** is already most of this: every egg opens itself with a CAV, and the player
+only types `RCAV`. The single mode is that mode with **every egg a VS**, plus the hospital step. The durations come from
+Andrew's table as it is (**VS 10:00, STR 10:00**), so nothing is invented. A hatch window is the player's seconds as
+now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
+
+- ⏳ **E52. Scoring and mess across a hospital egg's two windows.** **Proposal (the handoff's option, made exact):**
+  **window 1 (VS) scores when the STR is added**, by the same tier table as any clear (fifths of that egg's window:
+  100 / 75 / 50 / 35 / 25), taken at the moment of `CAV STR`, the moment the egg is saved. **No pan, no THONG, no splat,
+  no mess and no pieces** at window 1: Mom repairs the egg instead. **Window 2 (STR) is a normal clear**: tier points,
+  the pan, the break stage, the splat, the mess and the pieces, all at the final `RCAV`. So a hospital egg can score up
+  to 200, and the mess comes once. The egg ladder (the fancy dishes) follows the final clear only; a rejected Enter
+  still drops it (E6). The STR's placement earns **no separate +10** (window 1's points cover it). The perfect-wave bonus
+  is unchanged (no escapes). **The alternative:** tier window 1 at the `RCAV` instead of the `CAV STR` (kinder, since
+  the two commands then don't share one tier), but then a player who RCAVs fast and never adds the STR still lets it
+  hatch. Code recommends the `CAV STR` moment. Needed: yes, or the alternative, or other numbers.
+- ⏳ **E53. The commands, and every wrong order.** The player types the real syntax, as now: **`RCAV 2101`** and
+  **`CAV 2101 STR`** (case and extra spaces don't matter; `CAV`'s optional `, comment` still parses). A hospital egg
+  needs both **in that order** inside the one window. **What each wrong move does (proposal):** every one is a rejected
+  Enter as E6 rules it (the line clears, a buzz, no pool penalty, the egg ladder drops), with the words shown under the
+  line:
+  - `CAV 2101 STR` while the VS is still on (before or after it runs out, but before the `RCAV`): **"RCAV first!"**
+    (new words, like "Too Early!"); the egg keeps hatching.
+  - `CAV 2101 STR` on a **refusal** egg: **ERROR**; it hatches if not cleared.
+  - `CAV 2101` with any other type after the `RCAV` (e.g. `VS`, `MB`): **ERROR**.
+  - `RCAV 2101` again after the first one (VS gone, STR not yet added): **ERROR** (nothing to remove).
+  - `RCAV 2101` during the STR, before its 10:00: **"Too Early!"**, as for any CAV.
+  - The window runs out after the `RCAV` but before the `CAV STR`: **it hatches**, as any egg (the pool drops).
+  **Between the two commands** the egg keeps cracking and its timer keeps counting in pink; the readout's type box
+  empties and takes the "place me" cyan pulse the placement triggers use today, so the nest visibly asks for its STR.
+  The empty Command Line's grey hint (E30) shows "CAV + unit + type" for it, as it does for a trigger. **A note on
+  pace:** two commands in 4.5–6 s is about 23 keystrokes; it's fair if the player stages the second command on another
+  Command Line while waiting (the staging the lines exist for). One catch: "RCAV first!" clears the line (E6), so a
+  `CAV STR` sent too soon is lost and must be retyped. Needed: yes to the list and the new words, or changes.
+- ⏳ **E54. What removing the three modes takes out** (for Andrew to check nothing he wants is lost):
+  - **The options screen's SELECT MODE bank** (Clear CAVs Only / Follow Progression / Both), its ← → hint, and the
+    mode label in the HUD bar and on the game-over screen. **Kept:** "How Many Command Lines?" (1–4, 2 by default) and
+    START, so the options screen becomes Command Lines + START. *(Or skip the options screen entirely and keep the Command
+    Line count elsewhere: Andrew's call.)*
+  - **Follow Progression's ramp** (waves 1–2 one-phase, then +10% placement a wave) and **Both's placement triggers**:
+    the nest asking for a CAV, the 20 s → 8 s auto-open, the +10 placement points, the "place me" cue (unless reused
+    for the STR, E53). The placement *command* stays: it becomes `CAV #### STR`.
+  - **Every type but VS and STR** never appears: **AD's post-it** ("20 min" / "Clear @ HH:MM", E1) and the wave-1
+    **"Check the wall clock" tag** (E28); **VF's hidden egg and timer and its "Clear Fueling" bubble** (C15, E16); the
+    **type shuffle bag** (E19, E20). Andrew's CSV and the Blank Dataset Module stay as they are (the unused rows are
+    simply not drawn); the game refuses to start, as now, if VS or STR is missing.
+  - **The wall clock stays** (it's the game's clock, and Time Warp speeds it), though nothing reads it against a note now.
+  - **How To Play:** the options panel's hidden "PLACE" line (E8) goes. The strip's five lines are Andrew's and stay;
+    **none of them mentions the hospital step** (see E56).
+  - **Code and tests:** the mode switches in `game.js`/`rules.js`, the trigger and auto-open logic, the AD and VF
+    drawing; rig sections B (mode buttons), H (placement and VF), H2 (the AD post-it), the wall-clock tag in W, and every
+    scene that starts a game in "both" or "progression"; the logic rig's progression ramp, placement and VF checks.
+    Each is replaced by hospital-egg checks, not just dropped.
+  Needed: yes, or anything to keep.
+- ⏳ **E55. New art** (for Chat's Gemini prompts; the house style as before: the game's thick dark plum outline, flat
+  plain background that Code cuts out, no red liquid):
+  - **The Hospital marker.** ⚠️ **Not a red cross**: the red cross emblem is protected by law (the Geneva Conventions),
+    and games avoid it. Code suggests the **hospital road sign: a white "H" on a blue rounded square**, as a little
+    sign on a stake that the Queen drops into the nest. One picture, **1024 × 1024**, the sign upright and readable at
+    about 28 px on screen; a second picture of it **mid-fall, tilted**, for the drop. It stays on the nest until the egg
+    is cleared (it's still a transport through the STR).
+  - **Mom's head** (the Queen), for the repair: **one sheet, 2816 × 1536**, the head about 1000 px tall, pieces laid
+    out separately, not touching, as with the alien sheets, so Code can puppet her: **the head looking down** (at the
+    egg) and **the head facing the viewer**; **eyes** open and squeezed shut (laughing); **mouth** closed smile and open
+    giggle (two or three openings); **two hands or tentacles** holding a **patch** (a bandage, a dab of glue: her fix,
+    friendly with the twisted undertone). Poses in play: **pops in** above the nest, **looks down and patches the egg**
+    (the cracks close), **turns to the player and giggles**, **ducks out**: about **1.5 s** [T], over the nest only,
+    never blocking typing. Under reduced motion she appears, still, and goes.
+  Needed: yes to the specs, or changes, for Chat to write the prompts.
+- ⏳ **E56. Smaller calls the change raises:**
+  - **Mom's repair and the scary mom face** (Refinement 5 §5: at most once a wave, under 1 s, HUD bar only): they are
+    different moments, so Code would keep both. With 70% hospital eggs she repairs often, so the repair stays small and
+    over the nest only. Keep both, or drop the HUD face?
+  - **The 70%:** `hospitalShare: 0.7` [T], rolled per egg from the game's seeded random source (so `?seed=` replays a
+    game exactly). Or a shuffle bag of 7-in-10, so a run of refusals can't go long. Code suggests the plain roll.
+  - **How To Play:** a hospital egg needs a line. Andrew's words, or a sixth panel? (E17 stands: no syntax line.)
+  - **Pace:** each hospital egg holds its nest about twice as long, so with today's spawn gaps the board fills sooner
+    and more spawns are skipped on a full board. Code would build with today's numbers and tune them after a playtest.
+  - **Sound:** a giggle for Mom (synthesized placeholder until recorded, under THONG, the buzz and the hiss), and a
+    soft drop for the marker? Or silent for now.
 
 ### Raised by Andrew's batch (2026-10-01) — E49, E50 and E51 ruled
 
