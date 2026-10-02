@@ -986,6 +986,8 @@
      ===================================================================== */
   var machineStarted = false;
   var machineFailed  = null;
+  var noCore = false;   /* 🆕 2026-10-02 — no emulator core on this origin (cat:nocore) */
+  var NOCORE_INERT = "#deck-top button, #c64-arrows button, #c64-port1, #c64-port2, #c64-pause, #btn-fastload";
   var machineOff     = false;   /* the rocker, outside Fang Rock (see "power") */
   var medium   = null;      /* "disk" | "tape" | null — what the machine said went in */
   var waiters  = [];        /* commands waiting on the machine's answer */
@@ -1045,6 +1047,20 @@
   /* A message from the machine frame. Returns true when nothing else should
      look at it. */
   function machineMessage(m) {
+    /* 🆕 2026-10-02 — no emulator core here (the public site): a SUPPORTED
+       state, not a fault. Nothing is written, and the deck's machine buttons go
+       inert instead of each saying "could not ..." when clicked. emu.js shows
+       its one plain plate on the glass. */
+    if (m.type === "cat:nocore") {
+      noCore = true;
+      machineFailed = "the c64 is available in fang rock only";
+      waiters.splice(0).forEach(function (w) { clearTimeout(w.timer); w.reject(new Error(machineFailed)); });
+      catEl.classList.add("is-nocore");
+      Array.prototype.forEach.call(document.querySelectorAll(NOCORE_INERT), function (b) { b.disabled = true; });
+      forgetPause();
+      return true;
+    }
+    if (m.type === "cat:machinefailed" && noCore) return true;
     if (m.type === "cat:machinefailed") {
       machineFailed = String(m.reason || "the machine could not start");
       waiters.splice(0).forEach(function (w) { clearTimeout(w.timer); w.reject(new Error(machineFailed)); });
@@ -2576,9 +2592,12 @@
            on a fresh clone served from Pages. Saying "no disks found" here
            would send someone looking for files that are sitting right there.
            ⚠️ No longer the only signal: the Cracked crate says it too (above). */
-        blank();
-        write("disk library: not readable from this origin.", "dim");
-        write("(cartridges are unaffected. see game/c64/roms/readme.md)", "dim");
+        /* 🔄 2026-10-02 — SAID TO THE CONSOLE, NOT THE SCREEN (Andrew's ruling:
+           the public build shows no error and no internal text). This is the
+           public site's ordinary state, and the Cracked crate already says
+           "available in Fang Rock only"; a README path on the terminal was a
+           note for us, not for a visitor. */
+        try { console.info("[cat] disk library: not readable from this origin (" + String(res.detail || "no listing") + "). See Game/C64/roms/README.md."); } catch (e) { /* none */ }
       }
       renderLine();
       /* the art folder is read only once the disk scan says this origin can list

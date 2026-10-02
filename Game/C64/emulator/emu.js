@@ -38,6 +38,33 @@
      The honest-failure surface. Nothing in this file ever fails quietly; if
      a game is not running, this says what stopped it and what to do.
      --------------------------------------------------------------------- */
+  /* 🆕 2026-10-02 — "MISSING IS A SUPPORTED STATE" (the original spec), on the
+     MACHINE. The public Pages site has no core and never will (the build is
+     git-ignored, and so are the disks), and a visitor following a ?cart=cracked
+     link landed on the INSTALL block below — git clone, npm install, internal
+     paths — as if it were an error. Andrew's ruling: no error and no install text
+     may show there. So the machine shows ONE plain plate, the same words the
+     Cracked crate already uses, tells the hub (cat:nocore, which keeps the hub
+     quiet and its deck inert), and puts the developer's instructions in the
+     CONSOLE, where a developer still finds them. The ordinary hub's play overlay
+     keeps tell(): it only ever runs with a disk handed to it, which a site with
+     no disks cannot do. */
+  function noCore(title, lines) {
+    sayBody.textContent = "";
+    var plate = document.createElement("p");
+    plate.className = "plate";
+    plate.textContent = "Available in Fang Rock only";
+    sayBody.appendChild(plate);
+    say.hidden = false;
+    machine.failed = "nocore";
+    try {
+      console.info("[cat] " + title + "\n" + lines.map(function (l) {
+        return l && l.code ? l.code : l && l.text !== undefined ? l.text : String(l);
+      }).join("\n\n"));
+    } catch (e) { /* no console: nothing to say it to */ }
+    toHub({ type: "cat:nocore" });
+  }
+
   function tell(title, lines) {
     sayBody.textContent = "";
     var h = document.createElement("h1");
@@ -1763,7 +1790,7 @@
 
     head("data/loader.js").then(function (loaderOk) {
       if (!loaderOk) {
-        tell("no emulator core on this machine", [
+        (MACHINE ? noCore : tell)("no emulator core on this machine", [
           "EmulatorJS is not installed here. It is a third-party GPL build of roughly 10-15MB, gitignored on purpose because this repo is public — so it is fetched per machine rather than committed.",
           { text: "From Game/C64/emulator/ — BOTH steps, the second is not optional:", cls: "dim" },
           { code: INSTALL },
@@ -1774,7 +1801,7 @@
       }
       return Promise.all(CORE_FILES.map(head)).then(function (found) {
         if (found.indexOf(true) === -1) {
-          tell("the loader is installed, but the core is not", [
+          (MACHINE ? noCore : tell)("the loader is installed, but the core is not", [
             { text: "data/loader.js is here, and data/cores/ has no " + CORE + " build in it. These are two separate downloads and the git clone only provides the first.", cls: "err" },
             "🚨 Left alone, EmulatorJS would quietly fetch the core from cdn.emulatorjs.org instead of saying anything. This page refuses that on purpose: the arcade is not allowed to depend on the internet at runtime, and a core arriving over the network hides whatever else is actually wrong.",
             { text: "From Game/C64/emulator/ :", cls: "dim" },
