@@ -1235,10 +1235,31 @@
         return machineCall({ type: "cat:awaitready", ms: 120000 }, ["cat:atready"], 130000);
       })
       .then(function (m) {
-        if (!m.ready) { write("it started on its own.", "dim"); return null; }
-        return machineCall({ type: "cat:type", text: "RUN\n" }, ["cat:typed", "cat:typefailed"], 30000);
+        /* 🔄 2026-09-25 — NO SILENT FAILURES (his ruling). The machine now says
+           WHY it is not at READY., and every "no" but one is said out loud. Only
+           "started" is quiet-ish, because it is the right outcome: the game
+           started itself and must not be typed into. */
+        if (!m.ready) {
+          var why = String(m.why || "");
+          if (why === "started") write("it started on its own.", "dim");
+          else if (why === "error") write("the load failed, so run was not typed.", "warn");
+          else if (why === "noscreen") write("auto-run could not read the c64's screen, so run was not typed. type run yourself.", "warn");
+          else if (why === "timeout") write("the load took too long, so run was not typed. type run when it says ready.", "warn");
+          else write("run was not typed (" + (why || "no reason given") + "). type run yourself.", "warn");
+          return null;
+        }
+        return machineCall({ type: "cat:type", text: "RUN\n" }, ["cat:typed", "cat:typefailed"], 30000)
+          .then(function (t) {
+            if (t.type !== "cat:typed") throw new Error("could not type run: " + String(t.reason || "no reason given"));
+          }, function (err) {
+            if (err.byPowerOff) throw err;
+            throw new Error("could not type run: " + err.message);
+          });
       })
-      .catch(function (err) { if (!err.byPowerOff) write("could not load: " + err.message, "err"); })
+      .catch(function (err) {
+        if (err.byPowerOff) return;
+        write(/^could not type run/.test(err.message) ? err.message + "." : "could not load: " + err.message, "err");
+      })
       .then(function () { paintDrive(null); setBusy(false); focusMachine(); });
   }
 

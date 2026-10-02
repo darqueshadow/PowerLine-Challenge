@@ -1007,21 +1007,37 @@
      🚫 Do not shorten it back to a word the banner repeats. */
   var BANNER_CODES = [42, 42, 42, 42, 32, 3, 15, 13, 13, 15, 4, 15, 18, 5, 32, 54, 52];
   var BANNER_AT = 40 + 4;                   /* row 1, column 4 of the grid */
-  function findScreen() {
-    var H = heap();
-    if (!H) return -1;
-    var hits = 0, at = -1;
-    outer: for (var i = BANNER_AT; i < H.length - 0x800; i++) {
-      if (H[i] !== BANNER_CODES[0]) continue;
-      for (var k = 1; k < BANNER_CODES.length; k++) if (H[i + k] !== BANNER_CODES[k]) continue outer;
-      hits++;
-      if (hits > 1) return -1;              /* ambiguous: refuse rather than guess */
-      /* ⭐ THE START OF THE GRID, not the start of the banner. readState() and
-         screenSig() both treat this as $0400 and index rows off it, so returning
-         the banner's own address would aim every read 44 bytes into row 1. */
-      at = i - BANNER_AT;
+  /* 🆕 2026-09-25 — A SECOND LANDMARK: THE MACHINE'S OWN RAM VECTORS.
+     The banner is gone the moment anything clears the screen, so a hunt that
+     only knows the banner can never succeed after that — and a boot slow enough
+     to miss it (measured: a machine starved by heap scans) left the page blind
+     for the whole session, auto-RUN included. The BASIC vectors at $0300-$030B
+     and the KERNAL vectors at $0314-$0333 hold fixed ROM addresses from boot
+     until a game rewrites them, and they do not care what is on the screen.
+     📌 MEASURED 2026-09-25 on this core: exactly these bytes. Each run ON ITS OWN
+     occurs 7 and 9 times in the heap (the ROM images carry the default tables),
+     but the two TOGETHER, 0x14 bytes apart as they sit in RAM, occur ONCE — at the
+     same place the banner says. So the pair is the landmark, never either half. */
+  var VEC_300 = [0x8B, 0xE3, 0x83, 0xA4, 0x7C, 0xA5, 0x1A, 0xA7, 0xE4, 0xA7, 0x86, 0xAE];
+  var VEC_314 = [0x31, 0xEA, 0x66, 0xFE, 0x47, 0xFE, 0x4A, 0xF3, 0x91, 0xF2, 0x0E, 0xF2, 0x50, 0xF2, 0x33, 0xF3,
+                 0x57, 0xF1, 0xCA, 0xF1, 0xED, 0xF6, 0x3E, 0xF1, 0x2F, 0xF3, 0x66, 0xFE, 0xA5, 0xF4, 0xED, 0xF5];
+  /* Candidate grid addresses ($0400) in H[from, to), by either landmark.
+     ⭐ NATIVE indexOf, NOT A BYTE LOOP: measured 2026-09-25, a JS loop over the
+     128 MB heap took 736 ms — that is the stall that starved the machine — and
+     indexOf does the same walk in ~84 ms. */
+  function screenCandidates(H, from, to, into) {
+    var view = H.subarray(from, Math.min(to, H.length)), p, k, ok, at;
+    for (p = view.indexOf(BANNER_CODES[0]); p !== -1; p = view.indexOf(BANNER_CODES[0], p + 1)) {
+      at = from + p;
+      for (ok = true, k = 1; k < BANNER_CODES.length && ok; k++) if (H[at + k] !== BANNER_CODES[k]) ok = false;
+      if (ok && at >= BANNER_AT) into[at - BANNER_AT] = true;
     }
-    return hits === 1 ? at : -1;
+    for (p = view.indexOf(VEC_300[0]); p !== -1; p = view.indexOf(VEC_300[0], p + 1)) {
+      at = from + p;
+      for (ok = true, k = 1; k < VEC_300.length && ok; k++) if (H[at + k] !== VEC_300[k]) ok = false;
+      for (k = 0; k < VEC_314.length && ok; k++) if (H[at + 0x14 + k] !== VEC_314[k]) ok = false;
+      if (ok) into[at + 0x100] = true;       /* $0300 + $0100 = the grid at $0400 */
+    }
   }
   /* What is the machine doing? Three outcomes have to be told apart, and only
      the first may be typed into:
@@ -1071,36 +1087,57 @@
     }
     return "other";
   }
-  /* 🚨 HUNT THE SCREEN AT BOOT, WHILE THE BANNER IS STILL UP. It is the only
-     landmark this heap has, and the very first thing a button or a player does
-     is clear it off the screen. Looking lazily on the first Load meant looking
-     at a screen something had already wiped — so the grid was never found, and
-     the deck sat busy for the whole backstop with no RUN at the end of it.
-     📌 MEASURED 2026-09-17 by verify-c64 §D2, which does exactly that: reset,
-     clear, then Load. Fixing findScreen() alone was not enough; WHEN it is asked
-     is half the bug.
-     📌 The core prints the banner a second or two after it starts, so this polls
-     instead of asking once — the same 20 seconds the rig's own locateRam() gives
-     it. Once found the address never moves: a wasm heap only ever grows, and the
-     KERNAL keeps the screen at $0400 for the life of the machine. */
+  /* 🚨 HUNT THE SCREEN FROM BOOT, AND DO NOT STOP UNTIL IT IS FOUND.
+     📌 MEASURED 2026-09-17 by verify-c64 §D2: looking lazily on the first Load
+     meant looking at a screen something had already wiped, so it is hunted from
+     the moment the core starts. Once found the address never moves: a wasm heap
+     only ever grows, and the KERNAL keeps the screen at $0400 for the life of
+     the machine.
+     🔄 2026-09-25 — IT NO LONGER GIVES UP (his ruling). It used to take 26 full
+     heap scans and stop ~22 s after the core started. 📌 MEASURED that day: every
+     full scan runs on the machine's own thread and costs ~0.7 s, so on a slow
+     boot the scans themselves slowed the core (~12 frames a second), the banner
+     came up AFTER the last look, and the page stayed blind for the rest of the
+     session — auto-RUN could never see READY., and said nothing.
+     ⭐ NOW: small SLICES, forever until found. Each slice walks HUNT_SLICE bytes of
+     the heap with native indexOf (~2-3 ms), one slice every HUNT_EVERY ms, so a
+     whole pass takes a few seconds and costs the machine ~2-3% of one thread.
+     A pass that ends with exactly ONE candidate is the answer; none, or more than
+     one, starts another pass (refuse rather than guess, as ever).
+     🚫 Do not go back to whole-heap scans in a loop. That is the stall. */
+  var HUNT_SLICE = 2 << 20;     /* 2 MB of heap per slice */
+  var HUNT_EVERY = 100;         /* ms between slices */
+  var hunt = { on: false, held: false, pos: 0, seen: {}, passes: 0, slices: 0, worstMs: 0, timer: 0 };
+  function huntSlice() {
+    hunt.timer = 0;
+    if (screenAt >= 0 || hunt.held) { hunt.on = false; return; }
+    var H = heap();
+    if (H) {
+      var t0 = performance.now();
+      screenCandidates(H, hunt.pos, hunt.pos + HUNT_SLICE, hunt.seen);
+      hunt.pos += HUNT_SLICE;
+      hunt.slices++;
+      hunt.worstMs = Math.max(hunt.worstMs, performance.now() - t0);
+      if (hunt.pos >= H.length) {
+        var found = Object.keys(hunt.seen);
+        hunt.passes++;
+        hunt.pos = 0;
+        hunt.seen = {};
+        if (found.length === 1) { screenAt = Number(found[0]); hunt.on = false; return; }
+      }
+    }
+    hunt.timer = setTimeout(huntSlice, HUNT_EVERY);
+  }
+  function startHunt(delay) {
+    if (screenAt >= 0 || hunt.on || hunt.held) return;
+    hunt.on = true;
+    hunt.pos = 0;
+    hunt.seen = {};
+    hunt.timer = setTimeout(huntSlice, delay || 0);
+  }
   function locateScreenAtBoot() {
-    /* ⚠️ A SCAN IS NOT FREE, AND THIS ONE RUNS ON THE MACHINE'S OWN THREAD. It
-       walks the whole wasm heap, so asking five times a second from the instant
-       the core starts — before the KERNAL has even printed the banner — starves
-       the emulator. MEASURED 2026-09-17: 20 frames a second, slow enough that the
-       rig could not find the screen either and the run died at its own control.
-       ⭐ So the FIRST look waits for the banner to exist, and the rest are spaced
-       out. It normally lands on that first try.
-       🚫 Do not tighten this to make it feel quicker. Nothing is waiting on it —
-       the deck's first Load is many seconds away. */
-    var tries = 0;
-    var look = function () {
-      if (screenAt >= 0) return;
-      screenAt = findScreen();
-      if (screenAt >= 0 || ++tries > 25) return;
-      setTimeout(look, 800);
-    };
-    setTimeout(look, 2000);
+    /* the banner is printed a second or two after the core starts */
+    startHunt(1500);
   }
 
   /* a cheap signature of the screen, to notice when it has stopped changing */
@@ -1132,29 +1169,30 @@
   function waitReady(ms) {
     return new Promise(function (resolve) {
       var t0 = frameNow(), gaveUp = Date.now() + (Number(ms) || 90000);
-      var lastSig = -2, stillSince = 0, lastHunt = 0;
-      /* 🔄 2026-09-17 — the duplicate hunt that stood here is gone: tick() runs
-         immediately below and hunts on its own first line. While the screen was
-         never found, this scanned the whole wasm heap once up front and then
-         four more times a second for two minutes. */
+      var lastSig = -2, stillSince = 0;
+      /* 🔄 2026-09-25 — IT ANSWERS WHY, not just yes/no (his ruling: "no silent
+         failures"). "ready" is the only yes; "started" (the game started itself)
+         is a correct no; "error", "noscreen" and "timeout" are the ones the hub
+         must SAY. The hunt owns finding the screen (startHunt); this only makes
+         sure one is running, and never scans the heap itself. */
+      startHunt(0);
       var tick = function () {
-        /* a backstop only: locateScreenAtBoot() owns finding this, and a full
-           heap scan four times a second is what made the machine crawl. */
-        if (screenAt < 0 && Date.now() - lastHunt > 2000) { lastHunt = Date.now(); screenAt = findScreen(); }
+        /* rig-only: the hunt is held, so the screen cannot turn up — say so now */
+        if (screenAt < 0 && hunt.held) { resolve("noscreen"); return; }
         if (screenAt >= 0) {
           var st = readState();
-          if (st === "error") { resolve(false); return; }
-          if (st === "ready" && frameNow() > t0 + 30) { resolve(true); return; }
+          if (st === "error") { resolve("error"); return; }
+          if (st === "ready" && frameNow() > t0 + 30) { resolve("ready"); return; }
           /* ⭐ A WORKING DRIVE IS NEVER SETTLED, however still the screen is. The
              settle clock is held down rather than allowed to run out. */
           if (st === "busy") { lastSig = -2; stillSince = 0; }
           else {
             var sig = screenSig();
             if (sig !== lastSig) { lastSig = sig; stillSince = Date.now(); }
-            else if (stillSince && Date.now() - stillSince > SETTLE_MS) { resolve(false); return; }
+            else if (stillSince && Date.now() - stillSince > SETTLE_MS) { resolve("started"); return; }
           }
         }
-        if (Date.now() > gaveUp) { resolve(false); return; }
+        if (Date.now() > gaveUp) { resolve(screenAt < 0 ? "noscreen" : "timeout"); return; }
         setTimeout(tick, 250);
       };
       tick();
@@ -1283,7 +1321,7 @@
     if (paused && /^cat:(insert|type|reset|swap|awaitready|warp)$/.test(m.type)) {
       var kind = { "cat:insert": "cat:insertfailed", "cat:type": "cat:typefailed", "cat:reset": "cat:resetfailed",
                    "cat:swap": "cat:swapnote", "cat:awaitready": "cat:atready", "cat:warp": "cat:warpfailed" }[m.type];
-      toHub({ type: kind, reason: "the c64 is paused", note: "could not swap: the c64 is paused", ready: false });
+      toHub({ type: kind, reason: "the c64 is paused", note: "could not swap: the c64 is paused", ready: false, why: "paused" });
       return;
     }
     if (paused && /^cat:(key|input|port|joystick|keyboard)$/.test(m.type)) return;
@@ -1337,7 +1375,7 @@
          disk started itself, which is the case that must not be typed into. */
       case "cat:awaitready":
         waitReady(Number(m.ms) || 90000)
-          .then(function (ok) { toHub({ type: "cat:atready", ready: !!ok }); });
+          .then(function (why) { toHub({ type: "cat:atready", ready: why === "ready", why: why }); });
         break;
       /* 🆕 2026-09-17 — the fast loader. Reports what the core actually took,
          never what it was asked for. */
@@ -1612,8 +1650,24 @@
     /* the machine's own view of itself, for the rig. 🚫 read-only */
     machine: function () {
       return { on: MACHINE, started: machine.started, failed: machine.failed, slot: machine.slot,
-               medium: machine.medium, side: machine.side, keyboard: kbdMode, port: port, paused: paused };
+               medium: machine.medium, side: machine.side, keyboard: kbdMode, port: port, paused: paused,
+               /* 🆕 2026-09-25 — where this page thinks the C64's screen is ($0400
+                  in the heap), and how its hunt is going. 🚫 read-only */
+               screen: screenAt >= 0 ? screenAt : null,
+               hunt: { on: hunt.on, held: hunt.held, passes: hunt.passes, slices: hunt.slices,
+                       worstMs: Math.round(hunt.worstMs * 10) / 10 } };
     },
+    /* 🆕 2026-09-25 — RIG-ONLY. verify-c64 §P3 forgets the screen and holds or
+       releases the hunt, to prove it finds the screen again with the banner long
+       gone, what it costs the machine while it looks, and that auto-RUN SAYS so
+       when it cannot see. 🚫 Nothing in the hub calls these. */
+    rehunt: function () {
+      screenAt = -1;
+      if (hunt.timer) clearTimeout(hunt.timer);
+      hunt.timer = 0; hunt.on = false; hunt.passes = 0; hunt.slices = 0; hunt.worstMs = 0;
+      startHunt(0);
+    },
+    holdHunt: function (on) { hunt.held = !!on; if (!on) startHunt(0); },
     /* how many live keystrokes are still working their way through the
        translator's queue (see relayKey). 🚫 read-only, and rig-only: it exists
        so verify-c64 can WAIT FOR THE TYPING TO LAND instead of guessing a frame

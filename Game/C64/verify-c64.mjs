@@ -357,7 +357,12 @@ async function runRig() {
          machine and failed 3 runs in 6 while other sessions were busy, the
          committed code the same as new. Only the WAIT grew: it still has to be
          found exactly once, and the time is still printed. */
-      while (Date.now() - t0 < 60000) { RAM = await locateRam(); if (RAM >= 0) return Date.now() - t0; await wait(300); } return -1; })();
+      /* 🔄 2026-09-25 — AND IT LOOKS EVERY 2 s, NOT EVERY 0.3 s (his ruling). Each
+         look is a full heap walk ON THE MACHINE'S OWN THREAD (~0.7 s measured), so a
+         rig looking three times a second was slowing the very boot it was waiting
+         for — to ~12 frames a second in a probe — and pushing the banner past the
+         page's own hunt. */
+      while (Date.now() - t0 < 60000) { RAM = await locateRam(); if (RAM >= 0) return Date.now() - t0; await wait(2000); } return -1; })();
     ok(tRam >= 0, `[control] the C64's screen memory was found, exactly once   [${took(tRam)}, ${RAM}]`);
     if (RAM < 0) {
       /* 🆕 2026-09-25 — say WHAT was on the glass when the hunt failed, rather than
@@ -368,6 +373,16 @@ async function runRig() {
       say(`        (shot of the glass when the hunt failed: ${f}; ${await frameNow()} frames run)`);
       throw new Error("no screen to read; nothing below can be judged");
     }
+    /* 🆕 2026-09-25 — THE CORNER MUST HAVE FOUND ITS OWN SCREEN TOO, at the same
+       place. Everything the hub decides after a Load (auto-RUN above all) reads the
+       screen through the page's own hunt, not the rig's. 📌 On main after the
+       2026-09-25 merge, a slow boot let the rig find the screen while the page had
+       already given up, and the run died much later in §D2 with a misleading
+       "not running" — so this stops the run HERE, with the real reason. */
+    const tOwn = await until(`(() => { try { return ${FRAME}.CAT_EMU.machine().screen === ${RAM + 0x400}; } catch (e) { return false; } })()`, 60000, 500);
+    const own = await inMachine("CAT_EMU.machine()");
+    ok(tOwn >= 0, `[control] the corner found its own screen, where the rig did   [${took(tOwn)}; page ${own && own.screen}, rig ${RAM + 0x400}; hunt ${JSON.stringify(own && own.hunt)}]`);
+    if (tOwn < 0) throw new Error("the corner's own screen search has not found the C64's screen, so auto-RUN cannot see READY. — stopping here rather than failing later for the wrong reason");
 
     /* --- A. boot ----------------------------------------------------------- */
     section("A. booting inside Fang Rock shows the REAL C64 boot screen");
@@ -658,6 +673,9 @@ async function runRig() {
        catch, so it is asserted rather than assumed. */
     const strayRuns = (await screen()).filter((r) => r === "RUN").length;
     ok(strayRuns === 0, `and no RUN was typed after any of the twelve failed loads   [${strayRuns} on screen]`);
+    /* 🆕 2026-09-25 — his ruling: no silent failures. A load that failed says so. */
+    const failNote = String(await ev("__cat.note()"));
+    ok(/the load failed, so run was not typed/i.test(failNote), `and the message line says the load failed, so RUN was not typed   [${failNote}]`);
 
     /* --- G. keys that reach the hub first ---------------------------------- */
     section("G. with focus on the hub's side, keys still reach the machine");
@@ -1137,6 +1155,44 @@ async function runRig() {
     await type("PRINT X+1\n");
     ok((await untilScreen((r) => toReady(after(r, /^PRINT X\+1$/))[0] === " 8", 6000)) >= 0,
        "with the keyboard straight back in BASIC, and nothing lost: X is still 7");
+
+    /* --- P3. the corner's own screen hunt (2026-09-25) ---------------------------
+       His rulings: the hunt keeps going until it finds the screen, WITHOUT slowing
+       the C64 noticeably; and auto-RUN never fails in silence. The rig-only hooks
+       CAT_EMU.rehunt()/holdHunt() make the page forget the screen, on a screen
+       whose banner is long gone — the case the old banner-only hunt could never
+       recover from. */
+    section("P3. the corner's screen hunt: it finds the screen with the banner gone, cheaply, and auto-RUN says when it cannot");
+    await click("#machine-frame");
+    await press("Home", true);
+    await frames(10);
+    ok(!text(await screen()).includes("**** COMMODORE 64"), "[control] the boot banner is gone from the screen");
+    const fps = async (ms) => { const a = await frameNow(); await wait(ms); return ((await frameNow()) - a) * 1000 / ms; };
+    const base = await fps(3000);
+    await inMachine("CAT_EMU.holdHunt(true)");
+    await inMachine("CAT_EMU.rehunt()");
+    ok((await inMachine("CAT_EMU.machine().screen")) === null, "[control] the page has forgotten its screen");
+    /* auto-RUN, blind: the Load button on an empty drive, with the hunt held
+       (the screen was just cleared, so there is no READY. to wait for first) */
+    await click("#btn-load");
+    await until("__cat.machine().busy", 3000, 20);
+    await idleLoad();
+    const blindNote = String(await ev("__cat.note()"));
+    ok(/could not read the c64's screen, so run was not typed/i.test(blindNote),
+       `when auto-RUN cannot see the screen, the message line says so   [${blindNote}]`);
+    await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 30000);
+    await frames(10);
+    /* now let it hunt, and watch what that costs the machine */
+    await inMachine("CAT_EMU.holdHunt(false)");
+    const during = await fps(3000);
+    const tRefound = await until(`(() => { try { return ${FRAME}.CAT_EMU.machine().screen !== null; } catch (e) { return false; } })()`, 60000, 250);
+    const h = await inMachine("CAT_EMU.machine()");
+    ok(tRefound >= 0 && h.screen === RAM + 0x400,
+       `the hunt finds the screen again with no banner to go on, at the right place   [${took(tRefound)}; page ${h.screen}, rig ${RAM + 0x400}; ${h.hunt.passes} pass(es), ${h.hunt.slices} slices]`);
+    ok(during >= base * 0.85 && h.hunt.worstMs < 25,
+       `and the C64 keeps its speed while it looks   [${base.toFixed(1)} fps before, ${during.toFixed(1)} while hunting; worst slice ${h.hunt.worstMs} ms]`);
+    await type("PRINT 3*3\n");
+    ok((await untilScreen((r) => toReady(after(r, /^PRINT 3\*3$/))[0] === " 9", 6000)) >= 0, "and the machine carried on as normal");
 
     /* --- L. the book reader ---------------------------------------------------
        His ruling, 2026-09-16/17: the shelf in the room opens a reader, and the
