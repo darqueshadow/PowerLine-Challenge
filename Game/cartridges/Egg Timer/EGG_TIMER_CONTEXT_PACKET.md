@@ -1,3 +1,9 @@
+> **FILING NOTE — Claude Code, 2026-10-02 (later: E57 ruled and built).** Andrew's ruling is filed verbatim as
+> `Previous Versions/EGG_TIMER_E57_RULING_2026-10-02.md`: **E57 approved as proposed.** Built as proposed
+> (`core/howto.js`): the six-step cartoon on the title card and the options panel, his six captions, the still strip
+> under reduced motion. It replaces E29's five panels and his five lines of 2026-10-01. Struck in §11. No E-item is
+> open; next free **E58**.
+
 > **FILING NOTE — Claude Code, 2026-10-02 (E52–E56 ruled and built; the How To Play cartoon proposed as E57).**
 > Andrew's rulings are filed verbatim as `Previous Versions/EGG_TIMER_E52-E56_RULINGS_2026-10-02.md`. **E52** approved
 > (window 1 scores at the STR), **E53** approved as proposed (playtest the window early; a longer window for hospital
@@ -929,9 +935,13 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
   - **Sound:** a giggle for Mom (synthesized placeholder until recorded, under THONG, the buzz and the hiss), and a
     soft drop for the marker? Or silent for now.
 
-### Raised by Andrew's How To Play ruling (2026-10-02) — E57 open (Code's proposal; nothing built)
+### Raised by Andrew's How To Play ruling (2026-10-02) — E57 ruled (Andrew, 2026-10-02) and built
 
-- ⏳ **E57. How To Play as a six-step animated cartoon.** Andrew's ask (2026-10-02, verbatim in the rulings file): the
+- ✅ ~~**E57. How To Play as a six-step animated cartoon.**~~ **Ruled (Andrew, 2026-10-02): "approved as proposed.
+  Build it."** Built as proposed in `core/howto.js` (step lengths `howtoStepSeconds` [T] in `config.js`). *(Code: the
+  crab's scurry is shortened on the stage so it stays in view; the still strip's panel 5 badge is the hospital blue.
+  The rig holds the cartoon's clock with `ET.howto.at(t)` and checks every step, both copies and the still strip.)*
+  The proposal, for history: Andrew's ask (2026-10-02, verbatim in the rulings file): the
   strip becomes "a simple animated cartoon, the same on both screens", steps "one at a time, about 2-3 s each, then
   loop, each with its caption", reusing "the game's own art and animations"; reduced motion shows the still strip.
   **Code's proposal:**

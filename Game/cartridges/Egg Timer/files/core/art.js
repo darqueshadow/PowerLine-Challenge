@@ -205,7 +205,7 @@
     /* E55 (⏳ placeholder until Gemini's): Mom's patch for the egg, a sticking plaster laid across its cracks. */
     patchSvg: function () {
       var svg = el("svg", { class: "patch", viewBox: "-30 -12 60 24", "aria-hidden": "true" });
-      el("rect", { class: "strip", x: -28, y: -9, width: 56, height: 18, rx: 9 }, svg);
+      el("rect", { class: "band", x: -28, y: -9, width: 56, height: 18, rx: 9 }, svg);
       el("rect", { class: "pad", x: -9, y: -7, width: 18, height: 14, rx: 3 }, svg);
       [[-20, -3], [-20, 3], [20, -3], [20, 3]].forEach(function (p) { el("circle", { class: "hole", cx: p[0], cy: p[1], r: 1.4 }, svg); });
       return svg;

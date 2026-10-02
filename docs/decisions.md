@@ -764,6 +764,19 @@ loaded, only to aim the throw. The unused cut-edge outline colour went with the 
 - `ET.pieces.list()` reports each piece's `sprite`; rig E38 asserts all ten sprites appear, some mirrored.
 - Git Bash heredocs here collapse a doubled backslash to one: write a rig's in-template regex escapes with the editor, not a heredoc.
 
+## Resolved 2026-09-26 — Egg Timer: break-stage splat art (closed)
+
+**Solved:** All five break stages show Andrew's approved splats in the cleared nest, speed-based by tier (E26 stands, no
+E45), each carrying shell fragments that stay inside the outline and off stage 3's antenna and stage 4's and 5's eyes and
+face. The shell pieces flung across the board use the same ten shell sprites. Live on `main` (`77a6b4a`, `979fab8`,
+`2be9e36`).
+**Approach:** Sprites cut by `Game/cartridges/Egg Timer/make-break-art.py` into `files/art/break-*`; placement and
+keep-clear zones in `files/core/breaks.js`; flung pieces in `files/core/pieces.js` `shard()`; numbers in `config.js`
+`breakShells`. Details in the two entries above dated 2026-09-26.
+**If you touch this again:** The zones are measured on the current PNGs: new art means re-measuring them (rig BR checks
+that each zone sits on its art). Rig BR covers files, counts, outline, zones and real clears; rig E38 covers the sprites.
+The Rec-Bay 4 table's eggs and splat are Nerva Beacon's (`kitEggTable()` in its `app.js`), not part of this work.
+
 ## Resolved 2026-09-26 — the C64 corner's Full Screen, Pause, eject lever and screen hunt
 
 **Solved:** The corner C64 has a Full Screen layout with a breadbin strip, a mouse-only Pause, and Eject drawn as the
@@ -791,6 +804,61 @@ session commits to main in the same tree.
   per pointer event through `ET.view.stream(dt)`, which also advances the nozzle's E44 turn.
 - Open at park: E48, the exit to the Arcade room (the hub's Exit Game / F12 / `cat:exit` exist; F12 and Esc are taken in
   Egg Timer; Code proposed [Q] on the pause panel with a "Quit this game?" confirm). Next: F3 → COM (all-games rule).
+
+## Resolved 2026-10-01 — Egg Timer: Andrew's 2026-10-01 batch (E48–E51, the jump-scare hatch, How To Play, the cord)
+
+**Solved:** Everything in Andrew's batch and its rulings is live: F3 types `COM`; E48's way out (Q, CAT hub only, a Y/N
+confirm mid-game); "Too Early!" for an early `RCAV`; the cord on top of everything; no How To Play on game over; How
+To Play in Andrew's five lines with the crab in panel 5; the new hatch (cute: dance and a goofy hop; horror: dance,
+freeze, stare and a full-screen jump scare) with its sound; E49 "still", E50 option A (Time Warp 1.5×, under the nests),
+E51 (the jet snaps to the way the mouse is going); eight shaky rig checks steadied.
+**Approach:** Each change in its own commit, pushed on green rigs (`97ad3f5` … `eb5ad03`; the handoff and rulings filed
+verbatim in `Game/cartridges/Egg Timer/Previous Versions/EGG_TIMER_CHANGES_BATCH_2026-10-01.md` and
+`EGG_TIMER_E49-E51_RULINGS_2026-10-01.md`). The packet's §11 holds E48–E51 struck. Items that clashed with an earlier
+ruling (the bigger Time Warp vs Refinement 6 §2) or left a gap (the hose) were flagged to Chat before building.
+**If you touch this again:** The hatch is one CSS timeline as long as `escapeSeconds` (3.2 s); view.js's `stepHatches()`
+times the freeze (55%) and jump (78%) on a real-time clock that a pause stops (`body.paused`), because the game's own
+clock stops at game over while the last hatch still plays. Those shares live in both `config.js` (`hatchScare`) and
+style.css's keyframes: change both. The music hush blocks `duck()` so a THONG can't end the stare's silence. The cord
+is in `#cord-top` (z 50); Time Warp's lightning stays in `#cords` under every readout; `#warp` is z-index 0 so the
+nests paint over it. E48 posts the hub's own `cat:exit`; `__et.hub(true)` fakes the hub in the rigs. Rig traps: the
+resource-timing buffer (250) filled up and broke the font check (the rig sets 5000); split mixed diffs with
+`git diff -U1` + `git apply --cached --recount`; Git Bash `sed -i` strips CRs. Still waiting: the horror aliens'
+close-up faces from Gemini (spec in the packet under E49), to swap in as the puppet fills the screen.
+
+## Built 2026-10-02 — Egg Timer: one mode, hospital eggs (E52–E56); How To Play cartoon proposed (E57)
+
+**Solved:** Andrew's hospital-eggs handoff, ruled the same way as Code's proposal: one mode, every egg a VS, ~70%
+hospital eggs (a blue H road sign) needing `RCAV` then `CAV #### STR` in one hatch window; window 1 scores by tier at
+the STR with no splat (Mom repairs the egg: sweet in wave 1, creepy after, each with a placeholder giggle); the STR
+runs 10:00, then an ordinary window and RCAV. The three modes, placement triggers, AD's post-it, VF and the type bag
+are gone. The How To Play cartoon (six steps, Andrew's captions) is proposed as E57, unbuilt.
+**Approach:** Rulings filed verbatim (`Game/cartridges/Egg Timer/Previous Versions/EGG_TIMER_E52-E56_RULINGS_2026-10-02.md`);
+§5 and §6 of the packet marked superseded, E52–E56 struck in §11. The game state stays in `game.js` (`hospital`,
+`removed`, `repaired` per nest; `repair()` and `clear()`); `snapshot().code` is "" between the RCAV and the STR.
+The rigs' mode scenes became `__et.start(boxes, { hospital, minutes })`; logic sections H and U and browser H and R
+test the hospital step, every wrong order, the sign, Mom, her giggle and reduced motion.
+**If you touch this again:** `hospitalWindowScale` (1) stretches only a hospital egg's first window, for E53's
+"propose a longer window" after the playtest. Mom's visit runs on the game's seconds (`stepFixes`), her CSS on real
+time, so a rig that drives the clock with `__et.advance` sees her CSS frozen near its start: screenshot her in real
+time. The H sign's 0.45 s drop starts over whenever it's shown, so measure it with its animation off (layout rig L).
+Sweet Mom is the how-to doodle, so its colour rules are `:is(.howto-panel, .momfix) .doodle …`. The theme baseline
+was rewritten for these style changes.
+
+## Built 2026-10-02 — Egg Timer: E57, How To Play as a six-step animated cartoon
+
+**Solved:** Andrew approved E57 as proposed: the five-panel strip became a six-step cartoon (lay, crack, fast clear,
+slow clear, hospital egg with sweet Mom, the crab's hatch), his captions word for word, the same on the title card and
+the options panel, on one clock, silent; reduced motion shows a still strip of six key frames.
+**Approach:** `core/howto.js` builds a stage from the game's own pieces (`ET.art.nestSvg`, the readout, the H sign,
+the pan, `ET.breaks.fill`, the alien puppet, Mom's `.momfix`) and paints it from (step, seconds into it), so
+`ET.howto.at(t)` holds any moment for the rig. The nest's state looks are shared through `:is(.nest, .toon)` selectors
+and the cord's through `:is(#cord-top, .toon-cord)`; the cartoon's nest is `.toon`, never `.nest`, because the rigs
+count `.nest` as the board's 12. Ruling filed in `Game/cartridges/Egg Timer/Previous Versions/EGG_TIMER_E57_RULING_2026-10-02.md`.
+**If you touch this again:** only copies whose screen isn't hidden are painted (an attribute check, so play pays no
+layout); the still strip paints once on screen (its cord is measured). The crab's scurry is cut short on the stage
+(`--dir: 0.4` on `.toon`). Section P of the browser rig now holds the game (Esc) the moment Time Warp is found:
+the live clock used to run the warp out between its checks under load.
 
 ## 2026-10-02 — the C64 corner: keyboard and joystick live together, Help, the deck's groups (built, not merged)
 

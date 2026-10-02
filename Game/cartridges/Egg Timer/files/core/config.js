@@ -411,6 +411,10 @@
     // ones come later). The crab (Andrew confirmed, 2026-10-01): the goofiest (droopy eyes on stalks, a smug grin, a bit
     // of shell still on its head). "crab" | "octopus" | "worm".
     howtoAlien: "crab",
+    // E57 (ruled 2026-10-02: approved as proposed): How To Play is a six-step animated cartoon (core/howto.js), each step
+    // this many seconds [T], then round again: lay, crack, fast clear, slow clear, hospital egg, hatch (the last is the
+    // hatch's own length, 3.2 s). One loop is about 17 s.
+    howtoStepSeconds: [2.5, 2.5, 2.5, 2.5, 3.5, 3.2],
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

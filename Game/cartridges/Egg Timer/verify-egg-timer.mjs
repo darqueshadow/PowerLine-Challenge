@@ -232,17 +232,67 @@ try {
   }
   await shot("01-title");
   {
-    // Refinement 6 §1: the title screen's own How To Play card, in the panel's place, laid out differently
-    const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return { steps: [...c.querySelectorAll('.strip > li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.say').textContent),
-      pics: [...c.querySelectorAll('.strip > li')].map(l => l.querySelectorAll('.scene .pic').length), heads: c.querySelectorAll('.strip .head').length,
-      alien: (() => { const a = c.querySelector('.strip > li:nth-child(5) .alien-pic .alien'); return a ? a.dataset.alien : null; })(), clock: c.querySelectorAll('.strip .clock-art').length,
+    // Refinement 6 §1: the title screen's own How To Play card, in the panel's place, laid out differently. E57 (ruled
+    // 2026-10-02): it holds a six-step animated cartoon, Andrew's captions, the same on the options screen
+    const CAPS = ["The Queen lays an egg", "The CAV runs out, the egg starts to crack", "Fast clear: pan, neat splat, big points",
+      "Slow clear: messier splat, fewer points", "Hospital egg? Get the STR on, and Mom patches it up",
+      "Too slow: the egg hatches, the crab dances and does its goofy hop"];
+    const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return {
+      caps: ET.howto.CAPTIONS.slice(), still: [...c.querySelectorAll('.toon-still > li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.say').textContent),
+      stage: c.querySelector('.toon-anim .toon-stage').getBoundingClientRect().width, mini: !!c.querySelector('.toon-anim .toon-mini'), dots: c.querySelectorAll('.toon-anim .dots li').length,
+      stillShown: c.querySelector('.toon-still').getBoundingClientRect().height, oldStrip: c.querySelectorAll('.scene, .alien-pic').length,
       banner: c.querySelector('.banner').textContent, panelHere: !!document.querySelector('#screen-title #howto'), shown: c.getBoundingClientRect().width > 150 }; })()`);
-    eq(card.steps, ["1 The Queen is laying eggs in your CAVs", "2 Once the CAV runs out, the egg starts to hatch",
-      "3 Clear the CAV fast, more points", "4 Clear slow, more mess", "5 Clear too slow...."],
-      "Andrew, 2026-10-01: the title's How To Play card is E29's five-panel comic strip, with his five lines in its speech bubbles");
-    ok(card.pics.every((n) => n >= 1) && card.heads === 0, `…a picture in every panel, a number badge and no heading   [${card.pics.join(",")}]`);
-    eq([card.alien, card.clock], [await ev("ET.CONFIG.howtoAlien"), 0], "…panel 5 shows the goofy cute alien (the puppet, once the data is in), and the Time Warp step is gone");
+    eq(card.caps, CAPS, "E57: How To Play is a six-step cartoon, with Andrew's six captions word for word");
+    ok(card.stage > 150 && card.mini && card.dots === 6 && card.stillShown === 0 && card.oldStrip === 0, `…one stage (not E29's five panels), a mini Command Line and six step dots   [stage ${Math.round(card.stage)} px]`);
+    eq(card.still, CAPS.map((t, i) => (i + 1) + " " + t), "…and, for reduced motion, a still strip of six numbered panels with the same captions");
     ok(card.shown && card.banner === "HOW TO PLAY" && !card.panelHere, "…in place of the in-game panel, which isn't on the title screen");
+    // each step at its moment (the rig holds the cartoon's clock with ET.howto.at)
+    const L = await ev("ET.CONFIG.howtoStepSeconds");
+    const T0 = L.map((_, i) => L.slice(0, i).reduce((a, b) => a + b, 0));
+    const look = (t) => ev(`(() => { const at = ET.howto.at(${t}); const c = document.querySelector('#howto-title .toon-anim'), n = c.querySelector('.toon'), fx = n.querySelector('.toon-fx');
+      return { step: at.k + 1, say: c.querySelector('.say').textContent, dot: [...c.querySelectorAll('.dots li')].findIndex(d => d.classList.contains('on')) + 1,
+        other: document.querySelector('#howto .toon-anim .say').textContent, state: n.dataset.state, bold: n.classList.contains('bold'), asks: n.classList.contains('asks'), hop: n.classList.contains('hop'),
+        code: n.querySelector('.readout .code').textContent, clock: n.querySelector('.readout .clock').textContent, typed: c.querySelector('.typed').textContent,
+        cord: c.querySelector('.toon-cord g').style.display !== 'none', sign: !n.querySelector('.hsign').hidden, pan: n.querySelector('.pan').classList.contains('hit'),
+        brk: n.querySelector('.break').getAttribute('data-stage'), pts: [...fx.querySelectorAll('.popup')].map(p => p.textContent), dish: !!fx.querySelector('.dish'), goo: fx.querySelectorAll('.goo').length,
+        mom: fx.querySelector('.momfix') ? fx.querySelector('.momfix').className : null, alien: (n.querySelector('.creature .alien') || {}).dataset ? n.querySelector('.creature .alien').dataset.alien : null,
+        crack: Number(n.querySelector('.crack').style.strokeDashoffset) }; })()`);
+    const s1 = await look(T0[0] + 0.7), s1b = await look(T0[0] + 2.2);
+    ok(s1.step === 1 && s1.say === CAPS[0] && s1.dot === 1 && s1.cord && s1.state === "laying" && s1.clock === "--:--", "E57 step 1: the cord comes down with the egg in it, no clock yet");
+    ok(s1b.state === "active" && /^0\d:\d\d$/.test(s1b.clock) && s1b.code === "VS", `…then the egg is in and the VS's clock runs toward 10:00   [${s1b.clock}]`);
+    const s2 = await look(T0[1] + 2.0);
+    ok(s2.step === 2 && s2.say === CAPS[1] && s2.dot === 2 && s2.bold && /^10:/.test(s2.clock) && s2.crack < 1, `E57 step 2: at 10:00 the boxes go bold and the egg cracks   [${s2.clock}]`);
+    const s3a = await look(T0[2] + 0.6), s3 = await look(T0[2] + 1.2);
+    ok(/^RCAV/.test(s3a.typed) && s3.typed === "" && s3.state === "splat" && s3.pan && s3.brk === "1" && s3.dish && s3.pts.includes("+100"), `E57 step 3: RCAV types itself, then the pan, a neat splat (break stage 1), +100 and a dish   [${s3a.typed}]`);
+    const s4 = await look(T0[3] + 1.5);
+    ok(s4.say === CAPS[3] && s4.state === "splat" && s4.brk === "4" && s4.goo >= 3 && s4.pts.includes("+35"), "E57 step 4: a slow clear: a messier splat (break stage 4), gunk, +35");
+    const s5a = await look(T0[4] + 1.6), s5 = await look(T0[4] + 2.4);
+    ok(s5a.sign && s5a.asks && s5a.code === "" && /^CAV/.test(s5a.typed), `E57 step 5: the H sign; RCAV empties the type box (its pulse), then CAV 2101 STR types   [${s5a.typed}]`);
+    ok(s5.mom === "momfix sweet" && s5.code === "STR" && !s5.bold && s5.pts.includes("+75"), "…and sweet Mom patches it: the box reads STR");
+    const s6 = await look(T0[5] + 1.0);
+    ok(s6.say === CAPS[5] && s6.state === "escape" && s6.hop && s6.alien === (await ev("ET.CONFIG.howtoAlien")), `E57 step 6: the egg hatches and the crab does its goofy hop (never a horror alien)   [${s6.alien}]`);
+    eq([s1.other, s6.other], [CAPS[0], CAPS[5]], "E57: one clock: the options screen's copy is always on the same step");
+    const t1 = await ev("(ET.howto.at(null), ET.howto.state().t)");
+    await wait(700);
+    const t2 = await ev("ET.howto.state()");
+    ok(!t2.frozen && t2.t > t1 + 0.3 && Math.abs(t2.loop - L.reduce((a, b) => a + b, 0)) < 1e-9, `E57: it runs on its own, round and round, about ${t2.loop.toFixed(1)} s a loop   [${(t2.t - t1).toFixed(2)} s in 0.7 s]`);
+    await shot("01b-howto-cartoon");
+    // reduced motion: the still strip, each panel its step's key frame, nothing moving
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    await ev("ET.howto.stills()");
+    const rs = await ev(`(() => { const c = document.querySelector('#howto-title'), cells = [...c.querySelectorAll('.toon-still > li')];
+      const q = (i, s) => cells[i].querySelector(s);
+      return { anim: c.querySelector('.toon-anim').getBoundingClientRect().height, still: c.querySelector('.toon-still').getBoundingClientRect().height,
+        p1: q(0, '.toon').dataset.state, p2: q(1, '.toon').classList.contains('bold'), p3: q(2, '.break').getAttribute('data-stage'), p4: q(3, '.break').getAttribute('data-stage'),
+        p5: [!q(4, '.hsign').hidden, !!q(4, '.momfix'), q(4, '.momfix .head') ? getComputedStyle(q(4, '.momfix .head')).animationName : null],
+        p6: [q(5, '.toon').dataset.state, getComputedStyle(q(5, '.creature')).animationName],
+        moving: [...c.querySelectorAll('.toon-still *')].filter(e => { const a = getComputedStyle(e).animationName; return a !== 'none' && !/^alien-/.test(a); }).map(e => e.getAttribute('class')).slice(0, 4) }; })()`);
+    ok(rs.anim === 0 && rs.still > 200, "SAFETY: with reduced motion the cartoon gives way to the still strip");
+    ok(rs.p1 === "laying" && rs.p2 && rs.p3 === "1" && rs.p4 === "4" && rs.p5[0] && rs.p5[1] && rs.p6[0] === "escape", `…each panel its step's key frame: the lay, the bold crack, the neat and messy splats, Mom with the sign, the crab out   [${JSON.stringify([rs.p1, rs.p3, rs.p4, rs.p6[0]])}]`);
+    ok(rs.p5[2] === "none" && rs.p6[1] === "none" && rs.moving.length === 0, `SAFETY: …and nothing in it moves (the alien puppets' own swings aside, held still by their own rule)   [${rs.moving.join(", ")}]`);
+    await shot("01c-howto-still");
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
   await menuFit("title", "#howto-title");
   {
@@ -419,10 +469,11 @@ try {
     await ev("document.querySelector('[data-boxes=\"2\"]').click(); 1");
   }
   {
-    const st = await ev(`(() => { const says = (q) => [...document.querySelectorAll(q + ' .strip .say')].map(e => e.textContent); const p = document.querySelector('#howto');
-      const strip = p.querySelector('.strip').getBoundingClientRect(), signs = p.querySelector('.signs').getBoundingClientRect();
-      return { same: JSON.stringify(says('#howto')) === JSON.stringify(says('#howto-title')), shown: strip.height > 100, under: strip.top >= signs.bottom, lines: [...p.querySelectorAll('ul li')].filter(l => l.getBoundingClientRect().height > 0).length }; })()`);
-    ok(st.same && st.shown && st.under && st.lines === 0, "E29: the options screen's panel shows the same comic strip, under the HOW / TO / PLAY signs, in place of its lines");
+    const st = await ev(`(() => { const p = document.querySelector('#howto');
+      const strip = p.querySelector('.cartoon .toon-anim').getBoundingClientRect(), signs = p.querySelector('.signs').getBoundingClientRect();
+      return { same: p.querySelector('.toon-anim .say').textContent === ET.howto.CAPTIONS[ET.howto.state().step - 1],
+        shown: strip.height > 100, under: strip.top >= signs.bottom, lines: [...p.querySelectorAll('ul li')].filter(l => l.getBoundingClientRect().height > 0).length }; })()`);
+    ok(st.same && st.shown && st.under && st.lines === 0, "E57: the options screen's panel shows the same cartoon, on the shared clock's step, under the HOW / TO / PLAY signs, in place of its lines");
   }
   ok(!/url\(|none/.test(await ev("getComputedStyle(document.querySelector('[data-boxes]')).cursor")) && (await ev("document.querySelector('#nozzle').hidden")), "menus and setup keep the normal pointer (and no drawn nozzle)");
   eq(await ev("!document.querySelector('#hose') || document.querySelector('#hose').hidden || document.querySelector('#screen-play').hidden"), true, "no hose outside the game");
@@ -543,8 +594,8 @@ try {
   eq(await ev(`getComputedStyle(${q(".readout")}).fontWeight`), "900", "at the trigger the readout goes bold");
   eq(await boxes(), ["900 rgb(11, 93, 30) rgb(255, 255, 255)", "900 rgb(0, 0, 0) rgb(185, 185, 198)", "900 rgb(255, 255, 255) rgb(209, 0, 106)"],
     "Refinement 5 §2: at the limit, all three at once: unit bold dark green on white, type bold black on grey, timer bold white on the ready pink (E33: #d1006a)");
-  eq(await ev(`[".strip .chip.bold", ".strip .cell:nth-child(2) .num"].map(s => { const e = document.querySelector(s), c = getComputedStyle(e); return c.backgroundColor + " " + c.color; })`),
-    ["rgb(209, 0, 106) rgb(255, 255, 255)", "rgb(209, 0, 106) rgb(255, 255, 255)"], "E33: the How To Play strip's pink chip and panel 2's badge are the real timer's pink, white on it");
+  eq(await ev(`(() => { ET.howto.at(ET.CONFIG.howtoStepSeconds[0] + 2); const out = [".toon-anim .toon.bold .readout .clock", ".strip .cell:nth-child(2) .num"].map(s => { const e = document.querySelector(s), c = getComputedStyle(e); return c.backgroundColor + " " + c.color; }); ET.howto.at(null); return out; })()`),
+    ["rgb(209, 0, 106) rgb(255, 255, 255)", "rgb(209, 0, 106) rgb(255, 255, 255)"], "E33: the How To Play cartoon's bold timer and the still strip's panel 2 badge are the real timer's pink, white on it");
   const expect = { VS: 10, STR: 10, SS: 15, EOS: 30, MB: 30 }[n.code];
   {
     // the clock as it read at the bold step: one step of play is at most 0.1 s, 3 displayed seconds at base speed
@@ -1599,7 +1650,9 @@ try {
       await ev("__et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
       lit = null;
       for (let t = 0; t < 300 && !lit; t += 0.25) {
-        const x = await snap();
+        // found and held (Esc) in one evaluation: the live page would otherwise run the warp out (an egg going bold)
+        // between the checks below; __et.advance and the drawing still run while paused (steadied 2026-10-02)
+        const x = await ev("(() => { const s = __et.snapshot(); if (s.warp) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return s; })()");
         if (x.warp) { lit = x; break; }
         for (const y of x.nests.filter((z) => z.state === "overtime")) await ev(`__et.submit('RCAV ${y.unit}')`);
         await ev("__et.advance(0.25)");
@@ -1644,8 +1697,7 @@ try {
       ok(lt.on && lt.links === lt.running && lt.running > 0 && lt.moves === lt.links, `Refinement 6 §2: jagged lightning reaches every nest whose clock is running, one link each   [${lt.links} links, ${lt.running} running]`);
       ok(lt.fromWarp && lt.jagged && lt.stroke === "rgb(61, 255, 154)", "…starting from the central panel, in the Time Warp green, kinked");
       ok(lt.layer && (await ev("Number(getComputedStyle(document.querySelector('#cords')).zIndex) < Number(getComputedStyle(document.querySelector('#field')).zIndex)")), "…drawn in the cord's layer, under every readout, taking no input");
-      // flicker: hold the game (Esc) so the warp stays on, and watch in real time
-      await press("Escape");
+      // flicker: the game is held (Esc, above) so the warp stays on; watch in real time
       const t0 = await ev("performance.now() / 1000");
       await wait(3000);
       const fl = await ev(`(() => { const log = ET.view.lightning().log.filter(t => t >= ${t0}); let m = 0;
