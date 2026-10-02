@@ -2207,6 +2207,8 @@ html.cat-link #cat { visibility: hidden; }
 .c64-help-panel ol { margin: 0; padding-left: 1.4em; }
 .c64-help-panel li { margin: 0 0 4px; }
 .c64-help-panel p { margin: 8px 0 0; }
+.c64-help-panel__tips { margin: 10px 0 0; padding-left: 1.1em; }
+.c64-help-panel__tips li { margin: 0 0 3px; }
 .c64-help-panel__keys { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
 .c64-help-panel__keys dt { font-weight: 700; white-space: nowrap; }
 .c64-help-panel__keys dd { margin: 0; }
