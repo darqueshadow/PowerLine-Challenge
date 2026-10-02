@@ -1,3 +1,15 @@
+> **FILING NOTE — Claude Code, 2026-10-02 (E52–E56 ruled and built; the How To Play cartoon proposed as E57).**
+> Andrew's rulings are filed verbatim as `Previous Versions/EGG_TIMER_E52-E56_RULINGS_2026-10-02.md`. **E52** approved
+> (window 1 scores at the STR), **E53** approved as proposed (playtest the window early; a longer window for hospital
+> eggs only would come as a proposal), **E54** approved, **E55** the blue H road sign and **two Moms**, each a parts kit
+> (sweet in wave 1, creepy from wave 2, matching the HUD face; Chat writes the Gemini prompts), **E56** keep the HUD face,
+> a plain roll for the 70%, spawn rate tuned after a playtest, a placeholder giggle (creepier for creepy Mom). Each is
+> struck in §11 and **built**: one mode, every egg a VS, ~70% hospital eggs (§5, §6, §7, §10). The art is placeholder
+> until Gemini's. **How To Play** is to become a six-step animated cartoon: Andrew asked for a proposal first, so it's
+> **E57** (§11), nothing built; the five-panel strip stays until it's ruled. Next free **E58**.
+> ⚠️ *(Code, for the house-rule resolution at the top)* With the mode buttons gone, the options screen's Command Line
+> count is now the cartridge's own selection screen (the "difficulty menu" the house rule asks for).
+
 > **FILING NOTE — Claude Code, 2026-10-01 (hospital eggs: one mode).** The handoff is filed verbatim as
 > `Previous Versions/EGG_TIMER_HOSPITAL_EGGS_HANDOFF_2026-10-01.md`. It asks for a proposal before building, so **nothing
 > is built**. Code's proposal is **E52–E56** (§11): scoring and mess across a hospital egg's two windows, the commands and
@@ -473,6 +485,13 @@ with a thin dashed leader line to the egg or the note, drawn under every readout
 
 ## 5. Modes (player-selected, three buttons at round start)
 
+> ⚠️ **Superseded *(E54, ruled 2026-10-02)*: there is one mode.** Every egg is laid with a **VS**; about **70%**
+> [T] are **hospital eggs** (an H sign on the nest) that need `RCAV ####` and then `CAV #### STR` in the same hatch
+> window; the rest are refusals, cleared with one `RCAV` as before. The options screen keeps "How Many Command Lines?"
+> and START only; the HUD and game-over mode labels are gone. Nothing is placed by the player any more, so §6's
+> triggers, Follow Progression's ramp, AD's post-it, VF's hidden egg and bubble, and the type shuffle bag are gone too
+> (the CSV keeps every row; the unused ones are simply not drawn). The text below is kept for history.
+
 Presented as three physical-feeling buttons at the start of each game — not a CAD-style dropdown/setup menu. Fits the arcade-cabinet framing (real cabinets commonly have a mode-select button bank). *(Addendum)* The player also picks how many Command Boxes to use (1–4) on this same screen, as one combined setup step (§12).
 
 1. **Clear CAVs Only** — one-phase. Nests activate **staggered, one at a time** (confirmed — not all at once), each opening with a CAV already placed. Player only ever types `RCAV ####`. Pure reflex drill on the clear command.
@@ -484,6 +503,10 @@ VF (§3) only appears in two-phase segments (Follow Progression once ramped, or 
 ---
 
 ## 6. Phase A — Trigger/Place (two-phase segments only)
+
+> ⚠️ **Superseded *(E54, ruled 2026-10-02)*: no placement triggers.** The only CAV the player places is a hospital
+> egg's `CAV #### STR` (E53, §11). The rejected-Enter rule below (ERROR, "Too Early!", no penalty) still stands, with
+> E53's **"RCAV first!"** added for an STR sent before the RCAV.
 
 - A nest signals a CAV is due (visual/audible cue — details TBD).
 - Player has a grace window to type `CAV #### TYPE` correctly. ~~*(Seventh draft, answering C4)* **No time limit** to place a CAV on a nest that's asking for one — player-paced; the nest just waits.~~ *(Eighth draft, answering C13)* That "no time limit" meant **no penalty for waiting**, not no backstop at all. The grace window is a **timeout: 20 s in wave 1, −1 s per wave, floored at 8 s** (the floor arrives in wave 13).
@@ -795,14 +818,21 @@ Each is built with a provisional value (a switch in `files/core/config.js` where
   `hatchPanDelay` are gone. The browser rig counts every THONG and every pan from a game's start to past its first hatch:
   none.)*
 
-### Raised by the hospital eggs handoff (2026-10-01) — E52 to E56 open (Code's proposal; nothing built)
+### Raised by the hospital eggs handoff (2026-10-01) — E52 to E56 ruled (Andrew, 2026-10-02) and built
+
+*(Andrew's rulings, filed verbatim as `Previous Versions/EGG_TIMER_E52-E56_RULINGS_2026-10-02.md`, are under each item.
+Built 2026-10-02.)*
 
 *How it fits:* today's **Clear CAVs Only** is already most of this: every egg opens itself with a CAV, and the player
 only types `RCAV`. The single mode is that mode with **every egg a VS**, plus the hospital step. The durations come from
 Andrew's table as it is (**VS 10:00, STR 10:00**), so nothing is invented. A hatch window is the player's seconds as
 now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
 
-- ⏳ **E52. Scoring and mess across a hospital egg's two windows.** **Proposal (the handoff's option, made exact):**
+- ✅ ~~**E52. Scoring and mess across a hospital egg's two windows.**~~ **Ruled (Andrew, 2026-10-02): "approved, score
+  the VS window when the STR is added."** Built as proposed: window 1's tier points at the `CAV STR`; no pan, THONG,
+  splat, mess or pieces until the final `RCAV`; the egg ladder follows the final clear only. *(Code: the game emits
+  `repaired` at window 1 and `cleared` once, at the end; the repaired egg stays full size, its cracks closing as Mom
+  patches it.)* The proposal, for history: **Proposal (the handoff's option, made exact):**
   **window 1 (VS) scores when the STR is added**, by the same tier table as any clear (fifths of that egg's window:
   100 / 75 / 50 / 35 / 25), taken at the moment of `CAV STR`, the moment the egg is saved. **No pan, no THONG, no splat,
   no mess and no pieces** at window 1: Mom repairs the egg instead. **Window 2 (STR) is a normal clear**: tier points,
@@ -812,7 +842,12 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
   is unchanged (no escapes). **The alternative:** tier window 1 at the `RCAV` instead of the `CAV STR` (kinder, since
   the two commands then don't share one tier), but then a player who RCAVs fast and never adds the STR still lets it
   hatch. Code recommends the `CAV STR` moment. Needed: yes, or the alternative, or other numbers.
-- ⏳ **E53. The commands, and every wrong order.** The player types the real syntax, as now: **`RCAV 2101`** and
+- ✅ ~~**E53. The commands, and every wrong order.**~~ **Ruled (Andrew, 2026-10-02): "approved as proposed. Playtest
+  the window early; if it's too tight, propose a longer window for hospital eggs only."** Built as proposed, every wrong
+  order included. *(Code: `hospitalWindowScale` [T] in `config.js` stretches a hospital egg's FIRST window only; it's 1,
+  the same window as every egg, as ruled. A longer one would come to Chat as a proposal after Andrew's playtest. The
+  wave-1 "Pink = ready!" tag (E28) follows the step: once the VS is off it reads "Now type CAV <unit> STR".)* The
+  proposal, for history: The player types the real syntax, as now: **`RCAV 2101`** and
   **`CAV 2101 STR`** (case and extra spaces don't matter; `CAV`'s optional `, comment` still parses). A hospital egg
   needs both **in that order** inside the one window. **What each wrong move does (proposal):** every one is a rejected
   Enter as E6 rules it (the line clears, a buzz, no pool penalty, the egg ladder drops), with the words shown under the
@@ -830,7 +865,11 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
   pace:** two commands in 4.5–6 s is about 23 keystrokes; it's fair if the player stages the second command on another
   Command Line while waiting (the staging the lines exist for). One catch: "RCAV first!" clears the line (E6), so a
   `CAV STR` sent too soon is lost and must be retyped. Needed: yes to the list and the new words, or changes.
-- ⏳ **E54. What removing the three modes takes out** (for Andrew to check nothing he wants is lost):
+- ✅ ~~**E54. What removing the three modes takes out**~~ **Ruled (Andrew, 2026-10-02): "approved."** Built: all of
+  the list below is gone, the options screen keeps the Command Line count and START (its hint reads "↑ ↓ LINES · ENTER
+  START"), and a type table without a VS or an STR row refuses to start, naming the row. Rig sections B, H, H2 and W
+  and the logic rig's placement, VF, AD-note and shuffle-bag checks are replaced by hospital-egg checks (logic H and U,
+  browser H, R). The list, for history (for Andrew to check nothing he wants is lost):
   - **The options screen's SELECT MODE bank** (Clear CAVs Only / Follow Progression / Both), its ← → hint, and the
     mode label in the HUD bar and on the game-over screen. **Kept:** "How Many Command Lines?" (1–4, 2 by default) and
     START, so the options screen becomes Command Lines + START. *(Or skip the options screen entirely and keep the Command
@@ -850,7 +889,15 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
     scene that starts a game in "both" or "progression"; the logic rig's progression ramp, placement and VF checks.
     Each is replaced by hospital-egg checks, not just dropped.
   Needed: yes, or anything to keep.
-- ⏳ **E55. New art** (for Chat's Gemini prompts; the house style as before: the game's thick dark plum outline, flat
+- ✅ ~~**E55. New art**~~ **Ruled (Andrew, 2026-10-02): "blue H road sign as proposed. Two Moms, each a parts kit:
+  sweet Mom on hospital eggs in wave 1, creepy Mom from wave 2 on (matching the scary HUD face). Chat will write the
+  Gemini prompts."** Built with **placeholder** art until Gemini's: the H sign (a white H on a blue rounded square, on a
+  stake) drops onto the nest's shoulder at the pop and stays until the egg is cleared or hatches; Mom's repair, over the
+  nest only for 1.5 s [T], uses the how-to panel's mommy doodle for sweet Mom and the scary HUD face for creepy Mom, with
+  a sticking-plaster patch. *(Code, for Chat's prompts: the spec below still holds, once per Mom: two sheets of
+  **2816 × 1536**, one for sweet Mom and one for creepy Mom, each with the head looking down and facing the viewer, eyes
+  open and squeezed shut, the mouth closed and open in two or three giggles, and two hands or tentacles holding the
+  patch. `momSweetUntilWave` [T] is 1.)* The spec, for history (for Chat's Gemini prompts; the house style as before: the game's thick dark plum outline, flat
   plain background that Code cuts out, no red liquid):
   - **The Hospital marker.** ⚠️ **Not a red cross**: the red cross emblem is protected by law (the Geneva Conventions),
     and games avoid it. Code suggests the **hospital road sign: a white "H" on a blue rounded square**, as a little
@@ -865,7 +912,12 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
     (the cracks close), **turns to the player and giggles**, **ducks out**: about **1.5 s** [T], over the nest only,
     never blocking typing. Under reduced motion she appears, still, and goes.
   Needed: yes to the specs, or changes, for Chat to write the prompts.
-- ⏳ **E56. Smaller calls the change raises:**
+- ✅ ~~**E56. Smaller calls the change raises:**~~ **Ruled (Andrew, 2026-10-02): "keep the scary HUD Mom face. Plain
+  random roll for the 70%. Tune spawn rate after a playtest. Placeholder giggle sound: yes (creepier giggle for creepy
+  Mom)."** Built: both Moms; `hospitalShare: 0.7` [T], rolled per egg on the game's seeded source; today's spawn gaps,
+  unchanged until the playtest; two synthesized giggles under THONG, the buzz and the hiss (sweet: four quick bright
+  "hee"s; creepy: slower, lower, two voices a little apart over a breathy hiss). The H sign drops in silently (no sound
+  was ruled for it). The How To Play line is answered by E57's cartoon. The list, for history:
   - **Mom's repair and the scary mom face** (Refinement 5 §5: at most once a wave, under 1 s, HUD bar only): they are
     different moments, so Code would keep both. With 70% hospital eggs she repairs often, so the repair stays small and
     over the nest only. Keep both, or drop the HUD face?
@@ -876,6 +928,46 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
     and more spawns are skipped on a full board. Code would build with today's numbers and tune them after a playtest.
   - **Sound:** a giggle for Mom (synthesized placeholder until recorded, under THONG, the buzz and the hiss), and a
     soft drop for the marker? Or silent for now.
+
+### Raised by Andrew's How To Play ruling (2026-10-02) — E57 open (Code's proposal; nothing built)
+
+- ⏳ **E57. How To Play as a six-step animated cartoon.** Andrew's ask (2026-10-02, verbatim in the rulings file): the
+  strip becomes "a simple animated cartoon, the same on both screens", steps "one at a time, about 2-3 s each, then
+  loop, each with its caption", reusing "the game's own art and animations"; reduced motion shows the still strip.
+  **Code's proposal:**
+  - **One stage in place of the five panels**, on the title's How To Play card and the options panel (under the HOW /
+    TO / PLAY signs), the same size the strip has now: one big nest (the game's own nest and egg art) with its readout
+    (unit 2101, the type, the timer), a mini Command Line under it, the caption in a speech bubble under that, and six
+    small step dots (the current one lit; they change once a step, never flash). The arcade lights and the signs stay.
+  - **The six steps** (seconds [T]; one loop ≈ 17 s):
+    1. **"The Queen lays an egg"** (2.5 s): the cord drops from the top of the card, the bulge travels down and the egg
+       pops into the nest (the game's own cord and lay); the timer starts at 00:00 and runs fast toward 10:00.
+    2. **"The CAV runs out, the egg starts to crack"** (2.5 s): 10:00, the three boxes go bold, the timer turns ready
+       pink, the cracks draw in and the egg wobbles.
+    3. **"Fast clear: pan, neat splat, big points"** (2.5 s): `RCAV 2101` types itself into the mini line, the pan
+       slams, break stage 1 (a neat splat), "+100" and a fancy dish from the egg ladder.
+    4. **"Slow clear: messier splat, fewer points"** (2.5 s): a fresh egg (no lay shown) already well cracked; `RCAV`,
+       the pan, break stage 4 with shell pieces and an alien part, gunk flung round it, "+35".
+    5. **"Hospital egg? Get the STR on, and Mom patches it up"** (3.5 s): a fresh egg; the H sign drops in; at the crack,
+       `RCAV 2101` empties the type box (its cyan pulse), then `CAV 2101 STR`; sweet Mom pops in, patches the cracks
+       closed, turns and giggles (her animation from play), and the box reads STR.
+    6. **"Too slow: the egg hatches, the crab dances and does its goofy hop"** (3.2 s, the hatch's own length): the egg
+       cracks through, the crab puppet comes out, scurries, dances and hops at the viewer. Never a horror alien, never a
+       jump scare.
+  - **Captions:** Andrew's words above, as written (step 5's is his "Caption:" line). They replace his five lines of
+    2026-10-01 (`TITLE_STEPS`). E17 is untouched: the typed commands are in the cartoon's mini Command Line, as E28 allows
+    hints in the comic strip, never as a syntax line in the panel.
+  - **Timing:** both copies run on one clock, so the title and options screens show the same step; it pauses while the
+    tab is hidden, and nothing in it ever holds a key or a click (Enter and clicks on the title still go on).
+  - **Sound:** none of the game's effects (no THONG, giggle or boing): the title music plays on as now.
+  - **Reduced motion:** the still strip, six panels, each the key frame of its step (the egg laid, cracking and bold,
+    the neat splat with its dish, the messy splat, Mom with her patch and the H sign, the crab out of its shell), with
+    the same six captions. Nothing moves.
+  - **Safety:** the only things that change state are the pink at step 2, the cyan pulse in step 5 (the game's own
+    cue, under 2 flashes a second) and the step dots (one change every 2.5 s). Nothing flashes faster.
+  - **Rigs:** the six captions word for word, each step's picture at its moment (driven by a rig clock, as `__et`
+    drives play), the fit of both copies at all four sizes, and the still strip under reduced motion.
+  Needed: yes, or changes (the captions, the step lengths, the dots, silence).
 
 ### Raised by Andrew's batch (2026-10-01) — E49, E50 and E51 ruled
 
