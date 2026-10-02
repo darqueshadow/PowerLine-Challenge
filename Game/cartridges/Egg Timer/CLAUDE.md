@@ -154,10 +154,7 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 write Egg Timer memories there (auto-memory loads the PLC root index, keyed to the git root).
 
 ## State 2026-10-01 (later)
-Live on `main`: F3 types `COM`; Andrew's batch (packet filing note, 2026-10-01): E48's exit (Q, CAT hub only), "Too
-Early!", the cord on top, no How To Play on game over, his How To Play words, the new hatch with its jump scare, and
-steadier rigs. Then E49 ("still"), E50 (option A), E51, the crab and the hatch's sound (music out for the stare, a
-stinger on the jump), all ruled and live. **Waiting:** the horror aliens' close-up faces from Gemini (spec in packet
+**Waiting:** the horror aliens' close-up faces from Gemini (spec in packet
 §11 under E49): swap them in at the moment the puppet fills the screen. No E-item open; next free E52.
 Hand tests owed: nozzle lag, Fang Rock's title music, held Enter at Game Over, the aliens, the hose's feel, the exit (Q)
 in Rec-Bay 4, real F3, the jump scare and its sound, the hose's new aim. Left from the audit: JS colours →
