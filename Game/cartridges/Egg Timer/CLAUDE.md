@@ -153,9 +153,10 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 **`continue_et`** (or `continue_wac`): read that store's `MEMORY.md` and any ⏸ handoff it lists, then `et-track.md`;
 write Egg Timer memories there (auto-memory loads the PLC root index, keyed to the git root).
 
-## State 2026-10-01 (later)
-**Waiting:** the horror aliens' close-up faces from Gemini (spec in packet
-§11 under E49): swap them in at the moment the puppet fills the screen. No E-item open; next free E52.
-Hand tests owed: nozzle lag, Fang Rock's title music, held Enter at Game Over, the aliens, the hose's feel, the exit (Q)
-in Rec-Bay 4, real F3, the jump scare and its sound, the hose's new aim. Left from the audit: JS colours →
-`theme.css`, dead code, test gaps. History in `docs/decisions.md` (repo root); the art brief is `docs/Egg Timer art brief for Gemini.md`.
+## State 2026-10-01 (parked)
+**Open: E52–E56, the hospital eggs proposal** (one mode, every egg a VS, ~70% need `RCAV` then `CAV STR`; packet §11):
+nothing built until it's ruled. Next free E57. Also waiting: the horror aliens' close-up faces from Gemini (packet §11,
+under E49). Local `main` holds unpushed docs commits; **the PLC session pushes main**. Hand tests owed: nozzle lag, Fang
+Rock's title music, held Enter at Game Over, the aliens, the hose's feel and new aim, Q in Rec-Bay 4, real F3, the jump
+scare and its sound. Left from the audit: JS colours → `theme.css`, dead code, test gaps. History in `docs/decisions.md`
+(repo root); the art brief is `docs/Egg Timer art brief for Gemini.md`.
