@@ -676,7 +676,7 @@
       m.u = u;
       if (u >= 0 && u < 1) m.rig.paint(u, reducedMotion());
       if (!m.giggled && u >= ET.CONFIG.momTimeline.face) { m.giggled = true; if (ET.audio) ET.audio.giggle(m.kind); }
-      if (u >= 1 || u < 0) { m.el.remove(); if (m.v.mend === m) m.v.mend = null; return false; }
+      if (u >= 1 || u < 0) { m.rig.remove(); if (m.v.mend === m) m.v.mend = null; return false; }
       return true;
     });
   }
@@ -1155,6 +1155,7 @@
       resetTips();
       cords.list.forEach(function (c) { c.g.style.display = "none"; });
       popups.innerHTML = "";
+      fixes.forEach(function (m) { m.rig.remove(); });
       fixes = [];
       noTypesShown = false;
       momAt = null;

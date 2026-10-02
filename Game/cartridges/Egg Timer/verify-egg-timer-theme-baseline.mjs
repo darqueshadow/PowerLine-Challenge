@@ -3494,6 +3494,13 @@ export default {
   "fill": "rgb(255, 244, 214)",
   "visibility": "hidden"
  },
+ ".mom-defs": {
+  "height": "0px",
+  "overflow-x": "hidden",
+  "overflow-y": "hidden",
+  "position": "absolute",
+  "width": "0px"
+ },
  ".pan": {
   "left": "50%",
   "opacity": "0",

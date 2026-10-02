@@ -5,6 +5,6 @@
   var ET = (root.ET = root.ET || {});
   ET.MOM_PARTS = {
     sweet: {"head": [320, 367], "tentacle": [193, 440], "plaster": [211, 213], "chin": [0.55, 0.9], "mouth": [0.55, 0.8], "tentacleBase": [0.4, 0.96], "tentacleTip": [0.76, 0.2]},
-    creepy: {"head": [320, 365], "tentacle": [212, 440], "plaster": [197, 184], "chin": [0.57, 0.9], "mouth": [0.56, 0.8], "tongue": [0.63, 0.66, 0.08, 0.06], "tentacleBase": [0.28, 0.96], "tentacleTip": [0.58, 0.22]}
+    creepy: {"head": [320, 365], "tentacle": [212, 440], "plaster": [197, 184], "chin": [0.57, 0.9], "mouth": [0.56, 0.8], "tongue": [0.52, 0.715, 0.12, 0.075], "tentacleBase": [0.28, 0.96], "tentacleTip": [0.58, 0.22]}
   };
 })(window);

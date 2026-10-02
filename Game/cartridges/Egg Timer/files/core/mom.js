@@ -180,8 +180,17 @@
     // creepy Mom's drool (Mom kit): a strand from her mouth, a drop at its end that falls, and where it lands view.js
     // draws the splat (on the floor, so it washes off like any goo). Sweet Mom never drools.
     var drool = lay.kind === "creepy" && lay.drool ? buildDrool(clip, lay.drool, ox, oy, hw) : null;
+    // creepy Mom's tongue (Mom kit): it wobbles while she giggles
+    var tongue = lay.kind === "creepy" && P.tongue ? buildTongue(head.querySelector(".mom-pose.giggle"), P.tongue, hw) : null;
     var paintBody = api.paint;
-    api.paint = function (u, reduced) { paintBody(u, reduced); if (drool) drool.paint(u, reduced, el.dataset.pose); };
+    api.paint = function (u, reduced) {
+      paintBody(u, reduced);
+      if (drool) drool.paint(u, reduced, el.dataset.pose);
+      if (tongue) tongue.paint(u, reduced, el.dataset.pose);
+    };
+    api.tongue = tongue;
+    // the tongue's filter lives with the page's other defs: it goes when she does
+    api.remove = function () { el.remove(); if (tongue) tongue.remove(); };
     api.drool = drool;
     api.paint(0, false);
     return api;
@@ -248,6 +257,50 @@
         }
         show(drop, falling); show(glint, falling);
       }
+    };
+  }
+
+  /* The tongue's wobble: an SVG displacement filter on the giggling head. Its map is flat (no move) everywhere but
+     the tongue's oval, where it rises smoothly to the middle and falls to nothing at the edge, so only the tongue
+     bends and nothing tears or doubles at a seam. The filter's strength swings to and fro while she giggles (pose C);
+     otherwise it's off. Reduced motion: never on. */
+  var tongueId = 0;
+  function buildTongue(pic, T, hw) {
+    var NS = "http://www.w3.org/2000/svg", id = "mom-tongue-" + (++tongueId);
+    var n = 64, cv = document.createElement("canvas");
+    cv.width = cv.height = n;
+    var g = cv.getContext("2d"), data = g.createImageData(n, n), d = data.data;
+    for (var y = 0; y < n; y++) {
+      for (var x = 0; x < n; x++) {
+        var dx = ((x + 0.5) / n - T[0]) / T[2], dy = ((y + 0.5) / n - T[1]) / T[3], q = dx * dx + dy * dy;
+        var w = q < 1 ? (1 - q) * (1 - q) : 0, i = (y * n + x) * 4;
+        d[i] = Math.round(128 + 127 * w);          // R: sideways
+        d[i + 1] = Math.round(128 + 40 * w);       // G: a little down with it
+        d[i + 2] = 128; d[i + 3] = 255;
+      }
+    }
+    g.putImageData(data, 0, 0);
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "mom-defs");
+    svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = '<filter id="' + id + '" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">' +
+      '<feImage x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="map"/>' +
+      '<feDisplacementMap in="SourceGraphic" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter>';
+    svg.querySelector("feImage").setAttribute("href", cv.toDataURL("image/png"));
+    document.body.appendChild(svg);
+    var disp = svg.querySelector("feDisplacementMap"), on = false;
+    return {
+      id: id,
+      paint: function (u, reduced, pose) {
+        var C = ET.CONFIG.momTongue, want = !reduced && pose === "giggle";
+        if (want !== on) { on = want; pic.style.filter = on ? "url(#" + id + ")" : ""; }
+        if (on) {
+          // scale is a share of the picture (objectBoundingBox): the most it moves is half of it, at the oval's middle
+          var s = 2 * C.shift * Math.sin(u * ET.CONFIG.momRepairSeconds * C.hz * Math.PI * 2);
+          disp.setAttribute("scale", s.toFixed(4));
+        }
+      },
+      remove: function () { svg.remove(); }
     };
   }
 

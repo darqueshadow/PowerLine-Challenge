@@ -879,6 +879,8 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .mom-visit .mom-drool .strand, .mom-visit .mom-drool .mom-drop { fill: var(--mom-drool); stroke: var(--outline); stroke-width: 1.6; stroke-linejoin: round; visibility: hidden; }
 .mom-visit .mom-drool .shine { fill: none; stroke: var(--mom-drool-shine); stroke-width: 1.2; stroke-linecap: round; visibility: hidden; }
 .mom-visit .mom-drool .glint { fill: var(--mom-drool-shine); visibility: hidden; }
+/* the tongue wobble's filter (mom.js): defs only, never drawn */
+.mom-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 /* ⏳ placeholder: the frying pan slams down in well under half a second (Refinement 2 §5). Pure CSS,
    so it can never hold up the keyboard. */

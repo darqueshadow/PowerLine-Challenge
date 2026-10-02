@@ -32,7 +32,7 @@ POSES = {"down": "org", "face": "facingyou", "giggle": "giggling"}
 # (the curl, where she holds the plaster), on the sweet orientation (the creepy one is flipped to match).
 ANCHORS = {
     "sweet": {"chin": [0.55, 0.9], "mouth": [0.55, 0.8]},
-    "creepy": {"chin": [0.57, 0.9], "mouth": [0.56, 0.8], "tongue": [0.63, 0.66, 0.08, 0.06]},
+    "creepy": {"chin": [0.57, 0.9], "mouth": [0.56, 0.8], "tongue": [0.52, 0.715, 0.12, 0.075]},
     "tentacle": {"sweet": {"base": [0.40, 0.96], "tip": [0.76, 0.2]}, "creepy": {"base": [0.28, 0.96], "tip": [0.58, 0.22]}},
 }
 

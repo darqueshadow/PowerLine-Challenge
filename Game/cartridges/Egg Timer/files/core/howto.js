@@ -329,7 +329,7 @@
       if (s.mom) {
         var mu = (u - 2.05) / C().momRepairSeconds;
         if (mu < 1) s.mom.paint(Math.max(0, mu), s.still || reduced());
-        else { s.mom.el.remove(); s.mom = null; }
+        else { s.mom.remove(); s.mom = null; }
       }
     },
     // 6. Too slow: the egg cracks through and the crab comes out, scurries, dances and hops at the viewer (the cute

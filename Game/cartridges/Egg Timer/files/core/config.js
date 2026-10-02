@@ -60,6 +60,10 @@
     // splat, drop_r: the splat's size and the drop's, shares of her head's width; gravity: px/s² (more if it must land
     // before she goes). [T]
     momDrool: { grow: [0.5, 0.58], drop: 0.62, snap: 0.66, length: 0.32, splat: 0.18, drop_r: 0.065, gravity: 2200 },
+    // Mom kit (Chat's brief, 2026-10-02): creepy Mom's tongue wobbles while she giggles (pose C only): a small warp of
+    // the tongue's own oval (mom-parts.js), fading to nothing at its edge, so there's no seam. shift: the most it moves,
+    // a share of her head's width; hz: how fast. Never under reduced motion. [T]
+    momTongue: { shift: 0.035, hz: 9 },
     // E58 (⏳ PENDING, Chat): Chat's brief has her come in from the play-field edge nearest the egg without covering
     // a timer, nest, readout, Command Line, the trough or the sink. For the board's middle nests no edge has room
     // (and the bottom edge never does). "nest" (built): she comes down inside her own nest's box, above its readout,

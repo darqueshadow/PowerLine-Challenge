@@ -1184,9 +1184,9 @@ try {
       const T = ET.CONFIG.momRepairSeconds; let at = 0;
       const to = (u) => { __et.advance((u - at) * T); at = u; const m = document.querySelector('#popups .mom-visit.creepy');
         const vis = (s) => !!m && [...m.querySelectorAll('.mom-drool ' + s)].some(e => getComputedStyle(e).visibility === 'visible');
-        return { pose: m && m.dataset.pose, strand: vis('.strand'), drop: vis('.mom-drop.falling'), splat: !!(ET.view.momFixes().find((x) => x.kind === 'creepy') || { drool: {} }).drool.splat }; };
+        return { pose: m && m.dataset.pose, strand: vis('.strand'), drop: vis('.mom-drop.falling'), tongue: !!m && !!m.querySelector('.mom-pose.giggle').style.filter, splat: !!(ET.view.momFixes().find((x) => x.kind === 'creepy') || { drool: {} }).drool.splat }; };
       ET.view.momVisit(id, 'creepy');
-      const s = [to(0.3), to(0.56), to(0.7), to(0.98)];
+      const s = [to(0.3), to(0.56), to(0.67), to(0.7), to(0.98)];
       const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b, box = plan.drool.land.box;
       const clear = !plan.obstacles.all.concat(plan.obstacles.own).some((o) => hit(box, o)) && box.l >= plan.floor.l && box.r <= plan.floor.r && box.t >= plan.floor.t && box.b <= plan.floor.b;
       const cov = ET.mess.coverage(fl);
@@ -1197,21 +1197,24 @@ try {
       __et.advance(0.2);
       ET.view.momVisit(id, 'sweet');
       const sweet = document.querySelector('#popups .mom-visit.sweet');
-      return { id, s, clear, cov, after, sweetDrool: !!(sweet && sweet.querySelector('.mom-drool')) }; })()`);
+      return { id, s, clear, cov, after, sweetDrool: !!(sweet && sweet.querySelector('.mom-drool')), sweetTongue: !!(sweet && sweet.querySelector('.mom-pose.giggle').style.filter),
+        defs: document.querySelectorAll('.mom-defs').length }; })()`);
     const d = await drool(false);
     ok(!!d, "Mom kit: some nest has an edge entry and a clear landing for the drool");
     if (d) {
-      eq(d.s.map((x) => [x.pose, x.strand, x.drop, x.splat]), [["down", false, false, false], ["face", true, false, false], ["face", false, true, false], ["face", false, false, true]],
+      eq(d.s.map((x) => [x.pose, x.strand, x.drop, x.splat]), [["down", false, false, false], ["face", true, false, false], ["giggle", false, true, false], ["face", false, true, false], ["face", false, false, true]],
         `Mom kit: creepy Mom drools in pose B only: the strand, then the drop falling, then the splat where it lands   [nest ${d.id}]`);
       ok(d.clear && d.cov > 0, `Mom kit: the splat lands on the floor, clear of every nest, readout, sign, timer, the sink tag and the trough   [coverage ${(d.cov * 100).toFixed(2)}%]`);
       ok(d.after < d.cov * 0.05, `Mom kit: …and washes off like any goo (the floor's own wipe)   [${(d.cov * 100).toFixed(2)}% → ${(d.after * 100).toFixed(2)}%]`);
       eq(d.sweetDrool, false, "Mom kit: sweet Mom never drools");
+      eq(d.s.map((x) => x.tongue), [false, false, true, false, false], "Mom kit: creepy Mom's tongue wobbles (its warp filter) while she giggles, pose C only");
+      eq([d.sweetTongue, d.defs], [false, 0], "Mom kit: â€¦never sweet Mom's, and its filter goes when she does");
     }
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const r = await drool(true);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
-    ok(!!r && r.s.every((x) => !x.strand && !x.drop) && !r.s[1].splat && r.s[2].splat, `SAFETY: under reduced motion no strand and no falling drop; the splat is simply there once it would have landed   [${r && r.s.map((x) => x.splat).join(",")}]`);
+    ok(!!r && r.s.every((x) => !x.strand && !x.drop && !x.tongue) && !r.s[1].splat && r.s[2].splat, `SAFETY: under reduced motion no strand, no falling drop, no tongue wobble; the splat is simply there once it would have landed   [${r && r.s.map((x) => x.splat).join(",")}]`);
   }
   {
     // E56: the placeholder giggles sit under THONG (rendered offline, each alone)
