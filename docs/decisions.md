@@ -874,3 +874,29 @@ window tight, and a longer window goes to Chat as a proposal first; spawn rate i
 playtest. The H sign and both Moms are placeholders until Gemini's parts kits (spec under E55). The cartoon's nest is
 `.toon`, never `.nest` (the rigs count `.nest` as the board's 12). The first push also published PLC's 9 commits on
 Andrew's word, and the PLC session was told.
+
+## Built 2026-10-02 — Egg Timer: the Mom kit (both Moms, edge entry, drool, splat, tongue); E58 open
+
+**Solved:** Mom's repair uses Andrew's approved Gemini parts kits (sweet Mom: wave 1 and the How To Play cartoon;
+creepy Mom: wave 2 on), with one animation for both. Chat's brief (filed verbatim in `Game/cartridges/Egg Timer/
+Previous Versions/EGG_TIMER_MOM_KIT_RULINGS_2026-10-02.md`) rules: **she comes in from the play-field edge nearest the
+egg** (replacing E55's over-the-nest visit), never covering a timer, nest, readout, Command Line, the trough or the sink;
+**creepy Mom's drool, its splat and her tongue's wobble are drawn in code; sweet Mom never drools.** Six commits, one a
+section: `3a9462a` cut-outs, `9dba590` the art in the visit, `d2e90c1` edge entry, `7e8dc0a` How To Play step 5,
+`44a40cb` drool and splat, `2b44c16` tongue. Not pushed (push rule, root `CLAUDE.md`).
+**Approach:** `make-mom-art.py` cuts the ten pictures (white joined to the edge goes, a band un-blended so the outline
+stays crisp; one crop box per Mom's three heads; the creepy tentacle flipped, the creepy plaster turned and scaled to
+the sweet one; the sweet plaster's speck painted over; warts drawn outside the creepy outline cut off) and writes
+`core/mom-parts.js` (sizes, anchors). `core/mom.js` is the rig, painted from the game's seconds (`momTimeline`).
+`view.js` places her: edges nearest first, her head swept along each and a little in, until head (upright and turned),
+slide-in path and both tentacles (their whole S-curve band) clear every obstacle. Where none does (the board's middle
+nests), **E58** (⏳ PENDING, `momNoEdge`: "nest", built, inside her own nest's box; or "over"). The drool's landing is
+picked before she comes, on the floor canvas (so the hose washes the splat off like any goo), the splat and the drop's
+fall clear of everything; with nowhere clear, the drop fades out and leaves nothing. The tongue: an SVG displacement
+filter whose map is flat outside the tongue's oval (no seam).
+**If you touch this again:** Pillow 12 won't flood-fill an image made straight from a numpy array (copy it first; it
+cost an out-of-memory run). `.drop` is the hose's mist class (it animates to opacity 0): Mom's drop is `mom-drop`.
+The visit stores her edge in `m.edge`; `m.from` is the egg's crack at the start (the mend). The egg's pictures are
+full-slot layers, so its box comes from the nest's units through the egg's screen transform, never from the shell
+image's rect. Rig L checks every nest, both Moms, all four sizes (H signs up); rig H drives a real visit with
+`ET.view.momVisit(id, kind)`.
