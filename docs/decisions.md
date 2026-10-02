@@ -764,6 +764,22 @@ loaded, only to aim the throw. The unused cut-edge outline colour went with the 
 - `ET.pieces.list()` reports each piece's `sprite`; rig E38 asserts all ten sprites appear, some mirrored.
 - Git Bash heredocs here collapse a doubled backslash to one: write a rig's in-template regex escapes with the editor, not a heredoc.
 
+## Resolved 2026-09-26 — the C64 corner's Full Screen, Pause, eject lever and screen hunt
+
+**Solved:** The corner C64 has a Full Screen layout with a breadbin strip, a mouse-only Pause, and Eject drawn as the
+1541's door lever. Its own screen search never gives up and costs the C64 no measurable speed, and auto-RUN always says
+why it did not type RUN. Andrew ran the checklist on 2026-09-25.
+**Approach:** Full Screen/Pause/lever are `f50a662` (branch `c64-fullscreen-pause`, fast-forwarded into main 2026-09-25).
+The screen hunt and auto-RUN messages are `71b4060` on branch `c64-screen-hunt`, merged into main as `eed926a`
+on 2026-10-01 (Andrew's merge order; not pushed).
+Each commit carries its own full entry in this file, placed after the 2026-09-18 C64 audit entry.
+**If you touch this again:** Full Screen is a layout (`#cat.is-full`), never the Fullscreen API; the strip MOVES
+`#c64-side`'s parts, never copies them. Paused: keydown blocked on window capture in `emu.js`, keyup let through
+(measured `$CB` 60→64). Never scan the wasm heap in a JS loop on the machine's thread (736 ms per pass; native `indexOf`
+84 ms, sliced 2 MB every 100 ms). The vector landmark is the `$0300`+`$0314` pair, never either half. verify-cat cannot
+start its second browser above ~75% CPU (NB `cdp.mjs`), which is a harness limit, not a hub regression. Commit through a `git worktree`, because the Egg Timer
+session commits to main in the same tree.
+
 ## 2026-10-01 — Egg Timer: CLAUDE.md prune at park (E45–E47, the aliens, the 2026-09-30 requests)
 
 - Dropped from CLAUDE.md: the 2026-09-26 park state (E42–E44 live, "art-slot batch as Gemini's art arrives"), now
