@@ -597,18 +597,79 @@
     return Object.assign({}, base, { headW: hw, head: { x: egg.x, y: clip.t + 1 + hh / 2 }, from: "top", tilt: 0,
       fallback: "nest", clip: clip });
   }
+  /* Creepy Mom's drool (Mom kit): where its drop lands. It falls from the end of the strand under her mouth (pose B,
+     upright); the splat must land on the board's floor (where goo washes off) and, flung droplets and all, cover no
+     nest, readout, sign, timer, the sink tag or the trough; the drop's own fall (a straight line, drifting a little to
+     the side at most) must cross none of them either. So the spot is searched for: straight down first, then further
+     to either side, nearest first. None clear: `stop`, how far straight down it can fall before it would touch
+     anything; it fades out before then and leaves no splat. */
+  function momDroolPlan(lay, v, f, ob) {
+    var C = ET.CONFIG, D = C.momDrool, P = ET.MOM_PARTS.creepy, G = ET.mom.geometry(lay);
+    var mouth = { x: lay.head.x + (P.mouth[0] - 0.5) * G.hw, y: lay.head.y + (P.mouth[1] - 0.5) * G.hh };
+    var len = G.hh * D.length, r = G.hw * D.splat, rb = Math.max(4, G.hw * D.drop_r);
+    var fl = fieldRect(floor, f), clip = lay.clip;
+    var area = { l: Math.max(fl.l, clip.l), t: Math.max(fl.t, clip.t), r: Math.min(fl.r, clip.r), b: Math.min(fl.b, clip.b) };
+    var all = ob.all.concat(ob.own), reach = r * 2.4 + 4, flat = 0.65;
+    var start = mouth.y + len + rb;
+    var hits = function (box) { return all.some(function (o) { return overlaps(box, o); }); };
+    var pathClear = function (x1, y1) {
+      var n = Math.max(2, Math.ceil(Math.hypot(x1 - mouth.x, y1 - start) / 6));
+      for (var i = 0; i <= n; i++) {
+        var x = mouth.x + (x1 - mouth.x) * i / n, y = start + (y1 - start) * i / n, m = rb + 2;
+        var d = { l: x - m, t: y - m, r: x + m, b: y + m };
+        if (d.l < clip.l || d.r > clip.r || d.b > clip.b || hits(d)) return false;
+      }
+      return true;
+    };
+    var best = null;
+    [0, -0.25, 0.25, -0.5, 0.5, -0.75, 0.75, -1, 1].some(function (dx) {
+      var x = mouth.x + dx * G.hw;
+      for (var y = Math.max(start + reach * flat, area.t + reach * flat); y < area.b; y += 6) {
+        if (Math.abs(dx * G.hw) > (y - start) * 0.6) continue;           // it drifts, it isn't thrown
+        var box = { l: x - reach, r: x + reach, t: y - reach * flat, b: y + reach * flat };
+        if (box.l < area.l || box.r > area.r || box.t < area.t || box.b > area.b || hits(box)) continue;
+        if (!pathClear(x, y)) break;                                      // anything further down this line is no better
+        best = { x: x, y: y, dx: dx, r: r, box: box };
+        return true;
+      }
+      return false;
+    });
+    var stop = start;
+    if (!best) {
+      for (var y = start; y < clip.b; y += 3) {
+        var m = rb + 2;
+        if (hits({ l: mouth.x - m, t: y - m, r: mouth.x + m, b: y + m })) break;
+        stop = y;
+      }
+    }
+    return { x: mouth.x, y: mouth.y, len: len, drop: rb, land: best, stop: stop };
+  }
+  // the splat, on the floor, where the drop landed
+  function momSplat(at) {
+    var fr = floor.getBoundingClientRect(), f = field.getBoundingClientRect();
+    if (!fr.width || !fr.height) return null;
+    return ET.mess.drool(floor, at.x - (fr.left - f.left), at.y - (fr.top - f.top), at.r, floor.width / fr.width, floor.height / fr.height);
+  }
   function momFix(v, kind, t) {
     var m = { v: v, kind: kind, t0: t, giggled: false, from: v.crackShown || 0 };
     var lay = momLayout(v, kind);
     m.edge = lay.from;
     m.fallback = lay.fallback;
+    if (kind === "creepy") {   // sweet Mom never drools
+      var f = field.getBoundingClientRect();
+      lay.drool = momDroolPlan(lay, v, f, momObstacles(v, f));
+      m.drool = lay.drool;
+      if (lay.drool.land) lay.drool.onLand = function () { m.splat = momSplat(lay.drool.land); };
+    }
     m.rig = ET.mom.visit(popups, lay);
     m.el = m.rig.el;
     fixes.push(m);
     v.mend = m;
   }
   // every frame: paint each visit at its moment; the giggle as she turns to the player; her exit
+  var momNow = 0;   // the game's seconds at the last frame (for a rig's momVisit)
   function stepFixes(t) {
+    momNow = t;
     var T = ET.CONFIG.momRepairSeconds;
     fixes = fixes.filter(function (m) {
       var u = (t - m.t0) / T;
@@ -1399,14 +1460,18 @@
       return [{ shown: !t.el.hidden, text: t.el.textContent.trim(), nest: t.nest, done: t.done, line: t.line.style.display !== "none" ? t.line.getAttribute("d") : null }];
     },
     /* For rigs (E55): Mom's repairs showing now: which nest, which Mom, and whether she has giggled yet. */
-    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled, u: m.u, from: m.edge, fallback: m.fallback || null }; }); },
+    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled, u: m.u, from: m.edge, fallback: m.fallback || null, drool: m.drool ? { land: m.drool.land, splat: m.splat || null } : null }; }); },
+    /* For rigs (Mom kit): bring Mom to nest `id` now, as the STR would (her visit, its drool and splat), on the game's
+       seconds. Returns how many visits are showing. */
+    momVisit: function (id, kind) { momFix(nests[id], kind || "creepy", momNow); return fixes.length; },
     /* For rigs (Mom kit): where she'd go for nest `id` now, without showing her: the edge (or the fallback), her
        head's box upright and turned, each tentacle's line, and everything she must stay clear of (field px). */
     momPlan: function (id, kind) {
       var v = nests[id], f = field.getBoundingClientRect(), lay = momLayout(v, kind || "sweet"), G = ET.mom.geometry(lay);
       return { lay: lay, from: lay.from, fallback: lay.fallback || null, tilt: lay.tilt, clip: lay.clip, headW: G.hw, headH: G.hh,
         head: { l: lay.head.x - G.hw / 2, t: lay.head.y - G.hh / 2, r: lay.head.x + G.hw / 2, b: lay.head.y + G.hh / 2 },
-        chin: G.chin, tube: G.tube, tents: G.tents, obstacles: momObstacles(v, f), nest: fieldRect(v.el, f), readout: fieldRect(v.readout, f) };
+        chin: G.chin, tube: G.tube, tents: G.tents, obstacles: momObstacles(v, f), nest: fieldRect(v.el, f), readout: fieldRect(v.readout, f),
+        drool: kind === "creepy" ? momDroolPlan(lay, v, f, momObstacles(v, f)) : null, floor: fieldRect(floor, f) };
     },
 
     /* For rigs: a nest's cord, if one is showing. */

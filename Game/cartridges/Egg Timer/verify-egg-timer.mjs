@@ -1174,6 +1174,46 @@ try {
     eq(held, [1, true], "a pause holds her, however long it lasts");
   }
   {
+    // Mom kit: creepy Mom's drool and its splat, code-drawn, at a nest she reaches from an edge with a clear landing
+    await ev("(() => { __et.start(4, { hospital: 0 }); __et.advance(0.1); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()");
+    const drool = (reduced) => ev(`(() => {
+      const fl = document.querySelector('.floor-mess'); ET.mess.clear(fl);
+      let id = -1, plan = null;
+      for (let i = 0; i < 12 && id < 0; i++) { const p = ET.view.momPlan(i, 'creepy'); if (!p.fallback && p.drool.land) { id = i; plan = p; } }
+      if (id < 0) return null;
+      const T = ET.CONFIG.momRepairSeconds; let at = 0;
+      const to = (u) => { __et.advance((u - at) * T); at = u; const m = document.querySelector('#popups .mom-visit.creepy');
+        const vis = (s) => !!m && [...m.querySelectorAll('.mom-drool ' + s)].some(e => getComputedStyle(e).visibility === 'visible');
+        return { pose: m && m.dataset.pose, strand: vis('.strand'), drop: vis('.mom-drop.falling'), splat: !!(ET.view.momFixes().find((x) => x.kind === 'creepy') || { drool: {} }).drool.splat }; };
+      ET.view.momVisit(id, 'creepy');
+      const s = [to(0.3), to(0.56), to(0.7), to(0.98)];
+      const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b, box = plan.drool.land.box;
+      const clear = !plan.obstacles.all.concat(plan.obstacles.own).some((o) => hit(box, o)) && box.l >= plan.floor.l && box.r <= plan.floor.r && box.t >= plan.floor.t && box.b <= plan.floor.b;
+      const cov = ET.mess.coverage(fl);
+      // wash it off as the hose would any goo: the floor's own wipe over where it landed
+      const fr = fl.getBoundingClientRect(), f = document.getElementById('field').getBoundingClientRect(), k = fl.width / fr.width, ky = fl.height / fr.height;
+      for (let y = box.t; y <= box.b; y += 6) ET.mess.wipe(fl, (box.l - (fr.left - f.left)) * k, (y - (fr.top - f.top)) * ky, (box.r - (fr.left - f.left)) * k, (y - (fr.top - f.top)) * ky, 8 * k);
+      const after = ET.mess.coverage(fl);
+      __et.advance(0.2);
+      ET.view.momVisit(id, 'sweet');
+      const sweet = document.querySelector('#popups .mom-visit.sweet');
+      return { id, s, clear, cov, after, sweetDrool: !!(sweet && sweet.querySelector('.mom-drool')) }; })()`);
+    const d = await drool(false);
+    ok(!!d, "Mom kit: some nest has an edge entry and a clear landing for the drool");
+    if (d) {
+      eq(d.s.map((x) => [x.pose, x.strand, x.drop, x.splat]), [["down", false, false, false], ["face", true, false, false], ["face", false, true, false], ["face", false, false, true]],
+        `Mom kit: creepy Mom drools in pose B only: the strand, then the drop falling, then the splat where it lands   [nest ${d.id}]`);
+      ok(d.clear && d.cov > 0, `Mom kit: the splat lands on the floor, clear of every nest, readout, sign, timer, the sink tag and the trough   [coverage ${(d.cov * 100).toFixed(2)}%]`);
+      ok(d.after < d.cov * 0.05, `Mom kit: …and washes off like any goo (the floor's own wipe)   [${(d.cov * 100).toFixed(2)}% → ${(d.after * 100).toFixed(2)}%]`);
+      eq(d.sweetDrool, false, "Mom kit: sweet Mom never drools");
+    }
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const r = await drool(true);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+    ok(!!r && r.s.every((x) => !x.strand && !x.drop) && !r.s[1].splat && r.s[2].splat, `SAFETY: under reduced motion no strand and no falling drop; the splat is simply there once it would have landed   [${r && r.s.map((x) => x.splat).join(",")}]`);
+  }
+  {
     // E56: the placeholder giggles sit under THONG (rendered offline, each alone)
     const g = await ev(`Promise.all([ET.audio.measure('thong', [], 1), ET.audio.measure('giggle', ['sweet'], 1), ET.audio.measure('giggle', ['creepy'], 1)]).then(r => r.map(x => [x.peak, x.active]))`);
     ok(g[1][0] > 1e-3 && g[2][0] > 1e-3 && g[1][0] < g[0][0] && g[2][0] < g[0][0] && g[1][1] < g[0][1] && g[2][1] < g[0][1],
@@ -1566,6 +1606,12 @@ try {
           if (p.head.l < p.nest.l - 0.5 || p.head.r > p.nest.r + 0.5 || p.head.t < p.nest.t - 0.5 || p.head.b > p.readout.t + 0.5) out.bad.push(where + ' fallback leaves its nest');
         } else {
           out.edges[p.from] = (out.edges[p.from] || 0) + 1;
+          // creepy Mom's splat, where it lands: on the floor and clear, droplets and all
+          const land = p.drool && p.drool.land;
+          if (land) {
+            if (land.box.l < p.floor.l || land.box.r > p.floor.r || land.box.t < p.floor.t || land.box.b > p.floor.b) out.bad.push(where + ' splat off the floor');
+            p.obstacles.all.concat(p.obstacles.own).forEach((o) => { if (hit(land.box, o)) out.bad.push(where + ' splat'); });
+          }
           p.obstacles.own.forEach((o) => { if (hit(p.head, o)) out.bad.push(where + ' head on its own nest'); });
           p.tents.forEach((t) => {
             for (let s = 0; s <= 40; s++) {

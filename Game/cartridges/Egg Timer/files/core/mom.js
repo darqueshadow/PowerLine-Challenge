@@ -177,8 +177,78 @@
       return "rotate(" + phi.toFixed(2) + "deg) scale(" + s.toFixed(3) + ", " + w.toFixed(3) + ") rotate(" + (-phi).toFixed(2) + "deg)" +
         (t.side < 0 ? " scale(-1, 1)" : "");
     }
+    // creepy Mom's drool (Mom kit): a strand from her mouth, a drop at its end that falls, and where it lands view.js
+    // draws the splat (on the floor, so it washes off like any goo). Sweet Mom never drools.
+    var drool = lay.kind === "creepy" && lay.drool ? buildDrool(clip, lay.drool, ox, oy, hw) : null;
+    var paintBody = api.paint;
+    api.paint = function (u, reduced) { paintBody(u, reduced); if (drool) drool.paint(u, reduced, el.dataset.pose); };
+    api.drool = drool;
     api.paint(0, false);
     return api;
+  }
+
+  /* The drool. R: { x, y (her mouth, in the host's px), len (the strand's full length, px), land: { x, y } or null (where
+     the drop lands: view.js picks a spot clear of everything; null, there's none, and it just falls away), onLand }.
+     The strand shows only while she faces the player (pose B); the drop, once let go, falls on its own. Reduced motion:
+     nothing moves, and the splat is simply there once the drop would have let go. */
+  function buildDrool(clip, R, ox, oy, hw) {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "mom-drool");
+    svg.setAttribute("aria-hidden", "true");
+    var mk = function (tag, cls) { var e = document.createElementNS(NS, tag); e.setAttribute("class", cls); svg.appendChild(e); return e; };
+    var strand = mk("path", "strand"), shine = mk("path", "shine"), bulb = mk("ellipse", "mom-drop bulb"), drop = mk("ellipse", "mom-drop falling"), glint = mk("circle", "glint");
+    clip.appendChild(svg);
+    var D = ET.CONFIG.momDrool, T = ET.CONFIG.momRepairSeconds;
+    var mx = R.x + ox, my = R.y + oy, rb = R.drop || Math.max(4, hw * 0.065), w0 = rb * 0.9;
+    var y0 = my + R.len + rb, landed = false;
+    // with nowhere clear to land, it falls only as far as `stop` (before anything), fading out on the way
+    var fall = R.land ? R.land.y + oy - y0 : Math.max(0, R.stop + oy - y0);
+    var avail = Math.max(0.05, (0.97 - D.drop) * T);
+    var g = Math.max(D.gravity, R.land ? 2 * Math.max(0, fall) / (avail * avail) : D.gravity);
+    function land() { if (!landed) { landed = true; if (R.onLand) R.onLand(); } }
+    function show(e, on) { var v = on ? "visible" : "hidden"; if (e.style.visibility !== v) e.style.visibility = v; }
+    return {
+      landed: function () { return landed; },
+      paint: function (u, reduced, pose) {
+        if (reduced) {
+          [strand, shine, bulb, drop, glint].forEach(function (e) { show(e, false); });
+          if (u >= D.drop) land();
+          return;
+        }
+        // the strand and its swelling drop: while she faces the player, until the drop lets go and it snaps back
+        var L = 0, b = rb * 0.5;
+        if (u >= D.grow[0] && u < D.grow[1]) L = R.len * ease((u - D.grow[0]) / (D.grow[1] - D.grow[0]));
+        else if (u >= D.grow[1] && u < D.drop) { L = R.len; b = rb * (0.5 + 0.5 * clamp((u - D.grow[1]) / (D.drop - D.grow[1]))); }
+        else if (u >= D.drop && u < D.snap) { L = R.len * (1 - ease((u - D.drop) / (D.snap - D.drop))); b = 0; }
+        var on = L > 1 && pose === "face";
+        show(strand, on); show(shine, on); show(bulb, on && b > 0.5);
+        if (on) {
+          var wn = w0 * 0.45, sway = Math.sin(u * 40) * w0 * 0.3;
+          strand.setAttribute("d", "M" + (mx - w0 / 2) + " " + my + " Q" + (mx - wn + sway) + " " + (my + L * 0.55) + " " + (mx - wn / 2 + sway) + " " + (my + L) +
+            " L" + (mx + wn / 2 + sway) + " " + (my + L) + " Q" + (mx + wn + sway) + " " + (my + L * 0.55) + " " + (mx + w0 / 2) + " " + my + " Z");
+          shine.setAttribute("d", "M" + (mx - w0 * 0.15) + " " + (my + 2) + " Q" + (mx - wn * 0.4 + sway) + " " + (my + L * 0.45) + " " + (mx - wn * 0.2 + sway) + " " + (my + L * 0.8));
+          bulb.setAttribute("cx", mx + sway); bulb.setAttribute("cy", my + L + b * 0.7);
+          bulb.setAttribute("rx", b); bulb.setAttribute("ry", b * 1.2);
+        }
+        // the drop, let go: falls on its own until it lands (then the splat), or out of sight
+        var t = (u - D.drop) * T, falling = u >= D.drop && !landed;
+        if (falling) {
+          var dy = 0.5 * g * t * t, k = R.land ? Math.min(1, dy / Math.max(1, fall)) : 0;
+          var x = mx + (R.land ? (R.land.x + ox - mx) * k : 0), y = y0 + dy;
+          if (R.land && dy >= fall) { land(); falling = false; }
+          else if (!R.land && dy >= fall) falling = false;
+          else {
+            var fade = R.land ? 1 : clamp((fall - dy) / Math.max(1, fall * 0.4));
+            drop.style.opacity = fade; glint.style.opacity = fade;
+            drop.setAttribute("cx", x); drop.setAttribute("cy", y);
+            drop.setAttribute("rx", rb); drop.setAttribute("ry", rb * (1.15 + Math.min(0.5, t * 1.5)));
+            glint.setAttribute("cx", x - rb * 0.35); glint.setAttribute("cy", y - rb * 0.4); glint.setAttribute("r", Math.max(0.8, rb * 0.25));
+          }
+        }
+        show(drop, falling); show(glint, falling);
+      }
+    };
   }
 
   ET.mom = {

@@ -3467,6 +3467,33 @@ export default {
  ".mom-visit[data-pose=\"down\"] .mom-pose.down, .mom-visit[data-pose=\"face\"] .mom-pose.face, .mom-visit[data-pose=\"giggle\"] .mom-pose.giggle": {
   "visibility": "visible"
  },
+ ".mom-visit .mom-drool": {
+  "height": "100%",
+  "left": "0px",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "position": "absolute",
+  "top": "0px",
+  "width": "100%"
+ },
+ ".mom-visit .mom-drool .strand, .mom-visit .mom-drool .mom-drop": {
+  "fill": "rgb(255, 212, 58)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-linejoin": "round",
+  "stroke-width": "1.6",
+  "visibility": "hidden"
+ },
+ ".mom-visit .mom-drool .shine": {
+  "fill": "none",
+  "stroke": "rgb(255, 244, 214)",
+  "stroke-linecap": "round",
+  "stroke-width": "1.2",
+  "visibility": "hidden"
+ },
+ ".mom-visit .mom-drool .glint": {
+  "fill": "rgb(255, 244, 214)",
+  "visibility": "hidden"
+ },
  ".pan": {
   "left": "50%",
   "opacity": "0",

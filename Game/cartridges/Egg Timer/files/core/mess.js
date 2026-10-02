@@ -225,6 +225,97 @@
 
     clear: function (canvas) {
       canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    },
+
+    /* Mom kit (Chat's brief, 2026-10-02): where creepy Mom's drool drop lands, a flat, irregular splat, on this canvas
+       (the floor), so it washes off like any goo. (x, y) and r are in screen px; kx, ky the canvas's own px per screen
+       px, so it isn't stretched with the canvas. Every one is different: its size, its shape (lobes, flatness, a few
+       long runs), how rugged its edge is and how many droplets it flings. Flat colours (the goo's, theme.css), the
+       thick cartoon outline and a few glossy streaks; never round, never a ball, never red. `rnd` is the random
+       source (cosmetic: Math.random). Returns the box it covers, in screen px. */
+    drool: function (canvas, x, y, r, kx, ky, rnd) {
+      rnd = rnd || Math.random;
+      var css = getComputedStyle(document.documentElement);
+      var col = function (n, d) { return (css.getPropertyValue(n) || d).trim() || d; };
+      var fill = col("--mom-drool", "#ffd43a"), deep = col("--mom-drool-deep", "#c98a2b");
+      var shine = col("--mom-drool-shine", "#fff4d6"), ink = col("--outline", "#1a0d2e");
+      var g = canvas.getContext("2d");
+      g.save();
+      g.setTransform(kx, 0, 0, ky, x * kx, y * ky);
+      r *= 0.75 + rnd() * 0.25;                      // never bigger than r: view.js keeps 2.4 r clear round it
+      var flat = 0.42 + rnd() * 0.2;                 // squashed flat on the floor
+      var rugged = 0.25 + rnd() * 0.45;              // how uneven its edge is
+      var lobes = 7 + Math.floor(rnd() * 7), turn = rnd() * Math.PI * 2, pts = [];
+      var runs = 1 + Math.floor(rnd() * 3), runAt = [];
+      for (var q = 0; q < runs; q++) runAt.push(Math.floor(rnd() * lobes));
+      for (var k = 0; k < lobes; k++) {
+        var a = turn + (k + (rnd() - 0.5) * 0.5) / lobes * Math.PI * 2;
+        var rr = r * (1 - rugged / 2 + rnd() * rugged);
+        if (runAt.indexOf(k) >= 0) rr *= 1.3 + rnd() * 0.3;   // a run, flung out further
+        pts.push([Math.cos(a) * rr, Math.sin(a) * rr * flat]);
+      }
+      var mid = function (p, q) { return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; };
+      var shape = function (list, scale) {
+        g.beginPath();
+        var s0 = mid(list[list.length - 1], list[0]);
+        g.moveTo(s0[0] * scale, s0[1] * scale);
+        for (var m = 0; m < list.length; m++) {
+          var n = mid(list[m], list[(m + 1) % list.length]);
+          g.quadraticCurveTo(list[m][0] * scale, list[m][1] * scale, n[0] * scale, n[1] * scale);
+        }
+        g.closePath();
+      };
+      var line = Math.max(2, r * 0.11);
+      g.lineJoin = "round";
+      g.lineCap = "round";
+      // the splat: the darker shade, then the goo's colour lifted a little inside it (a darker rim along its lower
+      // edge, so it reads as a puddle, not a ball), then the thick outline
+      shape(pts, 1);
+      g.fillStyle = deep;
+      g.fill();
+      g.save();
+      g.clip();
+      g.fillStyle = fill;
+      shape(pts.map(function (p) { return [p[0] * 0.95, p[1] * 0.9 - r * flat * 0.14]; }), 1);
+      g.fill();
+      g.restore();
+      shape(pts, 1);
+      g.strokeStyle = ink;
+      g.lineWidth = line;
+      g.stroke();
+      // a few glossy streaks
+      g.strokeStyle = shine;
+      var streaks = 2 + Math.floor(rnd() * 2);
+      for (var h = 0; h < streaks; h++) {
+        var sx = (rnd() - 0.6) * r * 0.9, sy = (rnd() - 0.7) * r * flat * 0.8, sl = r * (0.18 + rnd() * 0.22);
+        g.lineWidth = Math.max(1.2, line * (0.55 - h * 0.12));
+        g.beginPath();
+        g.moveTo(sx, sy);
+        g.quadraticCurveTo(sx + sl * 0.5, sy - sl * 0.18, sx + sl, sy);
+        g.stroke();
+      }
+      // the flung droplets: small, outlined, a few drawn out the way they flew
+      var drops = 1 + Math.floor(rnd() * 6), reach = 1;
+      for (var d = 0; d < drops; d++) {
+        var da = rnd() * Math.PI * 2, dist = r * (1.2 + rnd() * 0.75), dr = r * (0.06 + rnd() * 0.1);
+        var cx = Math.cos(da) * dist, cy = Math.sin(da) * dist * flat, stretch = 1 + rnd() * 1.3;
+        reach = Math.max(reach, dist / r + 0.2);
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(da);
+        g.scale(stretch, 1 / Math.sqrt(stretch));
+        g.beginPath();
+        g.arc(0, 0, dr, 0, Math.PI * 2);
+        g.restore();
+        g.fillStyle = fill;
+        g.fill();
+        g.strokeStyle = ink;
+        g.lineWidth = Math.max(1.2, line * 0.5);
+        g.stroke();
+      }
+      g.restore();
+      var w = r * Math.max(reach, 2.1) + line;
+      return { l: x - w, r: x + w, t: y - w * flat - line, b: y + w * flat + line };
     }
   };
 })(window);

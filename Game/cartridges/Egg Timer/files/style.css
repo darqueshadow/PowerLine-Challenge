@@ -873,6 +873,12 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .mom-visit .mom-head .mom-pose { left: 0; top: 0; width: 100%; height: 100%; visibility: hidden; }
 .mom-visit[data-pose="down"] .mom-pose.down, .mom-visit[data-pose="face"] .mom-pose.face,
 .mom-visit[data-pose="giggle"] .mom-pose.giggle { visibility: visible; }
+/* creepy Mom's drool (code-drawn): the goo's own colours, the cartoon outline, a glossy shine (.mom-drop: .drop is the
+   hose's water mist) */
+.mom-visit .mom-drool { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+.mom-visit .mom-drool .strand, .mom-visit .mom-drool .mom-drop { fill: var(--mom-drool); stroke: var(--outline); stroke-width: 1.6; stroke-linejoin: round; visibility: hidden; }
+.mom-visit .mom-drool .shine { fill: none; stroke: var(--mom-drool-shine); stroke-width: 1.2; stroke-linecap: round; visibility: hidden; }
+.mom-visit .mom-drool .glint { fill: var(--mom-drool-shine); visibility: hidden; }
 
 /* ⏳ placeholder: the frying pan slams down in well under half a second (Refinement 2 §5). Pure CSS,
    so it can never hold up the keyboard. */

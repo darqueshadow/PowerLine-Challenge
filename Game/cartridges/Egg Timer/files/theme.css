@@ -51,6 +51,11 @@
   --stake: #8a5a2b;                       /* the sign's wooden stake */
   --plaster: #f2c9a0;                     /* Mom's sticking plaster */
   --plaster-pad: #fff3e6;                 /* its pad */
+  /* Mom kit: creepy Mom's drool and its splat (code-drawn, Chat's brief 2026-10-02): the goo's own colours (core/mess.js's
+     yolk, never red), with the cartoon outline and a glossy shine */
+  --mom-drool: #ffd43a;                   /* the goo's yolk yellow */
+  --mom-drool-deep: #c98a2b;              /* its darker shade, under the splat's edge */
+  --mom-drool-shine: #fff4d6;             /* the glossy highlight streaks */
 
   /* How-to card, title card and arcade bulbs */
   --card: #fff3d1;                        /* cream (how-to card, title card, hose tag) */
