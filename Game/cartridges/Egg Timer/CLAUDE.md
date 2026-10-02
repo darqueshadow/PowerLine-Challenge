@@ -11,11 +11,12 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 
 ## Status
 - **Live since 2026-09-19** (hub entry in `Game/C64/disks.js`; NB's Rec-Bay 4 table fires).
-- 🚀 **STANDING RULE (Andrew, 2026-09-23):** Andrew playtests through **Nerva Beacon (Rec-Bay 4)**, not localhost.
-  After building anything for Egg Timer: **if BOTH rigs pass, commit and push to the live site right away. Never
-  push with a failing rig.** Keep each change in its own commit(s) so any one can be reverted alone. **After each
-  push, tell Andrew in one line what went live.** A push also publishes other sessions' commits on `main`: check
-  `git log origin/main..main` and say so if anything besides Egg Timer is going out. Work Andrew must see first
+- 🚀 **STANDING RULE (Andrew, 2026-09-23; push rule amended 2026-10-02):** Andrew playtests through **Nerva Beacon
+  (Rec-Bay 4)**, not localhost. After building anything for Egg Timer: **if BOTH rigs pass, commit; never commit or
+  push with a failing rig.** 🚫 **Never push without Andrew's explicit OK for that push** (root `CLAUDE.md`): before
+  asking, run `git log origin/main..main` and list everything that would go out, including other sessions' commits.
+  Keep each change in its own commit(s) so any one can be reverted alone. **After each push, tell Andrew in one line
+  what went live.** Work Andrew must see first
   (a screenshot sheet) waits on its own branch until he OKs it, then merges onto main.
 - **Open, Andrew's:** **D3**, the Developer Mode phrase (`devModePasswordHash` null denies every entry). **Walk him
   through it in plain language**: he runs `node make-dev-hash.mjs` himself and gives Code only the digest; then set it,

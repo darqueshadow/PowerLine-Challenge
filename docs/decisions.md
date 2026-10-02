@@ -859,3 +859,18 @@ count `.nest` as the board's 12. Ruling filed in `Game/cartridges/Egg Timer/Prev
 layout); the still strip paints once on screen (its cord is measured). The crab's scurry is cut short on the stage
 (`--dir: 0.4` on `.toon`). Section P of the browser rig now holds the game (Esc) the moment Time Warp is found:
 the live clock used to run the warp out between its checks under load.
+
+## Resolved 2026-10-02 — Egg Timer: hospital eggs (one mode) and the How To Play cartoon (E52–E57)
+
+**Solved:** Egg Timer has one mode: every egg a VS, ~70% hospital eggs needing `RCAV` then `CAV #### STR` in one
+window, Mom repairing the egg at the STR; and How To Play is a six-step animated cartoon with Andrew's captions. Both
+are ruled, built and live on `origin/main` (`2c4a80a`, `17a5485`; pushed through `5464b52`).
+**Approach:** Built exactly as Code proposed and Andrew ruled (rulings verbatim in `Game/cartridges/Egg Timer/Previous
+Versions/EGG_TIMER_E52-E56_RULINGS_2026-10-02.md` and `EGG_TIMER_E57_RULING_2026-10-02.md`; packet §11 E52–E57 struck).
+Mechanic in `files/core/game.js` (`hospital` / `removed` / `repaired`, `repair()`, `clear()`); the cartoon in
+`files/core/howto.js`; the earlier "Built 2026-10-02" entries above hold the implementation notes.
+**If you touch this again:** `hospitalWindowScale` (1) is the only sanctioned lever if Andrew's playtest finds the
+window tight, and a longer window goes to Chat as a proposal first; spawn rate is likewise tuned only after that
+playtest. The H sign and both Moms are placeholders until Gemini's parts kits (spec under E55). The cartoon's nest is
+`.toon`, never `.nest` (the rigs count `.nest` as the board's 12). The first push also published PLC's 9 commits on
+Andrew's word, and the PLC session was told.
