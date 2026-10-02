@@ -844,3 +844,18 @@ time, so a rig that drives the clock with `__et.advance` sees her CSS frozen nea
 time. The H sign's 0.45 s drop starts over whenever it's shown, so measure it with its animation off (layout rig L).
 Sweet Mom is the how-to doodle, so its colour rules are `:is(.howto-panel, .momfix) .doodle …`. The theme baseline
 was rewritten for these style changes.
+
+## Built 2026-10-02 — Egg Timer: E57, How To Play as a six-step animated cartoon
+
+**Solved:** Andrew approved E57 as proposed: the five-panel strip became a six-step cartoon (lay, crack, fast clear,
+slow clear, hospital egg with sweet Mom, the crab's hatch), his captions word for word, the same on the title card and
+the options panel, on one clock, silent; reduced motion shows a still strip of six key frames.
+**Approach:** `core/howto.js` builds a stage from the game's own pieces (`ET.art.nestSvg`, the readout, the H sign,
+the pan, `ET.breaks.fill`, the alien puppet, Mom's `.momfix`) and paints it from (step, seconds into it), so
+`ET.howto.at(t)` holds any moment for the rig. The nest's state looks are shared through `:is(.nest, .toon)` selectors
+and the cord's through `:is(#cord-top, .toon-cord)`; the cartoon's nest is `.toon`, never `.nest`, because the rigs
+count `.nest` as the board's 12. Ruling filed in `Game/cartridges/Egg Timer/Previous Versions/EGG_TIMER_E57_RULING_2026-10-02.md`.
+**If you touch this again:** only copies whose screen isn't hidden are painted (an attribute check, so play pays no
+layout); the still strip paints once on screen (its cord is measured). The crab's scurry is cut short on the stage
+(`--dir: 0.4` on `.toon`). Section P of the browser rig now holds the game (Esc) the moment Time Warp is found:
+the live clock used to run the warp out between its checks under load.
