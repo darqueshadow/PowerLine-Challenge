@@ -1723,9 +1723,11 @@
        - 🚨 THE STRIP IS THE SAME ELEMENTS, MOVED — never copied. The rigs read
          these ids, and paintSide() paints exactly these nodes; a copy would be
          a second panel that can disagree with the first. The cartridge port
-         (and so the fast loader), the drive port, Load and Reset stay out of
-         it (F12 still resets). His exception: the SIDE SWAP comes along, so a
+         (and so the fast loader), the drive port and Reset stay out of it
+         (F12 still resets). His exception: the SIDE SWAP comes along, so a
          two-sided game can be turned over without leaving full screen.
+         🔄 2026-10-01, his ruling: LOAD comes along too, so the Load choice
+         can be made from the strip (its prompt opens above the strip).
        - Eject in full screen also LEAVES full screen, so the disks show.
        - 🔄 His change after the first build: errors must not be invisible in
          full screen. #deck-note (the hub's one-line voice, write()) stays shown
@@ -1736,9 +1738,12 @@
   var fullView  = false;
   var ejectHome = document.createComment(" Eject's place in the crates ");
   var swapHome  = document.createComment(" the side swap's place in the crates ");
+  /* 🆕 2026-10-01 — Load comes into the strip too (his ruling, amending the
+     2026-09-25 one), so the Load choice can be made without leaving full screen */
+  var loadHome  = document.createComment(" Load's place on the deck ");
   /* the parts a paused machine does not take; Power, Eject and Full Screen are
      deliberately not in it */
-  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-keys, #c64-port1, #c64-port2, #c64-pick button";
+  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-keys, #c64-port1, #c64-port2, #c64-pick button, #btn-load";
 
   function setBusy(on) {
     busy = on;
@@ -1798,9 +1803,12 @@
     closePick();
     fullView = on;
     if (on) {
+      if (!loadHome.parentNode) btnLoad.parentNode.insertBefore(loadHome, btnLoad);
+      sidePanel.insertBefore(btnLoad, sidePause);
       sidePanel.insertBefore(btnEject, sidePause);
       sidePanel.insertBefore(sideSwap, sidePause);
     } else {
+      loadHome.parentNode.insertBefore(btnLoad, loadHome);
       ejectHome.parentNode.insertBefore(btnEject, ejectHome);
       swapHome.parentNode.insertBefore(sideSwap, swapHome);
     }

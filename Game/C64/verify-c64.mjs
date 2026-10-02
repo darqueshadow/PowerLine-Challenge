@@ -918,6 +918,18 @@ async function runRig() {
     let spQ = await sideQ();
     ok(spQ.mode === "joystick" && spQ.port === "2", `after RUN the hub hands over to the title's input: joystick, port 2 by default   [${spQ.mode} ${spQ.port}]`);
 
+    /* the same, from the full-screen strip */
+    await ev("__cat.full(true)");
+    await until("__cat.machine().full", 3000);
+    await clearScreen();
+    await click("#btn-load");
+    ok((await pick()) === null, "in full screen too, one entry loads straight away: no prompt");
+    const tOneFull = await ran("RIG ONE RAN");
+    await idleLoad();
+    ok(tOneFull >= 0, `and it ran, from the strip   [${took(tOneFull)}]`);
+    await ev("__cat.full(false)");
+    await until("!__cat.machine().full", 3000);
+
     /* several entries: the prompt, with ONLY those entries */
     await insertRig(rid(RIG_CHOICE));
     ok((await loadText()) === "Load…", `several entries: the Load button says it will ask   [${await loadText()}]`);
@@ -982,6 +994,25 @@ async function runRig() {
     mem = await ev("__cat.inputs()");
     ok(mem[rid(RIG_ONE)] === undefined, `[control] nothing was learned for a title the player did not change   [${JSON.stringify(mem)}]`);
 
+    /* full screen (his ruling, 2026-10-01): Load is in the strip, and its
+       prompt opens above the strip, as the disk picker's does */
+    await ev("__cat.full(true)");
+    await until("__cat.machine().full", 3000);
+    ok((await ev("document.getElementById('btn-load').parentNode.id")) === "c64-side", "in full screen, Load is in the strip");
+    await click("#btn-load");
+    pk = await pick();
+    const stripQ = await ev("JSON.stringify(document.getElementById('c64-side').getBoundingClientRect())").then(JSON.parse);
+    ok(!!pk && pk.options.length === 3 && pk.rect.bottom <= stripQ.top + 1,
+       `in full screen, Load's prompt opens above the strip   [prompt bottom ${pk && pk.rect.bottom}, strip top ${Math.round(stripQ.top)}]`);
+    await clearScreen();
+    await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
+    const tFullPlay = await ran("RIG PLAY RAN");
+    await idleLoad();
+    ok(tFullPlay >= 0 && (await ev("__cat.machine().full")),
+       `and Play from there loads and runs, still in full screen   [${took(tFullPlay)}; note "${await ev("__cat.note()")}"]`);
+    await ev("__cat.full(false)");
+    await until("!__cat.machine().full", 3000);
+    ok((await ev("document.getElementById('btn-load').parentNode.id")) === "deck-top", "leaving full screen puts Load back on the deck");
     /* paused: no prompt */
     await ev("__cat.pause()");
     await until("__cat.machine().paused", 5000);
@@ -1278,20 +1309,22 @@ async function runRig() {
       var d = function (id) { return getComputedStyle(document.getElementById(id)).display; };
       return { win: { w: innerWidth, h: innerHeight }, frame: r("machine-frame"), side: r("c64-side"), crates: r("crates"),
                ejectIn: document.getElementById("btn-eject").parentNode.id, swapIn: document.getElementById("side-swap").parentNode.id,
+               loadIn: document.getElementById("btn-load").parentNode.id,
                insertIn: document.getElementById("btn-insert").parentNode.id,
                cart: d("c64-cart"), iec: d("c64-iec"), deckTop: d("deck-top"),
                label: document.getElementById("c64-full-label").textContent,
-               ids: ["c64-power", "c64-port1", "c64-port2", "c64-keys", "c64-pause", "c64-full", "btn-eject", "side-swap"]
+               ids: ["c64-power", "c64-port1", "c64-port2", "c64-keys", "c64-pause", "c64-full", "btn-eject", "side-swap", "btn-load"]
                  .map(function (id) { return document.querySelectorAll("#" + id).length; }).join("") }; })())`;
     const L = JSON.parse(await ev(FULL_LOOK));
     ok(L.crates.w === 0 && L.frame.w >= L.win.w - 2 && L.frame.h >= L.win.h * 0.8,
        `the screen fills the window and the disks step aside   [frame ${L.frame.w}x${L.frame.h} of ${L.win.w}x${L.win.h}, crates ${L.crates.w}px]`);
     ok(L.side.t >= L.frame.b - 1 && L.side.b <= L.win.h + 1,
        `the strip sits UNDER the screen, not over it   [screen ends ${L.frame.b}, strip ${L.side.t}-${L.side.b}]`);
-    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.ids === "11111111",
-       `Eject and the side swap MOVED into the strip, and nothing was copied   [eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
+    /* 🔄 2026-10-01 — Load joins them (his ruling, amending 2026-09-25's) */
+    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.loadIn === "c64-side" && L.ids === "111111111",
+       `Load, Eject and the side swap MOVED into the strip, and nothing was copied   [load ${L.loadIn}, eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
     ok(L.cart === "none" && L.iec === "none" && L.deckTop === "none",
-       `the cartridge port, the drive port, Load and Reset stay out of the strip   [${L.cart}/${L.iec}/${L.deckTop}]`);
+       `the cartridge port, the drive port and Reset stay out of the strip   [${L.cart}/${L.iec}/${L.deckTop}]`);
     ok(L.label === "Exit Full Screen", `the Full Screen part reads Exit Full Screen   [${L.label}]`);
     /* 🆕 2026-09-25 — his change: errors must not be invisible in full screen */
     const noteFull = JSON.parse(await ev(`JSON.stringify((function () {

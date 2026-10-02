@@ -2052,6 +2052,7 @@ html.cat-link #cat { visibility: hidden; }
   padding: 6px clamp(8px, 1.4vw, 18px);
 }
 #cat.is-full #c64-side > #btn-eject { align-self: center; }
+#cat.is-full #c64-side > #btn-load { align-self: center; }
 #cat.is-full #c64-side > #side-swap { align-self: center; }
 #cat.is-full #c64-side > #side-swap[hidden] { display: none; }
 
