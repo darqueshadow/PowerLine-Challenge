@@ -1,0 +1,13 @@
+{
+  "_comment": "How Fang Rock opens the Arcade (APP-DECLARATIONS, 2026-10-02). Fang Rock finds this folder through its own app list and reads this file each time it opens the arcade room; its schema and reader live in the Fang Rock shell (+Nerva Beacon/The Lantern Room/Morbius/shell/apps.js). Keep it free of machine paths: this repo is public, and entry is relative to this folder. If the hub's entry page ever moves, change entry here in the same commit and Fang Rock follows with no rebuild. minimise is null on purpose: Ctrl is the C64 fire button, so Fang Rock must not catch Ctrl+M in this window. listable lets Fang Rock answer a directory request with a names-only list (the hub scans C64/roms/ at runtime). token: a cabinet link fangrock://arcade/<id> arrives as ?cart=<id>.",
+  "schema": "fangrock-app/1",
+  "room": "arcade",
+  "name": "the Arcade",
+  "entry": "C64/index.html",
+  "load": "served",
+  "listable": true,
+  "token": { "param": "cart" },
+  "keys": {
+    "window": { "minimise": null, "fullscreen": null }
+  }
+}
