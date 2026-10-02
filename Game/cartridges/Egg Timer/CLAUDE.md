@@ -23,7 +23,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E59**; **E58** open);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E59**; none open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -84,8 +84,11 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   A refusal egg: one `RCAV`. A hospital egg: **`RCAV` then `CAV #### STR` in the same hatch window** (E53); the STR is
   window 1's clear, **scored by tier at the STR** with no pan/splat/mess (E52), Mom repairs the egg (sweet in wave 1
   and the cartoon, creepy after, E55; a giggle each, E56; **she comes in from the edge nearest the egg**, never over a
-  timer, nest, readout, Command Line, the trough or the sink, with E58's fallback where no edge has room; **creepy Mom's
-  drool, splat and tongue wobble are drawn in code, sweet Mom never drools**: Mom kit, 2026-10-02), the STR runs 10:00, then an ordinary window and `RCAV`.
+  timer, nest, readout, Command Line, the trough or the sink, with E58's "nest" fallback where no edge has room (inside her own nest's box,
+  never over a readout: the unit and timer stay in sight); **creepy Mom's drool, splat and tongue wobble are drawn in
+  code, sweet Mom never drools**: Mom kit, 2026-10-02; 🚨 **the giggle: pose C held ≥ 0.5 s, one swap in and one out, ≤ 2
+  pose changes in any second, so the visit is 2.2 s; the drool glows purple, its halo inside the safe-landing check**:
+  Chat, 2026-10-02), the STR runs 10:00, then an ordinary window and `RCAV`.
   Wrong orders: STR before the RCAV says **"RCAV first!"**; STR on a refusal, a second RCAV or any other type is ERROR.
   No modes, triggers, AD post-it, VF or type bag any more; the CSV keeps every row, and refuses to start without VS or STR.
 - **CAV data:** Andrew's durations (VS 10, STR 10; the other rows unused). **Say "displayed time" and
@@ -168,8 +171,9 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 write Egg Timer memories there (auto-memory loads the PLC root index, keyed to the git root).
 
 ## State 2026-10-02
-**E52–E57 ruled, built and live** (one mode, hospital eggs; the How To Play cartoon; packet §11). **E58** open (Mom's entry where no edge has room); next
-free E59. **The Mom kit is built** (both Moms; packet §11 E55; E58 open). Waiting on Gemini (via Chat's prompts): the H sign and the
+**E52–E57 ruled, built and live** (one mode, hospital eggs; the How To Play cartoon; packet §11). **E58** ruled ("nest"); next
+free E59. **The Mom kit is built** (both Moms; packet §11 E55; E58 ruled "nest"; the giggle hold and the purple
+drool ruled and built 2026-10-02). Waiting on Gemini (via Chat's prompts): the H sign and the
 horror aliens' close-up faces (packet §11, E49, E55). Playtest owed: the hospital window (E53) and the spawn rate (E56).
 Pushes wait for Andrew's OK, each one (root `CLAUDE.md`, 2026-10-02). Hand tests owed: Mom's visits (both kits, the edge entry, the drool, splat and tongue), the hospital eggs, the cartoon, nozzle lag, Fang
 Rock's title music, held Enter at Game Over, the aliens, the hose's feel and new aim, Q in Rec-Bay 4, real F3, the jump

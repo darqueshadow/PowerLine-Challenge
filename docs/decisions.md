@@ -900,3 +900,25 @@ The visit stores her edge in `m.edge`; `m.from` is the egg's crack at the start 
 full-slot layers, so its box comes from the nest's units through the egg's screen transform, never from the shell
 image's rect. Rig L checks every nest, both Moms, all four sizes (H signs up); rig H drives a real visit with
 `ET.view.momVisit(id, kind)`.
+
+## Ruled and built 2026-10-02 — Egg Timer: Chat's Mom kit rulings (the giggle hold, E58 "nest", the purple drool)
+
+**Solved:** Chat's four rulings on the Mom kit build (filed verbatim in `Game/cartridges/Egg Timer/Previous Versions/
+EGG_TIMER_MOM_KIT_FOLLOWUP_RULINGS_2026-10-02.md`). **The giggle (flash safety):** pose C is held 0.6 s with a gentle
+bob, one swap in and one out, never more than 2 pose changes in any second (it was C ↔ B twice, four swaps in 0.3 s);
+reduced motion: no bob, and the tongue wobbles for the whole hold. That doesn't fit the old 1.5 s visit without
+speeding something up (which the ruling forbids), so **the visit is 2.2 s** (`momRepairSeconds` [T], flagged to Chat);
+How To Play's step 5 grew from 3.5 to 4.4 s to fit it. **E58: "nest"** (as built): with no clear edge she comes down
+inside her own nest's box. Its conditions: (a) her head and tentacles never cover a readout, her own included, so the
+unit number and timer stay in sight all visit; (b) her head is under about 60 px only in that fallback, on the three
+smaller screens (as small as 34 × 39 px at 1024 × 640; the packet's E58 lists every nest). **The drool, the drop and the
+splat are glowing purple** (were yolk yellow), outline and glossy streaks kept, with a steady soft halo that follows the
+shapes; the halo widens the safe-landing check and washes off with the splat.
+**Approach:** `momTimeline` and `momDrool` moved from shares of the visit to seconds, so lengthening the visit kept
+everything up to pose B at its old moments; the crack's mend is `momTimeline.mend` (it was hard-coded twice). The halo:
+a CSS `drop-shadow` on the drool's SVG (strand, drop) and a canvas shadow under the splat and its droplets on the floor
+canvas. Colours: `--mom-drool*` in `theme.css` (theme baseline rewritten; 4 rules changed, all the drool's).
+**If you touch this again:** `ET.mom.pose(u)` takes a share, but the timeline is in seconds; anything comparing
+`momTimeline` to a share is a bug (the giggle sound's trigger was one, caught by rig H). Rig H counts every pose change
+through a visit (5 ms steps) and scans the floor canvas for any halo pixel over an obstacle; rig L prints each size's
+small heads as a note.

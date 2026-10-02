@@ -1,3 +1,13 @@
+> **FILING NOTE — Claude Code, 2026-10-02 (evening: Chat's rulings on the Mom kit build; E58 ruled).** Filed verbatim
+> as `Previous Versions/EGG_TIMER_MOM_KIT_FOLLOWUP_RULINGS_2026-10-02.md`. **Merged and built** (E55 and E58 in §11):
+> **1, the giggle (flash safety):** pose C held at least 0.5 s with a gentle bob, one swap in and one out, at most 2 pose
+> changes in any second of the visit; under reduced motion no bob, and the tongue wobbles for the whole hold. *(Code: it
+> doesn't fit 1.5 s without speeding something up, so the visit is now **2.2 s** [T]: everything up to B keeps its old
+> seconds, B holds 0.45 s through the drool, C 0.6 s, B 0.2 s, out 0.18 s. Flagged to Chat. The How To Play cartoon's
+> step 5 grew from 3.5 to 4.4 s to fit it.)* **2, E58: "nest"**, struck in §11. **3, the drool, the drop and the splat
+> are glowing purple** (were yolk yellow), the outline and glossy streaks kept, with a steady halo that follows the
+> shapes; the halo counts in the safe-landing check and washes off with the splat. Next free **E59**.
+
 > **FILING NOTE — Claude Code, 2026-10-02 (later: the Mom kit, built; E58 proposed).** Chat's answers to Code's E55
 > report and Chat's build brief (Andrew approved the art and the rulings) are filed verbatim as
 > `Previous Versions/EGG_TIMER_MOM_KIT_RULINGS_2026-10-02.md`. **Merged and built** (E55 in §11 carries the detail):
@@ -936,11 +946,14 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
   the originals); each Mom's three heads share one crop box; the creepy tentacle is flipped to curl the sweet way; the
   creepy plaster turned and scaled to the sweet one's angle and length; the sweet plaster's speck painted over; the warts
   drawn outside the creepy outline cut off. Sizes and anchor points: `core/mom-parts.js`. **The visit** (`core/mom.js`,
-  one rig for both, painted from the game's seconds, so a pause holds her; shares in `momTimeline` [T]): she slides in
+  one rig for both, painted from the game's seconds, so a pause holds her; seconds in `momTimeline` [T], 2.2 s in all
+  since Chat's giggle ruling, 2026-10-02, was 1.5 s): she slides in
   from her edge; **A** looks down (turned toward the egg as far as there's room), both tentacles stretch to the egg and
-  press the plaster on while the cracks close; **B** faces the player (the giggle sound, unchanged); **C ↔ B** twice;
-  she slides back out. Her head is three quarters of the nest's width (`momHeadShare`). Reduced motion: a fade in and
-  out, no slide, no bob, the giggle held. **Where she comes from** (`view.js`): the edges nearest the egg first, sliding
+  press the plaster on while the cracks close; **B** faces the player (the giggle sound, unchanged); **C** giggles,
+  held 0.6 s with a gentle bob, then B again (*Chat's giggle ruling, 2026-10-02, flash safety:* C held at least 0.5 s,
+  one swap in and one out, at most 2 pose changes in any second; it replaced C ↔ B twice, four swaps in 0.3 s); she
+  slides back out. Her head is three quarters of the nest's width (`momHeadShare`). Reduced motion: a fade in and
+  out, no slide, no bob, the same three pose changes. **Where she comes from** (`view.js`): the edges nearest the egg first, sliding
   her head along each and a little in, until her head (upright and turned), the path she slides in on and both
   tentacles (the whole band their S-curve swings over, stretched at most `momStretchMax`) are clear of every other nest,
   readout and H sign, the wall clock and its tag, Time Warp, the sink tag and the trough; she's clipped to the field
@@ -953,10 +966,16 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
   on the board's floor, with the whole splat (droplets included) and the drop's fall clear of everything above; straight
   down first, then drifting a little to either side. With nowhere clear the drop fades out before it would touch
   anything and leaves no splat. **The splat** (`mess.js` `drool`): flat, irregular, different every time (size, lobes,
-  flatness, runs, edge ruggedness, droplets), in the goo's own yolk colours (`theme.css`), the cartoon outline and a few
-  glossy streaks; it's on the floor canvas, so the hose washes it off like any goo. **Her tongue** (creepy, pose C only):
-  a small warp of the tongue's oval that fades to nothing at its edge (an SVG displacement filter, `momTongue` [T]), so
-  there's no seam. Reduced motion: no strand, drop or wobble; the splat is simply there. Sweet Mom never drools. The How
+  flatness, runs, edge ruggedness, droplets), **glowing purple** (*Chat's colour ruling, 2026-10-02*: it was yolk
+  yellow; purple matches her mouth, stands apart from the green aliens and can't be taken for the yolk-coloured goo;
+  `--mom-drool*` in `theme.css`), the thick cartoon outline (#1a0d2e) and a few glossy streaks; it's on the floor canvas,
+  so the hose washes it off like any goo. **The glow:** a steady soft halo (no pulse) that follows the shapes of the
+  strand, the drop (a CSS drop-shadow) and the splat and its droplets (a canvas shadow, on the floor with the splat, so
+  it washes off with it); its radius (`momDrool.glow`, a share of her head) widens the splat's clear zone and the drop's
+  path in the safe-landing check. **Her tongue** (creepy, pose C only): a small warp of the tongue's oval that fades to
+  nothing at its edge (an SVG displacement filter, `momTongue` [T]), so there's no seam; it runs for the whole of C's
+  hold. Reduced motion: no strand, drop or bob; the tongue still wobbles through C (the giggle ruling); the splat is
+  simply there. Sweet Mom never drools. The How
   To Play cartoon's step 5 uses the same visit, sweet Mom coming down from the top of the stage. The placeholder Mom (the
   doodle head and the drawn patch) is gone; the doodles stay in the how-to panel, and the scary HUD face is unchanged.
 - ✅ ~~**E56. Smaller calls the change raises:**~~ **Ruled (Andrew, 2026-10-02): "keep the scary HUD Mom face. Plain
@@ -1020,9 +1039,19 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
     drives play), the fit of both copies at all four sizes, and the still strip under reduced motion.
   Needed: yes, or changes (the captions, the step lengths, the dots, silence).
 
-### Raised building the Mom kit (2026-10-02) — E58 open
+### Raised building the Mom kit (2026-10-02) — E58 ruled
 
-- ⏳ **E58. Where Mom goes when no edge has room. PENDING (Chat).** The brief has her come in from the play-field edge
+- ~~**E58. Where Mom goes when no edge has room.**~~ **Resolved** *(Chat, 2026-10-02: "use 'nest'. Mom comes down inside
+  her own nest's box, smaller if needed, covering only her own nest." Condition (a): her visit must not hide the unit
+  number or timer of the egg she is visiting while the player could still need it. Condition (b): report every screen
+  size where her head falls below about 60 px.)* `momNoEdge: "nest"`, as built. **(a), confirmed:** her head and
+  tentacles never cover any readout, her own included, at any nest or size, edge or fallback (rig L checks every nest,
+  both Moms, all four sizes; the fallback's box ends at the top of her own readout), so the unit number and timer stay in
+  sight all visit. **(b), measured (rig L, every nest in play, H signs up):** 1920 × 1080: none (smallest 71 px).
+  1440 × 900: nests 9 and 10 (both Moms) and 1 (creepy), 55 × 63 px. 1280 × 720: nests 9 and 10, 40 × 46 px; nests 5,
+  8 (both) and 6, 11 (creepy), about 54 × 62 px. 1024 × 640: nests 9 and 10, 34 × 39 px; nests 5, 8, 11 (both) and 6
+  (creepy), about 47 × 53 px. All are the "nest" fallback; every edge entry is full size. *(Original item follows.)*
+  ⏳ **E58. Where Mom goes when no edge has room. PENDING (Chat).** The brief has her come in from the play-field edge
   nearest the egg, never covering a timer, nest, readout, Command Line, the trough or the sink, and asks for a fallback
   where that can't be made safe. Measured with every nest in play and every H sign up: **no edge is clear for the board's
   middle nests at any size** (her head is three quarters of a nest wide and the rows sit 0–20 px apart), and on the
