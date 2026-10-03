@@ -1608,7 +1608,7 @@ export default {
  "#warp .plaque.on": {
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "rgb(61, 255, 154)",
+  "background-color": "rgb(255, 31, 61)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",
@@ -1619,8 +1619,8 @@ export default {
   "border-left-color": "rgb(176, 77, 255)",
   "border-right-color": "rgb(176, 77, 255)",
   "border-top-color": "rgb(176, 77, 255)",
-  "box-shadow": "rgb(0, 0, 0) 3px 3px 0px, rgba(61, 255, 154, 0.55) 0px 0px 14px 3px",
-  "color": "rgb(4, 23, 12)"
+  "box-shadow": "rgb(0, 0, 0) 3px 3px 0px, rgba(255, 31, 61, 0.5) 0px 0px 14px 3px",
+  "color": "rgb(26, 0, 6)"
  },
  "#warp .caption": {
   "color": "rgb(154, 143, 184)",
@@ -1637,7 +1637,7 @@ export default {
   "white-space-collapse": "collapse"
  },
  "#warp.lit .caption": {
-  "color": "rgb(61, 255, 154)"
+  "color": "rgb(255, 92, 108)"
  },
  "#warp.lit .clock-art": {
   "filter": "drop-shadow(rgb(0, 0, 0) 4px 4px 0px) drop-shadow(rgb(61, 255, 154) 0px 0px 7px)"
@@ -2068,11 +2068,11 @@ export default {
  },
  "#cords .bolt-glow": {
   "opacity": "0.35",
-  "stroke": "rgb(61, 255, 154)",
+  "stroke": "rgb(255, 31, 61)",
   "stroke-width": "7px"
  },
  "#cords .bolt-core": {
-  "stroke": "rgb(200, 255, 226)",
+  "stroke": "rgb(255, 194, 202)",
   "stroke-width": "2.5px"
  },
  ":is(#cord-top, .toon-cord) .cord-bulge": {

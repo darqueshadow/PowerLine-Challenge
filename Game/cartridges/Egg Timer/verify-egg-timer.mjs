@@ -1856,6 +1856,17 @@ try {
     }
     await shot("13-time-warp");
     {
+      // Chat's playtest rulings (2026-10-02): the lit sign, its caption and the lightning are hot red, each darker than the
+      // mint it replaced; the grandfather clock's glow, the nests' glow and the wall clock keep their greens
+      const lum = (c) => { const [r, g, b] = c.match(/\d+/g).slice(0, 3).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+      const red = await ev(`(() => { const p = document.querySelector('#warp .plaque'), cs = getComputedStyle(p);
+        return { lit: p.classList.contains('on'), bg: cs.backgroundColor, ink: cs.color, caption: getComputedStyle(document.querySelector('#warp .caption')).color,
+          core: getComputedStyle(document.querySelector('#cords .bolt-core')).stroke, clockGlow: getComputedStyle(document.querySelector('#warp .clock-art')).filter }; })()`);
+      ok(red.lit && red.bg === "rgb(255, 31, 61)" && red.caption === "rgb(255, 92, 108)" && red.core === "rgb(255, 194, 202)", `the lit Time Warp sign, its caption and the lightning's core are hot red   [${red.bg}, ${red.caption}, ${red.core}]`);
+      ok(lum(red.bg) < lum("rgb(61, 255, 154)") && lum(red.caption) < lum("rgb(61, 255, 154)") && lum(red.core) < lum("rgb(200, 255, 226)"), `…each darker than the mint it replaced: nothing brighter   [${lum(red.bg).toFixed(2)}, ${lum(red.caption).toFixed(2)}, ${lum(red.core).toFixed(2)} vs 0.75 / 0.90]`);
+      ok(red.clockGlow.includes("rgb(61, 255, 154)"), "…while the grandfather clock keeps its mint glow");
+    }
+    {
       // Refinement 6 §2: lightning from the panel, daisy-chained to every nest whose clock is running
       const lt = await ev(`(() => { const L = ET.view.lightning(), sr = document.querySelector('#screen-play').getBoundingClientRect(), W = document.querySelector('#warp').getBoundingClientRect();
         const m = (L.d || '').slice(1).split(' ').map(Number);
@@ -1864,7 +1875,7 @@ try {
                  moves: (L.d.match(/M/g) || []).length, jagged: (L.d.match(/L/g) || []).length > L.links * 3, layer: !!document.querySelector('#cords .lightning'),
                  stroke: getComputedStyle(document.querySelector('#cords .bolt-glow')).stroke }; })()`);
       ok(lt.on && lt.links === lt.running && lt.running > 0 && lt.moves === lt.links, `Refinement 6 §2: jagged lightning reaches every nest whose clock is running, one link each   [${lt.links} links, ${lt.running} running]`);
-      ok(lt.fromWarp && lt.jagged && lt.stroke === "rgb(61, 255, 154)", "…starting from the central panel, in the Time Warp green, kinked");
+      ok(lt.fromWarp && lt.jagged && lt.stroke === "rgb(255, 31, 61)", "…starting from the central panel, in hot red (Chat, 2026-10-02), kinked");
       ok(lt.layer && (await ev("Number(getComputedStyle(document.querySelector('#cords')).zIndex) < Number(getComputedStyle(document.querySelector('#field')).zIndex)")), "…drawn in the cord's layer, under every readout, taking no input");
       // flicker: the game is held (Esc, above) so the warp stays on; watch in real time
       const t0 = await ev("performance.now() / 1000");

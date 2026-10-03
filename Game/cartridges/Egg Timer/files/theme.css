@@ -76,7 +76,13 @@
   --warp-edge: #0e8f4c;                   /* deep warp green (panel edge) */
   --warp-lit-ink: #04170c;                /* near-black green (lit panel lettering) */
   --warp-halo: #d6ffe8;                   /* pale mint (lettering halo) */
-  --warp-glow: rgba(61, 255, 154, 0.55);  /* 55% Time Warp green (panel glow) */
+  --warp-glow: rgba(61, 255, 154, 0.55);  /* 55% Time Warp green (nest glow) */
+  /* Chat's playtest rulings (2026-10-02): the Time Warp sign, its caption and the lightning go hot red; the clock and the
+     nests' glow stay mint. Every red is darker than the mint it replaces (nothing brighter). */
+  --warp-red: #ff1f3d;                    /* hot red (lit sign, lightning glow); luminance 0.23 vs the mint's 0.75 */
+  --warp-red-ink: #1a0006;                /* near-black red (lit sign lettering, 5.4:1 on the red) */
+  --warp-red-glow: rgba(255, 31, 61, 0.5); /* 50% hot red (lit sign glow) */
+  --warp-red-caption: #ff5c6c;            /* lighter hot red (the caption, 4.9:1 on the board) */
   --violet: #b04dff;                      /* bright violet (lit panel border, nest tendrils) */
   --warp-off-bg: #07140d;                 /* dark glass green (panel off) */
   --warp-off-border: #1f3a2a;             /* dark moss (panel off, border) */
@@ -123,7 +129,7 @@
   --cord-outline: #1a0008;                /* near-black red (outline) */
   --cord-bulge: #8a2fd6;                  /* purple (the egg travelling down) */
   --cord-bulge-edge: #3b1060;             /* dark purple */
-  --bolt-core: #c8ffe2;                   /* pale mint (lightning core) */
+  --bolt-core: #ffc2ca;                   /* pale pink-red (lightning core; Chat 2026-10-02, was pale mint #c8ffe2) */
 
   /* Nests and eggs */
   --twig: #9b6532;                        /* twig brown */

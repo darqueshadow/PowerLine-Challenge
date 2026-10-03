@@ -346,10 +346,11 @@ h2 {
   45% { transform: translateX(1px) scale(0.9, 1.12) skewX(8deg); }
   70% { transform: translateX(-1px) scale(1.1, 0.92) skewX(-5deg); }
 }
-#warp .plaque.on { background: var(--warp); border-color: var(--violet); color: var(--warp-lit-ink); box-shadow: 3px 3px 0 var(--shadow), 0 0 14px 3px var(--warp-glow); }
+/* Chat's playtest rulings (2026-10-02): lit, the sign is hot red (it was Time Warp green) */
+#warp .plaque.on { background: var(--warp-red); border-color: var(--violet); color: var(--warp-red-ink); box-shadow: 3px 3px 0 var(--shadow), 0 0 14px 3px var(--warp-red-glow); }
 /* E28: the caption under the sign, dim until Time Warp runs */
 #warp .caption { display: block; margin-top: 4px; max-width: 15em; color: var(--dim); font-family: var(--font-ui); font-weight: 700; font-size: 0.95em; letter-spacing: 0; line-height: 1.2; white-space: normal; text-shadow: 1px 1px 0 var(--shadow); }
-#warp.lit .caption { color: var(--warp); }
+#warp.lit .caption { color: var(--warp-red-caption); }
 #warp.lit .clock-art { filter: drop-shadow(4px 4px 0 var(--shadow)) drop-shadow(0 0 7px var(--warp)); }
 #warp .case { fill: var(--clock-case); stroke: var(--outline); stroke-width: 2.5; stroke-linejoin: round; }
 #warp .window { fill: var(--clock-window); stroke: var(--outline); stroke-width: 2; }
@@ -450,7 +451,7 @@ h2 {
 /* Refinement 6 §2 (⏳ placeholder look): the Time Warp lightning, in the cord's layer under every readout. Its
    kinks re-jag in view.js (never over 3 a second); nothing here animates. */
 #cords .lightning path { fill: none; stroke-linejoin: miter; stroke-linecap: round; }
-#cords .bolt-glow { stroke: var(--warp); stroke-width: 7px; opacity: 0.35; }
+#cords .bolt-glow { stroke: var(--warp-red); stroke-width: 7px; opacity: 0.35; }   /* hot red (Chat, 2026-10-02) */
 #cords .bolt-core { stroke: var(--bolt-core); stroke-width: 2.5px; }
 :is(#cord-top, .toon-cord) .cord-bulge { fill: var(--cord-bulge); stroke: var(--cord-bulge-edge); stroke-width: 2px; }
 #cord-top .cord-egg { fill: var(--shell); stroke: var(--crack); stroke-width: 2px; }
