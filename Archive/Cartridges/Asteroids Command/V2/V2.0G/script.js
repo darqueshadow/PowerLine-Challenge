@@ -29,7 +29,7 @@ const CONFIG = {
     commendationBonus: 500,
     isHolodeck: false,
     isBeta: false,
-    devModePassword: "DISPATCH",
+    devModePassword: "[phrase removed]",
     devModeTimeout: 10000
 };
 
