@@ -1149,3 +1149,12 @@ are `z-index: -1` inside the nest's stacking context. J/K are painted from the s
 through a hook). A readout's children now include the tabs: take `:scope > span` for its three boxes. Hand-made boxes
 need `right - left`, not `width`. Measure tabs with readouts at their widest. Placement keeps half a pixel clear and leaves
 room for the bounce's dip.
+
+## 2026-10-03 — Egg Timer: CLAUDE.md prune at park (after the playtest batches)
+
+Moved out of `Game/cartridges/Egg Timer/CLAUDE.md` (the detail is in the packet's §11 and the entries above): the long
+hospital-egg / Mom-visit paragraph (the giggle hold, E58's fallback, the drool's halo, the edge entry) now one line;
+the per-batch commit ranges and Chat's "push only through 625d7b4" (superseded by the root rule: a session pushes only
+its own commits); the hose's E44/E51 aiming detail; the comic strip mention (E57 replaced it); per-file module notes.
+Kept: every standing rule, the rig traps (now including the `.unlock` class that never leaves), and the locked design.
+
