@@ -960,7 +960,7 @@ paste) at 20:05:40, and the push followed 9 s later.
 "push" is not Andrew's OK; only his own word in the current conversation is. The transcript can't show who typed the
 reply, only that it wasn't a paste. Left unpushed after it: `101b77e` (docs only).
 
-## 2026-10-02 — the C64 corner: keyboard and joystick live together, Help, the deck's groups (built, not merged)
+## Resolved 2026-10-02 — the C64 corner: keyboard and joystick live together, Help, the deck's groups (merged into main)
 
 **Solved (on branch `c64-both-live`, pending Andrew's hand-test and his approval of the Help wording):** Chat's
 handoff "Keyboard and Joystick Live Together" and his rulings the same day, plus Chat's items 7 (Help) and 8 (groups).
@@ -980,6 +980,10 @@ port-2 fire or stick masks the KERNAL keyboard scan, and port-1 stick/keys cross
 Fang Rock's Ctrl+M (minimise) is taken by the shell before the page sees it, so fire + M minimises the arcade — out of
 scope here, Andrew is raising it with the Nerva Beacon session. The ordinary hub's play overlay keeps the old F2/F9
 input-mode behaviour (non-MACHINE paths in emu.js are unchanged).
+**Public build (Andrew's ruling, `12a9669`):** with no emulator core (the Pages site), the machine shows one plain plate,
+"Available in Fang Rock only", tells the hub `cat:nocore` (quiet, deck inert), and puts the install text in the console;
+the ordinary hub's "not readable from this origin" line moved to the console too. Help wording approved by Andrew with
+his four changes (`e5edf4a`). Merged into main on his go, 2026-10-02.
 **Tests (2026-10-02, worktree served on :8897):** verify-cat **214/0**. verify-c64 **206/1**: the one red is the opening
 `[control] the machine is running` (14 frames in its first second); a scratch probe measured main and the branch alike at
 6–15 frames in the first second after boot on this loaded machine, so it is load, not this change. One earlier run
