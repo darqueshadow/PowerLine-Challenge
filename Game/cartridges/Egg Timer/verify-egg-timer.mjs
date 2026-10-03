@@ -666,11 +666,11 @@ try {
       const nest = document.querySelector('.nest[data-id="${n.id}"]');
       const zi = (e) => Number(getComputedStyle(e).zIndex) || 0;
       const board = document.querySelector('#board');
-      return { mess: zi(nest.querySelector('.mess')), readout: zi(nest.querySelector('.readout')), hsign: zi(nest.querySelector('.hsign')),
+      return { mess: zi(nest.querySelector('.mess')), readout: zi(nest.querySelector('.readout')), hsign: zi(nest.querySelector('.hsign')), refused: zi(nest.querySelector('.refused')),
                cords: zi(document.querySelector('#cords')), hose: zi(document.querySelector('#hose')), field: zi(document.querySelector('#field')),
                floorFirst: board.firstElementChild.classList.contains('floor-mess') && zi(board.firstElementChild) === 0 };
     })()`);
-    ok(z.mess > z.readout && z.mess > z.hsign, `E14 (ruled): a nest's gunk covers its readout (and its H sign, as it did AD's post-it)   [mess ${z.mess} > ${z.readout}, ${z.hsign}]`);
+    ok(z.mess > z.readout && z.mess > z.hsign && z.mess > z.refused, `E14 (ruled): a nest's gunk covers its readout (and its H sign or "Patient Refused" bubble, as it did AD's post-it)   [mess ${z.mess} > ${z.readout}, ${z.hsign}, ${z.refused}]`);
     ok(z.cords < z.field, "…while Time Warp's lightning (the old cord layer) still draws under all text");
     ok(z.floorFirst, "the floor gunk sits under every nest");
   }
@@ -1113,6 +1113,7 @@ try {
     ok(sign.shown && sign.anim === "hsign-drop", `E55: as the egg pops the H sign drops into the nest   [${sign.anim}]`);
     eq([sign.plate, sign.h], ["rgb(20, 86, 200)", "rgb(255, 255, 255)"], "E55: the hospital road sign: a white H on blue (never a red cross)");
     eq([sign.onReadout, sign.onEgg], [false, false], "…on the nest's shoulder, clear of the readout and the egg");
+    eq(await ev(`${q(" .refused")}.hidden`), true, "Chat (2026-10-02): a hospital egg never gets the \"Patient Refused\" bubble");
     await typeAndEnter(`CAV ${h.unit} STR`);
     eq([await ev("__et.boxes().values[0]"), await ev("__et.boxes().error[0]"), await ev("document.querySelector('.box .err').textContent")], ["", true, "RCAV first!"], "E53: CAV STR before the RCAV: the line clears and says \"RCAV first!\"");
     await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${h.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
@@ -1163,6 +1164,31 @@ try {
     await typeAndEnter(`RCAV ${h.unit}`);
     await ev("__et.advance(0.01)");
     eq(await ev(`[${q("")}.dataset.state, ${q(" .pan")}.classList.contains('hit'), ${q(" .hsign")}.hidden]`), ["splat", true, true], "the final RCAV is an ordinary clear: the pan and the splat, and the sign goes");
+  }
+  {
+    // Chat's playtest rulings (2026-10-02): a VS refusal egg's "Patient Refused" bubble, from the pop to its RCAV
+    await ev("(() => { __et.start(1, { hospital: 0 }); __et.advance(0.1); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return 1; })()");
+    const r = (await snap()).nests.find((x) => x.state === "laying");
+    const q = (sel) => `document.querySelector('.nest[data-id="${r.id}"]${sel}')`;
+    eq([r.code, r.hospital, await ev(`${q(" .refused")}.hidden`)], ["VS", false, true], "a VS refusal egg: no bubble while it's still on the cord");
+    await ev(`(() => { for (let i = 0; i < 200 && __et.snapshot().nests.find(n => n.id === ${r.id}).state !== 'active'; i++) __et.advance(0.05); return 1; })()`);
+    const bub = await ev(`(() => { const e = ${q(" .refused")}, b = e.getBoundingClientRect(), t = ${q(" .clock")}.getBoundingClientRect(), ro = [...${q("")}.querySelectorAll('.readout > span')].map(x => x.getBoundingClientRect());
+      const hit = (a, c) => a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom;
+      return { shown: !e.hidden && e.offsetWidth > 30, text: e.textContent, above: b.bottom <= t.top, onReadout: ro.some(x => hit(b, x)), sign: ${q(" .hsign")}.hidden,
+        bg: getComputedStyle(e).backgroundColor, anim: getComputedStyle(e).animationName, z: Number(getComputedStyle(e).zIndex) < Number(getComputedStyle(${q(" .mess")}).zIndex) }; })()`);
+    ok(bub.shown && bub.text === "PatientRefused" && bub.anim === "refused-in" && bub.sign, `…from the pop: the bubble reads "Patient Refused" (no H sign), fading in   [${bub.text}, ${bub.anim}]`);
+    ok(bub.above && !bub.onReadout && bub.z, "…above the timer, clear of every readout box, and the gunk covers it as it covers the H sign (E14)");
+    eq(bub.bg, "rgb(232, 223, 204)", "…dusty cream, quieter than the H sign's blue");
+    await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${r.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
+    eq(await ev(`${q(" .refused")}.hidden`), false, "…still there while it cracks");
+    await ev(`(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })), __et.submit('RCAV ${r.unit}'), __et.advance(0.01), 1)`);
+    eq(await ev(`${q(" .refused")}.hidden`), true, "…and gone once the RCAV is accepted");
+    // another type gets neither the H sign nor the bubble
+    const other = await ev(`(() => { __et.start(1, { hospital: 1, eggTypes: "bag" }); let n = null;
+      for (let i = 0; i < 4000 && !(n = __et.snapshot().nests.find(x => x.state === 'active' && x.code !== 'VS')); i++) __et.advance(0.05);
+      if (!n) return null; const e = document.querySelector('.nest[data-id="' + n.id + '"]');
+      return [n.code, n.hospital, e.querySelector('.hsign').hidden, e.querySelector('.refused').hidden]; })()`);
+    ok(!!other && other[0] !== "VS" && other[1] === false && other[2] && other[3], `…another CAV type gets neither the H sign nor the bubble, even with every VS a hospital egg   [${other}]`);
   }
   {
     // creepy Mom from wave 2 (momSweetUntilWave), and a pause holds her
@@ -1589,11 +1615,21 @@ try {
       const clock = document.querySelector('.wallclock').getBoundingClientRect();
       const field = document.querySelector('#field').getBoundingClientRect();
       document.querySelectorAll('.nest .hsign').forEach(p => { p.hidden = true; p.style.animation = ''; });
+      // Chat (2026-10-02): every nest's "Patient Refused" bubble instead, at rest: clear of every readout, every nest's egg
+      // and twigs, the other bubbles, the Command Lines, the trough, the sink's hose tag and the wall clock
+      document.querySelectorAll('.nest .refused').forEach(p => { p.hidden = false; p.style.animation = 'none'; });
+      const bubbles = [...document.querySelectorAll('.nest .refused')].map(e => e.getBoundingClientRect());
+      const keepOff = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0)
+        .concat(nests.map(x => x.art));
+      const bubbleBad = bubbles.filter((r, i) => keepOff.some(o => hit(r, o)) || bubbles.some((o, j) => j !== i && hit(r, o)) || r.left < f.left || r.right > f.right).length;
+      const bubbleAbove = [...document.querySelectorAll('.nest')].every(n => n.querySelector('.refused').getBoundingClientRect().bottom <= n.querySelector('.clock').getBoundingClientRect().top);
+      const bubbleSize = Math.round(Math.min(...bubbles.map(r => r.width)));
+      document.querySelectorAll('.nest .refused').forEach(p => { p.hidden = true; p.style.animation = ''; });
       // E24: the mute button in the HUD bar's left end, clear of its words, the wall clock and the board
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1605,6 +1641,7 @@ try {
     }
     eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading fits inside its box   ${at}`);
     ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
+    ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleSize >= 44, `Chat (2026-10-02): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout, nest, Command Line, the trough, the hose tag, the wall clock and each other   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide]`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);

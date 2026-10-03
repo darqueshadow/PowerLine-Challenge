@@ -202,6 +202,15 @@
       return d;
     },
 
+    /* Chat's playtest rulings (2026-10-02): a refusal egg's marker, a small comic speech bubble reading "Patient
+       Refused", its tail pointing down at the egg. Drawn in code, quieter than the H sign (style.css places it). */
+    refusedEl: function () {
+      var d = document.createElement("div");
+      d.className = "refused";
+      d.innerHTML = '<span>Patient</span><span>Refused</span>';
+      return d;
+    },
+
     /* ⏳ placeholder: the frying pan that slams down on a clear (and late, on a hatch). */
     panEl: function () {
       var d = document.createElement("div");

@@ -1,5 +1,5 @@
 /* verify-egg-timer-theme-baseline.mjs: section T's record of every rule of the game's stylesheets, resolved
-   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-10-02.
+   to final values. Written by `node verify-egg-timer.mjs --write-theme-baseline` on 2026-10-03.
    Rewrite it ONLY when a style is changed on purpose, in the same commit. Never published (verify-*.mjs). */
 export default {
  "@font-face": {
@@ -3407,6 +3407,113 @@ export default {
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "2.5"
  },
+ ".refused": {
+  "align-items": "center",
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.3s",
+  "animation-fill-mode": "both",
+  "animation-iteration-count": "1",
+  "animation-name": "refused-in",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-out",
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(232, 223, 204)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "border-bottom-color": "rgb(26, 13, 46)",
+  "border-bottom-left-radius": "0.9em",
+  "border-bottom-right-radius": "0.9em",
+  "border-bottom-style": "solid",
+  "border-bottom-width": "2px",
+  "border-image-outset": "0",
+  "border-image-repeat": "stretch",
+  "border-image-slice": "100%",
+  "border-image-source": "none",
+  "border-image-width": "1",
+  "border-left-color": "rgb(26, 13, 46)",
+  "border-left-style": "solid",
+  "border-left-width": "2px",
+  "border-right-color": "rgb(26, 13, 46)",
+  "border-right-style": "solid",
+  "border-right-width": "2px",
+  "border-top-color": "rgb(26, 13, 46)",
+  "border-top-left-radius": "0.9em",
+  "border-top-right-radius": "0.9em",
+  "border-top-style": "solid",
+  "border-top-width": "2px",
+  "box-shadow": "rgb(0, 0, 0) 2px 2px 0px",
+  "color": "rgb(74, 53, 96)",
+  "display": "flex",
+  "flex-direction": "column",
+  "font-family": "\"Trebuchet MS\", Verdana, sans-serif",
+  "font-size": "clamp(8px, 0.075 * min(15.5cqw, 23cqh), 14px)",
+  "font-weight": "700",
+  "left": "93%",
+  "letter-spacing": "0.02em",
+  "line-height": "1.05",
+  "padding-bottom": "0.25em",
+  "padding-left": "0.45em",
+  "padding-right": "0.45em",
+  "padding-top": "0.2em",
+  "pointer-events": "none",
+  "position": "absolute",
+  "text-transform": "uppercase",
+  "text-wrap-mode": "nowrap",
+  "top": "2%",
+  "white-space-collapse": "collapse",
+  "z-index": "4"
+ },
+ ".refused::before, .refused::after": {
+  "clip-path": "polygon(0px 100%, 30% 0px, 100% 0px)",
+  "content": "\"\"",
+  "height": "0.95em",
+  "position": "absolute",
+  "top": "100%",
+  "width": "1.15em"
+ },
+ ".refused::before": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(26, 13, 46)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "left": "0.5em",
+  "margin-top": "-1px"
+ },
+ ".refused::after": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(232, 223, 204)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "height": "calc(0.95em - 3px)",
+  "left": "calc(0.5em + 3px)",
+  "margin-top": "-3px",
+  "width": "calc(1.15em - 4px)"
+ },
+ "@keyframes refused-in » 0%": {
+  "opacity": "0"
+ },
+ "@keyframes refused-in » 100%": {
+  "opacity": "1"
+ },
  "@keyframes hsign-drop » 0%": {
   "transform": "translateY(-160%) rotate(-24deg)"
  },
@@ -4495,7 +4602,7 @@ export default {
  "#over-buttons": {
   "margin-top": "12px"
  },
- "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",

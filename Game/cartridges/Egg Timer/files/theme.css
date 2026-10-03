@@ -49,6 +49,8 @@
   --hospital-blue: #1456c8;               /* road-sign blue (white on it 6.6:1) */
   --hospital-ink: #fff;                   /* the sign's white H */
   --stake: #8a5a2b;                       /* the sign's wooden stake */
+  --refused-bg: #e8dfcc;                  /* "Patient Refused" bubble, dusty cream (quieter than the H sign's blue) */
+  --refused-ink: #4a3560;                 /* its lettering, muted plum (7.9:1 on the cream) */
   --plaster: #f2c9a0;                     /* Mom's sticking plaster */
   --plaster-pad: #fff3e6;                 /* its pad */
   /* Mom kit: creepy Mom's drool and its splat (code-drawn, Chat's brief 2026-10-02), with the cartoon outline and a

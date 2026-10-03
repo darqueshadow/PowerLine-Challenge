@@ -484,6 +484,7 @@
     nests.forEach(function (n) {
       var parts = [n.el, n.readout];
       if (!n.hsign.hidden) parts.push(n.hsign);
+      if (!n.refused.hidden) parts.push(n.refused);
       parts.forEach(function (e) {
         var r = fieldRect(e, f);
         if (r.r - r.l < 1) return;
@@ -1094,6 +1095,10 @@
         var hsign = ET.art.hSignEl();
         hsign.hidden = true;
         n.appendChild(hsign);
+        // Chat (2026-10-02): a VS refusal egg's "Patient Refused" bubble, in the same place above the timer
+        var refused = ET.art.refusedEl();
+        refused.hidden = true;
+        n.appendChild(refused);
 
         // ⏳ placeholder: the frying pan (Refinement 2 §5)
         var pan = ET.art.panEl();
@@ -1104,7 +1109,7 @@
 
         board.appendChild(n);
         nests.push({
-          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, pan: pan,
+          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, refused: refused, pan: pan,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
@@ -1131,6 +1136,7 @@
         ET.aliens.clear(v.svg.querySelector(".creature"));
         ET.mess.clear(v.mess);
         v.hsign.hidden = true;
+        v.refused.hidden = true;
         v.mend = null;
         v.crackShown = 0;
         v.pan.className = "pan";
@@ -1212,6 +1218,11 @@
         // E55: the H sign, from the pop until the egg is cleared or hatches (each time it's shown, its drop plays: style.css)
         var signed = !!s.hospital && (s.state === "active" || s.state === "overtime");
         if (v.hsign.hidden === signed) v.hsign.hidden = !signed;
+        // Chat (2026-10-02): a VS refusal egg's "Patient Refused" bubble, from the pop until its RCAV is accepted (a
+        // cleared egg is "splat", so it goes then; a hatch takes it too). Other types get neither it nor the H sign.
+        var refusing = !s.hospital && s.code === C.eggType && (s.state === "active" || s.state === "overtime") &&
+          C.refusedBubble.on && snap.wave <= C.refusedBubble.untilWave;
+        if (v.refused.hidden === refusing) v.refused.hidden = !refusing;
 
         drawCord(s.id, s, snap.time);
 

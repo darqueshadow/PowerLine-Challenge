@@ -852,6 +852,25 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .hsign .plate { fill: var(--hospital-blue); stroke: var(--outline); stroke-width: 3; }
 .hsign .h { fill: none; stroke: var(--hospital-ink); stroke-width: 5; stroke-linecap: square; }
 .hsign .stake { fill: var(--stake); stroke: var(--outline); stroke-width: 2.5; }
+/* Chat's playtest rulings (2026-10-02): a refusal egg's "Patient Refused" bubble, drawn in code, in the H sign's place
+   above the timer (the two never share a nest), its tail pointing down at the egg. Quieter than the sign: dusty cream,
+   a thinner outline, small type; it fades in (no drop, no bounce). The gunk covers it, as it covers the sign (E14). */
+.refused {
+  position: absolute; left: 93%; top: 2%; z-index: 4; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0.2em 0.45em 0.25em;
+  font-family: var(--font-ui); font-weight: 700; line-height: 1.05; letter-spacing: 0.02em; text-transform: uppercase;
+  font-size: clamp(8px, calc(min(15.5cqw, 23cqh) * 0.075), 14px);   /* about 7.5% of the nest's width */
+  background: var(--refused-bg); color: var(--refused-ink);
+  border: 2px solid var(--outline); border-radius: 0.9em;
+  box-shadow: 2px 2px 0 var(--shadow);
+  white-space: nowrap;
+  animation: refused-in 0.3s ease-out both;
+}
+.refused::before, .refused::after { content: ""; position: absolute; top: 100%; width: 1.15em; height: 0.95em; clip-path: polygon(0 100%, 30% 0, 100% 0); }
+.refused::before { left: 0.5em; margin-top: -1px; background: var(--outline); }
+.refused::after { left: calc(0.5em + 3px); margin-top: -3px; width: calc(1.15em - 4px); height: calc(0.95em - 3px); background: var(--refused-bg); }
+@keyframes refused-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes hsign-drop {
   0% { transform: translateY(-160%) rotate(-24deg); }
   70% { transform: translateY(0) rotate(5deg); }
@@ -1174,7 +1193,7 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 #over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
-  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
   .nest.scare .creature, :is(.nest, .toon).hop .creature { animation: none; }   /* Andrew, 2026-10-01: the alien sits still in its nest */
   #title-scene .note, #setup-critter .note { opacity: 1; }
