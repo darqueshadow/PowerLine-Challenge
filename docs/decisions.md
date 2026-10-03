@@ -1018,3 +1018,30 @@ Fang Rock now reads the Arcade from `Game/fangrock-app.json` (`1e9f12f`, `b56bc0
 together"); the empty-drive SEARCHING hang is the OPEN entry. An §F2 cascade in verify-c64 is that known bug, not a
 blocker, and is not re-run for. `git commit -- <paths>` after `git rm --cached` re-adds the files from the working
 tree: commit the staged removal without a pathspec. No session pushes without Andrew's OK (`CLAUDE.md` at the repo root).
+
+## Built 2026-10-03 — Egg Timer: Chat's playtest rulings (six items); E59 and E60 open
+
+**Solved:** Chat's playtest message of 2026-10-02 (the second, which replaced the first; both filed verbatim in
+`Game/cartridges/Egg Timer/Previous Versions/EGG_TIMER_PLAYTEST_RULINGS_2026-10-02.md`), built one commit an item, both
+rigs green after each (logic 206/0, browser 634/0 at the end), **not pushed**. **1** "every egg is a VS" was E54's own
+ruling (`2c4a80a`), not a regression; the pre-E54 type bag is back as a switch, **E59** (`5267498`). **2** a hospital VS
+egg's accepted RCAV restarts its countdown at 12 s, flat (`hospitalResetSeconds`); window 1's tier is taken at the RCAV
+and paid at the STR; Time Warp ignores the waiting egg (`f45aaa0`). **3** a code-drawn "Patient Refused" bubble on VS
+refusal eggs, above the timer until the RCAV; the H sign already sat above its timer (`8db0a0a`). **4** Time Warp's sign,
+caption and lightning hot red, each darker than the mint it replaced (`44d5a0a`). **5** the HUD popup face is the Mom
+kit's head, pose A, sweet then creepy; the old drawn face, its rules and its eight `--mom-*` colours are deleted
+(`4e3c875`). **6** the rejected-Enter words show at Time Warp's clock on a dark plate with a light outline, over the
+wave banner; a repeat restarts the time without going off and on (`6c44cfc`). Packet §11 "Raised by Chat's playtest"
+has every number.
+**Approach:** each item's switch or number sits in `config.js` (`eggTypes`, `hospitalResetSeconds`, `refusedBubble`,
+`rejectPlace`); colours in `theme.css` (`--refused-*`, `--warp-red*`, `--reject-*`; theme baseline rewritten each time
+for that item's rules only). The rig hook `__et.start` keeps its scenes all-VS (`{ eggTypes: "VS" }`) unless a scene asks
+for the bag. The hospital egg's crack carries on from where it was through the restarted window (`crackAt`, `resetAt`).
+`#reject` lives in `#field` (z 41, over the banner's 40), placed by `placeReject()` from the clock's measured box.
+**If you touch this again:** **E59** (which types, MB, VF, AD's post-it, the hospital share now that only VS eggs
+qualify) and **E60** (directly above the clock is where the top row's middle readouts sit at every size, so "drop" moves
+the words onto the clock's top: 65/62/61/52 px of a 208/164/119/103 px clock) wait on Chat. Item 2's "starts when sweet
+Mom's visit ends" doesn't match the build: Mom comes at the STR, after the 12 s; flagged. The bubble covers a word or two
+of Time Warp's caption at 1440 × 900 and smaller (bottom row, second nest); not "crowded" by the rig's rules. Measure
+anything over a nest after its 0.4 s unlock (`offsetWidth`, not the bounding box), and a rejected Enter needs the game
+unpaused (a paused game blocks `submit`).

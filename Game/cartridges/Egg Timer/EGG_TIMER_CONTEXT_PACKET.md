@@ -1,3 +1,13 @@
+> **FILING NOTE — Claude Code, 2026-10-03 (Chat's playtest findings and rulings of 2026-10-02; E59 and E60 proposed).**
+> Filed verbatim as `Previous Versions/EGG_TIMER_PLAYTEST_RULINGS_2026-10-02.md` (the second message, which replaced the
+> first; both kept). **Built**, one commit each, both rigs green after each, not pushed (§11, "Raised by Chat's playtest"):
+> **1** every egg a VS was **E54's ruling** (`2c4a80a`), not a regression; the pre-E54 type bag is back as a ⏳ switch,
+> **E59**. **2** a hospital VS egg's accepted RCAV restarts its countdown at **12 s** (`hospitalResetSeconds` [T]); window
+> 1's tier is taken at the RCAV (it was the STR, E52); Time Warp ignores the waiting egg. **3** a **"Patient Refused"**
+> bubble on VS refusal eggs; the H sign was already above its timer. **4** Time Warp's sign, caption and lightning **hot
+> red**. **5** the HUD popup face is **the Mom kit's head, pose A**; the old drawn face is deleted. **6** the rejected-Enter
+> words show **at Time Warp's clock**; directly above it doesn't fit at any size, so a ⏳ switch, **E60**. Next free **E61**.
+
 > **FILING NOTE — Claude Code, 2026-10-02 (evening: Chat's rulings on the Mom kit build; E58 ruled).** Filed verbatim
 > as `Previous Versions/EGG_TIMER_MOM_KIT_FOLLOWUP_RULINGS_2026-10-02.md`. **Merged and built** (E55 and E58 in §11):
 > **1, the giggle (flash safety):** pose C held at least 0.5 s with a gentle bob, one swap in and one out, at most 2 pose
@@ -1039,6 +1049,77 @@ now: **6 s at wave 1, shrinking to a 4.5 s floor (wave 13), ±10%** [T].
   - **Rigs:** the six captions word for word, each step's picture at its moment (driven by a rig clock, as `__et`
     drives play), the fit of both copies at all four sizes, and the still strip under reduced motion.
   Needed: yes, or changes (the captions, the step lengths, the dots, silence).
+
+### Raised by Chat's playtest (2026-10-02) — six items built; E59 and E60 pending
+
+*(Chat's message, filed verbatim as `Previous Versions/EGG_TIMER_PLAYTEST_RULINGS_2026-10-02.md`, built 2026-10-02/03,
+one commit each. Where an item changes an earlier ruling, that ruling is named; the earlier text stays as history.)*
+
+- **1. Every egg a VS (report).** *Cause:* not a regression. **E54** (ruled 2026-10-02, built `2c4a80a`) made every egg
+  a VS on purpose and took out the type shuffle bag; nothing in the Mom kit work or `config.js` since touched it. The
+  modes Chat asked about no longer exist (E54). *Smallest fix, built as* ⏳ **E59** (below).
+- **2. A hospital VS egg's reset (built).** *Before:* the RCAV and `CAV #### STR` shared what was left of window 1 (6 s
+  at wave 1, shrinking to 4.5 s, ±10%). *Now:* the accepted RCAV restarts the hatch countdown with
+  **`hospitalResetSeconds` = 12** [T] of the player's seconds, flat, no jitter; the cracks go on from where they were.
+  **The player types** `RCAV ####`, then `CAV #### STR` within 12 s; after the STR's 10:00, `RCAV ####` in an ordinary
+  window. **Scoring:** window 1's tier is taken **at the RCAV** (E52 took it at the STR) and paid at the STR, the moment
+  the egg is saved, so an egg that hatches anyway pays nothing; the STR earns nothing of its own; the final RCAV scores
+  its own tier as before. **Time Warp** no longer counts the waiting egg as bold (it used to hold the warp off); its
+  countdown is the player's seconds, so the warp doesn't shorten it. **Mom:** she comes at the STR, as E55 built her,
+  after the 12 s, so her visit takes none of the player's time. *(Code: Chat's "it starts when sweet Mom's visit ends"
+  reads as if she came at the RCAV; she doesn't, and creepy Mom takes over from wave 2. If Chat wants her at the RCAV
+  instead, that moves her visit and is a new item.)*
+- **3. The H sign and the "Patient Refused" bubble (built).** The **H sign** already sat above its own timer, on the
+  nest's shoulder, clear of every readout at all four sizes (rig L, unchanged). **VS refusal eggs** now show a small
+  code-drawn comic bubble, "PATIENT / REFUSED", dusty cream (`--refused-bg`) with a thin outline, its tail down at the
+  egg, fading in, in the H sign's place above the timer, from the pop until the RCAV is accepted. Hospital eggs keep the
+  H sign; **other types get neither**, and **no other type has a hospital option** (only a VS can be a hospital egg).
+  The gunk covers it (E14); it joins reduced motion; Mom's edge check avoids it. **Measured with all 12 nests showing
+  it:** 77 × 40 px at 1920 × 1080 (12 px type), 62 × 32 at 1440 × 900, 46 × 25 at 1280 × 720 and 1024 × 640 (8 px
+  type, the floor: legible but small). It touches no timer, readout, nest, other marker, Command Line, the trough, the
+  hose tag or the wall clock at any size. **One crowding note:** at 1440 × 900 and smaller, the bubble of the bottom
+  row's second nest reaches into Time Warp's caption ("All clocks 5× fast…") and covers a word or two of it while both
+  show (the H sign on that nest already touches the caption's box; the nests draw over the Time Warp panel there, E50).
+  Not crowded enough for "wave 1 only"; `refusedBubble.untilWave` [T] does that if Chat wants it.
+- **4. Time Warp red (built).** The lit sign `--warp-red` #ff1f3d with near-black red lettering and a red glow, the
+  caption #ff5c6c, the lightning's glow red and its core pale pink-red #ffc2ca. Each is darker than the mint it
+  replaces (luminance 0.23 / 0.30 / 0.64 against 0.75 / 0.90). The flash guards, the wobble (a transform) and reduced
+  motion are untouched. *(Code: the wall clock is neon green #39ff14 and was never mint; #3dff9a is Time Warp's mint,
+  which stays on the grandfather clock's glow and the nests' warp glow.)*
+- **5. The HUD popup face (built).** It is now the Mom kit's head, **pose A** (`mom-<sweet|creepy>--down@2x.png`, the
+  cut-outs of sm_org and hm_org), sweet in the sweet waves and creepy after (`momSweetUntilWave`, as her visit).
+  Behaviour unchanged (top bar only, 0.85 s, the hiss, a slide, its schedule, reduced motion). **Deleted:** the drawn
+  face (`momFaceSvg` in `art.js`), its `.mom-face` rules and its eight `--mom-*` colours; nothing else used them, NB's
+  cabinet included. `--drool` stays (the hatchlings use it). The art brief's slot 5 is retired.
+- **6. The rejected-Enter words (built).** ERROR, "Too Early!" and "RCAV first!" show once, centred at Time Warp's clock,
+  on a solid dark plate (#120814) with a bone outline (#f4eccc) and light red words (#ff6b78), in the sign's type size,
+  over the board and the wave banner (for its second it covers the banner's "WAVE n"); the bolts run under the field, so
+  they never cross it. The line still clears and buzzes, and its border still turns red; the old ERROR under the line is
+  gone. **A repeat** while it shows changes the words and restarts its time, never off and on (rig: 0 new showings for
+  3 repeats; at most 1 a second). **Directly above the clock doesn't fit at any size:** see ⏳ **E60**.
+
+- ⏳ **E59. Which CAV types eggs are laid with. PENDING (Chat).** Chat's playtest found every egg a VS and asked for SS,
+  EOS, AD and VF. E54 (ruled, approved by Andrew 2026-10-02) made every egg a VS. **Built as the smallest fix**, the
+  switch `eggTypes` in `config.js`: **"bag"** (built, the default now): the pre-E54 shuffle bag (Refinement 4 §4, E19,
+  E20) holding every row of Andrew's table once, shuffled on the game's seeded source, refilled when empty, fresh each
+  wave, **except the STR** (only the hospital step) **and VF** (two-phase only: E54 took out the placement step its
+  hidden timer needs). So eggs are **VS, SS, EOS, MB and AD**, each from the table as it is (SS 15:00, EOS 30:00, MB
+  30:00, AD 10–30:00 drawn per egg). Only a VS can be a hospital egg, so about 70% of the VS eggs (about 14% of all eggs)
+  are hospital eggs. **"VS"**: E54 as built. **What Chat should decide:** (a) "bag" or "VS"; (b) MB is in the bag because
+  it's in Andrew's table, though Chat's list didn't name it: keep it?; (c) VF: leave it out, bring it back as a plain egg,
+  or bring back its hidden timer (that needs a placement step); (d) AD plays as a plain egg; its post-it ("Clear @
+  HH:MM", E1) went with E54: bring it back?; (e) with 70% of VS eggs only, hospital eggs are rare now: change
+  `hospitalShare`? Needed: (a)–(e).
+- ⏳ **E60. Where the rejected-Enter words go when "above the clock" is taken. PENDING (Chat).** Directly above Time
+  Warp's clock is where the top row's two middle readouts sit, at every measured size: the gap between them is about
+  144 px at 1920 × 1080 and 73 px at 1024 × 640, and "RCAV first!" needs 216 and 133 px. **Built as the switch**
+  `rejectPlace`: **"drop"** (built): the words start just above the clock and, where a readout or nest is in the way,
+  move down just under it, onto the clock's top, never onto the TIME WARP sign. Measured with all 12 nests live, it
+  covers the top **65 of the clock's 208 px** at 1920 × 1080, **62 of 164** at 1440 × 900, **61 of 119** at
+  1280 × 720 and **52 of 103** at 1024 × 640 (the clock face, about half the clock on the small screens), and touches
+  nothing else. **"above"**: always directly above, as asked, over a readout. **Other ways:** smaller words on the small
+  screens (they'd fit the 73 px gap only at about 7 px type); over the caption, under the sign; or back under the
+  Command Line with the new plate. Needed: "drop", "above", or another place.
 
 ### Raised building the Mom kit (2026-10-02) — E58 ruled
 

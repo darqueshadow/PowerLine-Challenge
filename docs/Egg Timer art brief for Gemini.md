@@ -137,8 +137,9 @@ or any other existing character.
 > **Done, 2026-10-02: Mom's repair, both kits (E55).** Not one of the numbered slots: Chat wrote these prompts
 > separately. Andrew's ten approved pictures (sweet Mom and creepy Mom: head looking down, facing the player and
 > giggling; one tentacle; the plaster) are in the game, cut by `make-mom-art.py` (`files/art/mom-*`). Creepy Mom's drool,
-> splat and tongue wobble are drawn by code (no slot). Slot 5, the scary HUD mom face, is unchanged and still
-> placeholder.
+> splat and tongue wobble are drawn by code (no slot). Slot 5, the scary HUD mom face, is **retired**
+> (Chat's playtest rulings, 2026-10-02): the HUD face now uses the Mom kit's head looking down (sweet, then creepy).
+> Nothing to draw for it.
 
 ## The slots at a glance
 
@@ -149,7 +150,7 @@ or any other existing character.
 | 2 | Hatchling | same as the nest | 97 × 77 px at rest, **~580 × 460 px** in its lunge | **SVG only** | whole creature; legs |
 | 3 | Egg-ladder dishes (7) | `-56 -38 112 76` | 150 × 102 px | SVG or 300 × 204 PNG/WebP | none (the whole dish pops) |
 | 4 | Frying pan | `-60 -40 150 80` | 222 × 118 px (255 × 136 at the slam) | SVG or 510 × 272 PNG/WebP | none (the whole pan slams) |
-| 5 | Scary mom face | `-100 -100 200 200` | 146 × 146 px | SVG or 300 × 300 PNG/WebP | none (the whole face slides) |
+| 5 | ~~Scary mom face~~ (retired 2026-10-02: the Mom kit's head) | `-100 -100 200 200` | 146 × 146 px | SVG or 300 × 300 PNG/WebP | none (the whole face slides) |
 | 6 | Title scene | `0 0 420 210` | 560 × 280 px | SVG | mommy sway, 3 pupils, 3 babies, 3 mouths, 4 notes |
 | 7 | Mode-selection creature | `0 0 300 200` | 300 × 200 px | SVG | whole body, 3 heads, 6 pupils, 3 mouths, 3 notes |
 | 8 | How-to doodles (5) | `0 0 60 60` each | 64 × 64 px | SVG or 128 × 128 PNG/WebP | none (the whole doodle turns) |
@@ -471,7 +472,10 @@ y= 48 └───────────────────────�
 
 ---
 
-## Slot 5: the scary mom face
+## Slot 5: the scary mom face — RETIRED (Chat, 2026-10-02)
+
+> **Retired:** the HUD face now shows the Mom kit's head, pose A (the cut-outs of sm_org in the sweet waves, hm_org
+> after), and the drawn placeholder below, its colours and `mom-face.svg` are gone from the game. Kept for history.
 
 - **What and where:** a horror jump-scare. At most once a wave (and not every wave), a monstrous version of the
   title screen's mommy alien slides in for under a second. **It comes down from the top edge of the screen only**

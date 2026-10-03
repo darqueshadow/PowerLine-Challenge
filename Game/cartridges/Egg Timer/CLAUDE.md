@@ -23,7 +23,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E59**; none open);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E61**; **E59** types and **E60** error place open);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -32,7 +32,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   changes: run `verify-cat.mjs` (serve on 8899; "Chrome never opened a debug port" is CPU load: re-run).
 
 ## The build (`files/`)
-- `index.html`, `theme.css`, `style.css`, `script.js` (boot, screens, loop, keyboard, how-to panel, comic strip), `favicon.svg`.
+- `index.html`, `theme.css`, `style.css`, `script.js` (boot, screens, loop, keyboard, how-to panel), `favicon.svg`.
 - 🎨 **`theme.css` holds every colour**, the font stacks and the `@font-face`s; `style.css` holds none (rig section T
   fails on one). **Change a colour in `theme.css`.** NB's Egg Timer cabinet copies some values by hand, so don't
   rename or drop one lightly. Section T resolves every rule against `verify-egg-timer-theme-baseline.mjs`: after a
@@ -71,7 +71,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Developer Mode:** Ctrl+Shift+B (lowercase `b` too), then a timed password prompt; on unlock the next game uses the
   Blank Dataset Module. `node make-dev-hash.mjs` makes the digest (echo off; `make-*.mjs` never deploys).
 - ⚠️ **Class names already taken:** never `error` (the title's `.error` caps width at 640px); never `drop` (the hose's mist
-  fades it out: Mom's drool uses `mom-drop`). (`bubble` was VF's, gone with E54.)
+  fades it out: Mom's drool uses `mom-drop`). `refused` is the "Patient Refused" bubble, `#reject` the rejected-Enter words.
 
 ## Locked design (summary; the packet has the detail and the numbers)
 - **Art direction: "juxtaposition":** a friendly family cartoon with a dark, twisted undertone. **Alien art:** scary
@@ -79,10 +79,13 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Slot 0 (nest + egg) is Gemini's approved pilot art, slot 13 (break stages) Andrew's sheets (`make-break-art.py`),
   the six hatchlings Andrew's sheets as puppets (`make-alien-art.py`, `core/aliens.js`), both Moms Andrew's Gemini kits
   (`make-mom-art.py`, `core/mom.js`); the rest is still placeholder.
-- **One mode (E54, ruled 2026-10-02):** every egg is laid with a **VS**; **~70% are hospital eggs** (`hospitalShare`
-  [T], a plain roll on the seeded source, E56) with a blue **H road sign** (never a red cross) dropped on at the pop.
-  A refusal egg: one `RCAV`. A hospital egg: **`RCAV` then `CAV #### STR` in the same hatch window** (E53); the STR is
-  window 1's clear, **scored by tier at the STR** with no pan/splat/mess (E52), Mom repairs the egg (sweet in wave 1
+- **One mode (E54, ruled 2026-10-02).** ⏳ **E59 PENDING:** eggs come out of the type **bag** again (`eggTypes`: VS, SS,
+  EOS, MB, AD; not the STR or VF; "VS" = E54's every egg a VS). **Only a VS can be a hospital egg**: **~70% of VS eggs**
+  (`hospitalShare` [T], a plain roll on the seeded source, E56) get a blue **H road sign** (never a red cross) at the pop;
+  a VS refusal egg gets a small **"Patient Refused"** bubble above its timer until its RCAV (Chat, 2026-10-02); other
+  types get neither. A refusal egg: one `RCAV`. A hospital egg: **`RCAV`, which restarts its countdown at 12 s**
+  (`hospitalResetSeconds`, flat; Time Warp ignores it then), **then `CAV #### STR`** (Chat's playtest, 2026-10-02); the STR
+  is window 1's clear, **scored by the tier the RCAV landed in, paid at the STR**, with no pan/splat/mess, Mom repairs the egg (sweet in wave 1
   and the cartoon, creepy after, E55; a giggle each, E56; **she comes in from the edge nearest the egg**, never over a
   timer, nest, readout, Command Line, the trough or the sink, with E58's "nest" fallback where no edge has room (inside her own nest's box,
   never over a readout: the unit and timer stay in sight); **creepy Mom's drool, splat and tongue wobble are drawn in
@@ -90,8 +93,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   pose changes in any second, so the visit is 2.2 s; the drool glows purple, its halo inside the safe-landing check**:
   Chat, 2026-10-02), the STR runs 10:00, then an ordinary window and `RCAV`.
   Wrong orders: STR before the RCAV says **"RCAV first!"**; STR on a refusal, a second RCAV or any other type is ERROR.
-  No modes, triggers, AD post-it, VF or type bag any more; the CSV keeps every row, and refuses to start without VS or STR.
-- **CAV data:** Andrew's durations (VS 10, STR 10; the other rows unused). **Say "displayed time" and
+  No modes, triggers, AD post-it or VF any more; the CSV keeps every row, and refuses to start without VS or STR.
+- **CAV data:** Andrew's durations (VS 10, STR 10; with E59's bag also SS 15, EOS 30, MB 30, AD 10–30; VF unused). **Say "displayed time" and
   "the player's seconds"** (E3). Clocks show displayed time, **one speed shared by every clock**; the real (Data Sheet)
   duration sets the bold mark exactly: never jitter it. Readouts show the literal type code. Transport units only,
   never one already on the board, no repeat in a wave until the pool is used.
@@ -106,11 +109,15 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Time Warp:** clocks run 5× once the wave's last CAV has *started* and none is bold (E18), or while 2+ eggs are each
   over 8:00 from bold (E39); never with an egg bold; overtime never warps. 🚨 The sign flashes at most 2/s (`setSign()`'s
   0.25 s guard), then wobbles (a transform, never brightness); 🚨 lightning re-jags ≤ 2.5/s (`rejag()`). E43 zaps.
+  The lit sign, its caption and the lightning are **hot red** (`--warp-red*`, Chat 2026-10-02); the clock's glow and the
+  nests' warp glow stay mint `--warp`; every red is darker than the mint it replaced.
   E50: the clock is 1.5× and sits UNDER the nests where they meet (#warp z-index 0).
 - **Board lights:** `#backdrop`, behind everything on the board: the **lilac** tint (E32), white lights on the gameplay
   track's BPM (🚨 5% white at most, one start a beat, 3 at once) and Time Warp's dark veil (a 0.5 s fade).
 - **Rejected Enter:** **any** clears the line, shows ERROR ~1 s and buzzes, no penalty (E6); an early `RCAV` says
-  **"Too Early!"** (2026-10-01); an STR before the RCAV **"RCAV first!"** (E53).
+  **"Too Early!"** (2026-10-01); an STR before the RCAV **"RCAV first!"** (E53). The words show **at Time Warp's clock**
+  (`#reject`, a dark plate with a light outline, over the wave banner; Chat 2026-10-02), the line's border turns red; a
+  repeat restarts the time, never off and on. ⏳ **E60:** "above the clock" is taken by readouts, so `rejectPlace: "drop"`.
 - **Waves and pool:** nests in play 5 → 12, **all 12 on screen all game**; spawning stops at the quota (D4); a spawn on
   a full board is skipped. Pool 3 (`POOL`), −1 per escape, +1 per escape-free wave. **Only an empty pool ends the game.**
 - **Scoring (E26):** by **tier**, fifths of the egg's own overtime window: 100 / 75 / 50 / 35 / 25, plus a perfect-wave
@@ -133,7 +140,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Reduced motion: the still strip (six key frames). **No side panel in play** (E30), **none on game over** (2026-10-01).
   🚨 Signs change ≤ 2/s; every bulb change goes through `set()`'s guard (`lightsMinToggle` ≥ 1/6 s). No CAV durations.
 - **Screens:** title (PRESS ANY KEY until the first press, E40), options, game over (Enter ignored for 1 s and on
-  auto-repeat, E34). The **scary mom face**: at most once a wave, under 1 s, HUD bar only, no input, no flashing.
+  auto-repeat, E34). The **HUD mom face**: at most once a wave, under 1 s, HUD bar only, no input, no flashing; since 2026-10-02 it is
+  the Mom kit's head, pose A (sweet, then creepy, as her visit; the old drawn face is deleted).
 - **Reduced motion** stills every loop, light, sign and wobble, the pieces' tumble, the trough's water, the jet's burst,
   mist and splash, the hatch's dance and hop (the jump scare: E49 "still"). **New motion must join it** (rig R).
 - **Sound:** mute button + M (Ctrl+M in play, E25). Every sound connects to `audio.js`'s `bus()` (rig A2). Music
@@ -170,11 +178,11 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 **`continue_et`** (or `continue_wac`): read that store's `MEMORY.md` and any ⏸ handoff it lists, then `et-track.md`;
 write Egg Timer memories there (auto-memory loads the PLC root index, keyed to the git root).
 
-## State 2026-10-02
-**E52–E57 ruled, built and live** (one mode, hospital eggs; the How To Play cartoon; packet §11). **E58** ruled ("nest"); next
-free E59. Waiting on Gemini (via Chat's prompts): the H sign and the
+## State 2026-10-03
+**Chat's playtest batch built, not pushed** (`5267498`..`6c44cfc`, one commit an item; packet §11 "Raised by Chat's
+playtest"); **E59** (types) and **E60** (where the error words go) wait on Chat; next free **E61**. Waiting on Gemini (via Chat's prompts): the H sign and the
 horror aliens' close-up faces (packet §11, E49, E55). Playtest owed: the hospital window (E53) and the spawn rate (E56).
-Pushes wait for Andrew's OK, each one (root `CLAUDE.md`, 2026-10-02). Hand tests owed: Mom's visits (both kits, the edge entry, the drool, splat and tongue), the hospital eggs, the cartoon, nozzle lag, Fang
+Hand tests owed: Mom's visits (both kits, the edge entry, the drool, splat and tongue), the hospital eggs, the cartoon, nozzle lag, Fang
 Rock's title music, held Enter at Game Over, the aliens, the hose's feel and new aim, Q in Rec-Bay 4, real F3, the jump
 scare and its sound. Left from the audit: JS colours → `theme.css`, dead code, test gaps. History in `docs/decisions.md`
 (repo root); the art brief is `docs/Egg Timer art brief for Gemini.md`.
