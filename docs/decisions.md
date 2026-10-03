@@ -1003,3 +1003,18 @@ section after it. Treat that cascade as this known bug, not a blocker, and do no
 **Fix for later (Andrew, 2026-10-02):** (1) disable Load, and show "No disk in drive", while the drive is empty;
 (2) have verify-c64 §F2 reset the machine between its empty-drive loads, so this bug cannot cascade through the rest
 of the rig. Root cause still wanted.
+
+## Resolved 2026-10-02 — the C64 corner release (keyboard + joystick, Help, public build) is live
+
+**Solved:** The C64 corner's keyboard-and-joystick input, Help sheet and deck groups are on `main` and the public Pages
+site, pushed on Andrew's OK as `8ecd2d9..fabec48` (13 commits). The public build, which has no emulator core and no
+disks, shows only "Available in Fang Rock only" and no install, error or internal text.
+**Approach:** Built on branch `c64-both-live` in a worktree outside OneDrive, merged `main` into it four times (each a
+`docs/decisions.md` end-of-file conflict, both sides kept), then fast-forwarded `main`. `12a9669` makes a missing core a
+supported state (`noCore()` in `Game/C64/emulator/emu.js`, `cat:nocore` in `cat.js`). `fabec48` untracked
+`Game/C64/verify-cat-*.png` and ignored them, because they show the Cracked crate's title list. History was not rewritten.
+Fang Rock now reads the Arcade from `Game/fangrock-app.json` (`1e9f12f`, `b56bc0c`; minimise null, so Ctrl stays fire).
+**If you touch this again:** The design and measurements are in the entry above ("keyboard and joystick live
+together"); the empty-drive SEARCHING hang is the OPEN entry. An §F2 cascade in verify-c64 is that known bug, not a
+blocker, and is not re-run for. `git commit -- <paths>` after `git rm --cached` re-adds the files from the working
+tree: commit the staged removal without a pathspec. No session pushes without Andrew's OK (`CLAUDE.md` at the repo root).
