@@ -973,3 +973,17 @@ input-mode behaviour (non-MACHINE paths in emu.js are unchanged).
 6–15 frames in the first second after boot on this loaded machine, so it is load, not this change. One earlier run
 cascaded from a stray empty-drive `LOAD"*",8,1` stuck at SEARCHING after §F2 — the intermittent already logged on
 main; it did not recur.
+
+## OPEN 2026-10-02 — the C64 corner: an empty-drive LOAD can hang at SEARCHING (pre-existing)
+
+**Symptom:** `LOAD"*",8,1` with the 1541 empty sometimes never comes back: the screen holds `SEARCHING FOR *` and the
+drive stays busy. **Measured 2026-10-02** (scratch probe: machine page, up to 30 empty-drive loads per fresh boot, with
+and without a tape loaded and ejected first): main hung on 6 of 10 boots (6 in 228 loads, 2.6%), the `c64-both-live`
+branch on 7 of 10 (7 in 197, 3.6%) — the same rate, so it predates that branch. First hang anywhere from load 6 to 29.
+**Players can reach it** (the Load button and a typed LOAD both work with an empty drive), but it is **recoverable**:
+in all 13 hangs, Reset (F12) brought the drive back and the next load worked. Cause not yet found.
+**It is what cascades verify-c64**: §F2 presses Load twelve times on an empty drive, and one hang there fails every
+section after it. Treat that cascade as this known bug, not a blocker, and do not loop re-runs for it (Andrew).
+**Fix for later (Andrew, 2026-10-02):** (1) disable Load, and show "No disk in drive", while the drive is empty;
+(2) have verify-c64 §F2 reset the machine between its empty-drive loads, so this bug cannot cascade through the rest
+of the rig. Root cause still wanted.
