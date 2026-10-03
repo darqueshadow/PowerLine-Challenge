@@ -58,6 +58,11 @@
     // E54: every egg is laid with a VS; a hospital egg's second CAV is the STR. Both from the table as it is.
     this.first = byCode(this.types, C.eggType);
     this.second = byCode(this.types, C.hospitalType);
+    // ⏳ E59: which types eggs are laid with ("bag": the table's rows but the STR and two-phase-only ones; "VS": E54)
+    var self = this;
+    this.eggTypes = (opts.eggTypes || C.eggTypes) === "VS" ? (this.first ? [this.first] : [])
+      : this.types.filter(function (t) { return t !== self.second && !t.twoPhaseOnly; });
+    this.typeBag = [];
     this.hospitalShare = opts.hospitalShare !== undefined ? opts.hospitalShare : C.hospitalShare;
     // the pool is the distinct unit numbers (Refinement 4 §3); the sheet's five doubles were removed 2026-09-23, this stays as a guard
     this.units = (opts.units || []).filter(function (u, i, all) { return all.indexOf(u) === i; });
@@ -137,6 +142,7 @@
     this.rate = ET.rules.clockRate(wave);
     this.stats.skippedByWave[wave] = 0;
     this.unitsUsed = {};                   // a fresh unit pool each wave
+    this.typeBag = [];                     // ⏳ E59: and a fresh bag of CAV types (E20)
     this.phase = "wave";
     this.nextSpawnAt = this.time;
     this.emit("wave-start", { wave: wave, quota: this.quota, speed: this.speed });
@@ -187,19 +193,35 @@
       this.emit("spawn-skipped");   // packet §4: a full board loses the spawn, no queueing
       return false;
     }
-    if (!this.first) {
+    if (!this.eggTypes.length) {
       this.emit("no-types");
       return false;
     }
     var n = idle[Math.floor(this.rng() * idle.length)];
     n.unit = ET.CONFIG.unitAssignment === "per-nest" ? n.fixedUnit : this.freeUnit();
-    n.type = this.first;
-    // E56 (ruled): a plain random roll per egg, on the game's own source (so ?seed= replays it)
-    n.hospital = !!this.second && this.rng() < this.hospitalShare;
+    n.type = this.pickType();
+    // E56 (ruled): a plain random roll per egg, on the game's own source (so ?seed= replays it); only a VS can be a
+    // hospital egg (Chat, 2026-10-02)
+    n.hospital = !!this.second && n.type === this.first && this.rng() < this.hospitalShare;
     if (n.hospital) this.stats.hospital++;
     this.spawned++;
     this.activate(n, "auto");
     return true;
+  };
+
+  /* ⏳ E59: the CAV type comes out of a shuffle bag holding each type once; when it empties it is refilled and
+     reshuffled on the game's own source, so the mix stays even (Refinement 4 §4, E19, E20; restored 2026-10-02). */
+  Game.prototype.pickType = function () {
+    if (!this.typeBag.length) {
+      var fresh = this.eggTypes.slice();
+      for (var k = fresh.length - 1; k > 0; k--) {        // Fisher–Yates
+        var j = Math.floor(this.rng() * (k + 1)), tmp = fresh[k];
+        fresh[k] = fresh[j];
+        fresh[j] = tmp;
+      }
+      this.typeBag = fresh;
+    }
+    return this.typeBag.shift();
   };
 
   /* A CAV starts: Refinement 3 §7's cord lays the egg first, and its clock starts at the pop (step()). */

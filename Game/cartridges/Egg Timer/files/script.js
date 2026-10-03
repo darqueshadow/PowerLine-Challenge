@@ -98,7 +98,7 @@
 
   /* ----------------------------------------------------------------- play */
   /* `rig` is for the rigs only (__et.start): a wall-clock start, the share of hospital eggs (0 = all refusals, 1 = all
-     hospital), a stand-in length for the VS in minutes (so a scene can keep an egg running) and a random source, so one
+     hospital), which types eggs are laid with (⏳ E59), a stand-in length for the VS in minutes (so a scene can keep an egg running) and a random source, so one
      exact case can be played out in the real page. Players never pass it. */
   function startGame(boxes, rig) {
     if (!app.data) return;   // no game without the data (the title's guards keep the player from getting here first)
@@ -110,6 +110,7 @@
       boxes: boxes,
       types: types,
       hospitalShare: rig.hospital,
+      eggTypes: rig.eggTypes,
       units: app.data.units,
       wallStart: rig.wallStart !== undefined ? rig.wallStart : wallStart(),
       rng: rig.rng || (SEED === null ? Math.random : ET.seededRandom(SEED)),
@@ -463,7 +464,8 @@
     screen: function () { return app.screen; },
     ready: function () { return !!app.data; },
     data: function () { return app.data; },
-    start: function (boxes, rig) { startGame(boxes || 1, rig); return true; },
+    // the rig's scenes play all-VS games unless one asks for the bag (⏳ E59: { eggTypes: "bag" })
+    start: function (boxes, rig) { startGame(boxes || 1, Object.assign({ eggTypes: "VS" }, rig)); return true; },
     snapshot: function () { return app.game ? app.game.snapshot() : null; },
     advance: function (seconds) { stepGame(seconds); ET.view.render(app.game.snapshot()); return app.game.snapshot().time; },
     submit: submit,

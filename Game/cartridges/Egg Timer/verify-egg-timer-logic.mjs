@@ -412,7 +412,7 @@ function oneEgg(hospital, wave = 1) {
   } finally { ET.CONFIG.hospitalWindowScale = was; }
 }
 {
-  // a player who does both steps fast never loses an egg, over three waves of the real 70%
+  // a player who does both steps fast never loses an egg, over three waves of the real table and its 70%
   const g = new ET.Game({ types, units, rng: ET.seededRandom(17) });
   g.start();
   advance(g, 600, (x) => {
@@ -422,7 +422,8 @@ function oneEgg(hospital, wave = 1) {
     });
     if (x.wave > 3) x.phase = "over";
   });
-  ok(g.stats.hatched === 0 && g.stats.repaired > 10 && g.stats.cleared > 20, `both steps in time: no hatches through wave 3   [${g.stats.repaired} repaired, ${g.stats.cleared} cleared, ${g.stats.rejected} rejected]`);
+  // (⏳ E59: only the VS eggs can be hospital eggs now, about a fifth of what's laid)
+  ok(g.stats.hatched === 0 && g.stats.repaired > 3 && g.stats.cleared > 20, `both steps in time: no hatches through wave 3   [${g.stats.repaired} repaired, ${g.stats.cleared} cleared, ${g.stats.rejected} rejected]`);
   eq(g.stats.rejected, 0, "…and no rejected Enter along the way");
 }
 
@@ -749,7 +750,7 @@ section("S. Refinement 4 §3: no duplicate units, no repeats within a wave");
   ok(drawn.length >= 8 && !dup, `then it refills, still never doubling a unit on the board   [${drawn.join(" ")}]`);
 }
 
-section("U. E54 and E56: one mode, every egg a VS; about 70% hospital eggs, a plain random roll");
+section("U. ⏳ E59 (2026-10-02): one mode, the type bag back; E56: about 70% of the VS eggs are hospital eggs, a plain random roll");
 {
   // the real table, with the game's own share: every egg laid is a VS, and about 70% carry the H sign
   const run = (seed) => {
@@ -765,14 +766,28 @@ section("U. E54 and E56: one mode, every egg a VS; about 70% hospital eggs, a pl
     return laid;
   };
   const laid = run(4);
-  ok(laid.length >= 400 && laid.every((x) => x.code === "VS"), `E54: every egg is laid with a VS   [${laid.length} eggs]`);
-  const share = laid.filter((x) => x.hospital).length / laid.length;
-  ok(Math.abs(share - 0.7) < 0.06, `E56: about 70% are hospital eggs   [${(share * 100).toFixed(1)}%]`);
+  const codes = [...new Set(laid.map((x) => x.code))].sort();
+  eq(codes, ["AD", "EOS", "MB", "SS", "VS"], "E59 (bag): every type in the table is laid but the STR (the hospital step) and the two-phase-only VF");
+  // a shuffle bag: every run of 5 straight from a fresh bag holds each type once (a wave start empties the bag, so
+  // count within the first wave's eggs only)
+  const first5 = laid.slice(0, 5).map((x) => x.code).sort();
+  eq(first5, ["AD", "EOS", "MB", "SS", "VS"], "…out of a shuffle bag: the first five eggs are one of each");
+  const counts = codes.map((k) => laid.filter((x) => x.code === k).length);
+  ok(Math.max(...counts) - Math.min(...counts) <= 12, `…so the mix stays even   [${codes.map((k, i) => k + " " + counts[i]).join(", ")}]`);
+  ok(laid.filter((x) => x.hospital).every((x) => x.code === "VS"), "only a VS egg can be a hospital egg");
+  const vs = laid.filter((x) => x.code === "VS");
+  const share = vs.filter((x) => x.hospital).length / vs.length;
+  ok(vs.length >= 70 && Math.abs(share - 0.7) < 0.1, `E56: about 70% of the VS eggs are hospital eggs   [${(share * 100).toFixed(1)}% of ${vs.length}]`);
+  const allVS = new ET.Game({ types, units, rng: ET.seededRandom(4), eggTypes: "VS" });
+  allVS.start();
+  const laidVS = [];
+  for (let i = 0; i < 20000 && laidVS.length < 40; i++) { allVS.pool = 3; allVS.step(0.05); allVS.drain().forEach((e) => { if (e.type === "laying") laidVS.push(allVS.nests[e.nest].type.code); }); inState(allVS, "overtime").forEach((n) => allVS.submit("RCAV " + n.unit)); }
+  ok(laidVS.length >= 40 && laidVS.every((c) => c === "VS"), `the switch's "VS" is E54 as built: every egg a VS   [${laidVS.length}]`);
   eq(ET.CONFIG.hospitalShare, 0.7, "E56: the share is a setting, 0.7 [T]");
   eq(JSON.stringify(run(9).slice(0, 60)), JSON.stringify(run(9).slice(0, 60)), "the roll comes from the game's seeded source, so ?seed= replays which eggs are hospital eggs");
   const none = new ET.Game({ types, units, rng: ET.seededRandom(3), hospitalShare: 0 });
   eq([none.first.code, none.second.code], ["VS", "STR"], "the game takes its VS and STR from the table by code");
-  eq(["mode", "typeBag", "pickType"].filter((k) => k in none), [], "E54: no mode, no type shuffle bag");
+  eq(["mode"].filter((k) => k in none), [], "E54: no mode");
 }
 
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
@@ -780,6 +795,7 @@ eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextO
   ["per-spawn", true, false, false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · D5's switch is gone");
 eq([ET.CONFIG.hoseWhen, ET.CONFIG.errorOnEmpty], ["always", false], "the hose is always the in-game cursor (Hose ruling, replacing E5) · E6 no ERROR on an empty Enter");
 eq(["vfHides", "adClockTarget", "adNoteFrom", "postItCodes", "placementPoints", "placementTimeoutStart", "progressionOnePhaseWaves"].filter((k) => k in ET.CONFIG), [], "E54: the VF, AD and placement switches are gone with what they set");
+eq(ET.CONFIG.eggTypes, "bag", "⏳ E59 PENDING: eggs come out of the type bag (Chat's playtest, 2026-10-02; E54's all-VS is \"VS\")");
 eq([ET.CONFIG.eggType, ET.CONFIG.hospitalType, ET.CONFIG.hospitalShare, ET.CONFIG.hospitalWindowScale, ET.CONFIG.momSweetUntilWave],
   ["VS", "STR", 0.7, 1, 1], "E52–E56 (ruled 2026-10-02): VS eggs, STR second, 70% hospital, window 1 the same as every egg's, sweet Mom in wave 1");
 eq(ET.CONFIG.devModePasswordHash, null, "⏳ D3: no phrase set yet, so Developer Mode denies every entry");

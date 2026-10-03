@@ -34,6 +34,12 @@
     // egg is laid with a VS; a hospital egg needs RCAV, then CAV #### STR, in the same hatch window (E53). Both CAVs'
     // durations come from Andrew's table as it is: the game won't start without a VS and an STR row.
     eggType: "VS",
+    // ⏳ E59 PENDING (Chat): Chat's playtest (2026-10-02) found every egg a VS and asked for the other types back. E54
+    // made every egg a VS on purpose; Code restored the pre-E54 shuffle bag as the smallest fix. "bag": each wave a
+    // fresh bag (E20) holds every row of the table once, shuffled on the game's own source, refilled when empty (E19);
+    // not the STR (it is only the hospital step) and not a two-phase-only row (VF: E54 took out the placement step it
+    // needs). Only a VS can be a hospital egg. "VS": E54 as built, every egg a VS.
+    eggTypes: "bag",
     hospitalType: "STR",
     hospitalShare: 0.7,      // [T] E56 (ruled): about 70% are hospital eggs, a plain random roll per egg
     // E53 (ruled: "playtest the window early; if it's too tight, propose a longer window for hospital eggs only"): a
