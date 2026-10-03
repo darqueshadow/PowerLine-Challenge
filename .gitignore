@@ -46,8 +46,13 @@ Game/C64/disk-art/*
 # library above and photographs the result for a human eye: the first run caught
 # a commercial game's box art in the preview frame and a crack group's trainer
 # screen on the C64. The rig rewrites it every run, so it stays on disk and out
-# of git. (verify-cat-*.png are tracked: they show the hub with no game running.)
+# of git.
 Game/C64/verify-c64-run.png
+# 🔄 2026-10-02 (Andrew): verify-cat-*.png are OUT of git too. They show the hub
+# with no game running, but the Cracked crate in them lists the cracked library's
+# titles. verify-cat.mjs rewrites them every run, so they stay on disk. Untracked
+# from 2026-10-02 on; earlier copies stay in history (no rewrite, his call).
+Game/C64/verify-cat-*.png
 
 # EmulatorJS self-hosted core data (Game/C64/emulator/data/).
 # Third-party GPL build artefacts, ~10-15MB, fetched per-machine rather than
