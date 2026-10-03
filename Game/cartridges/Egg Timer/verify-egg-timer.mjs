@@ -1166,7 +1166,9 @@ try {
       await c.send("Emulation.setEmulatedMedia", { features: [] });
     }
     eq([sign.plate, sign.h], ["rgb(20, 86, 200)", "rgb(255, 255, 255)"], "E55: the hospital road sign: a white H on blue (never a red cross)");
-    eq([sign.onReadout, sign.onEgg], [false, false], "…on the nest's shoulder, clear of the readout and the egg");
+    eq([sign.onReadout, sign.onEgg], [false, false], "…clear of the readout and the egg");
+    eq(await ev(`(() => { const e = ${q(" .hsign")}, ro = ${q(" .readout")}; return [e.parentNode === ro, !e.classList.contains('tab-b') && e.style.left === '', e.offsetLeft === ro.offsetWidth + 3]; })()`), [true, true, true],
+      "Chat (2026-10-03, G): the H sign is a tab on the timer box, just to its right (only the tab moves; the timer doesn't)");
     eq(await ev(`${q(" .refused")}.hidden`), true, "Chat (2026-10-02): a hospital egg never gets the \"Patient Refused\" bubble");
     await typeAndEnter(`CAV ${h.unit} STR`);
     eq([await ev("__et.boxes().values[0]"), await ev("__et.boxes().error[0]"), await ev("__et.boxes().say.text")], ["", true, "RCAV first!"], "E53: CAV STR before the RCAV: the line clears and says \"RCAV first!\"");
@@ -1228,10 +1230,10 @@ try {
     await ev(`(() => { for (let i = 0; i < 200 && __et.snapshot().nests.find(n => n.id === ${r.id}).state !== 'active'; i++) __et.advance(0.05); return 1; })()`);
     const bub = await ev(`(() => { const e = ${q(" .refused")}, b = e.getBoundingClientRect(), t = ${q(" .clock")}.getBoundingClientRect(), ro = [...${q("")}.querySelectorAll('.readout > span')].map(x => x.getBoundingClientRect());
       const hit = (a, c) => a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom;
-      return { shown: !e.hidden && e.offsetWidth > 30, text: e.textContent, above: b.bottom <= t.top, onReadout: ro.some(x => hit(b, x)), sign: ${q(" .hsign")}.hidden,
+      return { shown: !e.hidden && e.offsetWidth > 30, text: e.textContent, above: e.parentNode.classList.contains('readout'), spot: e.classList.contains('tab-b') ? 'below the timer' : e.style.left !== '' ? 'the shoulder' : 'right of the timer', onReadout: ro.some(x => hit(b, x)), sign: ${q(" .hsign")}.hidden,
         bg: getComputedStyle(e).backgroundColor, ink: getComputedStyle(e).color, anim: getComputedStyle(e).animationName, z: Number(getComputedStyle(e).zIndex) < Number(getComputedStyle(${q(" .mess")}).zIndex) }; })()`);
     ok(bub.shown && bub.text === "PatientRefused" && bub.anim === "refused-in, mark-bounce" && bub.sign, `…from the pop: the bubble reads "Patient Refused" (no H sign), fading in   [${bub.text}, ${bub.anim}]`);
-    ok(bub.above && !bub.onReadout && bub.z, "…above the timer, clear of every readout box, and the gunk covers it as it covers the H sign (E14)");
+    ok(bub.above && !bub.onReadout && bub.z, `…a tab on its timer box (Chat, 2026-10-03, G), else on the shoulder; clear of every readout box, and the gunk covers it as it covers the H sign (E14)   [${bub.spot}; ${[bub.above, bub.onReadout, bub.z]}]`);
     eq([bub.bg, bub.ink], ["rgb(255, 182, 39)", "rgb(42, 26, 0)"], "Chat (2026-10-03, B): …amber with dark lettering (no white fill; not red, pink or green)");
     await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${r.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
     eq(await ev(`${q(" .refused")}.hidden`), false, "…still there while it cracks");
@@ -1728,7 +1730,9 @@ try {
       const keepOff = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0)
         .concat(nests.map(x => x.art), warpWords.filter(r => r.width > 0));
       const bubbleBad = bubbles.filter((r, i) => keepOff.some(o => hit(r, o)) || bubbles.some((o, j) => j !== i && hit(r, o)) || r.left < f.left || r.right > f.right).length;
-      const bubbleAbove = [...document.querySelectorAll('.nest')].every(n => n.querySelector('.refused').getBoundingClientRect().bottom <= n.querySelector('.clock').getBoundingClientRect().top);
+      // G (2026-10-03): every bubble is a tab on its timer box (right of it, else below it), or on the shoulder where neither has room
+      const bubSpots = [...document.querySelectorAll('.nest')].map(n => { const e = n.querySelector('.refused'); return e.classList.contains('tab-r') ? 'R' : e.classList.contains('tab-b') ? 'B' : e.style.left !== '' ? 'S' : '?'; });
+      const bubbleAbove = !bubSpots.includes('?'), bubbleShoulder = bubSpots.map((x, i) => x === 'S' ? i : null).filter(x => x !== null);
       const bubbleSize = Math.round(Math.min(...bubbles.map(r => r.width)));
       // …and never over its own unit number or timer (above them, whichever shoulder it's on)
       const bubbleOwn = [...document.querySelectorAll('.nest')].every(n => { const b = n.querySelector('.refused').getBoundingClientRect(); return [...n.querySelectorAll('.readout > span')].every(x => !hit(b, x.getBoundingClientRect())); });
@@ -1778,20 +1782,23 @@ try {
           n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.animation = 'none'; }); });
         ET.view.placeMarks();
         const items = [];
-        ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { if (!e.hidden) items.push({ n, r: e.getBoundingClientRect() }); }));
+        ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { if (!e.hidden) items.push({ n, e, r: e.getBoundingClientRect() }); }));
         const ro = [...document.querySelectorAll('.nest .readout > span')].map(e => e.getBoundingClientRect());
         const fx = [...document.querySelectorAll('#hose-tag, #trough > *, .wallclock, #console .box')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0).concat(warpWords.filter(r => r.width > 0));
-        const bad = items.filter(it => { const r = it.r, own = nests[ns.indexOf(it.n)];
-          const eg = { left: own.art.left + (own.art.right - own.art.left) * 0.27, right: own.art.right - (own.art.right - own.art.left) * 0.27, top: own.art.top, bottom: own.art.bottom - (own.art.bottom - own.art.top) * 0.3 };
-          return ro.some(o => hit(r, o)) || nests.some((x, j) => ns[j] !== it.n && hit(r, x.art)) || fx.some(o => hit(r, o)) || items.some(o => o !== it && hit(r, o.r))
-            || r.left < f.left - 1 || r.right > f.right + 1 || r.top < f.top - 1; }).length;
+        const why = [];
+        const bad = items.filter(it => { const r = it.r, w = [];
+          if (ro.some(o => hit(r, o))) w.push('readout'); if (nests.some((x, j) => ns[j] !== it.n && hit(r, x.art))) w.push('nest'); { const k = fx.findIndex(o => hit(r, o)); if (k >= 0) w.push('fixed#' + k + '@' + [fx[k].left, fx[k].top, fx[k].right, fx[k].bottom].map(Math.round) + ' vs ' + [r.left, r.top, r.right, r.bottom].map(Math.round)); }
+          const o2 = items.find(o => o !== it && hit(r, o.r)); if (o2) w.push(o2.n.dataset.id + ':' + o2.e.className);
+          if (r.left < f.left - 1 || r.right > f.right + 1 || r.top < f.top - 1) w.push('edge');
+          if (w.length && why.length < 3) why.push(it.n.dataset.id + ' ' + it.e.className + ' ' + w.join('+'));
+          return w.length; }).length;
         // …and at the bottom of the bounce's dip (Chat, 2026-10-03, C), the most it moves from where it stands
         ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { if (!e.hidden) e.style.transform = 'translateY(7%) scale(1.04, 0.94)'; }));
         const dip = [];
         ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { if (!e.hidden) dip.push({ n, r: e.getBoundingClientRect() }); }));
         const dipBad = dip.filter(it => ro.some(o => hit(it.r, o)) || nests.some((x, j) => ns[j] !== it.n && hit(it.r, x.art)) || fx.some(o => hit(it.r, o)) || dip.some(o => o !== it && hit(it.r, o.r))).length;
         ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.transform = ''; }));
-        const out = { bad: bad + dipBad, flips: ns.filter(n => n.querySelector('.hsign.flip, .refused.flip')).map(n => n.dataset.id), skipped: ns.filter(n => n.querySelector(n.dataset.mk === 'h' ? '.bld.hosp' : '.bld.house').hidden).map(n => n.dataset.id),
+        const out = { why, bad: bad + dipBad, flips: ns.filter(n => n.querySelector('.hsign.flip, .refused.flip')).map(n => n.dataset.id), skipped: ns.filter(n => n.querySelector(n.dataset.mk === 'h' ? '.bld.hosp' : '.bld.house').hidden).map(n => n.dataset.id),
           sign: Math.round(ns[0].querySelector('.hsign').getBoundingClientRect().width) };
         ns.forEach(n => { n.querySelector('.hsign').hidden = true; n.querySelector('.refused').hidden = true; n.querySelectorAll('.bld').forEach(d => { d.hidden = true; d.classList.remove('flip'); }); n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.animation = ''; e.classList.remove('flip'); }); });
         return out;
@@ -1813,7 +1820,7 @@ try {
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { markRuns, pumpBad, fuelSpill, fuelPx, pumpPx, rejectInWindow, noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { bubbleShoulder, markRuns, pumpBad, fuelSpill, fuelPx, pumpPx, rejectInWindow, noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1825,10 +1832,10 @@ try {
     }
     eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading fits inside its box   ${at}`);
     ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
-    ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleOwn && lay.bubbleSize >= 44, `Chat (2026-10-02/03): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout (their own unit and timer too), nest, Command Line, the trough, the hose tag, the wall clock, each other and Time Warp's sign and caption   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide, ${lay.flipped} flipped to the other shoulder]`);
+    ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleOwn && lay.bubbleSize >= 44, `Chat (2026-10-02/03): all 12 "Patient Refused" bubbles are tabs on their timers (G), else on the shoulder, on the board, clear of every readout (their own unit and timer too), nest, Command Line, the trough, the hose tag, the wall clock, each other and Time Warp's sign and caption   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide, on the shoulder: ${lay.bubbleShoulder.join(" ") || "none"}]`);
     {
       const m = lay.markRuns;
-      ok(Object.values(m).every((x) => x.bad === 0), `Chat (2026-10-03, A and B): the 1.4× H sign or the bigger amber bubble, with its hospital or house, placed by the game, touch no readout, other nest, own egg, Time Warp's words, hose tag, trough, Command Line or each other, all hospital, all refusal and both mixes   ${at} [${Object.entries(m).map(([k, x]) => k + " " + x.bad).join(", ")}; sign ${m.h.sign} px; flipped ${m.h.flips.join(" ") || "none"}; hospitals skipped ${m.h.skipped.join(" ") || "none"}; houses skipped ${m.r.skipped.join(" ") || "none"}]`);
+      ok(Object.values(m).every((x) => x.bad === 0), `Chat (2026-10-03, A and B): the 1.4× H sign or the bigger amber bubble, with its hospital or house, placed by the game, touch no readout, other nest, own egg, Time Warp's words, hose tag, trough, Command Line or each other, all hospital, all refusal and both mixes   ${at} [${Object.entries(m).map(([k, x]) => k + " " + x.bad).join(", ")}; sign ${m.h.sign} px; ${Object.values(m).map((x) => x.why.join(" | ")).filter(Boolean).join(" / ")}; flipped ${m.h.flips.join(" ") || "none"}; hospitals skipped ${m.h.skipped.join(" ") || "none"}; houses skipped ${m.r.skipped.join(" ") || "none"}]`);
     }
     ok(lay.pumpBad === 0 && lay.fuelSpill === 0, `Chat (2026-10-03): every VF's pump stays clear of every readout and every other nest, and FUELING fits its timer box   ${at} [${lay.pumpBad} touching, pump ${lay.pumpPx} px wide, FUELING in ${lay.fuelPx} px type]`);
     ok(lay.noteOneBad === 0 && lay.noteAllBad === 0, `Chat (2026-10-03): the AD "Clear @" note sits beside its nest clear of every readout, nest, H sign, bubble, other note, Time Warp's words, the trough, the hose tag and the wall clock, one at a time with every other nest's sign or bubble and building up where the game puts them, and all 12 at once   ${at} [${lay.noteOneBad} + ${lay.noteAllBad} touching, ${lay.noteSize.join("×")} px, ${lay.noteHigh} on a shoulder with all 12 up]`);

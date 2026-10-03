@@ -962,11 +962,26 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .refused::after { left: calc(0.5em + 3px); margin-top: -3px; width: calc(1.15em - 4px); height: calc(0.95em - 3px); background: var(--refused-bg); }
 /* Chat (2026-10-03): where Time Warp's sign or caption is in the way, the bubble sits on the nest's other shoulder (view.js
    adds .flip), its tail turned to point back down at the egg */
-.refused.flip { left: auto; right: 93%; }
 .refused.flip::before, .refused.flip::after { clip-path: polygon(100% 100%, 70% 0, 0 0); }
 .refused.flip::before { left: auto; right: 0.5em; }
 .refused.flip::after { left: auto; right: calc(0.5em + 3px); }
 @keyframes refused-in { from { opacity: 0; } to { opacity: 1; } }
+/* Chat (2026-10-03, G): in play the H sign and the bubble are TABS on the timer box (they live in the readout; only the
+   tab bounces, the timer doesn't move). view.js picks the spot: right of the timer (.tab-r), else hanging below it
+   (.tab-b), else (the bubble, on a few nests at the smaller sizes) the nest's shoulder, its old place, set in px. The H
+   sign is 1.6× its first size (it fits at every size as a tab), the plate alone. */
+.readout { --tabw: clamp(21px, calc(min(15.5cqw, 23cqh) * 0.258), 52px); }
+.readout > .hsign { width: var(--tabw); right: auto; margin: 0; }
+.readout > :is(.hsign, .refused) { left: calc(100% + 3px); right: auto; top: 0; bottom: 0; margin: auto 0; height: fit-content; transform-origin: 0 50%; }   /* .tab-r, the default */
+.readout > :is(.hsign, .refused).tab-b { left: auto; right: 0; top: calc(100% + 4px); bottom: auto; margin: 0; transform-origin: 50% 0; }
+.readout > .refused.tab-b { top: calc(100% + 0.8em); }
+/* the bubble's tail points up toward its egg: up-left from a tab beside the timer, straight up from one below it */
+.readout > .refused:is(.tab-r, .tab-b)::before, .readout > .refused:is(.tab-r, .tab-b)::after { top: auto; bottom: 100%; clip-path: polygon(0 0, 35% 100%, 100% 100%); }
+.readout > .refused:is(.tab-r, .tab-b)::before { left: 0.3em; margin: 0 0 -1px; }
+.readout > .refused:is(.tab-r, .tab-b)::after { left: calc(0.3em + 3px); margin: 0 0 -3px; }
+.readout > .refused.tab-b::before, .readout > .refused.tab-b::after { clip-path: polygon(50% 0, 0 100%, 100% 100%); }
+.readout > .refused.tab-b::before { left: auto; right: 1em; }
+.readout > .refused.tab-b::after { left: auto; right: calc(1em + 2px); }
 
 /* Chat (2026-10-03): the AD "Clear @ HH:MM" note, back in a new spot: stuck on beside its own nest at the egg's height,
    tilted like a note slapped on, on the side view.js picks (away from the centre if that's clear). The look Andrew

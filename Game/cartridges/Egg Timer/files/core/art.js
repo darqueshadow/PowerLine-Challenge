@@ -167,11 +167,12 @@
 
     /* E55 (ruled 2026-10-02; ⏳ placeholder until Gemini's): the hospital marker, the hospital road sign, a white "H" on
        a blue rounded square, on a stake the Queen drops into the nest. Never a red cross (a protected emblem). */
-    hSignEl: function () {
+    hSignEl: function (tab) {
       var d = document.createElement("div");
       d.className = "hsign";
-      var svg = el("svg", { viewBox: "0 0 40 60", "aria-hidden": "true" }, d);
-      el("rect", { class: "stake", x: 17, y: 30, width: 6, height: 28, rx: 2 }, svg);
+      // Chat (2026-10-03, G): in play it is a tab on the timer box, the plate alone; How To Play keeps the stake
+      var svg = el("svg", { viewBox: tab ? "1.5 1.5 37 37" : "0 0 40 60", "aria-hidden": "true" }, d);
+      if (!tab) el("rect", { class: "stake", x: 17, y: 30, width: 6, height: 28, rx: 2 }, svg);
       el("rect", { class: "plate", x: 3, y: 3, width: 34, height: 34, rx: 8 }, svg);
       el("path", { class: "h", d: "M12 10 V30 M28 10 V30 M12 20 H28" }, svg);
       return d;

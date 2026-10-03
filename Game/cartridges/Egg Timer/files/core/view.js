@@ -1173,13 +1173,13 @@
      other nest, this egg, Time Warp's sign and caption, the hose tag, the trough, the Command Lines and the board's
      edges; never against another nest's marks (the layout rig checks every mix of them at every size). */
   function restRect(v, e) {
-    var n = v.el.getBoundingClientRect(), l = n.left + e.offsetLeft, t = n.top + e.offsetTop;
+    var n = (e.offsetParent || v.el).getBoundingClientRect(), l = n.left + e.offsetLeft, t = n.top + e.offsetTop;
     return { left: l, top: t, right: l + e.offsetWidth, bottom: t + e.offsetHeight };
   }
   function markKeepOff(v) {
     var out = [];
     nests.forEach(function (n) {
-      [].forEach.call(n.readout.children, function (e) { out.push(e.getBoundingClientRect()); });
+      [].forEach.call(n.readout.querySelectorAll(":scope > span"), function (e) { out.push(e.getBoundingClientRect()); });   // the three boxes (the tabs live in the readout too, G)
       var s = n.svg.getBoundingClientRect();
       if (n !== v) out.push({ left: s.left + s.width * 0.1, right: s.right - s.width * 0.1, top: s.top + s.height * 0.2, bottom: s.bottom - s.height * 0.1 });
       else out.push({ left: s.left + s.width * 0.315, right: s.right - s.width * 0.315, top: s.top + s.height * 0.22, bottom: s.top + s.height * 0.745 });   // its own egg, full grown
@@ -1190,20 +1190,41 @@
   }
   /* Where a nest's marks go for `kind` ("h": the H sign and the hospital; "r": the bubble and the house): the mark's
      shoulder, and whether the building fits. Decided from the layout boxes, so it is the same however often it's asked. */
-  function decideMarks(v, kind) {
+  function decideMarks(v, kind, markOnly) {
     var mark = kind === "h" ? v.hsign : v.refused, bld = kind === "h" ? v.hosp : v.house || null;
     var keep = markKeepOff(v), b = board.getBoundingClientRect();
-    var clear = function (e) {
-      var r = restRect(v, e);
+    var clear = function (e, more) {
+      var r = restRect(v, e), list = more ? keep.concat(more) : keep;
+      r.bottom += (r.bottom - r.top) * 0.08 + 1;   // room for the bounce's dip below it (C: 7% down, a little squash)
       if (r.left < b.left - 1 || r.right > b.right + 1 || r.top < b.top - 1) return false;
-      return !keep.some(function (k) { return k.left < r.right - 0.5 && r.left < k.right - 0.5 && k.top < r.bottom - 0.5 && r.top < k.bottom - 0.5; });
+      return !list.some(function (k) { return k.left < r.right + 0.5 && r.left < k.right + 0.5 && k.top < r.bottom + 0.5 && r.top < k.bottom + 0.5; });   // half a pixel clear, never touching
     };
-    mark.classList.remove("flip");
-    var flip = false;
-    if (!clear(mark)) { mark.classList.add("flip"); flip = clear(mark); if (!flip) mark.classList.remove("flip"); }
-    var fits = false;
-    if (bld) { bld.classList.toggle("flip", flip); fits = clear(bld); }
-    return { mark: mark, bld: bld, flip: flip, fits: fits };
+    // G (Chat, 2026-10-03): a tab on the timer box, to its right, else hanging below it; where neither has room (the
+    // bubble, on a few nests at the smaller sizes), back on the nest's shoulder, its old place, not attached
+    var spots = ["tab-r", "tab-b", "shoulder", "shoulder-l"], spot = null;
+    for (var i = 0; i < spots.length && !spot; i++) { markSpot(v, mark, spots[i]); if (clear(mark)) spot = spots[i]; }
+    if (!spot) markSpot(v, mark, spot = "tab-r");
+    var flip = spot === "shoulder-l", fits = false;
+    // the building also keeps off every other nest's sign and bubble, where those go (G: a bubble hanging below its
+    // timer can reach the next row's shoulder); marks are placed first and never look at buildings, so this can't loop
+    if (bld && !markOnly) {
+      var others = [];
+      nests.forEach(function (n) { if (n !== v) others.push.apply(others, markOnlyFootprint(n)); });
+      bld.classList.toggle("flip", flip);
+      fits = clear(bld, others);
+    }
+    return { mark: mark, bld: bld, spot: spot, flip: flip, fits: fits };
+  }
+  function markSpot(v, mark, spot) {
+    mark.classList.remove("tab-r", "tab-b", "flip");
+    mark.style.left = mark.style.top = "";
+    if (spot === "tab-r" || spot === "tab-b") { mark.classList.add(spot); return; }
+    // the shoulder, from the nest's box (the mark lives in the readout)
+    var nr = v.el.getBoundingClientRect(), rr = v.readout.getBoundingClientRect(), w = mark.offsetWidth;
+    var x = spot === "shoulder" ? nr.left + nr.width * 0.93 : nr.left + nr.width * 0.07 - w;
+    mark.style.left = (x - rr.left).toFixed(1) + "px";
+    mark.style.top = (nr.top + nr.height * 0.02 - rr.top).toFixed(1) + "px";
+    if (spot === "shoulder-l") mark.classList.add("flip");
   }
   function placeMarks(v, kind) {
     [v.hosp, v.house].forEach(function (o) { if (o && !o.hidden) o.hidden = true; });
@@ -1216,11 +1237,24 @@
   /* For the AD note (2026-10-03): every spot a nest's marks can take, the H sign with its hospital and the bubble with
      its house, as decideMarks places them, measured once per window size. The elements are shown unseen for the
      measuring and put back as they were. */
+  /* Where a nest's sign and bubble go (no buildings), once per window size: what every building keeps off. */
+  function markOnlyFootprint(n) {
+    var key = innerWidth + "x" + innerHeight;
+    if (n.mfpAt === key) return n.mfp;
+    var els = [n.hsign, n.refused];
+    var saved = els.map(function (e) { return [e, e.hidden, e.className, e.style.visibility, e.style.left, e.style.top]; });
+    els.forEach(function (e) { e.hidden = false; e.style.visibility = "hidden"; });
+    var out = ["h", "r"].map(function (kind) { return restRect(n, decideMarks(n, kind, true).mark); });
+    saved.forEach(function (x) { x[0].hidden = x[1]; x[0].className = x[2]; x[0].style.visibility = x[3]; x[0].style.left = x[4]; x[0].style.top = x[5]; });
+    n.mfp = out;
+    n.mfpAt = key;
+    return out;
+  }
   function markFootprint(n) {
     var key = innerWidth + "x" + innerHeight;
     if (n.fpAt === key) return n.fp;
     var els = [n.hsign, n.hosp, n.refused, n.house].filter(Boolean);
-    var saved = els.map(function (e) { return [e, e.hidden, e.className, e.style.visibility]; });
+    var saved = els.map(function (e) { return [e, e.hidden, e.className, e.style.visibility, e.style.left, e.style.top]; });
     els.forEach(function (e) { e.hidden = false; e.style.visibility = "hidden"; });
     var out = [];
     ["h", "r"].forEach(function (kind) {
@@ -1228,7 +1262,7 @@
       out.push(restRect(n, d.mark));
       if (d.bld && d.fits) out.push(restRect(n, d.bld));
     });
-    saved.forEach(function (x) { x[0].hidden = x[1]; x[0].className = x[2]; x[0].style.visibility = x[3]; });
+    saved.forEach(function (x) { x[0].hidden = x[1]; x[0].className = x[2]; x[0].style.visibility = x[3]; x[0].style.left = x[4]; x[0].style.top = x[5]; });
     n.fp = out;
     n.fpAt = key;
     return out;
@@ -1254,7 +1288,7 @@
   function noteKeepOff(v) {
     var out = [], hit = [];
     nests.forEach(function (n) {
-      [].forEach.call(n.readout.children, function (e) { out.push(e.getBoundingClientRect()); });
+      [].forEach.call(n.readout.querySelectorAll(":scope > span"), function (e) { out.push(e.getBoundingClientRect()); });   // the three boxes (the tabs live in the readout too, G)
       var s = n.svg.getBoundingClientRect();
       out.push({ left: s.left + s.width * 0.1, right: s.right - s.width * 0.1, top: s.top + s.height * 0.2, bottom: s.bottom - s.height * 0.1 });
       if (n === v) return;
@@ -1387,9 +1421,10 @@
 
         // E55 (ruled): the hospital road sign, a white H on a blue rounded square on a stake (⏳ placeholder art until
         // Gemini's), dropped into the nest as the egg pops, on its shoulder clear of the egg and the readout
-        var hsign = ET.art.hSignEl();
+        // Chat (2026-10-03, G): the H sign and the bubble are tabs on the timer box, so they live in the readout
+        var hsign = ET.art.hSignEl(true);
         hsign.hidden = true;
-        n.appendChild(hsign);
+        ro.appendChild(hsign);
         // Chat (2026-10-03): its hospital, on the other side of the egg (placeMarks picks the sides, or skips it)
         var hosp = ET.art.hospitalEl();
         hosp.hidden = true;
@@ -1397,7 +1432,7 @@
         // Chat (2026-10-02): a VS refusal egg's "Patient Refused" bubble, in the same place above the timer
         var refused = ET.art.refusedEl();
         refused.hidden = true;
-        n.appendChild(refused);
+        ro.appendChild(refused);
         // Chat (2026-10-03, B): its house, on the other side of the egg (placeMarks picks the sides, or skips it)
         var house = ET.art.houseEl();
         house.hidden = true;

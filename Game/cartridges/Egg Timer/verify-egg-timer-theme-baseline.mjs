@@ -3934,10 +3934,6 @@ export default {
   "margin-top": "-3px",
   "width": "calc(1.15em - 4px)"
  },
- ".refused.flip": {
-  "left": "auto",
-  "right": "93%"
- },
  ".refused.flip::before, .refused.flip::after": {
   "clip-path": "polygon(100% 100%, 70% 0px, 0px 0px)"
  },
@@ -3954,6 +3950,70 @@ export default {
  },
  "@keyframes refused-in » 100%": {
   "opacity": "1"
+ },
+ ".readout > .hsign": {
+  "margin-bottom": "0px",
+  "margin-left": "0px",
+  "margin-right": "0px",
+  "margin-top": "0px",
+  "right": "auto",
+  "width": "RAW <--tabw>"
+ },
+ ".readout > :is(.hsign, .refused)": {
+  "bottom": "0px",
+  "height": "fit-content",
+  "left": "calc(100% + 3px)",
+  "margin-bottom": "auto",
+  "margin-left": "0px",
+  "margin-right": "0px",
+  "margin-top": "auto",
+  "right": "auto",
+  "top": "0px",
+  "transform-origin": "0px 50%"
+ },
+ ".readout > :is(.hsign, .refused).tab-b": {
+  "bottom": "auto",
+  "left": "auto",
+  "margin-bottom": "0px",
+  "margin-left": "0px",
+  "margin-right": "0px",
+  "margin-top": "0px",
+  "right": "0px",
+  "top": "calc(100% + 4px)",
+  "transform-origin": "50% 0px"
+ },
+ ".readout > .refused.tab-b": {
+  "top": "calc(100% + 0.8em)"
+ },
+ ".readout > .refused:is(.tab-r, .tab-b)::before, .readout > .refused:is(.tab-r, .tab-b)::after": {
+  "bottom": "100%",
+  "clip-path": "polygon(0px 0px, 35% 100%, 100% 100%)",
+  "top": "auto"
+ },
+ ".readout > .refused:is(.tab-r, .tab-b)::before": {
+  "left": "0.3em",
+  "margin-bottom": "-1px",
+  "margin-left": "0px",
+  "margin-right": "0px",
+  "margin-top": "0px"
+ },
+ ".readout > .refused:is(.tab-r, .tab-b)::after": {
+  "left": "calc(0.3em + 3px)",
+  "margin-bottom": "-3px",
+  "margin-left": "0px",
+  "margin-right": "0px",
+  "margin-top": "0px"
+ },
+ ".readout > .refused.tab-b::before, .readout > .refused.tab-b::after": {
+  "clip-path": "polygon(50% 0px, 0px 100%, 100% 100%)"
+ },
+ ".readout > .refused.tab-b::before": {
+  "left": "auto",
+  "right": "1em"
+ },
+ ".readout > .refused.tab-b::after": {
+  "left": "auto",
+  "right": "calc(1em + 2px)"
  },
  ".postit": {
   "background-attachment": "initial",
