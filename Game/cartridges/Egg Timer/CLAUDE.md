@@ -13,7 +13,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Live since 2026-09-19** (hub entry in `Game/C64/disks.js`; NB's Rec-Bay 4 table fires).
 - 🚀 **STANDING RULE (Andrew, 2026-09-23; push rule amended 2026-10-02):** Andrew playtests through **Nerva Beacon
   (Rec-Bay 4)**, not localhost. After building anything for Egg Timer: **if BOTH rigs pass, commit; never commit or
-  push with a failing rig.** 🚫 **Never push without Andrew's explicit OK for that push** (root `CLAUDE.md`): before
+  push with a failing rig.** 🚫 **Never push without Andrew's explicit OK for that push** (root `CLAUDE.md`; Chat, 2026-10-03: on his "push", only
+  through `625d7b4` plus PLC's `28ca78d`, unless he names a later commit): before
   asking, run `git log origin/main..main` and list everything that would go out, including other sessions' commits.
   Keep each change in its own commit(s) so any one can be reverted alone. **After each push, tell Andrew in one line
   what went live.** Work Andrew must see first
@@ -23,7 +24,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E62**; open: **E61**, the types reference (combined batch Part 3, stopped));
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E62**; open: **E61**'s layout: where the types reference goes, Andrew's; its rows' wording is ruled);
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -142,7 +143,9 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Command Lines** (never "Command Box", E7): 1–4, **2 by default**. **Tab / Shift+Tab** next / previous; **F12** next,
   clearing the line it lands on (E13). Losing focus pauses; otherwise **Esc, and only Esc, pauses.**
 - **How To Play (E57):** a six-step animated cartoon (`core/howto.js`) on the title and options screens, **Andrew's six
-  captions**, one shared clock, silent, never takes input; the crab (`howtoAlien`) hops in step 6, never a horror alien.
+  captions**, one shared clock, silent, never takes input. **Its Mom (step 5) and hatchling (step 6) are the title
+  screen's code-drawn replicas** (`ET.title.mommy`/`baby`, Chat 2026-10-03), never the Gemini Mom or the crab; the nest,
+  egg, sign and pan are the real art.
   Reduced motion: the still strip (six key frames). **No side panel in play** (E30), **none on game over** (2026-10-01).
   🚨 Signs change ≤ 2/s; every bulb change goes through `set()`'s guard (`lightsMinToggle` ≥ 1/6 s). No CAV durations.
 - **Screens:** title (PRESS ANY KEY until the first press, E40), options, game over (Enter ignored for 1 s and on
@@ -186,8 +189,9 @@ write Egg Timer memories there (auto-memory loads the PLC root index, keyed to t
 
 ## State 2026-10-03
 **Chat's playtest batch, its follow-ups, the AD note and the combined batch's Parts 1–2 built, not pushed**
-(`5267498`..`e35c68c`, one commit an item; packet §11 "Raised by Chat's playtest"). The combined batch stopped at Part 3
-(**E61**: the types reference conflicts with the bubble ruling); Parts 3–5 not built. Next free **E62**. Waiting on Gemini (via Chat's prompts): the H sign and the
+(`5267498`..`e35c68c`, one commit an item; packet §11 "Raised by Chat's playtest"); then Part 5 (`0157faf`) and the Mom
+fade rig fix (`eea0dc9`). **E61:** the rows' wording is ruled; where the reference goes (and Part 4) waits on Andrew.
+Next free **E62**. Waiting on Gemini (via Chat's prompts): the H sign and the
 horror aliens' close-up faces (packet §11, E49, E55). Playtest owed: the hospital window (E53) and the spawn rate (E56).
 Hand tests owed: Mom's visits (both kits, the edge entry, the drool, splat and tongue), the hospital eggs, the cartoon, nozzle lag, Fang
 Rock's title music, held Enter at Game Over, the aliens, the hose's feel and new aim, Q in Rec-Bay 4, real F3, the jump

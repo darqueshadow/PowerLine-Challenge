@@ -1088,3 +1088,21 @@ shown by `.nest.fueling` / `.nest.fueled`.
 frame repaints it away. The bulbs at a 1 s cycle (a swap every 0.5 s) sometimes measured 3 swaps in a second from frame
 jitter; 1.2 s can't. The reduced-motion check on Mom's fade (rig R) once read 1.00 on a busy machine and passed on the
 re-run.
+
+## Built 2026-10-03 — Egg Timer: E61's wording ruled, How To Play's replicas (Part 5), a steady Mom-fade check
+
+**Solved:** Chat's rulings (filed verbatim in `Game/cartridges/Egg Timer/Previous Versions/
+EGG_TIMER_E61_PART5_RULINGS_2026-10-03.md`): **E61**'s rows are settled (row 1: a VS egg with its "Patient Refused" bubble
+beside plain SS, EOS and MB eggs; row 3: "Clear it at the time on the note."; no length note), but **the reference's
+place, the menu move and Part 4 wait on Andrew**; the How To Play panel stays. **Part 5** (`0157faf`): How To Play's
+step 5 Mom and step 6 hatchling are the title screen's code-drawn mommy and two-antenna baby, animated as on the title;
+the nest and egg stay the real art; the game's Gemini Mom and the crab are not drawn there. **The reduced-motion Mom
+fade check** is deterministic (`eea0dc9`). **Push control (Chat):** on Andrew's "push", only through `625d7b4` plus
+PLC's `28ca78d`, unless he names a later commit. Not pushed. Rigs at the end: logic 212/0, browser 653/0.
+**Approach:** `core/title.js` exports `mommy()` and `baby()`; `howto.js` puts a baby (scaled 0.85) in each stage's
+creature slot (`has-art`, so the crab never fills it) and builds step 5's Mom as a clipped SVG painted from the step's own
+clock (in and out over 12% of her visit each, held still under reduced motion), with a CSS plaster shown from
+`momTimeline.mend[0]`. The family's styles now read `:is(#title-scene, .replica)`, and the reduced-motion block stops
+their loops by name, since those ID-weighted rules outranked the plain `* { animation: none }`.
+**If you touch this again:** `.creature .eye` (the hatchling's red eye) would win over a `:where()`-weighted replica
+rule, so keep the `:is(#title-scene, .replica)` weight. Andrew's step 6 caption still says "the crab": his to reword.

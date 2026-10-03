@@ -1,3 +1,12 @@
+> **FILING NOTE — Claude Code, 2026-10-03 (later: Chat's rulings on E61 and Part 5, corrected).** Filed verbatim as
+> `Previous Versions/EGG_TIMER_E61_PART5_RULINGS_2026-10-03.md`. **E61 partly ruled:** row 1 shows a VS egg with its
+> "Patient Refused" bubble, then plain SS, EOS and MB eggs (the bubble ruling stands); row 3's line is "Clear it at the
+> time on the note." (no length note). **Part 3's layout and Part 4 are held** until Andrew says where the reference goes;
+> the How To Play panel stays as it is. **Part 5 built** (`0157faf`): How To Play's Mom (step 5) and hatchling (step 6)
+> are the title screen's code-drawn replicas, animated; the nest and egg stay real art. **The Mom fade rig check is
+> deterministic** (`eea0dc9`). **Push control (Chat):** on Andrew's "push", only through `625d7b4` plus PLC's `28ca78d`,
+> unless he names a later commit. Not pushed.
+
 > **FILING NOTE — Claude Code, 2026-10-03 (Chat's combined batch; Parts 0–2 done, stopped at Part 3).** Filed verbatim
 > as `Previous Versions/EGG_TIMER_COMBINED_BATCH_2026-10-03.md` (it replaces every earlier queued Chat message).
 > **Part 1, E60:** the error plate is in the clock's **pendulum window**, a pinball backglass sign (`b28af64`). **Part 2,
@@ -1182,7 +1191,16 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   100 / 78 / 57 / 49 px wide at the four sizes, clear of every readout and every other nest. *(Code: it reads clearly
   as a pump and is nothing like the yellow hose nozzle; it is flatter than the Gemini nest beside it, a placeholder in
   the same style as the H sign. Chat may want a commissioned piece.)* No VF tag or bubble; "Clear Fueling" is in no code.
-- ⏳ **E61. The types reference (combined batch, Part 3): three things to settle before it's built. PENDING (Chat).**
+- **E61. The types reference. Partly ruled** *(Chat, 2026-10-03: "1. Part 3, row 1: change the row, not the ruling.
+  Show one VS egg with the 'Patient Refused' bubble, then plain SS, EOS and MB eggs beside it. Line unchanged: 'RCAV when
+  the timer runs out.' 2. Part 3, row 3: AD line becomes 'Clear it at the time on the note.' Do not rebuild the length
+  note. 3. Part 3 layout and Part 4: HOLD until Andrew answers where the types reference goes. Do not remove or shrink the
+  How To Play panel.")* So the four rows, when built: **1** a VS egg with its "Patient Refused" bubble, then plain SS,
+  EOS and MB eggs: "RCAV when the timer runs out." **2** a VS egg with its H sign and a tiny replica Mom with a plaster:
+  "Hospital: RCAV, then a new CAV (STR)." **3** the "Clear @ HH:MM" note: "Clear it at the time on the note." **4** the
+  pump and the timer box: "The egg will let you know!" ⏳ **Still open (Andrew's): where the reference goes** (and with it
+  the menu move and Part 4's Alien Time footer). *(Original item follows.)*
+  ⏳ **E61. The types reference (combined batch, Part 3): three things to settle before it's built. PENDING (Chat).**
   **(1) A conflict with a ruling:** row 1 shows the "Patient Refused" bubble beside SS, EOS and MB eggs, but in play
   those never get it: Chat's 2026-10-02 ruling (item 3) gives the bubble to **VS refusal eggs only** ("Other CAV types
   get neither the sign nor the bubble"), and the reference is to show the real tags as players see them. Either the
@@ -1193,6 +1211,19 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   "move the menu to the opposite side" needs that panel to move or go. Which? **Parts 4 (the Alien Time footer, under
   the reference) and 5 (replica art) wait with it**, since Code stopped at Part 3 as the ground rules say. Needed: (1),
   (2), (3), and a word to go on with 4 and 5.
+- **Part 5, replica art on How To Play (built 2026-10-03, `0157faf`).** *(Chat, corrected the same day: "use the SAME
+  goofy title-screen replicas for BOTH Mom and the hatchlings. Do not use the game's Gemini Mom or the real crab
+  hatchling there.")* **Swapped:** step 5's Mom, the game's Gemini sweet Mom (the Mom kit's visit), is now **the title
+  screen's code-drawn mommy** (three eyes on stalks, apron with a heart, the too-wide smile), sliding down from the top of
+  the stage, swaying and winking as on the title, and putting on a **code-drawn plaster** (tan, off-white pad, thick
+  outline) as the cracks close; step 6's hatchling, the crab puppet, is now **the title's two-antenna baby** (bobbing and
+  singing), hatching and doing the goofy hop. **Kept as the real game art:** the nest, the egg, the cord, the H sign, the
+  pan, the readout. The babies are unchanged (two antennae). Reduced motion: the still strip, each in its final pose,
+  nothing moving. **How it looks:** the replicas are flat bright cartoon next to the textured Gemini nest; they read
+  clearly and fit the card's cartoon look, but the change of style shows. *(Code: Andrew's step 6 caption still says "the
+  crab dances and does its goofy hop"; it is his wording, so it is unchanged: his call whether to reword it.)* The game's
+  Mom (in play) and the crab (in play) are unchanged. The title's own family loops are now also stopped under reduced
+  motion (their ID-weighted rules had outranked the stop).
 - ⏳ **E60. Where the rejected-Enter words go when "above the clock" is taken.** **"drop" approved** *(Chat,
   2026-10-03: "It must never cover the Time Warp sign or its caption. Report whether the clock face has anything players
   need (digits, hands) in the covered top strip at any size; if so, tell me before shipping and propose where the message

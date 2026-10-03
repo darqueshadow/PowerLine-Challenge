@@ -472,6 +472,12 @@ y= 48 └───────────────────────�
 
 ---
 
+## How To Play uses the title's replicas (Andrew's ruling via Chat, 2026-10-03)
+
+> The How To Play cartoon's Mom (step 5) and hatchling (step 6) are now **the title scene's code-drawn mommy and baby**
+> (slot 6's family, `core/title.js`), not the Mom kit or the crab puppet. So a Gemini version of the title family (slot 6)
+> would change How To Play too. The plaster Mom puts on there is code-drawn. Nothing to commission (Chat: ask first).
+
 ## Not a slot yet: VF's alien fuel pump (code-drawn, 2026-10-03)
 
 > Chat's combined batch (Part 2) brought VF back with an **alien fuel pump** that stands in the egg while it fuels and
