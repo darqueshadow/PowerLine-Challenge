@@ -1220,6 +1220,31 @@ try {
     ok(!!other && other[0] !== "VS" && other[1] === false && other[2] && other[3], `…another CAV type gets neither the H sign nor the bubble, even with every VS a hospital egg   [${other}]`);
   }
   {
+    // Chat (2026-10-03, combined batch Part 2): a VF fuels: FUELING in its timer box, its pump in the egg; DONE in green as
+    // it goes bold (the RCAV window opens then), then the ordinary pink timer. Its clock runs on, hidden.
+    const vf = await ev(`(() => { __et.start(1, { hospital: 0, eggTypes: "bag" }); let n = null;
+      const clr = (keep) => __et.snapshot().nests.filter(x => x.state === 'overtime' && x.id !== keep).forEach(x => { __et.submit('RCAV ' + x.unit); if (x.hospital) __et.submit('CAV ' + x.unit + ' STR'); });
+      for (let i = 0; i < 20000 && !(n = __et.snapshot().nests.find(x => x.state === 'active' && x.code === 'VF')); i++) { __et.advance(0.05); clr(-1); }
+      if (!n) return null; __et.advance(0.5); clr(n.id);
+      const e = document.querySelector('.nest[data-id="' + n.id + '"]'), q = (s) => e.querySelector(s);
+      const e0 = __et.snapshot().nests.find(x => x.id === n.id).elapsed; __et.advance(2); const e1 = __et.snapshot().nests.find(x => x.id === n.id).elapsed;
+      return { id: n.id, unit: n.unit, text: q('.clock').textContent, unitShown: q('.unit').textContent === n.unit, code: q('.code').textContent,
+        ink: getComputedStyle(q('.clock')).color, fits: q('.clock').scrollWidth <= q('.clock').clientWidth + 0.5, pump: getComputedStyle(q('.pump')).display, runs: e1 > e0,
+        early: (__et.submit('RCAV ' + n.unit) || {}).early }; })()`);
+    ok(!!vf && vf.text === "FUELING" && vf.unitShown && vf.code === "VF" && vf.ink === "rgb(155, 134, 168)" && vf.fits, `a VF fuels: its timer box says a dim FUELING (fitting the box); the unit and "VF" stay   [${vf && vf.text}]`);
+    ok(!!vf && vf.pump === "inline" && vf.runs && vf.early === true, "…its alien pump stands in the egg; its clock runs on, hidden, and an RCAV now is \"Too Early!\"");
+    const done = await ev(`(() => { const id = ${vf.id}; for (let i = 0; i < 40000 && __et.snapshot().nests.find(n => n.id === id).state !== 'overtime'; i++) {
+        __et.advance(0.05); __et.snapshot().nests.filter(n => n.state === 'overtime' && n.id !== id).forEach(n => { __et.submit('RCAV ' + n.unit); if (n.hospital) __et.submit('CAV ' + n.unit + ' STR'); }); }
+      const e = document.querySelector('.nest[data-id="' + id + '"]'), c = e.querySelector('.clock');
+      const a = { text: c.textContent, bg: getComputedStyle(c).backgroundColor, anim: getComputedStyle(c).animationName, out: getComputedStyle(e.querySelector('.pump')).animationName, since: __et.snapshot().nests.find(n => n.id === id).sinceBold };
+      __et.advance(ET.CONFIG.vfDoneSeconds + 0.05);
+      const b = { text: c.textContent, bg: getComputedStyle(c).backgroundColor, pump: getComputedStyle(e.querySelector('.pump')).display };
+      return { a, b }; })()`);
+    ok(done.a.text === "DONE" && done.a.bg === "rgb(36, 196, 90)" && done.a.anim === "fuel-done" && done.a.out === "pump-out" && done.a.since < 0.1, `…as it goes bold the box turns green and says DONE with one soft pulse, and the pump pulls out   [${done.a.text}, ${done.a.bg}]`);
+    ok(/^\d\d:\d\d$/.test(done.b.text) && done.b.bg === "rgb(209, 0, 106)" && done.b.pump === "none", `…then, after ${await ev("ET.CONFIG.vfDoneSeconds")} s, the ordinary pink bold timer   [${done.b.text}, ${done.b.bg}]`);
+    ok((await ev(`(__et.submit('RCAV ${vf.unit}') || {}).ok`)) === true, "…and an RCAV clears it, as any egg");
+  }
+  {
     // Chat (2026-10-03): an AD egg's "Clear @ HH:MM" note, back, stuck on beside its nest, from the pop until it's cleared
     const ad = await ev(`(() => { __et.start(1, { hospital: 0, eggTypes: "bag" }); let n = null;
       for (let i = 0; i < 6000 && !(n = __et.snapshot().nests.find(x => x.state === 'active' && x.code === 'AD')); i++) __et.advance(0.05);
@@ -1680,6 +1705,16 @@ try {
       const bubbleSize = Math.round(Math.min(...bubbles.map(r => r.width)));
       // …and never over its own unit number or timer (above them, whichever shoulder it's on)
       const bubbleOwn = [...document.querySelectorAll('.nest')].every(n => { const b = n.querySelector('.refused').getBoundingClientRect(); return [...n.querySelectorAll('.readout > span')].every(x => !hit(b, x.getBoundingClientRect())); });
+      // Chat (2026-10-03, Part 2): every nest fuelling a VF: its pump clear of every readout and every other nest, and
+      // FUELING fitting its timer box
+      const live0 = ET.view.render, nestEls0 = [...document.querySelectorAll('.nest')]; ET.view.render = () => 0;   // hold the frame while the fake fuelling is measured
+      nestEls0.forEach(n => { n.classList.add('fueling'); n.querySelector('.clock').classList.add('fueling'); n.querySelector('.clock').textContent = 'FUELING'; });
+      const roAll = [...document.querySelectorAll('.nest .readout > span')].map(e => e.getBoundingClientRect());
+      const pumpBad = nestEls0.filter((n, i) => { const p = n.querySelector('.pump').getBoundingClientRect(); return p.width < 20 || roAll.some(r => hit(p, r)) || nests.some((x, j) => j !== i && hit(p, x.art)); }).length;
+      const fuelSpill = nestEls0.filter(n => { const c = n.querySelector('.clock'); return c.scrollWidth > c.clientWidth + 0.5 || c.scrollHeight > c.clientHeight + 0.5; }).length;
+      const fuelPx = parseFloat(getComputedStyle(nestEls0[0].querySelector('.clock')).fontSize).toFixed(1), pumpPx = Math.round(nestEls0[0].querySelector('.pump').getBoundingClientRect().width);
+      nestEls0.forEach(n => { n.classList.remove('fueling'); n.querySelector('.clock').classList.remove('fueling'); n.querySelector('.clock').textContent = '88:88'; });
+      ET.view.render = live0;
       // Chat (2026-10-03): the AD "Clear @" note. (A) one at a time, with every other nest's H sign and bubble (either
       // shoulder) up; (B) all 12 at once: never on a readout, a nest, a marker, another note, Time Warp's sign or caption,
       // the trough, the hose tag or the wall clock, and on the board
@@ -1719,7 +1754,7 @@ try {
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { rejectInWindow, noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { pumpBad, fuelSpill, fuelPx, pumpPx, rejectInWindow, noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1732,6 +1767,7 @@ try {
     eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading fits inside its box   ${at}`);
     ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
     ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleOwn && lay.bubbleSize >= 44, `Chat (2026-10-02/03): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout (their own unit and timer too), nest, Command Line, the trough, the hose tag, the wall clock, each other and Time Warp's sign and caption   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide, ${lay.flipped} flipped to the other shoulder]`);
+    ok(lay.pumpBad === 0 && lay.fuelSpill === 0, `Chat (2026-10-03): every VF's pump stays clear of every readout and every other nest, and FUELING fits its timer box   ${at} [${lay.pumpBad} touching, pump ${lay.pumpPx} px wide, FUELING in ${lay.fuelPx} px type]`);
     ok(lay.noteOneBad === 0 && lay.noteAllBad === 0, `Chat (2026-10-03): the AD "Clear @" note sits beside its nest clear of every readout, nest, H sign, bubble, other note, Time Warp's words, the trough, the hose tag and the wall clock, one at a time with every marker up and all 12 at once   ${at} [${lay.noteOneBad} + ${lay.noteAllBad} touching, ${lay.noteSize.join("×")} px, ${lay.noteHigh} on a shoulder with all 12 up]`);
     ok(lay.rejectHits === 0 && lay.rejectOk && lay.rejectInWindow, `E60 (Chat, 2026-10-03): the rejected-Enter plate sits in the clock's pendulum window, below its face (the "5×" label included) and above the TIME WARP sign, clear of the caption, every nest, readout, Command Line, the trough, the hose tag and the wall clock   ${at} [${lay.rejectHits} touching, ${lay.rejectBox.join("×")} px in a ${lay.rejectOnClock} px window, ${lay.clockTall} px type]`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);

@@ -1693,7 +1693,7 @@ export default {
  "#reject::before": {
   "animation-delay": "0s",
   "animation-direction": "normal",
-  "animation-duration": "1s",
+  "animation-duration": "1.2s",
   "animation-fill-mode": "none",
   "animation-iteration-count": "infinite",
   "animation-name": "reject-bulbs",
@@ -3435,6 +3435,98 @@ export default {
   "background-size": "initial",
   "color": "rgb(255, 255, 255)"
  },
+ ".nest .readout .clock.fueling": {
+  "color": "rgb(155, 134, 168)",
+  "font-size": "0.7em",
+  "line-height": "calc(1.78571)",
+  "min-width": "calc(7.14286ch)",
+  "padding-bottom": "calc(0.142857em)",
+  "padding-left": "calc(0.428571em)",
+  "padding-right": "calc(0.428571em)",
+  "padding-top": "calc(0.142857em)"
+ },
+ ".nest.bold .readout .clock.done": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.3s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "1",
+  "animation-name": "fuel-done",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-out",
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(36, 196, 90)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "color": "rgb(4, 23, 12)"
+ },
+ "@keyframes fuel-done » 50%": {
+  "transform": "scale(1.12)"
+ },
+ ".nest-art .pump": {
+  "display": "none"
+ },
+ ".nest.fueling .nest-art .pump, .nest.fueled .nest-art .pump": {
+  "display": "inline"
+ },
+ ".nest.fueled .nest-art .pump": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "0.4s",
+  "animation-fill-mode": "forwards",
+  "animation-iteration-count": "1",
+  "animation-name": "pump-out",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in"
+ },
+ "@keyframes pump-out » 100%": {
+  "opacity": "0",
+  "transform": "translate(14px, -26px)"
+ },
+ ".pump .pump-hose-edge": {
+  "fill": "none",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-linecap": "round",
+  "stroke-width": "11"
+ },
+ ".pump .pump-hose": {
+  "fill": "none",
+  "stroke": "rgb(58, 60, 74)",
+  "stroke-linecap": "round",
+  "stroke-width": "7"
+ },
+ ".pump .pump-body": {
+  "fill": "rgb(25, 181, 163)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2.5"
+ },
+ ".pump .pump-grip": {
+  "fill": "rgb(46, 47, 59)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
+ },
+ ".pump .pump-spout": {
+  "fill": "rgb(201, 210, 220)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-linejoin": "round",
+  "stroke-width": "2"
+ },
+ ".pump .pump-light": {
+  "fill": "rgb(125, 255, 106)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
+ },
  ".nest[data-state=\"idle\"] .readout, :is(.nest, .toon)[data-state=\"splat\"] .readout, :is(.nest, .toon)[data-state=\"escape\"] .readout": {
   "opacity": "0.55"
  },
@@ -4689,7 +4781,10 @@ export default {
  "#over-buttons": {
   "margin-top": "12px"
  },
- "@media (prefers-reduced-motion: reduce) » #reject::before, #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » .nest.fueled .nest-art .pump": {
+  "display": "none"
+ },
+ "@media (prefers-reduced-motion: reduce) » #reject::before, .nest.bold .readout .clock.done, #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",

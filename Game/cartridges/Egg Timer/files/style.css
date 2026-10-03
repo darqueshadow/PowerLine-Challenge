@@ -368,12 +368,12 @@ h2 {
   white-space: nowrap; pointer-events: none;
 }
 /* E60 (Chat, 2026-10-03): a pinball backglass sign: a ring of bulbs inside the light outline. All the bulbs swap between
-   bright and dim together twice a second (a full on-off each second: inside the 2-a-second cap); a repeat error never
+   bright and dim together every 0.6 s (a full on-off each 1.2 s: well inside the 2-a-second cap); a repeat error never
    restarts them. Reduced motion: lit and still. */
 #reject::before {
   content: ""; position: absolute; inset: 2px; border-radius: 5px; pointer-events: none;
   border: 0.17em dotted var(--bulb-on);
-  animation: reject-bulbs 1s steps(1) infinite;
+  animation: reject-bulbs 1.2s steps(1) infinite;
 }
 @keyframes reject-bulbs { 50% { border-color: var(--bulb-calm); } }
 #warp .case { fill: var(--clock-case); stroke: var(--outline); stroke-width: 2.5; stroke-linejoin: round; }
@@ -858,6 +858,22 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 :is(.nest, .toon).bold .readout { font-weight: 900; }
 :is(.nest, .toon).bold .readout .unit { color: var(--readout-bold-unit-ink); }
 :is(.nest, .toon).bold .readout .clock { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
+/* Chat (2026-10-03): a VF fuelling: "FUELING", dim, small enough to fit the box's MM:SS width and height (7 letters in
+   5); then "DONE" in green, one soft size pulse (no brightness change), held, then the ordinary bold timer */
+.nest .readout .clock.fueling { color: var(--fuel-ink); font-size: 0.7em; line-height: calc(1.25 / 0.7); min-width: calc(5ch / 0.7); padding: calc(0.1em / 0.7) calc(0.3em / 0.7); }
+.nest.bold .readout .clock.done { background: var(--fuel-done-bg); color: var(--fuel-done-ink); animation: fuel-done 0.3s ease-out 1; }
+@keyframes fuel-done { 50% { transform: scale(1.12); } }
+/* its alien pump (art.js), in the nest's own picture: only while it fuels; at DONE it pulls up and away */
+.nest-art .pump { display: none; }
+.nest.fueling .nest-art .pump, .nest.fueled .nest-art .pump { display: inline; }
+.nest.fueled .nest-art .pump { animation: pump-out 0.4s ease-in forwards; }
+@keyframes pump-out { to { transform: translate(14px, -26px); opacity: 0; } }
+.pump .pump-hose-edge { fill: none; stroke: var(--outline); stroke-width: 11; stroke-linecap: round; }
+.pump .pump-hose { fill: none; stroke: var(--pump-hose); stroke-width: 7; stroke-linecap: round; }
+.pump .pump-body { fill: var(--pump-body); stroke: var(--outline); stroke-width: 2.5; }
+.pump .pump-grip { fill: var(--pump-grip); stroke: var(--outline); stroke-width: 1.5; }
+.pump .pump-spout { fill: var(--pump-spout); stroke: var(--outline); stroke-width: 2; stroke-linejoin: round; }
+.pump .pump-light { fill: var(--pump-light); stroke: var(--outline); stroke-width: 1.5; }
 .nest[data-state="idle"] .readout,
 :is(.nest, .toon)[data-state="splat"] .readout,
 :is(.nest, .toon)[data-state="escape"] .readout { opacity: 0.55; }
@@ -1226,7 +1242,8 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 #over-buttons { margin-top: 12px; }   /* Chat ruling, 2026-09-25: the way back to the title screen, and play again */
 
 @media (prefers-reduced-motion: reduce) {
-  #reject::before,
+  .nest.fueled .nest-art .pump { display: none; }   /* Chat (2026-10-03): no pull-out under reduced motion: it is simply gone at DONE */
+  #reject::before, .nest.bold .readout .clock.done,
   #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
   .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
   .nest.scare .creature, :is(.nest, .toon).hop .creature { animation: none; }   /* Andrew, 2026-10-01: the alien sits still in its nest */

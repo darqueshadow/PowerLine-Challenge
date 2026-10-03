@@ -38,8 +38,14 @@
     // made every egg a VS on purpose; Code restored the pre-E54 shuffle bag as the smallest fix. "bag": each wave a
     // fresh bag (E20) holds every row of the table once, shuffled on the game's own source, refilled when empty (E19);
     // not the STR (it is only the hospital step) and not a two-phase-only row (VF: E54 took out the placement step it
-    // needs). Only a VS can be a hospital egg. "VS": E54 as built, every egg a VS.
+    // needs). Only a VS can be a hospital egg. "VS": E54 as built, every egg a VS. (VF joined the bag 2026-10-03, below.)
     eggTypes: "bag",
+    // Chat (2026-10-03, combined batch Part 2): VF is back in the bag as a plain member (its duration from the table).
+    // While it fuels its timer box says FUELING (unit and type stay); when fuelling ends (the moment it goes bold) the box
+    // says DONE in green for vfDoneSeconds (one soft pulse, then held), then it is the normal pink bold timer. A code-drawn
+    // alien pump stands in the egg while it fuels and pulls out at DONE.
+    fuelType: "VF",
+    vfDoneSeconds: 0.9,      // [T] 0.3 s pulse + about 0.6 s held
     hospitalType: "STR",
     hospitalShare: 0.7,      // [T] E56 (ruled): about 70% are hospital eggs, a plain random roll per egg
     // E53 (ruled: "playtest the window early; if it's too tight, propose a longer window for hospital eggs only"): a

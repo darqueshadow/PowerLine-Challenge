@@ -26,6 +26,15 @@
   --reject-bg: #120814;                   /* near-black plum (the rejected-Enter message's plate, Chat 2026-10-02) */
   --reject-ink: #ff6b78;                  /* light alarm red (its words, 6.4:1 on the plate) */
   --reject-edge: #f4eccc;                 /* bone white (its outline) */
+  /* Chat (2026-10-03): VF's fuel pump and its timer box */
+  --pump-body: #19b5a3;                   /* alien-tech teal (the pump) */
+  --pump-grip: #2e2f3b;                   /* charcoal (its chunky grip) */
+  --pump-hose: #3a3c4a;                   /* slate (its stubby hose) */
+  --pump-spout: #c9d2dc;                  /* steel (its spout) */
+  --pump-light: #7dff6a;                  /* alien green (its little light) */
+  --fuel-ink: #9b86a8;                    /* dim plum ("FUELING" on the timer box) */
+  --fuel-done-bg: #24c45a;                /* go green ("DONE") */
+  --fuel-done-ink: #04170c;               /* near-black green (its lettering, 8.6:1) */
   --reject-glow: rgba(255, 107, 120, 0.6); /* its lit lettering's halo (E60's pinball look, 2026-10-03) */
 
   /* Display boxes (the three readouts under each nest) */

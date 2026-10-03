@@ -58,10 +58,11 @@
     // E54: every egg is laid with a VS; a hospital egg's second CAV is the STR. Both from the table as it is.
     this.first = byCode(this.types, C.eggType);
     this.second = byCode(this.types, C.hospitalType);
-    // ⏳ E59: which types eggs are laid with ("bag": the table's rows but the STR and two-phase-only ones; "VS": E54)
+    // E59 (ruled): which types eggs are laid with ("bag": every row of the table but the STR, the hospital step; VF back
+    // in since Chat's combined batch, 2026-10-03; "VS": E54)
     var self = this;
     this.eggTypes = (opts.eggTypes || C.eggTypes) === "VS" ? (this.first ? [this.first] : [])
-      : this.types.filter(function (t) { return t !== self.second && !t.twoPhaseOnly; });
+      : this.types.filter(function (t) { return t !== self.second; });
     this.typeBag = [];
     this.hospitalShare = opts.hospitalShare !== undefined ? opts.hospitalShare : C.hospitalShare;
     // the pool is the distinct unit numbers (Refinement 4 §3); the sheet's five doubles were removed 2026-09-23, this stays as a guard
@@ -536,6 +537,7 @@
           // a repaired egg is already full grown: the STR's clock doesn't shrink it
           grow: running ? (n.repaired ? 1 : Math.min(1, (self.clock - n.startedClock) / Math.max(0.001, n.boldClock - n.startedClock))) : 0,
           // after a hospital egg's RCAV its cracks go on from where they were through the restarted countdown
+          sinceBold: n.state === "overtime" ? t - n.boldAt : null,   // the player's seconds since it went bold (VF's DONE)
           crack: n.state !== "overtime" ? 0 : n.removed ? Math.min(1, n.crackAt + (1 - n.crackAt) * (t - n.resetAt) / Math.max(0.001, n.hatchAt - n.resetAt))
             : Math.min(1, (t - n.boldAt) / Math.max(0.001, n.hatchAt - n.boldAt))
         };

@@ -246,6 +246,16 @@
       /* ⏳ placeholder hatchling (Refinement 5 §4): the thing that escapes is HORRIFIC, the dark side of the
          cute family. Eight jointed legs, a gaunt ribbed body, a cluster of odd-sized red eyes and a split maw of
          needle teeth, drooling. Final art is Gemini's. */
+      // Chat (2026-10-03): a VF's alien fuel pump, drawn in code: a stubby charcoal hose from the upper right, a chunky
+      // teal pump with a dark grip and a green light, its silver spout down in the egg's top. Shown only while the nest
+      // is fuelling (.nest.fueling); it pulls out as DONE shows (style.css). Unlike the player's yellow-and-green hose.
+      var pump = el("g", { class: "pump" }, svg);
+      el("path", { class: "pump-hose-edge", d: "M52 -60 C42 -60 35 -57 26 -48" }, pump);
+      el("path", { class: "pump-hose", d: "M52 -60 C42 -60 35 -57 26 -48" }, pump);
+      el("path", { class: "pump-spout", d: "M-3 -36 L7 -36 L4 -16 L0 -16 Z" }, pump);
+      el("rect", { class: "pump-body", x: -10, y: -56, width: 38, height: 22, rx: 7 }, pump);
+      el("rect", { class: "pump-grip", x: -4, y: -51, width: 22, height: 8, rx: 4 }, pump);
+      el("circle", { class: "pump-light", cx: 22, cy: -47, r: 3 }, pump);
       var bug = el("g", { class: "creature" }, svg);
       var legs = el("g", { class: "legs" }, bug);
       [-10, -3, 4, 11].forEach(function (y, i) {

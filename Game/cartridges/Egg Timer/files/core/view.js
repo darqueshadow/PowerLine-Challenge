@@ -1359,6 +1359,15 @@
         v.unit.textContent = shows ? s.unit : (C.unitAssignment === "per-nest" && s.unit ? s.unit : "----");
         v.code.textContent = shows ? s.code : "";
         v.clock.textContent = s.state === "active" || s.state === "overtime" ? clockText(s.elapsed) : "--:--";
+        // Chat (2026-10-03): a VF's timer box says FUELING while it fuels (its clock runs on, hidden), then DONE in green
+        // for vfDoneSeconds from the moment it goes bold, then the ordinary bold timer; its pump stands in the egg till DONE
+        var vf = s.code === C.fuelType, fueling = vf && s.state === "active", done = vf && s.state === "overtime" && s.sinceBold < C.vfDoneSeconds;
+        if (fueling) v.clock.textContent = "FUELING";
+        else if (done) v.clock.textContent = "DONE";
+        if (v.clock.classList.contains("fueling") !== fueling) v.clock.classList.toggle("fueling", fueling);
+        if (v.clock.classList.contains("done") !== done) v.clock.classList.toggle("done", done);
+        if (el.classList.contains("fueling") !== fueling) el.classList.toggle("fueling", fueling);
+        if (el.classList.contains("fueled") !== done) el.classList.toggle("fueled", done);
 
         el.classList.toggle("bold", s.state === "overtime");
         el.classList.toggle("glow", !!snap.warp && (C.warpGlow === "running" ? (s.state === "active" || s.state === "overtime") : !el.classList.contains("inactive")));
