@@ -3569,6 +3569,18 @@ export default {
   "background-size": "initial",
   "color": "rgb(255, 255, 255)"
  },
+ ".nest.bold .readout .clock.inv": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(255, 255, 255)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "color": "rgb(209, 0, 106)"
+ },
  ".nest .readout .clock.fueling": {
   "color": "rgb(155, 134, 168)",
   "font-size": "0.7em",

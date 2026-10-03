@@ -539,6 +539,9 @@
           // after a hospital egg's RCAV its cracks go on from where they were through the restarted countdown
           sinceBold: n.state === "overtime" ? t - n.boldAt : null,   // the player's seconds since it went bold (VF's DONE)
           sinceRemoved: n.removed ? t - n.resetAt : null,             // J: the player's seconds since a hospital egg's RCAV
+          // K: the countdown it's in (from bold, or from a hospital egg's RCAV) and how far through it, 0–1
+          winStart: n.state === "overtime" ? (n.removed ? n.resetAt : n.boldAt) : null,
+          winShare: n.state === "overtime" ? Math.max(0, Math.min(1, (t - (n.removed ? n.resetAt : n.boldAt)) / Math.max(0.001, n.hatchAt - (n.removed ? n.resetAt : n.boldAt)))) : null,
           crack: n.state !== "overtime" ? 0 : n.removed ? Math.min(1, n.crackAt + (1 - n.crackAt) * (t - n.resetAt) / Math.max(0.001, n.hatchAt - n.resetAt))
             : Math.min(1, (t - n.boldAt) / Math.max(0.001, n.hatchAt - n.boldAt))
         };

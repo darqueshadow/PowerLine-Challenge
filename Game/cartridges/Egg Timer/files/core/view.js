@@ -1578,6 +1578,24 @@
         if (v.clock.classList.contains("done") !== done) v.clock.classList.toggle("done", done);
         if (el.classList.contains("fueling") !== fueling) el.classList.toggle("fueling", fueling);
         if (el.classList.contains("fueled") !== done) el.classList.toggle("fueled", done);
+        // K (Chat, 2026-10-03): an overrunning timer box swaps its colours, slow at first, faster toward the hatch, never
+        // more than 2 swaps a second; counted on the player's seconds (a pause holds it); a new countdown (a hospital
+        // egg's RCAV) starts it slow again. Reduced motion: inverted and still for the last third, no swapping.
+        var IV = C.overrunInvert, over = s.state === "overtime" && !done;
+        if (!over) { v.invAt = null; v.invOn = false; }
+        else {
+          // each gap is set as the swap before it happens (the first: the slowest), so it runs its full length
+          // (a new countdown keeps the colours it has and restarts the timing: no extra swap at the RCAV)
+          if (v.invAt !== s.winStart) { if (v.invAt == null) v.invOn = false; v.invAt = s.winStart; v.invLast = snap.time; v.invGap = IV.slowest; }
+          if (reducedMotion()) v.invOn = s.winShare >= IV.stillFrom;
+          else if (snap.time - v.invLast >= v.invGap) {
+            v.invOn = !v.invOn;
+            v.invLast = snap.time;
+            v.invGap = Math.max(IV.fastest, IV.slowest - (IV.slowest - IV.fastest) * s.winShare);
+            v.invLog = (v.invLog || []).concat(snap.time).slice(-40);
+          }
+        }
+        if (v.clock.classList.contains("inv") !== !!v.invOn) v.clock.classList.toggle("inv", !!v.invOn);
 
         el.classList.toggle("bold", s.state === "overtime");
         el.classList.toggle("glow", !!snap.warp && (C.warpGlow === "running" ? (s.state === "active" || s.state === "overtime") : !el.classList.contains("inactive")));
@@ -1823,6 +1841,8 @@
        `momState()` gives this game's count so far and the next scheduled time. */
     mom: function (which) { return showMom(which); },
     /* For rigs: place every bubble that shows now (as the frame would once it shows). */
+    /* For rigs (K): when a nest's timer box has swapped colours (the player's seconds), and whether it's inverted now. */
+    invertLog: function (id) { var v = nests[id]; return { log: (v.invLog || []).slice(), on: !!v.invOn }; },
     placeBubbles: function () { ET.view.placeMarks(); },
     placeMarks: function () { nests.forEach(function (v) { if (!v.refused.hidden) placeMarks(v, "r"); else if (!v.hsign.hidden) placeMarks(v, "h"); }); },
     /* For rigs: fill a nest's AD note and place it, as a frame does once it shows. */

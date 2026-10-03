@@ -61,6 +61,11 @@
     // Chat (2026-10-03, J): during those 12 s the type box spells the next command, CAV and STR in turn, one word this
     // many of the player's seconds (0.75: 1.33 changes a second, under the 2-a-second cap). Reduced motion: both, still.
     hospitalPromptSwap: 0.75,   // [T]
+    // Chat (2026-10-03, K): an overrunning timer box swaps its colours (pink on white / white on pink): the first swap
+    // `slowest` of the player's seconds after it goes bold, the gaps shrinking toward the hatch, never under `fastest`
+    // (0.5 s: at most 2 swaps a second). A hospital egg's RCAV restarts it slow with its 12 s. Reduced motion: no swaps;
+    // inverted and still for the window's last third.
+    overrunInvert: { slowest: 2, fastest: 0.5, stillFrom: 2 / 3 },   // [T]
     // E55 (ruled): Mom repairs the egg as the STR goes on: sweet Mom on hospital eggs up to this wave, creepy Mom after
     // (matching the scary HUD face). Her art: the two Gemini parts kits (Andrew approved, 2026-10-02; core/mom.js).
     momSweetUntilWave: 1,

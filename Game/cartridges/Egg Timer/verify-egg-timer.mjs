@@ -1244,6 +1244,36 @@ try {
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
   {
+    // Chat (2026-10-03, K): an overrunning timer box swaps its colours, slow at first (2 s), faster toward the hatch,
+    // never more than 2 swaps a second; a hospital egg's RCAV starts it slow again; reduced motion: still, inverted for
+    // the last third
+    const inv = (hospital, rcavAt) => ev(`(() => { __et.start(1, { hospital: ${hospital} }); let n = null;
+      for (let i = 0; i < 4000 && !(n = __et.snapshot().nests.find(x => x.state === 'overtime')); i++) __et.advance(0.05);
+      if (__et.paused()) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      const t0 = __et.snapshot().time, c = document.querySelector('.nest[data-id="' + n.id + '"] .readout .clock'), seen = [];
+      let rcav = null, bg = null;
+      for (let k = 0; k < 600; k++) { const s = __et.snapshot().nests.find(x => x.id === n.id); if (!s || s.state !== 'overtime') break;
+        if (${rcavAt} > 0 && rcav === null && s.winShare !== null && __et.snapshot().time - t0 >= ${rcavAt}) { __et.submit('RCAV ' + n.unit); rcav = __et.snapshot().time - t0; }
+        seen.push([__et.snapshot().time - t0, c.classList.contains('inv'), s.winShare]);
+        if (!bg && c.classList.contains('inv')) { const a = getComputedStyle(c); bg = [a.backgroundColor, a.color]; }
+        __et.advance(0.02); }
+      return { seen, rcav, bg }; })()`);
+    const swaps = (seen) => seen.slice(1).filter((x, i) => x[1] !== seen[i][1]).map((x) => x[0]);
+    const r1 = await inv(0, 0), s1 = swaps(r1.seen), gaps = s1.map((x, i) => x - (i ? s1[i - 1] : 0));
+    let worst = 0;
+    for (let i = 0; i < s1.length; i++) { let k = 0; for (let j = i; j < s1.length && s1[j] < s1[i] + 1 - 1e-6; j++) k++; worst = Math.max(worst, k); }
+    ok(s1.length >= 3 && Math.abs(gaps[0] - 2) < 0.06 && gaps.every((g) => g >= 0.5 - 0.03) && gaps[gaps.length - 1] < gaps[0] && worst <= 2,
+      `Chat (2026-10-03, K): an overrunning timer box swaps its colours, the first after 2 s, then faster toward the hatch; SAFETY never under 0.5 s, at most 2 swaps in any second   [gaps ${gaps.map((g) => g.toFixed(2)).join(" ")} s; worst ${worst}]`);
+    eq(r1.bg, ["rgb(255, 255, 255)", "rgb(209, 0, 106)"], "…to the inverse: pink figures on white (5:1, as the white on pink)");
+    const r2 = await inv(1, 3), s2 = swaps(r2.seen).filter((x) => x > r2.rcav);
+    ok(r2.rcav !== null && s2.length >= 1 && Math.abs(s2[0] - r2.rcav - 2) < 0.06, `…and a hospital egg's RCAV, restarting its countdown at 12 s, starts the swaps slow again (and steady between: no stray swap)   [first swap ${s2.length ? (s2[0] - r2.rcav).toFixed(2) : "-"} s after the RCAV]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const r3 = await inv(0, 0), s3 = swaps(r3.seen);
+    ok(s3.length === 1 && r3.seen.every((x) => x[1] === (x[2] >= 2 / 3)), `…with reduced motion no swapping: plain, then inverted and still for the last third   [${s3.length} change]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+  }
+  {
     // Chat's playtest rulings (2026-10-02): a VS refusal egg's "Patient Refused" bubble, from the pop to its RCAV
     await ev("(() => { __et.start(1, { hospital: 0 }); __et.advance(0.1); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return 1; })()");
     const r = (await snap()).nests.find((x) => x.state === "laying");

@@ -878,6 +878,9 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 :is(.nest, .toon).bold .readout { font-weight: 900; }
 :is(.nest, .toon).bold .readout .unit { color: var(--readout-bold-unit-ink); }
 :is(.nest, .toon).bold .readout .clock { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
+/* Chat (2026-10-03, K): an overrunning timer box swaps to the inverse, white with pink figures (5:1 either way); view.js
+   times the swaps (slow, then faster, never over 2 a second) */
+.nest.bold .readout .clock.inv { background: var(--readout-bold-timer-ink); color: var(--readout-bold-timer-bg); }
 /* Chat (2026-10-03): a VF fuelling: "FUELING", dim, small enough to fit the box's MM:SS width and height (7 letters in
    5); then "DONE" in green, one soft size pulse (no brightness change), held, then the ordinary bold timer */
 .nest .readout .clock.fueling { color: var(--fuel-ink); font-size: 0.7em; line-height: calc(1.25 / 0.7); min-width: calc(5ch / 0.7); padding: calc(0.1em / 0.7) calc(0.3em / 0.7); }
