@@ -87,11 +87,14 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   then up by its shoulder; Chat 2026-10-03). **Only a VS can be a hospital egg**: **~70% of VS eggs**
   (`hospitalShare` [T], a plain roll on the seeded source, E56) get a blue **H road sign** (never a red cross) at the pop;
   a VS refusal egg gets an **amber "Patient Refused"** bubble above its timer until its RCAV; other types get neither.
-  🚨 **Signs and buildings (Chat, 2026-10-03):** the H sign is **1.4×** (1.6× doesn't fit), with a code-drawn **hospital**
-  on the other side of the egg; the bubble has a code-drawn **house**. `placeMarks()` picks the shoulders (from layout
-  boxes) and **skips a building with no room** (nests 6 and 9 at the two smaller sizes). They **bounce** once a second,
-  half a bounce apart, as a **dip below their resting place** (never higher: readouts sit above); still under reduced
-  motion. A horror hatch leaves **purple slime** (Mom's drool colours) under Time Warp and every nest (`hatchSlime`). A refusal egg: one `RCAV`. A hospital egg: **`RCAV`, which restarts its countdown at 12 s**
+  🚨 **Signs and buildings (Chat, 2026-10-03):** the H sign (**1.6×**, the plate) and the bubble are **tabs on the timer
+  box** (children of the readout: right of it, else below it; the bubble falls back to the shoulder where neither fits).
+  A code-drawn **hospital** / **house** stands **behind its nest** (z −1), skipped with no room. `placeMarks()` decides
+  from layout boxes with every readout at its widest; it runs in live play only once no unlock pop is running (the
+  `.unlock` class stays on). They **bounce** once a second, half a bounce apart, as a **dip below their resting place**;
+  still under reduced motion. A hospital egg's type box spells **CAV / STR** while it waits (0.75 s each); an overrunning
+  timer box **swaps its colours**, 2 s apart down to 0.5 s (`overrunInvert`). A horror hatch leaves **purple slime** at
+  the clear spot nearest its nest, never over anything (`hatchSlime`; on a full board it lands at about 0.4 of full). A refusal egg: one `RCAV`. A hospital egg: **`RCAV`, which restarts its countdown at 12 s**
   (`hospitalResetSeconds`, flat; Time Warp ignores it then), **then `CAV #### STR`** (Chat's playtest, 2026-10-02); the STR
   is window 1's clear, **scored by the tier the RCAV landed in, paid at the STR**, with no pan/splat/mess, Mom repairs the egg (sweet in wave 1
   and the cartoon, creepy after, E55; a giggle each, E56; **she comes in from the edge nearest the egg**, never over a
@@ -194,7 +197,9 @@ write Egg Timer memories there (auto-memory loads the PLC root index, keyed to t
 ## State 2026-10-03
 **Chat's playtest batch, its follow-ups, the AD note and the combined batch's Parts 1–2 built, not pushed**
 (`5267498`..`e35c68c`, one commit an item; packet §11 "Raised by Chat's playtest"); then Part 5 (`0157faf`) and the Mom
-fade rig fix (`eea0dc9`); then signs/buildings, bounce, slime, VF out and step 6's caption (`4aab051`..`214c4b0`). **E61:**
+fade rig fix (`eea0dc9`); then signs/buildings, bounce, slime, VF out and step 6's caption (`4aab051`..`214c4b0`); then
+G–K, D2 and the live-placement fix (`28f6f18`..`06cc26f`). 🚫 **Push rule (root `CLAUDE.md`, 2026-10-03): only this
+session's own commits**; PLC's `28ca78d` sits under all of Egg Timer's, so nothing of Egg Timer's can go out until it does. **E61:**
 the rows' wording is ruled (three rows now: VF is out); where the reference goes (and Part 4) waits on Andrew.
 Next free **E62**. Waiting on Gemini (via Chat's prompts): the H sign and the
 horror aliens' close-up faces (packet §11, E49, E55). Playtest owed: the hospital window (E53) and the spawn rate (E56).

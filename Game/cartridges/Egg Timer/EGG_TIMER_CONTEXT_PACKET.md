@@ -1,3 +1,10 @@
+> **FILING NOTE — Claude Code, 2026-10-03 (later still: G–K and D2).** Filed verbatim as
+> `Previous Versions/EGG_TIMER_TABS_INVERT_SLIME2_2026-10-03.md`. Built, one commit an item, both rigs green each time,
+> not pushed: **G** tabs on the timer box (`28f6f18`), **H** buildings behind the nest (`488e023`), **I** a bigger AD
+> note (`b203a07`), **J** CAV / STR in the type box (`2e047e9`), **K** the overrun inversion (`8c15583`), **D2** the slime
+> near its nest (`86f1a7a`), and a fix: **live play had never placed signs, bubbles, buildings or notes** (`06cc26f`).
+> Held: How To Play bubble, Parts 3 and 4.
+
 > **FILING NOTE — Claude Code, 2026-10-03 (later: signs and buildings, bounce, hatch slime, VF out, step 6's caption).**
 > Filed verbatim as `Previous Versions/EGG_TIMER_SIGNS_SLIME_VF_2026-10-03.md`. Built, one commit an item, both rigs green
 > each time, not pushed (§11, "Raised by Chat's playtest"): **A** the H sign **1.4×** (1.6× doesn't fit at every size)
@@ -1199,6 +1206,46 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   100 / 78 / 57 / 49 px wide at the four sizes, clear of every readout and every other nest. *(Code: it reads clearly
   as a pump and is nothing like the yellow hose nozzle; it is flatter than the Gemini nest beside it, a placeholder in
   the same style as the H sign. Chat may want a commissioned piece.)* No VF tag or bubble; "Clear Fueling" is in no code.
+- **G–K and D2 (built 2026-10-03).** *(Chat's messages, filed verbatim as
+  `Previous Versions/EGG_TIMER_TABS_INVERT_SLIME2_2026-10-03.md`.)*
+  **G (`28f6f18`): the H sign and the bubble are tabs on the timer box** (they live in the readout; only the tab bounces).
+  **1.6× now fits for the H sign at all four sizes** (48 / 38 / 28 / 24 px, the plate alone), a tab right of the timer on
+  every nest. The amber bubble (size unchanged) is a tab right of the timer, else hanging below it; where neither has
+  room for it and its bounce it stays on the nest's shoulder, not attached: none at 1920 × 1080; nests 0, 4, 5 at
+  1440 × 900; 4, 5, 9, 10 at 1280 × 720; 0, 2, 4, 5, 9 at 1024 × 640 (rig L, all 12 bubbles up). Tabs are measured with
+  every readout at its widest (bold).
+  **H (`488e023`): the hospital and house stand above and behind their own nest**, the nest and egg in front, their feet
+  just behind the egg's top, bouncing half a bounce after the tab. Skipped (where they'd touch a readout, timer, Command
+  Line, trough, sink, the edge, or a spot another nest's tab can take): nest 6 at 1920 × 1080 and 1440 × 900, none at
+  1280 × 720, nests 6 and 7 at 1024 × 640.
+  **I (`b203a07`): the AD note is bigger.** 1.5× doesn't fit: nest 4's note (the middle row's left edge) has nowhere to
+  go at 1920 × 1080 and 1440 × 900. The largest single setting that fits all four sizes: ×1.25 of the part that follows
+  the nest's size, the 10 px floor kept: 148 × 47 px at 1920 × 1080 (was 122 × 41), 121 × 39 at 1440 × 900 (was
+  100 × 35); at 1280 × 720 and 1024 × 640 it was already on its floor and is about the same. Same look and contrast.
+  "AD clock" means nothing else on screen: the AD note is the "Clear @ HH:MM" note.
+  **J (`2e047e9`):** *Before:* after the RCAV the type box emptied and pulsed cyan, wave 1's tag by the wall clock said
+  "Now type CAV #### STR", and the Command Line's grey hint read "CAV + unit + type" (all kept). *Now:* through the 12 s
+  the type box shows **CAV and STR in turn, 0.75 s each** (1.33 changes a second; `hospitalPromptSwap` [T]); reduced
+  motion: CAV over STR, still.
+  **K (`8c15583`): an overrunning timer box swaps its colours** (white on pink / pink on white, 5:1 both ways): the first
+  swap after 2 s, each next gap set as the swap happens from how far the countdown has run, down to 0.5 s (at most 2
+  swaps a second; `overrunInvert` [T]). A hospital egg's RCAV restarts it slow and keeps the colours it has. Reduced
+  motion: no swaps; inverted and still for the last third. **J and K together on a hospital egg**, in the 12 s after the
+  RCAV: the type box swaps CAV / STR every 0.75 s (1.33 changes a second) and keeps E53's cyan border pulse (a change
+  every 0.3 s: 1.67 flashes a second), while the timer box swaps its colours starting 2 s apart again; each on its own
+  box, **each within 2 flashes a second**.
+  **D2 (`86f1a7a`): the slime lands near its nest**, at the clear spot nearest it (the drool's kind of safe-landing
+  check, against every nest's egg and twigs, readout box, sign, bubble, building and note, the wall clock, Time Warp's
+  clock, sign and caption, the hose tag, inside the trough), never over any of them. **Twice D's splat does not fit
+  anywhere with all 12 nests live**, at any size, so it takes the largest of `hatchSlime.scales` that does: **0.4 of full
+  at 1920 × 1080, 1280 × 720 and 1024 × 640, 0.35 at 1440 × 900** (about 200 / 140 / 115 / 100 px wide), often some
+  way from its nest (in the measured hatch, nest 8's slime went to the board's top-left corner). Fully there 2 s, then
+  the drips run as it fades over 4 s; two steady halos, brighter and wider than the drool's; no flash; a pause holds it;
+  reduced motion: short still drips, the same fade. None clear at all: no slime.
+  **The fix (`06cc26f`):** placement waited for a nest's `.unlock` class to go, but it stays on after the 0.4 s pop, so
+  in live play **no sign, bubble, building or AD note had ever been placed** (since `bf1f33a`): each sat in its CSS
+  default; the rigs placed them through a hook. Placement now waits only while a pop is actually running, and a late
+  web font re-places everything. The rig checks live placement now.
 - **Signs, buildings, bounce, slime, VF out (built 2026-10-03).** *(Chat's message, filed verbatim as
   `Previous Versions/EGG_TIMER_SIGNS_SLIME_VF_2026-10-03.md`.)*
   **A (`4aab051`):** **1.6× doesn't fit** at every size: nest 6's sign meets a readout above it at 1440 × 900 and

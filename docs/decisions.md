@@ -1127,3 +1127,25 @@ slime is a board layer inserted before `#warp`, removed on its fade's `animation
 hand-made `{left, top, right, bottom}` box has no `width`, so filter keep-off lists on `right - left`, never `width`
 (this silently dropped every nest body and neighbour zone from the AD note's checks until now). The bounce must never
 rise above where a mark stands: at the two smaller sizes the readouts above leave no room.
+
+## Built 2026-10-03 — Egg Timer: tabs on the timer (G), buildings behind (H), AD note (I), CAV/STR (J), inversion (K), slime near its nest (D2)
+
+**Solved:** Chat's two messages (filed verbatim in `Game/cartridges/Egg Timer/Previous Versions/
+EGG_TIMER_TABS_INVERT_SLIME2_2026-10-03.md`), one commit an item, both rigs green each time (logic 213/0, browser 673/0 at
+the end), not pushed. **G** (`28f6f18`): the H sign (1.6×: it fits as a tab) and the bubble are tabs on the timer box;
+the bubble falls back to the shoulder on a few nests at the smaller sizes. **H** (`488e023`): buildings behind the nest,
+skipped on nest 6 (and 7 at 1024 × 640). **I** (`b203a07`): the AD note ×1.25 where it follows the nest's size (1.5×
+doesn't fit: nest 4). **J** (`2e047e9`): CAV / STR in turn in a waiting hospital egg's type box. **K** (`8c15583`):
+overrunning timer boxes swap colours, 2 s apart down to 0.5 s, restarting slow at a hospital RCAV. **D2** (`86f1a7a`):
+the slime lands at the clear spot nearest its nest, never over anything; twice D's splat never fits with 12 nests live,
+so it lands at about 0.4 of that. **Fix** (`06cc26f`): live play had never placed signs, bubbles, buildings or notes.
+**Approach:** the tabs are children of `.readout` (position: relative), CSS places them (`.tab-b`; the right-hand tab is
+the default); `decideMarks()` tries right, below, shoulder, measuring with `#board.widest` (every readout bold). Buildings
+are `z-index: -1` inside the nest's stacking context. J/K are painted from the snapshot's `sinceRemoved`, `winStart` and
+`winShare`, on the player's seconds. The slime's `slimeSpot()` grid-searches the floor inside the trough against
+`slimeObstacles()`, largest scale first.
+**If you touch this again:** `.nest.unlock` stays on after its 0.4 s pop: test the running animation
+(`getAnimations()`), never the class (this hid every placement from live play since `bf1f33a`, while the rigs placed
+through a hook). A readout's children now include the tabs: take `:scope > span` for its three boxes. Hand-made boxes
+need `right - left`, not `width`. Measure tabs with readouts at their widest. Placement keeps half a pixel clear and leaves
+room for the bounce's dip.
