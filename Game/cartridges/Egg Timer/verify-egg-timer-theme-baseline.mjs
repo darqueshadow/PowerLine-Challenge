@@ -3607,17 +3607,17 @@ export default {
   "border-top-color": "rgb(34, 227, 255)"
  },
  ".hsign": {
-  "animation-delay": "0s",
-  "animation-direction": "normal",
-  "animation-duration": "0.45s",
-  "animation-fill-mode": "both",
-  "animation-iteration-count": "1",
-  "animation-name": "hsign-drop",
-  "animation-play-state": "running",
+  "animation-delay": "0s, 0.45s",
+  "animation-direction": "normal, normal",
+  "animation-duration": "0.45s, 1s",
+  "animation-fill-mode": "both, none",
+  "animation-iteration-count": "1, infinite",
+  "animation-name": "hsign-drop, mark-bounce",
+  "animation-play-state": "running, running",
   "animation-range-end": "normal",
   "animation-range-start": "normal",
   "animation-timeline": "auto",
-  "animation-timing-function": "cubic-bezier(0.3, 0.8, 0.4, 1.3)",
+  "animation-timing-function": "cubic-bezier(0.3, 0.8, 0.4, 1.3), ease-in-out",
   "margin-top": "-11.4%",
   "pointer-events": "none",
   "position": "absolute",
@@ -3654,6 +3654,17 @@ export default {
   "right": "auto"
  },
  ".bld": {
+  "animation-delay": "0.5s",
+  "animation-direction": "normal",
+  "animation-duration": "1s",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "infinite",
+  "animation-name": "mark-bounce",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in-out",
   "left": "-14%",
   "pointer-events": "none",
   "position": "absolute",
@@ -3661,6 +3672,18 @@ export default {
   "transform-origin": "50% 100%",
   "width": "26%",
   "z-index": "4"
+ },
+ ".bld.hosp": {
+  "animation-delay": "0.95s"
+ },
+ "@keyframes mark-bounce » 0%, 100%": {
+  "transform": "none"
+ },
+ "@keyframes mark-bounce » 40%": {
+  "transform": "translateY(7%) scale(1.04, 0.94)"
+ },
+ "@keyframes mark-bounce » 60%": {
+  "transform": "translateY(2%) scale(0.98, 1.02)"
  },
  ".bld.flip": {
   "left": "auto",
@@ -3731,17 +3754,17 @@ export default {
  },
  ".refused": {
   "align-items": "center",
-  "animation-delay": "0s",
-  "animation-direction": "normal",
-  "animation-duration": "0.3s",
-  "animation-fill-mode": "both",
-  "animation-iteration-count": "1",
-  "animation-name": "refused-in",
-  "animation-play-state": "running",
+  "animation-delay": "0s, 0s",
+  "animation-direction": "normal, normal",
+  "animation-duration": "0.3s, 1s",
+  "animation-fill-mode": "both, none",
+  "animation-iteration-count": "1, infinite",
+  "animation-name": "refused-in, mark-bounce",
+  "animation-play-state": "running, running",
   "animation-range-end": "normal",
   "animation-range-start": "normal",
   "animation-timeline": "auto",
-  "animation-timing-function": "ease-out",
+  "animation-timing-function": "ease-out, ease-in-out",
   "background-attachment": "initial",
   "background-clip": "initial",
   "background-color": "rgb(255, 182, 39)",
@@ -3791,6 +3814,7 @@ export default {
   "text-transform": "uppercase",
   "text-wrap-mode": "nowrap",
   "top": "2%",
+  "transform-origin": "50% 100%",
   "white-space-collapse": "collapse",
   "z-index": "4"
  },
@@ -4919,7 +4943,7 @@ export default {
  "@media (prefers-reduced-motion: reduce) » .nest.fueled .nest-art .pump": {
   "display": "none"
  },
- "@media (prefers-reduced-motion: reduce) » #reject::before, .nest.bold .readout .clock.done, #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *, .replica *": {
+ "@media (prefers-reduced-motion: reduce) » #reject::before, .nest.bold .readout .clock.done, #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .bld, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *, .replica *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",

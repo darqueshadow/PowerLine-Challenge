@@ -1140,7 +1140,18 @@ try {
     const sign = await ev(`(() => { const e = ${q(" .hsign")}, r = e.getBoundingClientRect(), ro = ${q(" .readout")}.getBoundingClientRect(), eg = ${q(" .egg")}.getBoundingClientRect();
       const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
       return { shown: !e.hidden && r.width > 8, anim: getComputedStyle(e).animationName, plate: getComputedStyle(e.querySelector('.plate')).fill, h: getComputedStyle(e.querySelector('.h')).stroke, onReadout: hit(r, ro), onEgg: hit(r, eg) }; })()`);
-    ok(sign.shown && sign.anim === "hsign-drop", `E55: as the egg pops the H sign drops into the nest   [${sign.anim}]`);
+    ok(sign.shown && sign.anim === "hsign-drop, mark-bounce", `E55: as the egg pops the H sign drops into the nest, then bounces (Chat, 2026-10-03)   [${sign.anim}]`);
+    {
+      // Chat (2026-10-03, C): one bounce a second; the hospital half a bounce after the sign
+      const bo = await ev(`(() => { const s = ${q(" .hsign")}, h = ${q(" .bld.hosp")}, cs = getComputedStyle(s), ch = getComputedStyle(h);
+        return { sDur: cs.animationDuration, sDelay: cs.animationDelay, hidden: h.hidden, hName: ch.animationName, hDur: ch.animationDuration, hDelay: ch.animationDelay }; })()`);
+      const sd = parseFloat(bo.sDelay.split(",")[1]), hd = parseFloat(bo.hDelay);
+      ok(bo.sDur.split(",")[1].trim() === "1s" && bo.hDur === "1s" && bo.hName === "mark-bounce" && Math.abs(hd - sd - 0.5) < 1e-6, `Chat (2026-10-03, C): the sign and its hospital bounce once a second, half a bounce apart   [${bo.sDelay} / ${bo.hDelay}${bo.hidden ? ", hospital skipped here" : ""}]`);
+      await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+      for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+      eq(await ev(`[getComputedStyle(${q(" .hsign")}).animationName, getComputedStyle(${q(" .bld.hosp")}).animationName, getComputedStyle(${q(" .bld.house")}).animationName, getComputedStyle(${q(" .refused")}).animationName]`), ["none", "none", "none", "none"], "SAFETY: …with reduced motion the sign, the bubble and both buildings stand still");
+      await c.send("Emulation.setEmulatedMedia", { features: [] });
+    }
     eq([sign.plate, sign.h], ["rgb(20, 86, 200)", "rgb(255, 255, 255)"], "E55: the hospital road sign: a white H on blue (never a red cross)");
     eq([sign.onReadout, sign.onEgg], [false, false], "…on the nest's shoulder, clear of the readout and the egg");
     eq(await ev(`${q(" .refused")}.hidden`), true, "Chat (2026-10-02): a hospital egg never gets the \"Patient Refused\" bubble");
@@ -1206,7 +1217,7 @@ try {
       const hit = (a, c) => a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom;
       return { shown: !e.hidden && e.offsetWidth > 30, text: e.textContent, above: b.bottom <= t.top, onReadout: ro.some(x => hit(b, x)), sign: ${q(" .hsign")}.hidden,
         bg: getComputedStyle(e).backgroundColor, ink: getComputedStyle(e).color, anim: getComputedStyle(e).animationName, z: Number(getComputedStyle(e).zIndex) < Number(getComputedStyle(${q(" .mess")}).zIndex) }; })()`);
-    ok(bub.shown && bub.text === "PatientRefused" && bub.anim === "refused-in" && bub.sign, `…from the pop: the bubble reads "Patient Refused" (no H sign), fading in   [${bub.text}, ${bub.anim}]`);
+    ok(bub.shown && bub.text === "PatientRefused" && bub.anim === "refused-in, mark-bounce" && bub.sign, `…from the pop: the bubble reads "Patient Refused" (no H sign), fading in   [${bub.text}, ${bub.anim}]`);
     ok(bub.above && !bub.onReadout && bub.z, "…above the timer, clear of every readout box, and the gunk covers it as it covers the H sign (E14)");
     eq([bub.bg, bub.ink], ["rgb(255, 182, 39)", "rgb(42, 26, 0)"], "Chat (2026-10-03, B): …amber with dark lettering (no white fill; not red, pink or green)");
     await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${r.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
@@ -1759,7 +1770,13 @@ try {
           const eg = { left: own.art.left + (own.art.right - own.art.left) * 0.27, right: own.art.right - (own.art.right - own.art.left) * 0.27, top: own.art.top, bottom: own.art.bottom - (own.art.bottom - own.art.top) * 0.3 };
           return ro.some(o => hit(r, o)) || nests.some((x, j) => ns[j] !== it.n && hit(r, x.art)) || fx.some(o => hit(r, o)) || items.some(o => o !== it && hit(r, o.r))
             || r.left < f.left - 1 || r.right > f.right + 1 || r.top < f.top - 1; }).length;
-        const out = { bad, flips: ns.filter(n => n.querySelector('.hsign.flip, .refused.flip')).map(n => n.dataset.id), skipped: ns.filter(n => n.querySelector(n.dataset.mk === 'h' ? '.bld.hosp' : '.bld.house').hidden).map(n => n.dataset.id),
+        // …and at the bottom of the bounce's dip (Chat, 2026-10-03, C), the most it moves from where it stands
+        ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { if (!e.hidden) e.style.transform = 'translateY(7%) scale(1.04, 0.94)'; }));
+        const dip = [];
+        ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { if (!e.hidden) dip.push({ n, r: e.getBoundingClientRect() }); }));
+        const dipBad = dip.filter(it => ro.some(o => hit(it.r, o)) || nests.some((x, j) => ns[j] !== it.n && hit(it.r, x.art)) || fx.some(o => hit(it.r, o)) || dip.some(o => o !== it && hit(it.r, o.r))).length;
+        ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.transform = ''; }));
+        const out = { bad: bad + dipBad, flips: ns.filter(n => n.querySelector('.hsign.flip, .refused.flip')).map(n => n.dataset.id), skipped: ns.filter(n => n.querySelector(n.dataset.mk === 'h' ? '.bld.hosp' : '.bld.house').hidden).map(n => n.dataset.id),
           sign: Math.round(ns[0].querySelector('.hsign').getBoundingClientRect().width) };
         ns.forEach(n => { n.querySelector('.hsign').hidden = true; n.querySelector('.refused').hidden = true; n.querySelectorAll('.bld').forEach(d => { d.hidden = true; d.classList.remove('flip'); }); n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.animation = ''; e.classList.remove('flip'); }); });
         return out;
@@ -2175,7 +2192,7 @@ try {
     };
     const live = await motion("normal");
     ok(live.t && !!live.cue && live.cue.anim === "cue", `without reduced motion the place-me cue blinks   [${live.cue && live.cue.anim}]`);
-    ok(!!live.hosp && live.hosp.sign === "hsign-drop" && live.hosp.slide && live.hosp.fade === 1, `…the H sign drops in, and Mom slides in   [${live.hosp && [live.hosp.sign, live.hosp.slide, live.hosp.fade].join(", ")}]`);
+    ok(!!live.hosp && live.hosp.sign === "hsign-drop, mark-bounce" && live.hosp.slide && live.hosp.fade === 1, `…the H sign drops in, and Mom slides in   [${live.hosp && [live.hosp.sign, live.hosp.slide, live.hosp.fade].join(", ")}]`);
     ok(live.cord.some((d) => d !== null && d > 0), `…the laying cord twitches   [spread ${live.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(live.bold && live.wobble.some((a) => a !== null && a > 0), `…the egg wobbles in overtime   [${live.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
     eq(live.legs, "legs", "…and the escaping hatchling's legs shuffle");
