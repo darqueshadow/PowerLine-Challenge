@@ -472,6 +472,15 @@ y= 48 └───────────────────────�
 
 ---
 
+## Code-drawn, 2026-10-03: the hospital, the house and the hatch slime (not slots yet)
+
+> Chat's 2026-10-03 batch added three pieces, all **drawn in code**, nothing to commission unless Chat asks: a flat,
+> cute **hospital** beside a hospital egg (cream block, blue roof band, white-on-blue H: never a red cross) and a
+> **house** beside a VS refusal egg (cream walls, plum roof, chimney), each about a quarter of a nest wide (49 px at
+> 1920 × 1080, 24 px at 1024 × 640), bouncing once a second; and the horror hatch's **purple slime** (Mom's drool purple,
+> never red). The **H sign** (slot) is now drawn **1.4×** its old size (about 50 px wide at 1920 × 1080, 25 px at
+> 1024 × 640), and the "Patient Refused" bubble is amber. VF's pump is out of play with VF (kept in the code).
+
 ## How To Play uses the title's replicas (Andrew's ruling via Chat, 2026-10-03)
 
 > The How To Play cartoon's Mom (step 5) and hatchling (step 6) are now **the title scene's code-drawn mommy and baby**

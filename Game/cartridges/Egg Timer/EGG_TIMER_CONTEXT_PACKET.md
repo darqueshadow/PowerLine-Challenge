@@ -1,3 +1,11 @@
+> **FILING NOTE — Claude Code, 2026-10-03 (later: signs and buildings, bounce, hatch slime, VF out, step 6's caption).**
+> Filed verbatim as `Previous Versions/EGG_TIMER_SIGNS_SLIME_VF_2026-10-03.md`. Built, one commit an item, both rigs green
+> each time, not pushed (§11, "Raised by Chat's playtest"): **A** the H sign **1.4×** (1.6× doesn't fit at every size)
+> and a code-drawn hospital (`4aab051`); **B** a bigger **amber** bubble and a code-drawn house (`ab501ed`); **C** a
+> one-a-second bounce, half a bounce apart (`2c6d690`); **D** purple **slime** where a horror alien hits the screen
+> (`23fc305`); **E** **VF out of play** behind `vfInPlay` (`ecfe1ef`); **F** step 6 says "the baby" (`214c4b0`, flagged:
+> Andrew's wording). The How To Play bubble, Part 3's layout and Part 4 are held.
+
 > **FILING NOTE — Claude Code, 2026-10-03 (later: Chat's rulings on E61 and Part 5, corrected).** Filed verbatim as
 > `Previous Versions/EGG_TIMER_E61_PART5_RULINGS_2026-10-03.md`. **E61 partly ruled:** row 1 shows a VS egg with its
 > "Patient Refused" bubble, then plain SS, EOS and MB eggs (the bubble ruling stands); row 3's line is "Clear it at the
@@ -1191,14 +1199,53 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   100 / 78 / 57 / 49 px wide at the four sizes, clear of every readout and every other nest. *(Code: it reads clearly
   as a pump and is nothing like the yellow hose nozzle; it is flatter than the Gemini nest beside it, a placeholder in
   the same style as the H sign. Chat may want a commissioned piece.)* No VF tag or bubble; "Clear Fueling" is in no code.
+- **Signs, buildings, bounce, slime, VF out (built 2026-10-03).** *(Chat's message, filed verbatim as
+  `Previous Versions/EGG_TIMER_SIGNS_SLIME_VF_2026-10-03.md`.)*
+  **A (`4aab051`):** **1.6× doesn't fit** at every size: nest 6's sign meets a readout above it at 1440 × 900 and
+  1024 × 640 on either shoulder. **1.4× is the largest that fits all four**; it grows up from its stake. A flat, cute,
+  code-drawn **hospital** (cream block, blue roof band, white-on-blue H, never a red cross; round windows, a door) stands
+  on the other side of the egg. `placeMarks()` puts the sign on the right shoulder, else the left (nest 9, beside Time
+  Warp's caption, at every size), and **skips the building where its side has no room: nests 6 and 9 at 1280 × 720 and
+  1024 × 640**. Measured from the layout boxes against every readout, every other nest, the egg, Time Warp's sign and
+  caption, the hose tag, trough, Command Lines and the edges. Sizes: the sign 50 / 39 / 29 / 25 px wide, the hospital
+  49 / 38 / 28 / 24 px. *(Code, found on the way: the keep-off lists behind the AD note and the marks dropped every
+  hand-made box (nest bodies, the zones round neighbours' marks) because those had no width field. Fixed: the note now
+  keeps off each neighbour's marks exactly where the game puts them, takes the roomier side, and a neighbour's note may
+  hop to its other clear side to make room.)*
+  **B (`ab501ed`):** the bubble's type grows from 7.5% to 9.5% of the nest's width (10–17 px), **amber** #ffb627 with
+  dark brown lettering (10.6:1), no white fill; a flat, cute, code-drawn **house** (cream walls, plum roof, chimney, round
+  window, door) on the other side of the egg, skipped where there's no room (the same two nests at the two smaller sizes).
+  **C (`2c6d690`):** `mark-bounce`: one bounce a second, a dip from where it stands with a small squash (7% down,
+  1.04 × 0.94) and a little stretch back; **it never rises above its resting place** (a rise met readouts above at the
+  two smaller sizes). The sign starts as it lands (0.45 s), its hospital 0.5 s later; the bubble at once, its house at
+  0.5 s. No music sync, tempo or beat. Reduced motion: all still. The layout rig measures every mix at rest and at the
+  bottom of the dip.
+  **D (`23fc305`):** as the horror alien fills the screen (18% into its jump) a glowing purple **splat** lands at the
+  middle of the view (Mom's drool colours, never red), with droplets and 4–6 **streaks** that run down once; all of it
+  fades over its last 1.2 s (`hatchSlime` [T], 4.5 s) and goes. It is a layer on the board under Time Warp, every nest,
+  readout and timer (the Command Lines are off the board); **no impact flash**; a pause holds it. Reduced motion: there at
+  once, short still streaks, the same fade. *(Code: the middle of the view is where Time Warp's clock stands, so the clock
+  covers much of the splat; the streaks show either side and below it, under the caption, which stays readable.)* **The
+  jump at the screen happens in one place only:** the horror hatch's leap in play (How To Play's hatch is cute, never a
+  scare).
+  **E (`ecfe1ef`):** **VF is out of play**: `vfInPlay: false`; the bag is VS, SS, EOS, MB, AD (one in five each). VF's
+  FUELING / DONE timer box and its pump stay in the code and the art (the browser rig switches VF on in its own scene to
+  keep them tested). **The types reference is three rows** when built (standard, hospital, AD): its VF row is dropped.
+  **F (`214c4b0`):** **the How To Play bubble is on hold, unchanged.** For the record, what it is now: the caption sits
+  in a cream speech bubble (`--comic-bubble`) under the mini Command Line, a 2 px dark plum outline, rounded corners
+  (12 px), Fredoka bold in dark plum, centred, at least two lines high, its small tail pointing up at the Command Line;
+  the reduced-motion still strip shows each caption in the same bubble, a little smaller. **Step 6's caption** now reads
+  "Too slow: the egg hatches, the baby dances and does its goofy hop" (was "the crab"): ⚑ Andrew's wording, flagged in
+  the code, to be reverted if he objects.
 - **E61. The types reference. Partly ruled** *(Chat, 2026-10-03: "1. Part 3, row 1: change the row, not the ruling.
   Show one VS egg with the 'Patient Refused' bubble, then plain SS, EOS and MB eggs beside it. Line unchanged: 'RCAV when
   the timer runs out.' 2. Part 3, row 3: AD line becomes 'Clear it at the time on the note.' Do not rebuild the length
   note. 3. Part 3 layout and Part 4: HOLD until Andrew answers where the types reference goes. Do not remove or shrink the
   How To Play panel.")* So the four rows, when built: **1** a VS egg with its "Patient Refused" bubble, then plain SS,
   EOS and MB eggs: "RCAV when the timer runs out." **2** a VS egg with its H sign and a tiny replica Mom with a plaster:
-  "Hospital: RCAV, then a new CAV (STR)." **3** the "Clear @ HH:MM" note: "Clear it at the time on the note." **4** the
-  pump and the timer box: "The egg will let you know!" ⏳ **Still open (Andrew's): where the reference goes** (and with it
+  "Hospital: RCAV, then a new CAV (STR)." **3** the "Clear @ HH:MM" note: "Clear it at the time on the note."
+  ~~**4** the pump and the timer box: "The egg will let you know!"~~ *(dropped 2026-10-03, E: VF is out of play; three
+  rows)* ⏳ **Still open (Andrew's): where the reference goes** (and with it
   the menu move and Part 4's Alien Time footer). *(Original item follows.)*
   ⏳ **E61. The types reference (combined batch, Part 3): three things to settle before it's built. PENDING (Chat).**
   **(1) A conflict with a ruling:** row 1 shows the "Patient Refused" bubble beside SS, EOS and MB eggs, but in play

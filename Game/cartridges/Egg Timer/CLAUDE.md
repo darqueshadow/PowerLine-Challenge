@@ -81,14 +81,17 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   the six hatchlings Andrew's sheets as puppets (`make-alien-art.py`, `core/aliens.js`), both Moms Andrew's Gemini kits
   (`make-mom-art.py`, `core/mom.js`); the rest is still placeholder.
 - **One mode (E54, ruled 2026-10-02).** **E59 (Chat, 2026-10-03):** eggs come out of the type **bag** again (`eggTypes`:
-  VS, SS, EOS, MB, AD, VF; not the STR). A **VF** says a dim **FUELING** in its timer box while it fuels, with a
-  code-drawn alien **pump** in the egg; at bold, **DONE** on green for `vfDoneSeconds`, then the pink timer (Chat's
-  combined batch, 2026-10-03). An **AD** says **"Clear @ HH:MM"** (E1: bold
+  VS, SS, EOS, MB, AD; not the STR). **VF is out of play** (`vfInPlay: false`, 2026-10-03); its FUELING / DONE timer
+  box and code-drawn pump stay in the code for when it returns. An **AD** says **"Clear @ HH:MM"** (E1: bold
   when the wall clock reads it) on a tilted LED note **stuck on beside its nest** (`placeNote()`: outer side, inner side,
   then up by its shoulder; Chat 2026-10-03). **Only a VS can be a hospital egg**: **~70% of VS eggs**
   (`hospitalShare` [T], a plain roll on the seeded source, E56) get a blue **H road sign** (never a red cross) at the pop;
-  a VS refusal egg gets a small **"Patient Refused"** bubble above its timer until its RCAV (Chat, 2026-10-02; flips to
-  the nest's other shoulder where Time Warp's words are in the way, 2026-10-03); other types get neither. A refusal egg: one `RCAV`. A hospital egg: **`RCAV`, which restarts its countdown at 12 s**
+  a VS refusal egg gets an **amber "Patient Refused"** bubble above its timer until its RCAV; other types get neither.
+  🚨 **Signs and buildings (Chat, 2026-10-03):** the H sign is **1.4×** (1.6× doesn't fit), with a code-drawn **hospital**
+  on the other side of the egg; the bubble has a code-drawn **house**. `placeMarks()` picks the shoulders (from layout
+  boxes) and **skips a building with no room** (nests 6 and 9 at the two smaller sizes). They **bounce** once a second,
+  half a bounce apart, as a **dip below their resting place** (never higher: readouts sit above); still under reduced
+  motion. A horror hatch leaves **purple slime** (Mom's drool colours) under Time Warp and every nest (`hatchSlime`). A refusal egg: one `RCAV`. A hospital egg: **`RCAV`, which restarts its countdown at 12 s**
   (`hospitalResetSeconds`, flat; Time Warp ignores it then), **then `CAV #### STR`** (Chat's playtest, 2026-10-02); the STR
   is window 1's clear, **scored by the tier the RCAV landed in, paid at the STR**, with no pan/splat/mess, Mom repairs the egg (sweet in wave 1
   and the cartoon, creepy after, E55; a giggle each, E56; **she comes in from the edge nearest the egg**, never over a
@@ -99,7 +102,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Chat, 2026-10-02), the STR runs 10:00, then an ordinary window and `RCAV`.
   Wrong orders: STR before the RCAV says **"RCAV first!"**; STR on a refusal, a second RCAV or any other type is ERROR.
   No modes, triggers, AD post-it or VF any more; the CSV keeps every row, and refuses to start without VS or STR.
-- **CAV data:** Andrew's durations (VS 10, STR 10; with E59's bag also SS 15, EOS 30, MB 30, AD 10–30 whole minutes, VF 10–30). **Say "displayed time" and
+- **CAV data:** Andrew's durations (VS 10, STR 10; with E59's bag also SS 15, EOS 30, MB 30, AD 10–30 whole minutes; VF 10–30 when in play). **Say "displayed time" and
   "the player's seconds"** (E3). Clocks show displayed time, **one speed shared by every clock**; the real (Data Sheet)
   duration sets the bold mark exactly: never jitter it. Readouts show the literal type code. Transport units only,
   never one already on the board, no repeat in a wave until the pool is used.
@@ -143,7 +146,8 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Command Lines** (never "Command Box", E7): 1–4, **2 by default**. **Tab / Shift+Tab** next / previous; **F12** next,
   clearing the line it lands on (E13). Losing focus pauses; otherwise **Esc, and only Esc, pauses.**
 - **How To Play (E57):** a six-step animated cartoon (`core/howto.js`) on the title and options screens, **Andrew's six
-  captions**, one shared clock, silent, never takes input. **Its Mom (step 5) and hatchling (step 6) are the title
+  captions** (⚑ step 6 says "the baby", Chat 2026-10-03, revert if Andrew objects), one shared clock, silent, never takes
+  input; its caption bubble is on hold until Andrew says what's wrong. **Its Mom (step 5) and hatchling (step 6) are the title
   screen's code-drawn replicas** (`ET.title.mommy`/`baby`, Chat 2026-10-03), never the Gemini Mom or the crab; the nest,
   egg, sign and pan are the real art.
   Reduced motion: the still strip (six key frames). **No side panel in play** (E30), **none on game over** (2026-10-01).
@@ -190,7 +194,8 @@ write Egg Timer memories there (auto-memory loads the PLC root index, keyed to t
 ## State 2026-10-03
 **Chat's playtest batch, its follow-ups, the AD note and the combined batch's Parts 1–2 built, not pushed**
 (`5267498`..`e35c68c`, one commit an item; packet §11 "Raised by Chat's playtest"); then Part 5 (`0157faf`) and the Mom
-fade rig fix (`eea0dc9`). **E61:** the rows' wording is ruled; where the reference goes (and Part 4) waits on Andrew.
+fade rig fix (`eea0dc9`); then signs/buildings, bounce, slime, VF out and step 6's caption (`4aab051`..`214c4b0`). **E61:**
+the rows' wording is ruled (three rows now: VF is out); where the reference goes (and Part 4) waits on Andrew.
 Next free **E62**. Waiting on Gemini (via Chat's prompts): the H sign and the
 horror aliens' close-up faces (packet §11, E49, E55). Playtest owed: the hospital window (E53) and the spawn rate (E56).
 Hand tests owed: Mom's visits (both kits, the edge entry, the drool, splat and tongue), the hospital eggs, the cartoon, nozzle lag, Fang

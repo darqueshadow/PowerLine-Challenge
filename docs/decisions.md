@@ -1106,3 +1106,24 @@ clock (in and out over 12% of her visit each, held still under reduced motion), 
 their loops by name, since those ID-weighted rules outranked the plain `* { animation: none }`.
 **If you touch this again:** `.creature .eye` (the hatchling's red eye) would win over a `:where()`-weighted replica
 rule, so keep the `:is(#title-scene, .replica)` weight. Andrew's step 6 caption still says "the crab": his to reword.
+
+## Built 2026-10-03 — Egg Timer: H sign 1.4× + hospital, amber bubble + house, bounce, hatch slime, VF out
+
+**Solved:** Chat's message (filed verbatim in `Game/cartridges/Egg Timer/Previous Versions/
+EGG_TIMER_SIGNS_SLIME_VF_2026-10-03.md`), one commit an item, both rigs green each time (logic 213/0, browser 663/0 at the
+end), not pushed. **A** (`4aab051`): 1.6× didn't fit (nest 6's sign meets a readout at 1440 × 900 and 1024 × 640), so the
+H sign is **1.4×**, with a code-drawn hospital on the other side of the egg, skipped where there's no room (nests 6 and
+9 at the two smaller sizes). **B** (`ab501ed`): the bubble about 1.27×, amber with dark lettering, and a code-drawn
+house. **C** (`2c6d690`): one bounce a second, half a bounce apart, as a dip below the resting place. **D** (`23fc305`):
+purple slime where a horror alien hits the screen, under Time Warp and every nest; the jump happens in one place only.
+**E** (`ecfe1ef`): VF out of play behind `vfInPlay`, its code and art kept; the types reference is three rows. **F**
+(`214c4b0`): step 6 says "the baby" (flagged; Andrew's wording); the How To Play bubble is on hold.
+**Approach:** `placeMarks()` / `decideMarks()` in `view.js` place a sign or bubble and its building from layout boxes
+(`offsetLeft/Top` added to the nest's box), so a drop-in or bounce under way can't move the answer; a building is laid
+out unseen (`visibility: hidden`) while it's measured. `markFootprint()` gives the AD note each neighbour's marks exactly
+where the game puts them. The bounce is one more animation after the drop / fade (`mark-bounce`, transform only). The
+slime is a board layer inserted before `#warp`, removed on its fade's `animationend`.
+**If you touch this again:** a hidden element measures as a zero box, which always "fits": lay it out unseen first. A
+hand-made `{left, top, right, bottom}` box has no `width`, so filter keep-off lists on `right - left`, never `width`
+(this silently dropped every nest body and neighbour zone from the AD note's checks until now). The bounce must never
+rise above where a mark stands: at the two smaller sizes the readouts above leave no room.
