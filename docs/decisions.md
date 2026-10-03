@@ -931,3 +931,19 @@ nests 9 and 10 (and 1, creepy) 55 × 63 px; 1280 × 720 nests 9 and 10 40 × 46 
 54 × 62 px; 1024 × 640 nests 9 and 10 34 × 39 px, nests 5, 8, 11 (and 6, creepy) about 47 × 53 px (nest numbers as rig L
 counts them). Chat is checking with Andrew what screen sizes real stations use; if any run below 1920 × 1080, a ruling
 for nests 9 and 10 follows.
+
+## Resolved 2026-10-02 — Egg Timer: the Mom kit (both Moms, edge entry, E58, giggle hold, purple drool)
+
+**Solved:** Mom's repair uses Andrew's two Gemini kits (sweet Mom wave 1 and How To Play, creepy Mom wave 2 on), comes
+in from the nearest clear edge or, with none, inside her own nest's box (E58 "nest"), never over a readout; the visit
+is 2.2 s with pose C held 0.6 s (at most 2 pose changes a second); creepy Mom's drool and splat glow steady purple.
+All ruled by Chat and LIVE on 2026-10-02 (pushed `5464b52..8ecd2d9` on Andrew's OK).
+**Approach:** `core/mom.js` paints the visit from the game's seconds (`momTimeline`, `momDrool`, in seconds);
+`view.js` picks her edge and the drool's landing, glow included, before she comes; the splat and its halo are on the
+floor canvas (`mess.js` `drool`), so the hose washes them off. Colours: `--mom-drool*` in `theme.css`.
+**If you touch this again:** commits `bd14b3e` (giggle + E58), `fb79f95` (purple glow), `fb76814`/`8ecd2d9` (filing);
+rulings verbatim in `Game/cartridges/Egg Timer/Previous Versions/EGG_TIMER_MOM_KIT_FOLLOWUP_RULINGS_2026-10-02.md`.
+`ET.mom.pose(u)` takes a share of the visit but the timeline is in seconds: compare `u * momRepairSeconds`. Rig H's
+2-changes-a-second check stays (Chat). Still open elsewhere: heads under 60 px in the "nest" fallback below
+1920 × 1080 (nests 9 and 10 down to 34 × 39 px), waiting on Chat's check of real station screen sizes; Andrew judges
+the giggle sound and the glow in Rec-Bay 4.

@@ -172,8 +172,7 @@ write Egg Timer memories there (auto-memory loads the PLC root index, keyed to t
 
 ## State 2026-10-02
 **E52–E57 ruled, built and live** (one mode, hospital eggs; the How To Play cartoon; packet §11). **E58** ruled ("nest"); next
-free E59. **The Mom kit is built** (both Moms; packet §11 E55; E58 ruled "nest"; the giggle hold and the purple
-drool ruled and built 2026-10-02). Waiting on Gemini (via Chat's prompts): the H sign and the
+free E59. Waiting on Gemini (via Chat's prompts): the H sign and the
 horror aliens' close-up faces (packet §11, E49, E55). Playtest owed: the hospital window (E53) and the spawn rate (E56).
 Pushes wait for Andrew's OK, each one (root `CLAUDE.md`, 2026-10-02). Hand tests owed: Mom's visits (both kits, the edge entry, the drool, splat and tongue), the hospital eggs, the cartoon, nozzle lag, Fang
 Rock's title music, held Enter at Game Over, the aliens, the hose's feel and new aim, Q in Rec-Bay 4, real F3, the jump
