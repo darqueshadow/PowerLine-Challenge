@@ -352,11 +352,6 @@ export default {
   "top": "0px",
   "z-index": "26"
  },
- ".toon .momfix .head": {
-  "left": "22%",
-  "top": "-30%",
-  "width": "56%"
- },
  ".toon .popup": {
   "font-size": "clamp(14px, min(1.5vw, 2.6vh), 22px)",
   "left": "88%",
@@ -2588,39 +2583,39 @@ export default {
   "transition-property": "transform",
   "transition-timing-function": "cubic-bezier(0.3, 1.8, 0.5, 1)"
  },
- ":is(.howto-panel, .momfix) .doodle .ink": {
+ ".howto-panel .doodle .ink": {
   "fill": "none",
   "stroke": "rgb(26, 13, 46)",
   "stroke-linecap": "round",
   "stroke-linejoin": "round",
   "stroke-width": "3"
  },
- ":is(.howto-panel, .momfix) .doodle .green": {
+ ".howto-panel .doodle .green": {
   "fill": "rgb(125, 255, 106)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "3"
  },
- ":is(.howto-panel, .momfix) .doodle .lilac": {
+ ".howto-panel .doodle .lilac": {
   "fill": "rgb(199, 155, 255)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "3"
  },
- ":is(.howto-panel, .momfix) .doodle .pink": {
+ ".howto-panel .doodle .pink": {
   "fill": "rgb(255, 143, 199)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "2.5"
  },
- ":is(.howto-panel, .momfix) .doodle .shell": {
+ ".howto-panel .doodle .shell": {
   "fill": "rgb(125, 255, 106)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "3"
  },
- ":is(.howto-panel, .momfix) .doodle .eye": {
+ ".howto-panel .doodle .eye": {
   "fill": "rgb(255, 255, 255)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "2.5"
  },
- ":is(.howto-panel, .momfix) .doodle .dot": {
+ ".howto-panel .doodle .dot": {
   "fill": "rgb(26, 13, 46)"
  },
  ".howto-panel": {
@@ -3067,7 +3062,7 @@ export default {
  ".nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip": {
   "animation-play-state": "paused"
  },
- "body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg, body.paused .momfix *": {
+ "body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg": {
   "animation-play-state": "paused"
  },
  "@keyframes hatch-scare » 0%": {
@@ -3424,102 +3419,88 @@ export default {
  "@keyframes hsign-drop » 100%": {
   "transform": "translateY(0px) rotate(0deg)"
  },
- ".momfix": {
-  "aspect-ratio": "1 / 1",
+ ".mom-visit": {
+  "bottom": "0px",
+  "left": "0px",
   "pointer-events": "none",
   "position": "absolute",
-  "transform": "translate(-50%, -50%)"
+  "right": "0px",
+  "top": "0px"
  },
- ".momfix .head": {
-  "animation-delay": "0s",
-  "animation-direction": "normal",
-  "animation-duration": "1.5s",
-  "animation-fill-mode": "both",
-  "animation-iteration-count": "1",
-  "animation-name": "mom-fix",
-  "animation-play-state": "running",
-  "animation-range-end": "normal",
-  "animation-range-start": "normal",
-  "animation-timeline": "auto",
-  "animation-timing-function": "ease-in-out",
-  "left": "12%",
+ ".mom-visit .mom-clip": {
+  "overflow-x": "hidden",
+  "overflow-y": "hidden",
+  "position": "absolute"
+ },
+ ".mom-visit .mom-rig": {
+  "height": "0px",
+  "left": "0px",
   "position": "absolute",
-  "top": "-70%",
-  "transform-origin": "50% 100%",
-  "width": "76%"
+  "top": "0px",
+  "width": "0px"
  },
- ".momfix .head svg": {
+ ".mom-visit img": {
   "display": "block",
+  "max-width": "none",
+  "position": "absolute",
+  "user-select": "none"
+ },
+ ".mom-visit .mom-tentacle": {
+  "left": "0px",
+  "top": "0px",
+  "transform-origin": "0px 0px"
+ },
+ ".mom-visit .mom-plaster": {
   "height": "auto",
-  "overflow-x": "visible",
-  "overflow-y": "visible",
+  "transform-origin": "50% 50%"
+ },
+ ".mom-visit .mom-head": {
+  "position": "absolute"
+ },
+ ".mom-visit .mom-head .mom-pose": {
+  "height": "100%",
+  "left": "0px",
+  "top": "0px",
+  "visibility": "hidden",
   "width": "100%"
  },
- ".momfix .patch": {
-  "animation-delay": "0s",
-  "animation-direction": "normal",
-  "animation-duration": "1.5s",
-  "animation-fill-mode": "both",
-  "animation-iteration-count": "1",
-  "animation-name": "mom-patch",
-  "animation-play-state": "running",
-  "animation-range-end": "normal",
-  "animation-range-start": "normal",
-  "animation-timeline": "auto",
-  "animation-timing-function": "ease-out",
-  "left": "28%",
+ ".mom-visit[data-pose=\"down\"] .mom-pose.down, .mom-visit[data-pose=\"face\"] .mom-pose.face, .mom-visit[data-pose=\"giggle\"] .mom-pose.giggle": {
+  "visibility": "visible"
+ },
+ ".mom-visit .mom-drool": {
+  "filter": "drop-shadow(rgba(199, 125, 255, 0.7) 0px 0px 4px)",
+  "height": "100%",
+  "left": "0px",
   "overflow-x": "visible",
   "overflow-y": "visible",
   "position": "absolute",
-  "top": "20%",
-  "transform-origin": "50% 50%",
-  "width": "44%"
+  "top": "0px",
+  "width": "100%"
  },
- ".momfix .patch .band": {
-  "fill": "rgb(242, 201, 160)",
+ ".mom-visit .mom-drool .strand, .mom-visit .mom-drool .mom-drop": {
+  "fill": "rgb(176, 77, 255)",
   "stroke": "rgb(26, 13, 46)",
-  "stroke-width": "2.5"
+  "stroke-linejoin": "round",
+  "stroke-width": "1.6",
+  "visibility": "hidden"
  },
- ".momfix .patch .pad": {
-  "fill": "rgb(255, 243, 230)",
-  "stroke": "rgb(26, 13, 46)",
-  "stroke-width": "1.5"
+ ".mom-visit .mom-drool .shine": {
+  "fill": "none",
+  "stroke": "rgb(243, 220, 255)",
+  "stroke-linecap": "round",
+  "stroke-width": "1.2",
+  "visibility": "hidden"
  },
- ".momfix .patch .hole": {
-  "fill": "rgb(26, 13, 46)"
+ ".mom-visit .mom-drool .glint": {
+  "fill": "rgb(243, 220, 255)",
+  "visibility": "hidden"
  },
- "@keyframes mom-fix » 0%": {
-  "transform": "translateY(-90%) scale(0.2)"
- },
- "@keyframes mom-fix » 20%": {
-  "transform": "translateY(0px) scale(1) rotate(0deg)"
- },
- "@keyframes mom-fix » 30%, 46%": {
-  "transform": "translateY(14%) scale(1) rotate(16deg)"
- },
- "@keyframes mom-fix » 52%": {
-  "transform": "translateY(0px) scale(1.06) rotate(0deg)"
- },
- "@keyframes mom-fix » 60%, 76%": {
-  "transform": "translateY(-4%) scale(1.06) rotate(-4deg)"
- },
- "@keyframes mom-fix » 68%, 84%": {
-  "transform": "translateY(3%) scale(1.06) rotate(4deg)"
- },
- "@keyframes mom-fix » 100%": {
-  "transform": "translateY(-90%) scale(0.2)"
- },
- "@keyframes mom-patch » 0%, 28%": {
-  "transform": "scale(0) rotate(-30deg)"
- },
- "@keyframes mom-patch » 38%": {
-  "transform": "scale(1.15) rotate(-12deg)"
- },
- "@keyframes mom-patch » 44%, 85%": {
-  "transform": "scale(1) rotate(-12deg)"
- },
- "@keyframes mom-patch » 100%": {
-  "transform": "scale(0) rotate(-12deg)"
+ ".mom-defs": {
+  "height": "0px",
+  "overflow-x": "hidden",
+  "overflow-y": "hidden",
+  "position": "absolute",
+  "width": "0px"
  },
  ".pan": {
   "left": "50%",
@@ -4514,7 +4495,7 @@ export default {
  "#over-buttons": {
   "margin-top": "12px"
  },
- "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .momfix .head, .momfix .patch, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",
@@ -4557,8 +4538,5 @@ export default {
  },
  "@media (prefers-reduced-motion: reduce) » .toon-still": {
   "display": "flex"
- },
- "@media (prefers-reduced-motion: reduce) » .momfix .patch": {
-  "transform": "rotate(-12deg)"
  }
 };

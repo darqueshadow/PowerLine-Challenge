@@ -875,6 +875,79 @@ playtest. The H sign and both Moms are placeholders until Gemini's parts kits (s
 `.toon`, never `.nest` (the rigs count `.nest` as the board's 12). The first push also published PLC's 9 commits on
 Andrew's word, and the PLC session was told.
 
+## Built 2026-10-02 — Egg Timer: the Mom kit (both Moms, edge entry, drool, splat, tongue); E58 open
+
+**Solved:** Mom's repair uses Andrew's approved Gemini parts kits (sweet Mom: wave 1 and the How To Play cartoon;
+creepy Mom: wave 2 on), with one animation for both. Chat's brief (filed verbatim in `Game/cartridges/Egg Timer/
+Previous Versions/EGG_TIMER_MOM_KIT_RULINGS_2026-10-02.md`) rules: **she comes in from the play-field edge nearest the
+egg** (replacing E55's over-the-nest visit), never covering a timer, nest, readout, Command Line, the trough or the sink;
+**creepy Mom's drool, its splat and her tongue's wobble are drawn in code; sweet Mom never drools.** Six commits, one a
+section: `3a9462a` cut-outs, `9dba590` the art in the visit, `d2e90c1` edge entry, `7e8dc0a` How To Play step 5,
+`44a40cb` drool and splat, `2b44c16` tongue. Not pushed (push rule, root `CLAUDE.md`).
+**Approach:** `make-mom-art.py` cuts the ten pictures (white joined to the edge goes, a band un-blended so the outline
+stays crisp; one crop box per Mom's three heads; the creepy tentacle flipped, the creepy plaster turned and scaled to
+the sweet one; the sweet plaster's speck painted over; warts drawn outside the creepy outline cut off) and writes
+`core/mom-parts.js` (sizes, anchors). `core/mom.js` is the rig, painted from the game's seconds (`momTimeline`).
+`view.js` places her: edges nearest first, her head swept along each and a little in, until head (upright and turned),
+slide-in path and both tentacles (their whole S-curve band) clear every obstacle. Where none does (the board's middle
+nests), **E58** (⏳ PENDING, `momNoEdge`: "nest", built, inside her own nest's box; or "over"). The drool's landing is
+picked before she comes, on the floor canvas (so the hose washes the splat off like any goo), the splat and the drop's
+fall clear of everything; with nowhere clear, the drop fades out and leaves nothing. The tongue: an SVG displacement
+filter whose map is flat outside the tongue's oval (no seam).
+**If you touch this again:** Pillow 12 won't flood-fill an image made straight from a numpy array (copy it first; it
+cost an out-of-memory run). `.drop` is the hose's mist class (it animates to opacity 0): Mom's drop is `mom-drop`.
+The visit stores her edge in `m.edge`; `m.from` is the egg's crack at the start (the mend). The egg's pictures are
+full-slot layers, so its box comes from the nest's units through the egg's screen transform, never from the shell
+image's rect. Rig L checks every nest, both Moms, all four sizes (H signs up); rig H drives a real visit with
+`ET.view.momVisit(id, kind)`.
+
+## Ruled and built 2026-10-02 — Egg Timer: Chat's Mom kit rulings (the giggle hold, E58 "nest", the purple drool)
+
+**Solved:** Chat's four rulings on the Mom kit build (filed verbatim in `Game/cartridges/Egg Timer/Previous Versions/
+EGG_TIMER_MOM_KIT_FOLLOWUP_RULINGS_2026-10-02.md`). **The giggle (flash safety):** pose C is held 0.6 s with a gentle
+bob, one swap in and one out, never more than 2 pose changes in any second (it was C ↔ B twice, four swaps in 0.3 s);
+reduced motion: no bob, and the tongue wobbles for the whole hold. That doesn't fit the old 1.5 s visit without
+speeding something up (which the ruling forbids), so **the visit is 2.2 s** (`momRepairSeconds` [T], flagged to Chat);
+How To Play's step 5 grew from 3.5 to 4.4 s to fit it. **E58: "nest"** (as built): with no clear edge she comes down
+inside her own nest's box. Its conditions: (a) her head and tentacles never cover a readout, her own included, so the
+unit number and timer stay in sight all visit; (b) her head is under about 60 px only in that fallback, on the three
+smaller screens (as small as 34 × 39 px at 1024 × 640; the packet's E58 lists every nest). **The drool, the drop and the
+splat are glowing purple** (were yolk yellow), outline and glossy streaks kept, with a steady soft halo that follows the
+shapes; the halo widens the safe-landing check and washes off with the splat.
+**Approach:** `momTimeline` and `momDrool` moved from shares of the visit to seconds, so lengthening the visit kept
+everything up to pose B at its old moments; the crack's mend is `momTimeline.mend` (it was hard-coded twice). The halo:
+a CSS `drop-shadow` on the drool's SVG (strand, drop) and a canvas shadow under the splat and its droplets on the floor
+canvas. Colours: `--mom-drool*` in `theme.css` (theme baseline rewritten; 4 rules changed, all the drool's).
+**If you touch this again:** `ET.mom.pose(u)` takes a share, but the timeline is in seconds; anything comparing
+`momTimeline` to a share is a bug (the giggle sound's trigger was one, caught by rig H). Rig H counts every pose change
+through a visit (5 ms steps) and scans the floor canvas for any halo pixel over an obstacle; rig L prints each size's
+small heads as a note.
+
+**Known facts (Chat, 2026-10-02, later):** Chat approved the **2.2 s visit** (the 2-pose-changes-a-second rig check
+stays) and the **steady** glow (no pulse); the giggle sound stays where it is, as she turns to face the player (Andrew
+judges it in Rec-Bay 4). **How To Play's step 5 is 4.4 s** (was 3.5) to hold the visit. **Small heads (E58's
+"nest" fallback only; every edge entry is full size), no change yet:** 1920 × 1080 none (smallest 71 px); 1440 × 900
+nests 9 and 10 (and 1, creepy) 55 × 63 px; 1280 × 720 nests 9 and 10 40 × 46 px, nests 5, 8 (and 6, 11, creepy) about
+54 × 62 px; 1024 × 640 nests 9 and 10 34 × 39 px, nests 5, 8, 11 (and 6, creepy) about 47 × 53 px (nest numbers as rig L
+counts them). Chat is checking with Andrew what screen sizes real stations use; if any run below 1920 × 1080, a ruling
+for nests 9 and 10 follows.
+
+## Resolved 2026-10-02 — Egg Timer: the Mom kit (both Moms, edge entry, E58, giggle hold, purple drool)
+
+**Solved:** Mom's repair uses Andrew's two Gemini kits (sweet Mom wave 1 and How To Play, creepy Mom wave 2 on), comes
+in from the nearest clear edge or, with none, inside her own nest's box (E58 "nest"), never over a readout; the visit
+is 2.2 s with pose C held 0.6 s (at most 2 pose changes a second); creepy Mom's drool and splat glow steady purple.
+All ruled by Chat and LIVE on 2026-10-02 (pushed `5464b52..8ecd2d9` on Andrew's OK).
+**Approach:** `core/mom.js` paints the visit from the game's seconds (`momTimeline`, `momDrool`, in seconds);
+`view.js` picks her edge and the drool's landing, glow included, before she comes; the splat and its halo are on the
+floor canvas (`mess.js` `drool`), so the hose washes them off. Colours: `--mom-drool*` in `theme.css`.
+**If you touch this again:** commits `bd14b3e` (giggle + E58), `fb79f95` (purple glow), `fb76814`/`8ecd2d9` (filing);
+rulings verbatim in `Game/cartridges/Egg Timer/Previous Versions/EGG_TIMER_MOM_KIT_FOLLOWUP_RULINGS_2026-10-02.md`.
+`ET.mom.pose(u)` takes a share of the visit but the timeline is in seconds: compare `u * momRepairSeconds`. Rig H's
+2-changes-a-second check stays (Chat). Still open elsewhere: heads under 60 px in the "nest" fallback below
+1920 × 1080 (nests 9 and 10 down to 34 × 39 px), waiting on Chat's check of real station screen sizes; Andrew judges
+the giggle sound and the glow in Rec-Bay 4.
+
 ## 2026-10-02 — the C64 corner: keyboard and joystick live together, Help, the deck's groups (built, not merged)
 
 **Solved (on branch `c64-both-live`, pending Andrew's hand-test and his approval of the Help wording):** Chat's

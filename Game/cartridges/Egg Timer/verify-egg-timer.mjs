@@ -255,7 +255,7 @@ try {
         code: n.querySelector('.readout .code').textContent, clock: n.querySelector('.readout .clock').textContent, typed: c.querySelector('.typed').textContent,
         cord: c.querySelector('.toon-cord g').style.display !== 'none', sign: !n.querySelector('.hsign').hidden, pan: n.querySelector('.pan').classList.contains('hit'),
         brk: n.querySelector('.break').getAttribute('data-stage'), pts: [...fx.querySelectorAll('.popup')].map(p => p.textContent), dish: !!fx.querySelector('.dish'), goo: fx.querySelectorAll('.goo').length,
-        mom: fx.querySelector('.momfix') ? fx.querySelector('.momfix').className : null, alien: (n.querySelector('.creature .alien') || {}).dataset ? n.querySelector('.creature .alien').dataset.alien : null,
+        mom: fx.querySelector('.mom-visit') ? fx.querySelector('.mom-visit').className + ' ' + fx.querySelector('.mom-visit').dataset.pose : null, alien: (n.querySelector('.creature .alien') || {}).dataset ? n.querySelector('.creature .alien').dataset.alien : null,
         crack: Number(n.querySelector('.crack').style.strokeDashoffset) }; })()`);
     const s1 = await look(T0[0] + 0.7), s1b = await look(T0[0] + 2.2);
     ok(s1.step === 1 && s1.say === CAPS[0] && s1.dot === 1 && s1.cord && s1.state === "laying" && s1.clock === "--:--", "E57 step 1: the cord comes down with the egg in it, no clock yet");
@@ -268,7 +268,7 @@ try {
     ok(s4.say === CAPS[3] && s4.state === "splat" && s4.brk === "4" && s4.goo >= 3 && s4.pts.includes("+35"), "E57 step 4: a slow clear: a messier splat (break stage 4), gunk, +35");
     const s5a = await look(T0[4] + 1.6), s5 = await look(T0[4] + 2.4);
     ok(s5a.sign && s5a.asks && s5a.code === "" && /^CAV/.test(s5a.typed), `E57 step 5: the H sign; RCAV empties the type box (its pulse), then CAV 2101 STR types   [${s5a.typed}]`);
-    ok(s5.mom === "momfix sweet" && s5.code === "STR" && !s5.bold && s5.pts.includes("+75"), "…and sweet Mom patches it: the box reads STR");
+    ok(s5.mom === "mom-visit sweet down" && s5.code === "STR" && !s5.bold && s5.pts.includes("+75"), `…and sweet Mom (the game's own visit, Mom kit) patches it: the box reads STR   [${s5.mom}]`);
     const s6 = await look(T0[5] + 1.0);
     ok(s6.say === CAPS[5] && s6.state === "escape" && s6.hop && s6.alien === (await ev("ET.CONFIG.howtoAlien")), `E57 step 6: the egg hatches and the crab does its goofy hop (never a horror alien)   [${s6.alien}]`);
     eq([s1.other, s6.other], [CAPS[0], CAPS[5]], "E57: one clock: the options screen's copy is always on the same step");
@@ -285,12 +285,12 @@ try {
       const q = (i, s) => cells[i].querySelector(s);
       return { anim: c.querySelector('.toon-anim').getBoundingClientRect().height, still: c.querySelector('.toon-still').getBoundingClientRect().height,
         p1: q(0, '.toon').dataset.state, p2: q(1, '.toon').classList.contains('bold'), p3: q(2, '.break').getAttribute('data-stage'), p4: q(3, '.break').getAttribute('data-stage'),
-        p5: [!q(4, '.hsign').hidden, !!q(4, '.momfix'), q(4, '.momfix .head') ? getComputedStyle(q(4, '.momfix .head')).animationName : null],
+        p5: [!q(4, '.hsign').hidden, !!q(4, '.mom-visit.sweet'), q(4, '.mom-visit') ? q(4, '.mom-visit').dataset.pose + ' ' + getComputedStyle(q(4, '.mom-plaster')).visibility : null],
         p6: [q(5, '.toon').dataset.state, getComputedStyle(q(5, '.creature')).animationName],
         moving: [...c.querySelectorAll('.toon-still *')].filter(e => { const a = getComputedStyle(e).animationName; return a !== 'none' && !/^alien-/.test(a); }).map(e => e.getAttribute('class')).slice(0, 4) }; })()`);
     ok(rs.anim === 0 && rs.still > 200, "SAFETY: with reduced motion the cartoon gives way to the still strip");
     ok(rs.p1 === "laying" && rs.p2 && rs.p3 === "1" && rs.p4 === "4" && rs.p5[0] && rs.p5[1] && rs.p6[0] === "escape", `…each panel its step's key frame: the lay, the bold crack, the neat and messy splats, Mom with the sign, the crab out   [${JSON.stringify([rs.p1, rs.p3, rs.p4, rs.p6[0]])}]`);
-    ok(rs.p5[2] === "none" && rs.p6[1] === "none" && rs.moving.length === 0, `SAFETY: …and nothing in it moves (the alien puppets' own swings aside, held still by their own rule)   [${rs.moving.join(", ")}]`);
+    ok(rs.p5[2] === "down visible" && rs.p6[1] === "none" && rs.moving.length === 0, `SAFETY: …and nothing in it moves (the alien puppets' own swings aside, held still by their own rule)   [${rs.moving.join(", ")}]`);
     await shot("01c-howto-still");
     await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
@@ -1130,22 +1130,31 @@ try {
     await typeAndEnter(`CAV ${h.unit} STR`);
     // paused at once, so the live page can't run her visit on between the timed checks below (__et.advance still steps)
     await ev("(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })), __et.advance(0.01), 1)");
-    const fix = await ev(`(() => { const m = document.querySelector('#popups .momfix'); if (!m) return null; const f = m.getBoundingClientRect(), n = ${q("")}.getBoundingClientRect();
-      return { kind: m.className, head: getComputedStyle(m.querySelector('.head')).animationName, patch: getComputedStyle(m.querySelector('.patch')).animationName, sweet: !!m.querySelector('.head svg.doodle'),
-               over: Math.abs((f.left + f.right) / 2 - (n.left + n.right) / 2) < 4, pointer: getComputedStyle(document.querySelector('#popups')).pointerEvents,
+    const fix = await ev(`(() => { const m = document.querySelector('#popups .mom-visit'); if (!m) return null;
+      const pics = [...m.querySelectorAll('img')].map((i) => i.getAttribute('src').slice('art/mom-'.length, -'@2x.png'.length)).sort();
+      return { kind: m.className, pics: pics.join(' '), pointer: getComputedStyle(document.querySelector('#popups')).pointerEvents,
                pan: ${q(" .pan")}.className, code: ${q(" .code")}.textContent, asks: ${q("")}.classList.contains('asks'), list: ET.view.momFixes() }; })()`);
-    ok(!!fix && fix.kind === "momfix sweet" && fix.sweet && fix.head === "mom-fix" && fix.patch === "mom-patch", `E55: the STR brings wave 1's sweet Mom over the nest, with her patch   [${fix && fix.kind}]`);
-    ok(!!fix && fix.over && fix.pointer === "none", "…over that nest only, in the layer that takes no pointer or keys");
+    eq(fix && [fix.kind, fix.pics], ["mom-visit sweet", "sweet--down sweet--face sweet--giggle sweet--plaster sweet--tentacle sweet--tentacle"], "E55 (Mom kit): the STR brings wave 1's sweet Mom: three heads, two tentacles (one picture, mirrored) and her plaster");
+    ok(!!fix && fix.pointer === "none", "…in the layer that takes no pointer or keys");
     ok(!!fix && fix.pan === "pan" && fix.code === "STR" && !fix.asks, `E52: no pan at window 1; the type box reads STR again   [${fix && fix.pan}]`);
     ok((await snap()).score > sc0, "E52: window 1 scores at the STR");
     ok(await ev("document.activeElement === document.querySelector('.box.active input') || __et.paused()"), "…and the Command Line keeps the keys while she's there");
     await ev(`__et.advance(${0.3 * 1.5})`);
-    const mid = await ev(`({ crack: Number(${q(" .crack")}.style.strokeDashoffset), giggled: ET.view.momFixes()[0] && ET.view.momFixes()[0].giggled })`);
+    const mid = await ev(`({ crack: Number(${q(" .crack")}.style.strokeDashoffset), giggled: ET.view.momFixes()[0] && ET.view.momFixes()[0].giggled, pose: document.querySelector('#popups .mom-visit').dataset.pose })`);
     await shot("08b-hospital-mom");
     await ev(`__et.advance(${0.3 * 1.5})`);
-    const later = await ev(`({ crack: Number(${q(" .crack")}.style.strokeDashoffset), giggled: ET.view.momFixes()[0] && ET.view.momFixes()[0].giggled })`);
+    const later = await ev(`({ crack: Number(${q(" .crack")}.style.strokeDashoffset), giggled: ET.view.momFixes()[0] && ET.view.momFixes()[0].giggled, pose: document.querySelector('#popups .mom-visit').dataset.pose, want: ET.mom.pose(ET.view.momFixes()[0].u, false) })`);
     ok(mid.crack < 1 && later.crack === 1 && !mid.giggled && later.giggled, `E55: she patches the cracks closed, then turns and giggles   [crack ${(1 - mid.crack).toFixed(2)} → ${(1 - later.crack).toFixed(2)}]`);
-    await ev("__et.advance(0.7)");
+    eq([mid.pose, later.pose === later.want && later.pose !== "down"], ["down", true], `Mom kit: looking down (A) while she patches, facing the player once she's done   [${later.pose}]`);
+    // the poses through one visit, as config's momTimeline has them: A, B, C (held), B
+    eq(await ev(`[0.45, 0.9, 1.3, 1.7, 1.95].map((s) => ET.mom.pose(s / ET.CONFIG.momRepairSeconds)).join(' ')`), "down face giggle giggle face", "Mom kit: A, then B, then C held, then B");
+    // Chat's giggle ruling (2026-10-02, flash safety): every pose change through a visit, 5 ms apart
+    const swaps = await ev(`(() => { const T = ET.CONFIG.momRepairSeconds, out = []; let was = ET.mom.pose(0);
+      for (let s = 0.005; s < T; s += 0.005) { const p = ET.mom.pose(s / T); if (p !== was) out.push([+s.toFixed(3), p]); was = p; } return out; })()`);
+    const cAt = swaps.findIndex((x) => x[1] === "giggle"), holdC = cAt >= 0 && swaps[cAt + 1] ? swaps[cAt + 1][0] - swaps[cAt][0] : 0;
+    ok(swaps.filter((x) => x[1] === "giggle").length === 1 && holdC >= 0.5, `SAFETY (giggle ruling): pose C is held at least 0.5 s, one swap in and one out   [held ${holdC.toFixed(2)} s]`);
+    ok(swaps.every((x, i) => i < 2 || x[0] - swaps[i - 2][0] > 1), `SAFETY (giggle ruling): at most 2 pose changes in any second of the visit   [${swaps.map((x) => x[1] + "@" + x[0]).join(" ")}, of ${await ev("ET.CONFIG.momRepairSeconds")} s]`);
+    await ev(`__et.advance(${await ev("ET.CONFIG.momRepairSeconds")} - 0.9 + 0.1)`);
     eq(await ev("[document.querySelectorAll('#popups .momfix').length, ET.view.momFixes().length]"), [0, 0], `E55: …and ducks out after ${await ev("ET.CONFIG.momRepairSeconds")} s`);
     eq(await ev(`${q(" .hsign")}.hidden`), false, "the H sign stays on through the STR");
     // the final clear: the ordinary pan, splat and break stage
@@ -1160,12 +1169,85 @@ try {
     const kind = await ev(`(() => { const was = ET.CONFIG.momSweetUntilWave; ET.CONFIG.momSweetUntilWave = 0; __et.start(1, { hospital: 1 }); __et.advance(0.1);
       let n = null; for (let i = 0; i < 1200 && !(n = __et.snapshot().nests.find(x => x.state === 'overtime')); i++) __et.advance(0.05);
       __et.submit('RCAV ' + n.unit); __et.submit('CAV ' + n.unit + ' STR'); __et.advance(0.01); ET.CONFIG.momSweetUntilWave = was;
-      const m = document.querySelector('#popups .momfix'); return m ? [m.className, !!m.querySelector('svg.mom-face')] : null; })()`);
-    eq(kind, ["momfix creepy", true], "E55: creepy Mom from wave 2 on, matching the scary HUD face");
+      const m = document.querySelector('#popups .mom-visit'); return m ? [m.className, m.querySelectorAll('img[src*="mom-creepy--"]').length] : null; })()`);
+    eq(kind, ["mom-visit creepy", 6], "E55: creepy Mom from wave 2 on, her own kit");
     const held = await ev(`new Promise((done) => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-      setTimeout(() => { const n = ET.view.momFixes().length, a = getComputedStyle(document.querySelector('#popups .momfix .head')).animationPlayState;
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); done([n, a]); }, 2200); })`);
-    eq(held, [1, "paused"], "a pause holds her, however long it lasts");
+      const look = () => { const m = document.querySelector('#popups .mom-visit'); return m ? m.dataset.pose + ' ' + m.querySelector('.mom-rig').style.transform + ' ' + m.querySelector('.mom-head').style.transform : null; };
+      const was = look();
+      setTimeout(() => { const n = ET.view.momFixes().length, now = look();
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); done([n, now === was]); }, 2200); })`);
+    eq(held, [1, true], "a pause holds her, however long it lasts");
+  }
+  {
+    // Mom kit: creepy Mom's drool and its splat, code-drawn, at a nest she reaches from an edge with a clear landing
+    await ev("(() => { __et.start(4, { hospital: 0 }); __et.advance(0.1); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); document.querySelectorAll('.nest').forEach(n => n.classList.remove('inactive', 'unlock')); return 1; })()");
+    const drool = (reduced) => ev(`(() => {
+      const fl = document.querySelector('.floor-mess'); ET.mess.clear(fl);
+      let id = -1, plan = null;
+      for (let i = 0; i < 12 && id < 0; i++) { const p = ET.view.momPlan(i, 'creepy'); if (!p.fallback && p.drool.land) { id = i; plan = p; } }
+      if (id < 0) return null;
+      const T = ET.CONFIG.momRepairSeconds; let at = 0;
+      const to = (u) => { __et.advance((u - at) * T); at = u; const m = document.querySelector('#popups .mom-visit.creepy');
+        const vis = (s) => !!m && [...m.querySelectorAll('.mom-drool ' + s)].some(e => getComputedStyle(e).visibility === 'visible');
+        return { pose: m && m.dataset.pose, strand: vis('.strand'), drop: vis('.mom-drop.falling'), tongue: !!m && !!m.querySelector('.mom-pose.giggle').style.filter, splat: !!(ET.view.momFixes().find((x) => x.kind === 'creepy') || { drool: {} }).drool.splat }; };
+      ET.view.momVisit(id, 'creepy');
+      const bobs = [];
+      const s = [to(0.45 / T), to(0.82 / T), to(0.96 / T)];
+      for (let k = 0; k <= 12; k++) { to((1.21 + k * 0.045) / T); bobs.push(document.querySelector('#popups .mom-visit.creepy .mom-head').style.transform); }
+      s.push(to(1.75 / T));
+      const glow = (() => { const m = document.querySelector('#popups .mom-visit.creepy .mom-drool'); return m ? getComputedStyle(m).filter : ''; })();
+      s.push(to(2.15 / T));
+      // the splat's glow on the floor canvas: none of it over any nest, readout, sign, timer, the sink tag or the trough
+      const flr = fl.getBoundingClientRect(), fld = document.getElementById('field').getBoundingClientRect(), kx = fl.width / flr.width, ky0 = fl.height / flr.height;
+      const px = fl.getContext('2d').getImageData(0, 0, fl.width, fl.height).data;
+      let onObstacle = 0, purple = 0;
+      const obs = plan.obstacles.all.concat(plan.obstacles.own).concat([document.querySelector('#trough .t-left'), document.querySelector('#trough .t-right'), document.querySelector('#trough .t-bl')].filter(Boolean).map((e) => { const r = e.getBoundingClientRect(); return { l: r.left - fld.left, t: r.top - fld.top, r: r.right - fld.left, b: r.bottom - fld.top }; }));
+      for (let y = 0; y < fl.height; y += 2) for (let x = 0; x < fl.width; x += 2) {
+        const i = (y * fl.width + x) * 4; if (!px[i + 3]) continue;
+        if (px[i + 2] > px[i + 1] + 60 && px[i] > px[i + 1] + 30) purple++;
+        const fx = x / kx + (flr.left - fld.left), fy = y / ky0 + (flr.top - fld.top);
+        if (obs.some((o) => fx > o.l && fx < o.r && fy > o.t && fy < o.b)) onObstacle++;
+      }
+      const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b, box = plan.drool.land.box;
+      const clear = !plan.obstacles.all.concat(plan.obstacles.own).some((o) => hit(box, o)) && box.l >= plan.floor.l && box.r <= plan.floor.r && box.t >= plan.floor.t && box.b <= plan.floor.b;
+      const cov = ET.mess.coverage(fl);
+      // wash it off as the hose would any goo: the floor's own wipe over where it landed
+      const fr = fl.getBoundingClientRect(), f = document.getElementById('field').getBoundingClientRect(), k = fl.width / fr.width, ky = fl.height / fr.height;
+      for (let y = box.t; y <= box.b; y += 6) ET.mess.wipe(fl, (box.l - (fr.left - f.left)) * k, (y - (fr.top - f.top)) * ky, (box.r - (fr.left - f.left)) * k, (y - (fr.top - f.top)) * ky, 8 * k);
+      const after = ET.mess.coverage(fl);
+      __et.advance(0.2);
+      ET.view.momVisit(id, 'sweet');
+      const sweet = document.querySelector('#popups .mom-visit.sweet');
+      return { id, s, clear, cov, after, glow, onObstacle, purple, bobs: [...new Set(bobs)].length, fill: getComputedStyle(document.documentElement).getPropertyValue('--mom-drool').trim(),
+        sweetDrool: !!(sweet && sweet.querySelector('.mom-drool')), sweetTongue: !!(sweet && sweet.querySelector('.mom-pose.giggle').style.filter),
+        defs: document.querySelectorAll('.mom-defs').length }; })()`);
+    const d = await drool(false);
+    ok(!!d, "Mom kit: some nest has an edge entry and a clear landing for the drool");
+    if (d) {
+      eq(d.s.map((x) => [x.pose, x.strand, x.splat]).concat([d.s[2].drop]), [["down", false, false], ["face", true, false], ["face", true, false], ["giggle", false, true], ["face", false, true], true],
+        `Mom kit: creepy Mom drools in pose B only: the strand, then the drop falling, then the splat where it lands   [nest ${d.id}]`);
+      ok(d.fill === "#b04dff" && d.purple > 50 && /drop-shadow/.test(d.glow), `Chat's colour ruling: the drool, the drop and the splat are glowing purple, a halo that follows the shapes   [${d.fill}, ${d.purple} purple px, ${d.glow}]`);
+      eq(d.onObstacle, 0, "Chat's colour ruling: the splat's glow, like the splat, touches no nest, readout, sign, timer, the sink tag or the trough");
+      ok(d.bobs > 3, `Chat's giggle ruling: pose C bobs gently while it's held   [${d.bobs} heights]`);
+      ok(d.clear && d.cov > 0, `Mom kit: the splat lands on the floor, clear of every nest, readout, sign, timer, the sink tag and the trough   [coverage ${(d.cov * 100).toFixed(2)}%]`);
+      ok(d.after < d.cov * 0.05, `Mom kit: …and washes off like any goo (the floor's own wipe)   [${(d.cov * 100).toFixed(2)}% → ${(d.after * 100).toFixed(2)}%]`);
+      eq(d.sweetDrool, false, "Mom kit: sweet Mom never drools");
+      eq(d.s.map((x) => x.tongue), [false, false, false, true, false], "Mom kit: creepy Mom's tongue wobbles (its warp filter) while she giggles, pose C only");
+      eq([d.sweetTongue, d.defs], [false, 0], "Mom kit: â€¦never sweet Mom's, and its filter goes when she does");
+      if (SHOTS) {   // to look at: the glowing purple strand and drop, then the splat
+        await ev(`(__et.advance(0.3), ET.view.momVisit(${d.id}, 'creepy'), __et.advance(0.9), 1)`);
+        await shot("08c-creepy-drool");
+        await ev("(__et.advance(1.25), 1)");
+        await shot("08d-creepy-splat");
+        await ev("(__et.advance(0.2), ET.mess.clear(document.querySelector('.floor-mess')), 1)");
+      }
+    }
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const r = await drool(true);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
+    ok(!!r && r.s.every((x) => !x.strand && !x.drop) && !r.s[1].splat && r.s[2].splat, `SAFETY: under reduced motion no strand, no falling drop; the splat is simply there once it would have landed   [${r && r.s.map((x) => x.splat).join(",")}]`);
+    ok(!!r && r.bobs === 1 && JSON.stringify(r.s.map((x) => x.tongue)) === "[false,false,false,true,false]", `Chat's giggle ruling: under reduced motion pose C doesn't bob, and the tongue wobbles for the whole hold   [${r && r.bobs} heights]`);
   }
   {
     // E56: the placeholder giggles sit under THONG (rendered offline, each alone)
@@ -1541,6 +1623,56 @@ try {
     ok(lay.warpCentre && lay.warpBehind && lay.warpBig > 1.45 && lay.warpBig < 1.55, `E50 (option A): Time Warp's grandfather clock, sign and caption sit in the centre of the board, about 1.5× bigger, every nest and readout drawn over it where they meet   ${at} [×${lay.warpBig.toFixed(2)}]`);
     ok(lay.tagged === 0 && lay.tagIn, `Refinement 5 §6: the hose tag stays on the board and touches no nest or readout   ${at}`);
     ok(lay.muteClear, `E24: the mute button sits in the HUD bar's left end, clear of its words, the wall clock and the board   ${at}`);
+    // Mom kit (Chat's brief, 2026-10-02): for every nest, both Moms come in from an edge (nearest first) or, with no
+    // edge clear, take E58's fallback inside her own nest; either way her head (upright and turned) and both tentacles
+    // (the whole band their S-curve can swing over) cover no other nest, readout, H sign, the wall clock, Time Warp,
+    // the sink tag or the trough, and her head covers nothing of her own nest when she comes from an edge
+    const mom = await ev(`(() => {
+      const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+      const out = { bad: [], edges: {}, fallback: [] };
+      for (const kind of ['sweet', 'creepy']) for (let id = 0; id < 12; id++) {
+        const p = ET.view.momPlan(id, kind), c = p.clip;
+        const where = kind + ' ' + id;
+        if (p.head.l < c.l - 0.5 || p.head.r > c.r + 0.5 || p.head.t < c.t - 0.5 || p.head.b > c.b + 0.5) out.bad.push(where + ' head outside');
+        // E58's fallback stays inside her own nest's box: what that box already lies over (Time Warp, drawn under the
+        // nests, E50) isn't hers to clear
+        p.obstacles.all.forEach((o) => { if (hit(p.head, o) && !(p.fallback && hit(p.nest, o))) out.bad.push(where + ' head'); });
+        if (p.fallback) {
+          out.fallback.push(id);
+          if (p.head.l < p.nest.l - 0.5 || p.head.r > p.nest.r + 0.5 || p.head.t < p.nest.t - 0.5 || p.head.b > p.readout.t + 0.5) out.bad.push(where + ' fallback leaves its nest');
+        } else {
+          out.edges[p.from] = (out.edges[p.from] || 0) + 1;
+          // creepy Mom's splat, where it lands: on the floor and clear, droplets and all
+          const land = p.drool && p.drool.land;
+          if (land) {
+            if (land.box.l < p.floor.l || land.box.r > p.floor.r || land.box.t < p.floor.t || land.box.b > p.floor.b) out.bad.push(where + ' splat off the floor');
+            p.obstacles.all.concat(p.obstacles.own).forEach((o) => { if (hit(land.box, o)) out.bad.push(where + ' splat'); });
+          }
+          p.obstacles.own.forEach((o) => { if (hit(p.head, o)) out.bad.push(where + ' head on its own nest'); });
+          p.tents.forEach((t) => {
+            for (let s = 0; s <= 40; s++) {
+              const x = t.from.x + (t.to.x - t.from.x) * s / 40, y = t.from.y + (t.to.y - t.from.y) * s / 40, r = p.tube / 2;
+              const d = { l: x - r, t: y - r, r: x + r, b: y + r };
+              p.obstacles.all.forEach((o) => { if (hit(d, o)) out.bad.push(where + ' tentacle'); });
+            }
+          });
+        }
+      }
+      out.bad = [...new Set(out.bad)];
+      out.fallback = [...new Set(out.fallback)].join(',');
+      // E58 condition (b): her head's size at every nest, both Moms; and condition (a): no readout under her
+      out.heads = [];
+      for (const kind of ['sweet', 'creepy']) for (let id = 0; id < 12; id++) {
+        const p = ET.view.momPlan(id, kind);
+        out.heads.push({ kind, id, w: p.head.r - p.head.l, h: p.head.b - p.head.t, fb: !!p.fallback });
+        if (hit(p.head, p.readout)) out.bad.push(kind + ' ' + id + ' head on its own readout');
+      }
+      return out; })()`);
+    ok(mom.bad.length === 0, `Mom kit: both Moms, every nest: her head and tentacles cover no other nest, readout, sign, timer, the sink tag or the trough   ${at} [${mom.bad.slice(0, 4).join('; ') || JSON.stringify(mom.edges) + ', E58 fallback: ' + (mom.fallback || 'none')}]`);
+    {
+      const small = mom.heads.filter((x) => Math.min(x.w, x.h) < 60), least = mom.heads.reduce((a, x) => Math.min(a, x.w, x.h), 1e9);
+      console.log(`    note: E58 (b) ${at}: smallest head ${least.toFixed(0)} px; under 60 px: ${small.length ? small.map((x) => x.kind + ' ' + x.id + (x.fb ? ' (nest)' : '') + ' ' + x.w.toFixed(0) + '×' + x.h.toFixed(0)).join(', ') : 'none'}`);
+    }
     if (SHOTS) {
       await ev(`(() => { document.querySelectorAll('.mess').forEach((m, i) => i % 3 === 0 && ET.mess.splatter(m, 6)); return 1; })()`);
       await shot(`10-full-board-${w}x${h}`);
@@ -1773,9 +1905,11 @@ try {
     await ev("__et.advance(0.1)");
     const cue = () => ev(`(() => { const s = document.querySelector('.nest.asks .readout .code'); if (!s) return null; const cs = getComputedStyle(s); return { anim: cs.animationName, border: cs.borderTopColor }; })()`);
     // E55: the H sign's drop and Mom's repair, read the moment the STR goes on
-    const hosp = (b) => ev(`(() => { __et.submit('CAV ${b.unit} STR'); __et.advance(0.01); const m = document.querySelector('#popups .momfix');
-      return { sign: getComputedStyle(document.querySelector('.nest[data-id="${b.id}"] .hsign')).animationName, head: m && getComputedStyle(m.querySelector('.head')).animationName,
-               patch: m && getComputedStyle(m.querySelector('.patch')).animationName, there: !!m && m.querySelector('.head').getBoundingClientRect().height > 10 }; })()`);
+    // Mom kit: read early in her entrance (u about 0.06): sliding in, or (reduced motion) fading in where she rests
+    const hosp = (b) => ev(`(() => { __et.submit('CAV ${b.unit} STR'); __et.advance(0.09); const m = document.querySelector('#popups .mom-visit');
+      const t = m ? m.querySelector('.mom-rig').style.transform : '';
+      return { sign: getComputedStyle(document.querySelector('.nest[data-id="${b.id}"] .hsign')).animationName, slide: !!t && t !== 'translate(0px, 0px)',
+               fade: m ? Number(m.style.opacity || 1) : null, there: !!m && m.querySelector('.mom-head').getBoundingClientRect().height > 10 }; })()`);
     const legs = () => ev(`(() => { const n = document.querySelector('.nest[data-id="0"]'); n.classList.add('scurry'); const a = getComputedStyle(n.querySelector('.legs')).animationName; n.classList.remove('scurry'); return a; })()`);
     // E45: every moving piece of all six aliens, built in nest 0's slot one at a time: its animation's name
     const aliens = () => ev(`(() => { const c = document.querySelector('.nest[data-id="0"] .creature'), out = {};
@@ -1830,7 +1964,7 @@ try {
     };
     const live = await motion("normal");
     ok(live.t && !!live.cue && live.cue.anim === "cue", `without reduced motion the place-me cue blinks   [${live.cue && live.cue.anim}]`);
-    ok(!!live.hosp && live.hosp.sign === "hsign-drop" && live.hosp.head === "mom-fix" && live.hosp.patch === "mom-patch", `…the H sign drops in, and Mom moves through her repair   [${live.hosp && [live.hosp.sign, live.hosp.head, live.hosp.patch].join(", ")}]`);
+    ok(!!live.hosp && live.hosp.sign === "hsign-drop" && live.hosp.slide && live.hosp.fade === 1, `…the H sign drops in, and Mom slides in   [${live.hosp && [live.hosp.sign, live.hosp.slide, live.hosp.fade].join(", ")}]`);
     ok(live.cord.some((d) => d !== null && d > 0), `…the laying cord twitches   [spread ${live.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(live.bold && live.wobble.some((a) => a !== null && a > 0), `…the egg wobbles in overtime   [${live.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
     eq(live.legs, "legs", "…and the escaping hatchling's legs shuffle");
@@ -1840,7 +1974,7 @@ try {
     for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const still = await motion("reduced");
     ok(still.t && !!still.cue && still.cue.anim === "none" && still.cue.border === "rgb(34, 227, 255)", `SAFETY: with reduced motion the place-me cue stops blinking and holds a steady cyan border   [${still.cue && still.cue.anim}, ${still.cue && still.cue.border}]`);
-    ok(!!still.hosp && still.hosp.sign === "none" && still.hosp.head === "none" && still.hosp.patch === "none" && still.hosp.there, `SAFETY: …the H sign is simply there, and Mom appears, still, and goes   [${still.hosp && [still.hosp.sign, still.hosp.head, still.hosp.patch].join(", ")}]`);
+    ok(!!still.hosp && still.hosp.sign === "none" && !still.hosp.slide && still.hosp.fade > 0 && still.hosp.fade < 1 && still.hosp.there, `SAFETY: …the H sign is simply there, and Mom only fades in where she rests (no slide)   [${still.hosp && [still.hosp.sign, still.hosp.slide, still.hosp.fade && still.hosp.fade.toFixed(2)].join(", ")}]`);
     ok(still.cord.length === 6 && still.cord.every((d) => d === 0), `SAFETY: …the laying cord hangs straight, no twitch   [spread ${still.cord.map((d) => d === null ? "-" : d.toFixed(1)).join(" ")} px]`);
     ok(still.bold && still.wobble.length === 6 && still.wobble.every((a) => a === 0), `SAFETY: …the overtime egg doesn't wobble   [${still.wobble.map((a) => a === null ? "-" : a.toFixed(2)).join(" ")}°]`);
     eq(still.legs, "none", "SAFETY: …and the hatchling's legs hold still");

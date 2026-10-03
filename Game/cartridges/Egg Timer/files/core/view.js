@@ -451,47 +451,241 @@
     if (tips.ready.line) tips.ready.line.style.display = "none";
   }
 
-  /* E55 (ruled 2026-10-02): Mom repairs a hospital egg as its STR goes on (⏳ placeholder art: the sweet one is the
-     how-to panel's mommy doodle, the creepy one the scary HUD face, until Chat's two Gemini parts kits come back). Over
-     the nest only, in the popups layer (no pointer, no keyboard), for momRepairSeconds: she pops in, looks down and
-     patches the egg (its cracks close), turns to the player and giggles, and ducks out (style.css, mom-fix). It runs on
-     the game's own seconds, so a pause holds it (body.paused holds the CSS too). Reduced motion: she appears, still,
-     and goes. */
+  /* E55 (ruled 2026-10-02): Mom repairs a hospital egg as its STR goes on, with the two Gemini parts kits (Andrew
+     approved the art, Chat's brief 2026-10-02; core/mom.js draws her). In the popups layer (no pointer, no keyboard),
+     for momRepairSeconds: she comes in, looks down and patches the egg (its cracks close), turns to the player and
+     giggles, and goes back out. She's painted from the game's own seconds every frame, so a pause holds her. */
   var fixes = [];
+  /* The egg on screen, in px of the field: its middle, width and top. Its pictures are full-slot layers, so it's found
+     in the nest's own units (the shell spans x -22..22, y -38..20; art.js) through the egg's screen transform, which
+     carries its growth and the nest's tilt. */
+  function eggBox(v) {
+    var g = v.egg.querySelector(".mirror") || v.egg, m = g.getScreenCTM(), f = field.getBoundingClientRect();
+    var at = function (x, y) { return { x: m.a * x + m.c * y + m.e - f.left, y: m.b * x + m.d * y + m.f - f.top }; };
+    var mid = at(0, -9), top = at(0, -38);
+    return { x: mid.x, y: mid.y, w: 44 * Math.hypot(m.a, m.b), top: top.y };
+  }
+  /* Where she goes (Chat's brief, 2026-10-02: she comes in from the play-field edge nearest the egg, and never covers
+     a timer, a nest, a readout, a Command Line, the trough or the sink). The edges are tried nearest first; along each,
+     her head slides from opposite the egg outward, a little in from the edge, until her head (upright and turned for
+     A), the path she slides in on, and both tentacles (from her chin to the egg, no longer than momStretchMax) are clear
+     of everything she mustn't cover. Her tentacles may cross only her own nest (not its readout). The Command Lines and
+     the HUD are outside the field, and she's clipped to the field inside the trough. With no clear spot on any edge
+     (the board's middle nests, mostly): momNoEdge (E58, ruled 2026-10-02: "nest"). Either way her head and tentacles
+     never cover a readout, her own included, so the unit number and timer stay in sight all visit (E58's condition). */
+  function fieldRect(e, f) {
+    var r = e.getBoundingClientRect();
+    return { l: r.left - f.left, t: r.top - f.top, r: r.right - f.left, b: r.bottom - f.top };
+  }
+  function overlaps(a, b) { return a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b; }
+  function grownBy(r, m) { return { l: r.l - m, t: r.t - m, r: r.r + m, b: r.b + m }; }
+  function momObstacles(v, f) {
+    var out = [], own = [];
+    nests.forEach(function (n) {
+      var parts = [n.el, n.readout];
+      if (!n.hsign.hidden) parts.push(n.hsign);
+      parts.forEach(function (e) {
+        var r = fieldRect(e, f);
+        if (r.r - r.l < 1) return;
+        (n === v && e !== n.readout ? own : out).push(r);
+      });
+    });
+    ["#fieldtop .wallclock", "#tip-ready", "#warp", "#hose-tag", "#cleanup"].forEach(function (sel) {
+      var e = field.querySelector(sel);
+      if (!e || e.hidden) return;
+      var r = fieldRect(e, f);
+      if (r.r - r.l > 1 && r.b - r.t > 1) out.push(r);
+    });
+    return { all: out, own: own };   // own: her own nest (her tentacles may cross it, her head may not)
+  }
+  // the box she's drawn in: the field, inside the trough (left, right and bottom; none on top)
+  function momClip(f) {
+    var T = function (sel) { var e = field.querySelector(sel); return e ? fieldRect(e, f) : null; };
+    var l = T("#trough .t-left"), r = T("#trough .t-right"), b = T("#trough .t-bl");
+    return { l: l ? l.r : 0, t: 0, r: r ? r.l : f.width, b: b ? b.t : f.height };
+  }
+  function momClear(lay, ob, clip) {
+    var C = ET.CONFIG, G = ET.mom.geometry(lay), m = 3;
+    var hw = G.hw, hh = G.hh, h = lay.head;
+    var box = { l: h.x - hw / 2, t: h.y - hh / 2, r: h.x + hw / 2, b: h.y + hh / 2 };
+    if (box.l < clip.l || box.r > clip.r || box.t < clip.t || box.b > clip.b) return false;
+    // A, turned about her chin
+    var a = lay.tilt * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a), xs = [], ys = [];
+    [[box.l, box.t], [box.r, box.t], [box.l, box.b], [box.r, box.b]].forEach(function (p) {
+      var dx = p[0] - G.chin.x, dy = p[1] - G.chin.y;
+      xs.push(G.chin.x + dx * cs - dy * sn); ys.push(G.chin.y + dx * sn + dy * cs);
+    });
+    var turned = { l: Math.min.apply(null, xs), t: Math.min.apply(null, ys), r: Math.max.apply(null, xs), b: Math.max.apply(null, ys) };
+    if (turned.l < clip.l || turned.r > clip.r || turned.t < clip.t || turned.b > clip.b) return false;
+    // the path she slides in on, from behind her edge
+    var path = { l: box.l, t: box.t, r: box.r, b: box.b };
+    if (lay.from === "top") path.t = clip.t; else if (lay.from === "bottom") path.b = clip.b;
+    else if (lay.from === "left") path.l = clip.l; else path.r = clip.r;
+    var heads = [grownBy(box, m), grownBy(turned, m), path];
+    var all = ob.all.concat(ob.own);
+    for (var i = 0; i < all.length; i++) {
+      for (var j = 0; j < heads.length; j++) if (overlaps(heads[j], all[i])) return false;
+    }
+    // the tentacles: a tube from each stub to its tip
+    var rad = G.tube / 2 + m;
+    for (var k = 0; k < G.tents.length; k++) {
+      var t = G.tents[k];
+      if (t.stretch > C.momStretchMax) return false;
+      var steps = Math.max(2, Math.ceil(t.dist / 8));
+      for (var s = 0; s <= steps; s++) {
+        var x = t.from.x + (t.to.x - t.from.x) * s / steps, y = t.from.y + (t.to.y - t.from.y) * s / steps;
+        var dot = { l: x - rad, t: y - rad, r: x + rad, b: y + rad };
+        if (dot.l < clip.l || dot.r > clip.r || dot.b > clip.b) return false;
+        for (var n = 0; n < ob.all.length; n++) if (overlaps(dot, ob.all[n])) return false;
+      }
+    }
+    return true;
+  }
+  function turnDeg(fx, fy, tx, ty) {
+    var d = (Math.atan2(ty, tx) - Math.atan2(fy, fx)) * 180 / Math.PI;
+    return d > 180 ? d - 360 : d < -180 ? d + 360 : d;
+  }
+  function momLayout(v, kind) {
+    var C = ET.CONFIG, P = ET.MOM_PARTS[kind];
+    var f = field.getBoundingClientRect(), egg = eggBox(v), clip = momClip(f), ob = momObstacles(v, f);
+    var hw = v.el.offsetWidth * C.momHeadShare, hh = hw * P.head[1] / P.head[0];
+    var base = { kind: kind, headW: hw, egg: egg, clip: clip };
+    var edges = [
+      { from: "top", d: egg.y - clip.t }, { from: "bottom", d: clip.b - egg.y },
+      { from: "left", d: egg.x - clip.l }, { from: "right", d: clip.r - egg.x }
+    ].sort(function (a, b) { return a.d - b.d; });
+    var gap = 2, sweep = 3 * hw, step = 10;
+    for (var e = 0; e < edges.length; e++) {
+      var from = edges[e].from;
+      for (var inset = 0; inset <= 1; inset += 0.25) {
+        for (var s = 0; s <= sweep; s += step) {
+          for (var sign = -1; sign <= 1; sign += 2) {
+            if (s === 0 && sign > 0) continue;
+            var o = s * sign, head;
+            if (from === "top") head = { x: egg.x + o, y: clip.t + hh / 2 + gap + inset * hh };
+            else if (from === "bottom") head = { x: egg.x + o, y: clip.b - hh / 2 - gap - inset * hh };
+            else if (from === "left") head = { x: clip.l + hw / 2 + gap + inset * hw, y: egg.y + o };
+            else head = { x: clip.r - hw / 2 - gap - inset * hw, y: egg.y + o };
+            var lay = Object.assign({}, base, { head: head, from: from });
+            var chinX = head.x + (P.chin[0] - 0.5) * hw, chinY = head.y + (P.chin[1] - 0.5) * hh;
+            var full = Math.max(-C.momTiltMax, Math.min(C.momTiltMax, turnDeg(0, 1, egg.x - chinX, egg.y - chinY)));
+            // A turns toward the egg as far as there's room: all the way, half, or not at all
+            for (var k = 0; k < 3; k++) {
+              lay.tilt = full * [1, 0.5, 0][k];
+              if (momClear(lay, ob, clip)) return lay;
+            }
+          }
+        }
+      }
+    }
+    return momNoEdge(v, kind, base, f);
+  }
+  /* E58 (ruled 2026-10-02, Chat: "nest"): no edge has room. She comes down inside her own nest's box, above its
+     readout, smaller if she must be (her head no lower than the egg's middle), so she covers nothing but her own nest.
+     ("over", not ruled: the visit before the kit's edge rule, her full-size head just above the egg; it covers the
+     readout of the nest above.) */
+  function momNoEdge(v, kind, base, f) {
+    var C = ET.CONFIG, P = ET.MOM_PARTS[kind], egg = base.egg;
+    var hw = base.headW, hh = hw * P.head[1] / P.head[0];
+    if (C.momNoEdge === "over") {
+      return Object.assign({}, base, { head: { x: egg.x, y: egg.top - hh * 0.38 }, from: "top", tilt: 0, fallback: "over",
+        clip: { l: 0, t: 0, r: f.width, b: f.height } });
+    }
+    var nb = fieldRect(v.el, f), ro = fieldRect(v.readout, f);
+    var clip = { l: nb.l, t: nb.t, r: nb.r, b: ro.t };
+    var room = egg.y - clip.t - 2;
+    if (hh > room) { hh = room; hw = hh * P.head[0] / P.head[1]; }
+    return Object.assign({}, base, { headW: hw, head: { x: egg.x, y: clip.t + 1 + hh / 2 }, from: "top", tilt: 0,
+      fallback: "nest", clip: clip });
+  }
+  /* Creepy Mom's drool (Mom kit): where its drop lands. It falls from the end of the strand under her mouth (pose B,
+     upright); the splat must land on the board's floor (where goo washes off) and, flung droplets and all, cover no
+     nest, readout, sign, timer, the sink tag or the trough; the drop's own fall (a straight line, drifting a little to
+     the side at most) must cross none of them either. So the spot is searched for: straight down first, then further
+     to either side, nearest first. None clear: `stop`, how far straight down it can fall before it would touch
+     anything; it fades out before then and leaves no splat. The glow (Chat, 2026-10-02: glowing purple) counts as part
+     of it everywhere: the splat's clear zone and the drop's path are both widened by the halo's radius. */
+  function momDroolPlan(lay, v, f, ob) {
+    var C = ET.CONFIG, D = C.momDrool, P = ET.MOM_PARTS.creepy, G = ET.mom.geometry(lay);
+    var mouth = { x: lay.head.x + (P.mouth[0] - 0.5) * G.hw, y: lay.head.y + (P.mouth[1] - 0.5) * G.hh };
+    var len = G.hh * D.length, r = G.hw * D.splat, rb = Math.max(4, G.hw * D.drop_r), glow = Math.max(2, G.hw * D.glow);
+    var fl = fieldRect(floor, f), clip = lay.clip;
+    var area = { l: Math.max(fl.l, clip.l), t: Math.max(fl.t, clip.t), r: Math.min(fl.r, clip.r), b: Math.min(fl.b, clip.b) };
+    var all = ob.all.concat(ob.own), reach = r * 2.4 + 4 + glow, flat = 0.65;
+    var start = mouth.y + len + rb;
+    var hits = function (box) { return all.some(function (o) { return overlaps(box, o); }); };
+    var pathClear = function (x1, y1) {
+      var n = Math.max(2, Math.ceil(Math.hypot(x1 - mouth.x, y1 - start) / 6));
+      for (var i = 0; i <= n; i++) {
+        var x = mouth.x + (x1 - mouth.x) * i / n, y = start + (y1 - start) * i / n, m = rb + 2 + glow;
+        var d = { l: x - m, t: y - m, r: x + m, b: y + m };
+        if (d.l < clip.l || d.r > clip.r || d.b > clip.b || hits(d)) return false;
+      }
+      return true;
+    };
+    var best = null;
+    [0, -0.25, 0.25, -0.5, 0.5, -0.75, 0.75, -1, 1].some(function (dx) {
+      var x = mouth.x + dx * G.hw;
+      for (var y = Math.max(start + reach * flat, area.t + reach * flat); y < area.b; y += 6) {
+        if (Math.abs(dx * G.hw) > (y - start) * 0.6) continue;           // it drifts, it isn't thrown
+        var box = { l: x - reach, r: x + reach, t: y - reach * flat - glow, b: y + reach * flat + glow };
+        if (box.l < area.l || box.r > area.r || box.t < area.t || box.b > area.b || hits(box)) continue;
+        if (!pathClear(x, y)) break;                                      // anything further down this line is no better
+        best = { x: x, y: y, dx: dx, r: r, glow: glow, box: box };
+        return true;
+      }
+      return false;
+    });
+    var stop = start;
+    if (!best) {
+      for (var y = start; y < clip.b; y += 3) {
+        var m = rb + 2 + glow;
+        if (hits({ l: mouth.x - m, t: y - m, r: mouth.x + m, b: y + m })) break;
+        stop = y;
+      }
+    }
+    return { x: mouth.x, y: mouth.y, len: len, drop: rb, glow: glow, land: best, stop: stop };
+  }
+  // the splat, on the floor, where the drop landed (its glow on the floor too, so it washes off with it)
+  function momSplat(at) {
+    var fr = floor.getBoundingClientRect(), f = field.getBoundingClientRect();
+    if (!fr.width || !fr.height) return null;
+    return ET.mess.drool(floor, at.x - (fr.left - f.left), at.y - (fr.top - f.top), at.r, floor.width / fr.width, floor.height / fr.height, at.glow);
+  }
   function momFix(v, kind, t) {
-    var C = ET.CONFIG;
-    var box = document.createElement("div");
-    box.className = "momfix " + kind;
-    var r = v.el.getBoundingClientRect(), f = field.getBoundingClientRect(), w = v.el.offsetWidth;
-    box.style.left = (r.left - f.left + r.width / 2) + "px";
-    box.style.top = (r.top - f.top + r.height * 0.32) + "px";
-    box.style.width = w + "px";
-    box.style.setProperty("--fix", C.momRepairSeconds + "s");
-    var head = document.createElement("div");
-    head.className = "head";
-    head.appendChild(kind === "sweet" ? ET.art.doodleEl(1) : ET.art.momFaceSvg());
-    box.appendChild(head);
-    box.appendChild(ET.art.patchSvg());
-    popups.appendChild(box);
-    var m = { el: box, v: v, kind: kind, t0: t, giggled: false, from: v.crackShown || 0 };
+    var m = { v: v, kind: kind, t0: t, giggled: false, from: v.crackShown || 0 };
+    var lay = momLayout(v, kind);
+    m.edge = lay.from;
+    m.fallback = lay.fallback;
+    if (kind === "creepy") {   // sweet Mom never drools
+      var f = field.getBoundingClientRect();
+      lay.drool = momDroolPlan(lay, v, f, momObstacles(v, f));
+      m.drool = lay.drool;
+      if (lay.drool.land) lay.drool.onLand = function () { m.splat = momSplat(lay.drool.land); };
+    }
+    m.rig = ET.mom.visit(popups, lay);
+    m.el = m.rig.el;
     fixes.push(m);
     v.mend = m;
   }
-  // the giggle as she turns to the player, and her exit, on the game's seconds
+  // every frame: paint each visit at its moment; the giggle as she turns to the player; her exit
+  var momNow = 0;   // the game's seconds at the last frame (for a rig's momVisit)
   function stepFixes(t) {
+    momNow = t;
     var T = ET.CONFIG.momRepairSeconds;
     fixes = fixes.filter(function (m) {
       var u = (t - m.t0) / T;
-      if (!m.giggled && u >= 0.5) { m.giggled = true; if (ET.audio) ET.audio.giggle(m.kind); }
-      if (u >= 1 || u < 0) { m.el.remove(); if (m.v.mend === m) m.v.mend = null; return false; }
+      m.u = u;
+      if (u >= 0 && u < 1) m.rig.paint(u, reducedMotion());
+      if (!m.giggled && u * T >= ET.CONFIG.momTimeline.face) { m.giggled = true; if (ET.audio) ET.audio.giggle(m.kind); }
+      if (u >= 1 || u < 0) { m.rig.remove(); if (m.v.mend === m) m.v.mend = null; return false; }
       return true;
     });
   }
-  // the egg's cracks while Mom mends it: held as they were, then closing as she patches (0.25 → 0.5 of her visit)
+  // the egg's cracks while Mom mends it: held as they were, then closing as she patches (momTimeline.mend)
   function mendedCrack(v, t) {
-    var m = v.mend, T = ET.CONFIG.momRepairSeconds;
-    var u = (t - m.t0) / T;
-    return m.from * Math.max(0, Math.min(1, 1 - (u - 0.25) / 0.25));
+    var m = v.mend, M = ET.CONFIG.momTimeline.mend;
+    return m.from * Math.max(0, Math.min(1, 1 - (t - m.t0 - M[0]) / (M[1] - M[0])));
   }
   /* Reduced motion: the lightning holds still, and (Andrew, 2026-09-24) the overtime egg stops wobbling and the cord
      stops twitching; style.css stops the CSS loops. One live query, read every frame, so a change applies at once. */
@@ -962,6 +1156,7 @@
       resetTips();
       cords.list.forEach(function (c) { c.g.style.display = "none"; });
       popups.innerHTML = "";
+      fixes.forEach(function (m) { m.rig.remove(); });
       fixes = [];
       noTypesShown = false;
       momAt = null;
@@ -1267,7 +1462,19 @@
       return [{ shown: !t.el.hidden, text: t.el.textContent.trim(), nest: t.nest, done: t.done, line: t.line.style.display !== "none" ? t.line.getAttribute("d") : null }];
     },
     /* For rigs (E55): Mom's repairs showing now: which nest, which Mom, and whether she has giggled yet. */
-    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled }; }); },
+    momFixes: function () { return fixes.map(function (m) { return { nest: Number(m.v.el.dataset.id), kind: m.kind, giggled: m.giggled, u: m.u, from: m.edge, fallback: m.fallback || null, drool: m.drool ? { land: m.drool.land, splat: m.splat || null } : null }; }); },
+    /* For rigs (Mom kit): bring Mom to nest `id` now, as the STR would (her visit, its drool and splat), on the game's
+       seconds. Returns how many visits are showing. */
+    momVisit: function (id, kind) { momFix(nests[id], kind || "creepy", momNow); return fixes.length; },
+    /* For rigs (Mom kit): where she'd go for nest `id` now, without showing her: the edge (or the fallback), her
+       head's box upright and turned, each tentacle's line, and everything she must stay clear of (field px). */
+    momPlan: function (id, kind) {
+      var v = nests[id], f = field.getBoundingClientRect(), lay = momLayout(v, kind || "sweet"), G = ET.mom.geometry(lay);
+      return { lay: lay, from: lay.from, fallback: lay.fallback || null, tilt: lay.tilt, clip: lay.clip, headW: G.hw, headH: G.hh,
+        head: { l: lay.head.x - G.hw / 2, t: lay.head.y - G.hh / 2, r: lay.head.x + G.hw / 2, b: lay.head.y + G.hh / 2 },
+        chin: G.chin, tube: G.tube, tents: G.tents, obstacles: momObstacles(v, f), nest: fieldRect(v.el, f), readout: fieldRect(v.readout, f),
+        drool: kind === "creepy" ? momDroolPlan(lay, v, f, momObstacles(v, f)) : null, floor: fieldRect(floor, f) };
+    },
 
     /* For rigs: a nest's cord, if one is showing. */
     cord: function (id) {

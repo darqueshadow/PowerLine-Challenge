@@ -40,11 +40,44 @@
     // hospital egg's FIRST window × this. 1 = the same window as every egg, as ruled; a longer one is a proposal first.
     hospitalWindowScale: 1,  // [T]
     // E55 (ruled): Mom repairs the egg as the STR goes on: sweet Mom on hospital eggs up to this wave, creepy Mom after
-    // (matching the scary HUD face). ⏳ placeholder art until Chat's Gemini prompts come back (two parts kits).
+    // (matching the scary HUD face). Her art: the two Gemini parts kits (Andrew approved, 2026-10-02; core/mom.js).
     momSweetUntilWave: 1,
-    // E55: pops in, looks down and patches the egg, turns to the player and giggles, ducks out; over the nest only,
-    // never blocking typing. ⚠️ style.css's mom-fix keyframes use these shares: in 0.2, patch to 0.5, giggle to 0.85.
-    momRepairSeconds: 1.5,   // [T]
+    // E55: pops in, looks down and patches the egg, turns to the player and giggles, ducks out; never blocking typing.
+    // Chat's giggle ruling (2026-10-02, flash safety): pose C held at least 0.5 s, one swap in and one out, and at most
+    // 2 pose changes in any second of the visit (A→B, B→C, C→B: the first and last at least 1 s apart). That doesn't
+    // fit 1.5 s without speeding something up, which the ruling forbids, so the visit is 2.2 s (Chat approved, 2026-10-02:
+    // everything up to B keeps its old seconds; B holds through the drool, C 0.6 s, then out).
+    momRepairSeconds: 2.2,   // [T] (was 1.5)
+    // Mom kit (Chat's brief, 2026-10-02): the visit, in the player's seconds from the STR. in: she's slid in by then;
+    // face: pose A (looking down) gives way to B (facing the player) here, with the giggle sound; giggle: pose C, held
+    // from the first to the second (the giggle ruling: ≥ 0.5 s, once); reach: the tentacles start out, reach the egg,
+    // start back, are gone; patch: the plaster goes on; mend: the cracks close; out: she starts back the way she came.
+    // bob: C's gentle bob (lift, a share of her head's height; hz, a slow sway; never under reduced motion). [T]
+    momTimeline: { in: 0.18, face: 0.75, giggle: [1.2, 1.8], reach: [0.18, 0.375, 0.675, 0.825], patch: [0.375, 0.45],
+      mend: [0.375, 0.75], out: 2.02, bob: { lift: 0.03, hz: 1.6 } },
+    momHeadShare: 0.75,      // [T] her head's width, a share of the nest's (the brief: about three quarters)
+    momTentacleShare: 0.42,  // [T] the tentacle picture's width, a share of her head's
+    momStretchMax: 2.2,      // [T] the most a tentacle stretches along its length to reach the egg
+    momPlasterShare: 0.9,    // [T] the plaster's width, a share of the egg's shell
+    momTiltMax: 50,          // [T] the most pose A turns toward the egg (deg)
+    // Mom kit (Chat's brief, 2026-10-02): creepy Mom's drool, code-drawn, during pose B only (sweet Mom never drools).
+    // In the visit's seconds (as momTimeline): the strand stretches from her mouth over grow, a drop swells at its end
+    // until drop, where it lets go and falls (the strand snaps back by snap). length: the strand, a share of her head's
+    // height; splat, drop_r: the splat's size and the drop's, shares of her head's width; gravity: px/s² (more if it
+    // must land before she goes); glow: Chat's colour ruling (2026-10-02), the soft halo round the strand, the drop and
+    // the splat, a share of her head's width, steady (no pulse, so reduced motion needs nothing more). [T]
+    momDrool: { grow: [0.75, 0.87], drop: 0.93, snap: 0.99, length: 0.32, splat: 0.18, drop_r: 0.065, gravity: 2200, glow: 0.06 },
+    // Mom kit (Chat's brief, 2026-10-02): creepy Mom's tongue wobbles while she giggles: a small warp of the tongue's
+    // own oval (mom-parts.js), fading to nothing at its edge, so there's no seam. shift: the most it moves, a share of
+    // her head's width; hz: how fast. The giggle ruling (2026-10-02): it runs for the whole of pose C's hold, reduced
+    // motion too (where C doesn't bob). [T]
+    momTongue: { shift: 0.035, hz: 9 },
+    // E58 (ruled 2026-10-02, Chat: "nest"): Chat's brief has her come in from the play-field edge nearest the egg
+    // without covering a timer, nest, readout, Command Line, the trough or the sink. For the board's middle nests no
+    // edge has room (and the bottom edge never does), so she comes down inside her own nest's box, above its readout
+    // (the unit number and timer stay in sight all visit), smaller if she must be, covering only her own nest.
+    // ("over", not ruled: the visit before the kit, full size just above the egg, over the readout of the nest above.)
+    momNoEdge: "nest",
     // E56 (ruled): a placeholder giggle, creepier for creepy Mom; under THONG, the buzz and the hiss, no dip [T]
     giggle: { sweet: 0.05, creepy: 0.06 },
 
@@ -413,8 +446,9 @@
     howtoAlien: "crab",
     // E57 (ruled 2026-10-02: approved as proposed): How To Play is a six-step animated cartoon (core/howto.js), each step
     // this many seconds [T], then round again: lay, crack, fast clear, slow clear, hospital egg, hatch (the last is the
-    // hatch's own length, 3.2 s). One loop is about 17 s.
-    howtoStepSeconds: [2.5, 2.5, 2.5, 2.5, 3.5, 3.2],
+    // hatch's own length, 3.2 s). One loop is about 17 s. Step 5 grew from 3.5 to 4.4 s with Mom's visit (the giggle
+    // ruling, 2026-10-02: 2.2 s from the STR at 2.05 s).
+    howtoStepSeconds: [2.5, 2.5, 2.5, 2.5, 4.4, 3.2],
 
     // ── Developer Mode (Laws: Ctrl+Shift+B → timed password prompt) ─────────
     // ⏳ PENDING (D3): Andrew's phrase for this cartridge. Null denies every entry.

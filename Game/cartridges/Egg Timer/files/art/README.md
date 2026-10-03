@@ -63,6 +63,23 @@ attaching end. Sources in `files/assets/imgages/` (git-ignored):
 The octopus and Grabber's loose tentacles are the Wriggler's smooth feelers, recoloured: the Grabber sheet's
 base/middle/tip segments are drawn as ringed cylinders and read as bones next to the concept bodies.
 
+## Mom's repair (E55): the two parts kits
+
+- **Made with:** Gemini (image generation), for Andrew; the prompts by Claude (Chat), 2026-10-02. **Approved by Andrew**
+  (Chat's build brief, 2026-10-02, filed as `Previous Versions/EGG_TIMER_MOM_KIT_RULINGS_2026-10-02.md`).
+- **Source pictures** (Andrew's, in `files/assets/imgages/alien_mom/`, git-ignored, never published): `sm_*` (sweet Mom)
+  and `hm_*` (creepy Mom): `org` (head looking down), `facingyou`, `giggling`, `tentacle`, `plaster`. All on white.
+- **Prepared by Claude Code** with `make-mom-art.py` (at the cartridge root; never published): cut out of the white
+  (the pilot's cut), each Mom's three heads cropped with one box, the creepy tentacle flipped to curl the sweet way, the
+  creepy plaster turned and scaled to the sweet one's angle and length, the sweet plaster's speck painted over, the warts
+  drawn outside the creepy outline cut off. Sizes and anchor points go to `core/mom-parts.js`; `core/mom.js` draws her.
+
+| File | What it is |
+|---|---|
+| `mom-<sweet\|creepy>--down@2x.png`, `--face`, `--giggle` | her head: A looking down, B facing the player, C giggling |
+| `mom-<sweet\|creepy>--tentacle@2x.png` | one tentacle (the game mirrors it for the second) |
+| `mom-<sweet\|creepy>--plaster@2x.png` | the plaster she patches the egg with |
+
 ## The Gemini prompts (from Andrew's record, `egg-timer-gemini-prompts.md`)
 
 ## Session 1: finding the look
