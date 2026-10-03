@@ -352,6 +352,60 @@ export default {
   "top": "0px",
   "z-index": "26"
  },
+ ".toon-mom-clip": {
+  "overflow-x": "hidden",
+  "overflow-y": "hidden",
+  "position": "absolute"
+ },
+ ".toon-mom": {
+  "position": "absolute"
+ },
+ ".toon-mom svg": {
+  "display": "block",
+  "height": "100%",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "width": "100%"
+ },
+ ".toon-plaster": {
+  "aspect-ratio": "2.4 / 1",
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "initial",
+  "background-image": "radial-gradient(circle, rgb(255, 243, 230) 0px, rgb(255, 243, 230) 30%, rgb(242, 201, 160) 31%)",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "border-bottom-color": "rgb(26, 13, 46)",
+  "border-bottom-left-radius": "999px",
+  "border-bottom-right-radius": "999px",
+  "border-bottom-style": "solid",
+  "border-bottom-width": "2px",
+  "border-image-outset": "0",
+  "border-image-repeat": "stretch",
+  "border-image-slice": "100%",
+  "border-image-source": "none",
+  "border-image-width": "1",
+  "border-left-color": "rgb(26, 13, 46)",
+  "border-left-style": "solid",
+  "border-left-width": "2px",
+  "border-right-color": "rgb(26, 13, 46)",
+  "border-right-style": "solid",
+  "border-right-width": "2px",
+  "border-top-color": "rgb(26, 13, 46)",
+  "border-top-left-radius": "999px",
+  "border-top-right-radius": "999px",
+  "border-top-style": "solid",
+  "border-top-width": "2px",
+  "position": "absolute",
+  "transform": "translate(-50%, -50%) rotate(-24deg)",
+  "visibility": "hidden"
+ },
+ ".toon-plaster.on": {
+  "visibility": "visible"
+ },
  ".toon .popup": {
   "font-size": "clamp(14px, min(1.5vw, 2.6vh), 22px)",
   "left": "88%",
@@ -913,56 +967,56 @@ export default {
   "overflow-y": "visible",
   "width": "100%"
  },
- "#title-scene .alien-skin": {
+ ":is(#title-scene, .replica) .alien-skin": {
   "fill": "rgb(125, 255, 106)",
   "stroke": "rgb(20, 51, 15)",
   "stroke-width": "4"
  },
- "#title-scene .antenna, #title-scene .stalk": {
+ ":is(#title-scene, .replica) .antenna, :is(#title-scene, .replica) .stalk": {
   "fill": "none",
   "stroke": "rgb(20, 51, 15)",
   "stroke-linecap": "round",
   "stroke-width": "4"
  },
- "#title-scene .antenna-tip": {
+ ":is(#title-scene, .replica) .antenna-tip": {
   "fill": "rgb(255, 61, 127)",
   "stroke": "rgb(20, 51, 15)",
   "stroke-width": "2"
  },
- "#title-scene .eye": {
+ ":is(#title-scene, .replica) .eye": {
   "fill": "rgb(255, 255, 255)",
   "stroke": "rgb(20, 51, 15)",
   "stroke-width": "3"
  },
- "#title-scene .pupil": {
+ ":is(#title-scene, .replica) .pupil": {
   "fill": "rgb(20, 51, 15)"
  },
- "#title-scene .apron": {
+ ":is(#title-scene, .replica) .apron": {
   "fill": "rgb(255, 143, 199)",
   "stroke": "rgb(20, 51, 15)",
   "stroke-width": "3"
  },
- "#title-scene .apron-heart": {
+ ":is(#title-scene, .replica) .apron-heart": {
   "fill": "rgb(255, 61, 127)"
  },
- "#title-scene .smile": {
+ ":is(#title-scene, .replica) .smile": {
   "fill": "rgb(59, 10, 42)",
   "stroke": "rgb(20, 51, 15)",
   "stroke-width": "3"
  },
- "#title-scene .smile-line": {
+ ":is(#title-scene, .replica) .smile-line": {
   "fill": "rgb(255, 92, 138)"
  },
- "#title-scene .cheek": {
+ ":is(#title-scene, .replica) .cheek": {
   "fill": "rgb(255, 143, 199)",
   "opacity": "0.8"
  },
- "#title-scene .mouth-hole": {
+ ":is(#title-scene, .replica) .mouth-hole": {
   "fill": "rgb(59, 10, 42)",
   "stroke": "rgb(20, 51, 15)",
   "stroke-width": "2"
  },
- "#title-scene .teeth": {
+ ":is(#title-scene, .replica) .teeth": {
   "fill": "rgb(255, 251, 232)",
   "stroke": "rgb(20, 51, 15)",
   "stroke-width": "0.8"
@@ -997,7 +1051,7 @@ export default {
   "opacity": "0",
   "transform": "translate(14px, -60px)"
  },
- "#title-scene .sway": {
+ ":is(#title-scene, .replica) .sway": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "1.56s",
@@ -1015,7 +1069,7 @@ export default {
  "@keyframes sway » 50%": {
   "transform": "rotate(-4deg)"
  },
- "#title-scene .bob": {
+ ":is(#title-scene, .replica) .bob": {
   "animation-delay": "0s",
   "animation-direction": "alternate",
   "animation-duration": "0.52s",
@@ -1031,7 +1085,7 @@ export default {
  "@keyframes bob » 100%": {
   "transform": "translateY(-8px)"
  },
- "#title-scene .mouth": {
+ ":is(#title-scene, .replica) .mouth": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "0.26s",
@@ -1049,7 +1103,7 @@ export default {
  "@keyframes sing » 50%": {
   "transform": "scaleY(0.45)"
  },
- "#title-scene .wink": {
+ ":is(#title-scene, .replica) .wink": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "3.1s",
@@ -4784,7 +4838,20 @@ export default {
  "@media (prefers-reduced-motion: reduce) » .nest.fueled .nest-art .pump": {
   "display": "none"
  },
- "@media (prefers-reduced-motion: reduce) » #reject::before, .nest.bold .readout .clock.done, #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *": {
+ "@media (prefers-reduced-motion: reduce) » #reject::before, .nest.bold .readout .clock.done, #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *, .replica *": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "auto",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "1",
+  "animation-name": "none",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease"
+ },
+ "@media (prefers-reduced-motion: reduce) » :is(#title-scene, .replica) :is(.sway, .bob, .mouth, .wink)": {
   "animation-delay": "0s",
   "animation-direction": "normal",
   "animation-duration": "auto",

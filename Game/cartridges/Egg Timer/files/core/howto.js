@@ -4,7 +4,10 @@
    game's own nest and egg art) with its readout, a mini Command Line, the step's caption in a speech bubble, and six
    step dots. Six steps, one at a time, then round again (CONFIG.howtoStepSeconds [T]):
      1 the Queen lays an egg · 2 the CAV runs out, the egg cracks · 3 a fast clear · 4 a slow clear
-     5 a hospital egg: the H sign, RCAV, CAV STR, sweet Mom patches it · 6 too slow: the crab hatches and hops
+     5 a hospital egg: the H sign, RCAV, CAV STR, Mom patches it · 6 too slow: a baby alien hatches and hops
+   Chat (2026-10-03, Andrew's ruling): Mom (step 5) and the hatchling (step 6) are the title screen's own code-drawn
+   replicas (core/title.js: the mommy, and a two-antenna baby), animated as on the title; the nest and egg stay the real
+   game art. The game's Gemini Mom and the crab puppet are never drawn here.
    Every copy runs on one clock, so both screens show the same step. The clock runs on real time, only while a copy
    is on screen and the tab is showing; nothing here takes a key or a click. No sound: the title music plays on.
    Reduced motion: the still strip instead, six panels, each its step's key frame, with the same captions.
@@ -76,6 +79,14 @@
     toon.appendChild(sign);
     var pan = ET.art.panEl();
     toon.appendChild(pan);
+    // step 6's hatchling: the title's baby alien, in the nest's creature slot (it hatches and hops as the crab did)
+    var cr = svg.querySelector(".creature");
+    var rep = document.createElementNS(NS, "g");
+    rep.setAttribute("class", "alien replica");
+    rep.setAttribute("transform", "translate(0 -4) scale(0.85)");
+    cr.appendChild(rep);
+    ET.title.baby(rep, 0, 0, 0, false);
+    cr.classList.add("has-art");
     var fx = div("toon-fx");
     toon.appendChild(fx);
     stage.appendChild(cord);
@@ -208,9 +219,9 @@
       s.fx.appendChild(g);
     });
   }
-  /* Sweet Mom in step 5 (Mom kit, 2026-10-02): the game's own visit (core/mom.js), in the stage's fx layer. She comes
-     down from the top of the stage, which clips her (the stage is her play field), her head about three quarters of
-     the nest's width, smaller if the stage is short, never lower than the top of the egg. */
+  /* Step 5's Mom: since Chat's 2026-10-03 ruling, the title screen's mommy as a replica (it was the game's own Gemini
+     visit). She comes down from the top of the stage, which clips her, about three quarters of the nest's width, smaller
+     if the stage is short, never lower than the top of the egg; a code-drawn plaster goes on the egg as the cracks close. */
   function momLayout(s) {
     var P = ET.MOM_PARTS.sweet, f = s.fx.getBoundingClientRect(), st = s.stage.getBoundingClientRect();
     var g = s.egg.querySelector(".mirror") || s.egg, m = g.getScreenCTM();
@@ -222,6 +233,38 @@
     if (hh > room && room > 10) { hh = room; hw = hh * P.head[0] / P.head[1]; }
     return { kind: "sweet", headW: hw, head: { x: mid.x, y: clip.t + 1 + hh / 2 }, egg: { x: mid.x, y: mid.y, w: ew, top: top.y },
       from: "top", tilt: 0, clip: clip };
+  }
+  function momReplica(s) {
+    var L = momLayout(s), NSV = "http://www.w3.org/2000/svg";
+    var clip = div("toon-mom-clip");
+    clip.style.left = L.clip.l + "px"; clip.style.top = L.clip.t + "px";
+    clip.style.width = (L.clip.r - L.clip.l) + "px"; clip.style.height = (L.clip.b - L.clip.t) + "px";
+    var box = div("toon-mom");
+    var svg = document.createElementNS(NSV, "svg");
+    svg.setAttribute("viewBox", "-62 -80 124 162");
+    svg.setAttribute("class", "replica");
+    ET.title.mommy(svg, 0, 0);
+    box.appendChild(svg);
+    var w = L.headW, h = w * 162 / 124;
+    box.style.width = w + "px"; box.style.height = h + "px";
+    box.style.left = (L.head.x - L.clip.l - w / 2) + "px";
+    box.style.top = "0px";
+    clip.appendChild(box);
+    var plaster = div("toon-plaster");
+    plaster.style.left = (L.egg.x - L.clip.l) + "px"; plaster.style.top = (L.egg.y - L.clip.t) + "px";
+    plaster.style.width = (L.egg.w * 0.55) + "px";
+    clip.appendChild(plaster);
+    s.fx.appendChild(clip);
+    return {
+      paint: function (mu, still) {
+        // in (her first 12%), held, out (her last 12%): a slide down from the top, or, still, simply there
+        var off = still ? 0 : mu < 0.12 ? 1 - mu / 0.12 : mu > 0.88 ? (mu - 0.88) / 0.12 : 0;
+        box.style.transform = "translateY(" + (-off * (h + 4)).toFixed(1) + "px)";
+        var M = C().momTimeline.mend, secs = mu * C().momRepairSeconds;
+        plaster.classList.toggle("on", still || secs >= M[0]);
+      },
+      remove: function () { if (clip.parentNode) clip.parentNode.removeChild(clip); }
+    };
   }
   /* a new step: everything back to an empty nest */
   function reset(s, k) {
@@ -323,7 +366,7 @@
       egg(s, 1, crack, bold, 0);
       type(s, u < 1.1 ? "RCAV " + UNIT : u < 2.05 ? "CAV " + UNIT + " " + C().hospitalType : "", u, u < 1.1 ? 0.45 : 1.2, u < 1.1 ? 1.05 : 2.0);
       once(s, "mom", 2.05, u, function () {
-        s.mom = ET.mom.visit(s.fx, momLayout(s));
+        s.mom = momReplica(s);
         points(s, C().clearTierPoints[1]);
       });
       // her visit, painted from this step's own clock (the still strip: its key frame, pose A with the plaster on)
@@ -333,8 +376,8 @@
         else { s.mom.remove(); s.mom = null; }
       }
     },
-    // 6. Too slow: the egg cracks through and the crab comes out, scurries, dances and hops at the viewer (the cute
-    //    hatch from play; never a horror alien, never the jump scare)
+    // 6. Too slow: the egg cracks through and the title's baby alien comes out, singing, and hops at the viewer
+    //    (Chat, 2026-10-03: the replica, not the crab; never a horror alien, never the jump scare)
     function (s, u) {
       if (u < 0.4) {
         setState(s, "overtime");
@@ -346,7 +389,6 @@
         readout(s, "VS", 622, false);
         s.toon.dataset.hatch = "cute";
         s.toon.style.setProperty("--hatch", (lens()[5] - 0.4) + "s");
-        if (!s.creature.classList.contains("has-art")) ET.aliens.fill(s.creature, C().howtoAlien);
         s.toon.classList.add("hop");
       });
     }
@@ -390,12 +432,10 @@
   ET.howto = {
     CAPTIONS: CAPTIONS,
     build: build,
-    /* once the data is in: the crab goes into every copy, and the still strip paints its key frames (their splat
-       pictures load then, never holding the data back) */
+    /* once the data is in: the still strip paints its key frames (their splat pictures load then, never holding the
+       data back) */
     ready: function () {
       dataIn = true;
-      ET.mom.preload("sweet");   // step 5's sweet Mom, now the data is in
-      live.concat(stills).forEach(function (s) { if (!s.creature.classList.contains("has-art")) ET.aliens.fill(s.creature, C().howtoAlien); });
       stills.forEach(function (s) { s.pw = 0; });
     },
     start: function () { root.requestAnimationFrame(frame); },

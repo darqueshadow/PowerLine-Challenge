@@ -100,6 +100,13 @@ button { font: inherit; }
 .toon .twigs .look-slate { display: none; }
 .toon .readout { font-size: clamp(9px, min(0.9vw, 1.6vh), 14px); }
 .toon-fx { position: absolute; inset: 0; pointer-events: none; z-index: 26; }
+/* Chat (2026-10-03): step 5's Mom, the title's mommy as a replica, clipped to the stage; and the plaster she puts on */
+.toon-mom-clip { position: absolute; overflow: hidden; }
+.toon-mom { position: absolute; }
+.toon-mom svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.toon-plaster { position: absolute; aspect-ratio: 2.4; transform: translate(-50%, -50%) rotate(-24deg); visibility: hidden;
+  border-radius: 999px; border: 2px solid var(--outline); background: radial-gradient(circle, var(--plaster-pad) 0 30%, var(--plaster) 31%); }
+.toon-plaster.on { visibility: visible; }
 .toon .popup { left: 88%; top: 18%; font-size: clamp(14px, min(1.5vw, 2.6vh), 22px); }
 .toon .dish { left: 50%; top: 0; width: 70%; }
 .toon .goo { position: absolute; width: 1.4em; height: 0.8em; background: var(--yolk); border: 2px solid var(--outline); border-radius: 55% 45% 60% 40% / 60% 55% 45% 40%; }
@@ -167,27 +174,27 @@ button { font: inherit; }
 /* Refinement 4 §6: the title scene (⏳ placeholder art). Pure CSS animation, so it never holds anything up. */
 #title-scene { width: min(560px, 82cqw, 70vh); }   /* half as tall as wide: fits under the logo at 1024×640 */
 #title-scene svg { display: block; width: 100%; overflow: visible; }
-#title-scene .alien-skin { fill: var(--alien-green); stroke: var(--alien-outline); stroke-width: 4; }
-#title-scene .antenna, #title-scene .stalk { fill: none; stroke: var(--alien-outline); stroke-width: 4; stroke-linecap: round; }
-#title-scene .antenna-tip { fill: var(--hot); stroke: var(--alien-outline); stroke-width: 2; }
-#title-scene .eye { fill: var(--white); stroke: var(--alien-outline); stroke-width: 3; }
-#title-scene .pupil { fill: var(--alien-outline); }
-#title-scene .apron { fill: var(--pink); stroke: var(--alien-outline); stroke-width: 3; }
-#title-scene .apron-heart { fill: var(--hot); }
-#title-scene .smile { fill: var(--mouth); stroke: var(--alien-outline); stroke-width: 3; }
-#title-scene .smile-line { fill: var(--smile-pink); }
-#title-scene .cheek { fill: var(--pink); opacity: 0.8; }
-#title-scene .mouth-hole { fill: var(--mouth); stroke: var(--alien-outline); stroke-width: 2; }
-#title-scene .teeth { fill: var(--tooth); stroke: var(--alien-outline); stroke-width: 0.8; }
+:is(#title-scene, .replica) .alien-skin { fill: var(--alien-green); stroke: var(--alien-outline); stroke-width: 4; }
+:is(#title-scene, .replica) .antenna, :is(#title-scene, .replica) .stalk { fill: none; stroke: var(--alien-outline); stroke-width: 4; stroke-linecap: round; }
+:is(#title-scene, .replica) .antenna-tip { fill: var(--hot); stroke: var(--alien-outline); stroke-width: 2; }
+:is(#title-scene, .replica) .eye { fill: var(--white); stroke: var(--alien-outline); stroke-width: 3; }
+:is(#title-scene, .replica) .pupil { fill: var(--alien-outline); }
+:is(#title-scene, .replica) .apron { fill: var(--pink); stroke: var(--alien-outline); stroke-width: 3; }
+:is(#title-scene, .replica) .apron-heart { fill: var(--hot); }
+:is(#title-scene, .replica) .smile { fill: var(--mouth); stroke: var(--alien-outline); stroke-width: 3; }
+:is(#title-scene, .replica) .smile-line { fill: var(--smile-pink); }
+:is(#title-scene, .replica) .cheek { fill: var(--pink); opacity: 0.8; }
+:is(#title-scene, .replica) .mouth-hole { fill: var(--mouth); stroke: var(--alien-outline); stroke-width: 2; }
+:is(#title-scene, .replica) .teeth { fill: var(--tooth); stroke: var(--alien-outline); stroke-width: 0.8; }
 #title-scene .note { font-size: 26px; fill: var(--gold); stroke: var(--shadow); stroke-width: 1.5; paint-order: stroke; animation: note 2.2s linear infinite; opacity: 0; }
 @keyframes note { 0% { transform: translate(0, 20px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(14px, -60px); opacity: 0; } }
-#title-scene .sway { animation: sway 1.56s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+:is(#title-scene, .replica) .sway { animation: sway 1.56s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 @keyframes sway { 50% { transform: rotate(-4deg); } }
-#title-scene .bob { animation: bob 0.52s ease-in-out infinite alternate; }
+:is(#title-scene, .replica) .bob { animation: bob 0.52s ease-in-out infinite alternate; }
 @keyframes bob { to { transform: translateY(-8px); } }
-#title-scene .mouth { animation: sing 0.26s steps(2) infinite; transform-box: fill-box; transform-origin: 50% 20%; }
+:is(#title-scene, .replica) .mouth { animation: sing 0.26s steps(2) infinite; transform-box: fill-box; transform-origin: 50% 20%; }
 @keyframes sing { 50% { transform: scaleY(0.45); } }
-#title-scene .wink { animation: blink-eye 3.1s steps(1) infinite; transform-box: fill-box; transform-origin: center; }
+:is(#title-scene, .replica) .wink { animation: blink-eye 3.1s steps(1) infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes blink-eye { 94% { transform: scaleY(0.15); } }
 
 /* ---------------------------------------------------------------- setup */
@@ -1244,7 +1251,9 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 @media (prefers-reduced-motion: reduce) {
   .nest.fueled .nest-art .pump { display: none; }   /* Chat (2026-10-03): no pull-out under reduced motion: it is simply gone at DONE */
   #reject::before, .nest.bold .readout .clock.done,
-  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter * { animation: none; }
+  #trough .t-left, #trough .t-right, #trough .t-bl, #trough .t-br, .blink, :is(.nest, .toon).asks .readout .code, .hsign, .refused, .nest.scurry .legs, .alien .wig, .alien .squish, .alien .drip, :is(#cord-top, .toon-cord) .cord-stripes, #water .jet .core, #water .jet .burst, .box.active, .box.active.switched, #cleanup.flash, #warp.lit, #warp .plaque.wobble .letters, #title-scene *, #setup-critter *, .replica * { animation: none; }
+  /* the family's own loops carry #title-scene's weight, so they're stopped by name too (title and replicas alike) */
+  :is(#title-scene, .replica) :is(.sway, .bob, .mouth, .wink) { animation: none; }
   .nest.scurry .creature { animation-name: scurry-plain; }   /* Andrew, 2026-09-30: the run-off, without its bob */
   .nest.scare .creature, :is(.nest, .toon).hop .creature { animation: none; }   /* Andrew, 2026-10-01: the alien sits still in its nest */
   #title-scene .note, #setup-critter .note { opacity: 1; }

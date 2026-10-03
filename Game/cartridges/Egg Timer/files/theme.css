@@ -26,6 +26,9 @@
   --reject-bg: #120814;                   /* near-black plum (the rejected-Enter message's plate, Chat 2026-10-02) */
   --reject-ink: #ff6b78;                  /* light alarm red (its words, 6.4:1 on the plate) */
   --reject-edge: #f4eccc;                 /* bone white (its outline) */
+  /* Chat (2026-10-03): the plaster How To Play's replica Mom puts on the egg (code-drawn) */
+  --plaster: #e8b98a;                     /* plaster tan */
+  --plaster-pad: #f6efe2;                 /* its pad, off-white */
   /* Chat (2026-10-03): VF's fuel pump and its timer box */
   --pump-body: #19b5a3;                   /* alien-tech teal (the pump) */
   --pump-grip: #2e2f3b;                   /* charcoal (its chunky grip) */
