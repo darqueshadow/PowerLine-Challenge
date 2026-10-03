@@ -4047,7 +4047,7 @@ export default {
   "box-shadow": "rgb(255, 61, 127) 3px 3px 0px",
   "color": "rgb(57, 255, 20)",
   "font-family": "\"DSEG7 Classic\", \"Courier New\", Courier, monospace",
-  "font-size": "clamp(10px, 0.075 * min(15.5cqw, 23cqh), 15px)",
+  "font-size": "clamp(10px, 0.094 * min(15.5cqw, 23cqh), 19px)",
   "font-weight": "900",
   "line-height": "1.1",
   "padding-bottom": "2px",

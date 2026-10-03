@@ -998,7 +998,9 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
   box-shadow: 3px 3px 0 var(--hot);
   font-family: var(--font-led);
   font-weight: 900;
-  font-size: clamp(10px, calc(min(15.5cqw, 23cqh) * 0.075), 15px);
+  /* Chat (2026-10-03, I): bigger, ×1.25 of what follows the nest's size (1.5× doesn't fit: nest 4's note, at the board's
+     edge, has nowhere to go at 1920 × 1080 and 1440 × 900); the 10 px floor stays, so the two small screens are as before */
+  font-size: clamp(10px, calc(min(15.5cqw, 23cqh) * 0.094), 19px);
   text-shadow: 1px 1px 0 var(--led-shadow);
   line-height: 1.1;
   white-space: nowrap;
