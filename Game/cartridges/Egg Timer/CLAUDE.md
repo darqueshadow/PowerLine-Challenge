@@ -23,7 +23,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   strike D3 and the rig checks labelled ⏳ D3. He reviews the shared transport unit list himself: change nothing in it.
 - 🔒 **E17: no RCAV/syntax line in the how-to panel is Andrew's deliberate override of E10.** Don't "fix" it. (The
   RCAV hints E28 added live in the Command Lines, the tags and the comic strip, never in the panel.)
-- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E61**; open: **E59(c)** VF (Andrew's) and **E60** the words over the clock face);
+- **A new build question:** one ⏳ PENDING switch in `config.js`, flagged to Chat as the next E-number (**E62**; open: **E61**, the types reference (combined batch Part 3, stopped));
   on the ruling, change the switch, the packet item **and** the rig checks that assert the old value.
 - **Design calls go through Chat, one at a time**, flagged in plain words ready to paste. Never settle one in a
   pick-an-answer box or silently in code: build it as a switch and flag it. If a pasted ruling arrives cut off,
@@ -80,7 +80,9 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   the six hatchlings Andrew's sheets as puppets (`make-alien-art.py`, `core/aliens.js`), both Moms Andrew's Gemini kits
   (`make-mom-art.py`, `core/mom.js`); the rest is still placeholder.
 - **One mode (E54, ruled 2026-10-02).** **E59 (Chat, 2026-10-03):** eggs come out of the type **bag** again (`eggTypes`:
-  VS, SS, EOS, MB, AD; not the STR; ⏳ VF stays out until Andrew answers). An **AD** says **"Clear @ HH:MM"** (E1: bold
+  VS, SS, EOS, MB, AD, VF; not the STR). A **VF** says a dim **FUELING** in its timer box while it fuels, with a
+  code-drawn alien **pump** in the egg; at bold, **DONE** on green for `vfDoneSeconds`, then the pink timer (Chat's
+  combined batch, 2026-10-03). An **AD** says **"Clear @ HH:MM"** (E1: bold
   when the wall clock reads it) on a tilted LED note **stuck on beside its nest** (`placeNote()`: outer side, inner side,
   then up by its shoulder; Chat 2026-10-03). **Only a VS can be a hospital egg**: **~70% of VS eggs**
   (`hospitalShare` [T], a plain roll on the seeded source, E56) get a blue **H road sign** (never a red cross) at the pop;
@@ -96,7 +98,7 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
   Chat, 2026-10-02), the STR runs 10:00, then an ordinary window and `RCAV`.
   Wrong orders: STR before the RCAV says **"RCAV first!"**; STR on a refusal, a second RCAV or any other type is ERROR.
   No modes, triggers, AD post-it or VF any more; the CSV keeps every row, and refuses to start without VS or STR.
-- **CAV data:** Andrew's durations (VS 10, STR 10; with E59's bag also SS 15, EOS 30, MB 30, AD 10–30 whole minutes; VF unused). **Say "displayed time" and
+- **CAV data:** Andrew's durations (VS 10, STR 10; with E59's bag also SS 15, EOS 30, MB 30, AD 10–30 whole minutes, VF 10–30). **Say "displayed time" and
   "the player's seconds"** (E3). Clocks show displayed time, **one speed shared by every clock**; the real (Data Sheet)
   duration sets the bold mark exactly: never jitter it. Readouts show the literal type code. Transport units only,
   never one already on the board, no repeat in a wave until the pool is used.
@@ -119,8 +121,9 @@ session must not re-derive or break. History: `docs/decisions.md` at the repo ro
 - **Rejected Enter:** **any** clears the line, shows ERROR ~1 s and buzzes, no penalty (E6); an early `RCAV` says
   **"Too Early!"** (2026-10-01); an STR before the RCAV **"RCAV first!"** (E53). The words show **at Time Warp's clock**
   (`#reject`, a dark plate with a light outline, over the wave banner; Chat 2026-10-02), the line's border turns red; a
-  repeat restarts the time, never off and on. **E60:** `rejectPlace: "drop"` approved, never over the sign or caption;
-  ⏳ it covers the clock face and hands, so Code proposed the pendulum window (not built).
+  repeat restarts the time, never off and on. **E60 (Chat, 2026-10-03):** in the clock's **pendulum window**
+  (`rejectPlace: "pendulum"`), never over the face, sign or caption; a pinball backglass plate whose bulb ring swaps
+  every 0.6 s (one flash each 1.2 s), still under reduced motion.
 - **Waves and pool:** nests in play 5 → 12, **all 12 on screen all game**; spawning stops at the quota (D4); a spawn on
   a full board is skipped. Pool 3 (`POOL`), −1 per escape, +1 per escape-free wave. **Only an empty pool ends the game.**
 - **Scoring (E26):** by **tier**, fifths of the egg's own overtime window: 100 / 75 / 50 / 35 / 25, plus a perfect-wave
@@ -182,9 +185,9 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 write Egg Timer memories there (auto-memory loads the PLC root index, keyed to the git root).
 
 ## State 2026-10-03
-**Chat's playtest batch, its follow-up rulings and the AD note built, not pushed** (`5267498`..`97a64c8`, one commit an
-item; packet §11 "Raised by Chat's playtest"). Open: **E59(c)** VF (Andrew's), **E60** (the pendulum window proposal);
-next free **E61**. Waiting on Gemini (via Chat's prompts): the H sign and the
+**Chat's playtest batch, its follow-ups, the AD note and the combined batch's Parts 1–2 built, not pushed**
+(`5267498`..`e35c68c`, one commit an item; packet §11 "Raised by Chat's playtest"). The combined batch stopped at Part 3
+(**E61**: the types reference conflicts with the bubble ruling); Parts 3–5 not built. Next free **E62**. Waiting on Gemini (via Chat's prompts): the H sign and the
 horror aliens' close-up faces (packet §11, E49, E55). Playtest owed: the hospital window (E53) and the spawn rate (E56).
 Hand tests owed: Mom's visits (both kits, the edge entry, the drool, splat and tongue), the hospital eggs, the cartoon, nozzle lag, Fang
 Rock's title music, held Enter at Game Over, the aliens, the hose's feel and new aim, Q in Rec-Bay 4, real F3, the jump

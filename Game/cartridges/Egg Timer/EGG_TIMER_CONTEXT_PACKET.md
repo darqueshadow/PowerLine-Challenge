@@ -1,3 +1,10 @@
+> **FILING NOTE — Claude Code, 2026-10-03 (Chat's combined batch; Parts 0–2 done, stopped at Part 3).** Filed verbatim
+> as `Previous Versions/EGG_TIMER_COMBINED_BATCH_2026-10-03.md` (it replaces every earlier queued Chat message).
+> **Part 1, E60:** the error plate is in the clock's **pendulum window**, a pinball backglass sign (`b28af64`). **Part 2,
+> VF returns:** FUELING / DONE in its timer box and a code-drawn alien pump (`e35c68c`). **Part 3 stopped:** its row 1
+> shows the "Patient Refused" bubble beside SS, EOS and MB eggs, which never get it in play (Chat's 2026-10-02 ruling:
+> VS refusal eggs only); and two smaller questions (§11, **E61**). **Parts 3, 4 and 5 not built.** Not pushed. Next free **E62**.
+
 > **FILING NOTE — Claude Code, 2026-10-03 (later: Chat's rulings on E59, E60 and the bubble; the AD note back).**
 > Filed verbatim as `Previous Versions/EGG_TIMER_E59_E60_RULINGS_AND_AD_NOTE_2026-10-03.md`. **E59:** the bag, MB kept,
 > 70% kept (Andrew tunes it after playtests); VF stays out (open, Andrew's); **the AD note is back** (Chat's second
@@ -1140,6 +1147,52 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   up, the outer middle-row nest's note goes up by its shoulder (1 nest; 2 at 1024 × 640); otherwise every note sits
   beside its egg, outer side, the board's middle-right inner nest on its inner side. It never covers the unit number
   (it sits above every readout). The gunk covers it (E14).
+- **Chat's combined batch (2026-10-03).** *(Filed verbatim, `Previous Versions/EGG_TIMER_COMBINED_BATCH_2026-10-03.md`.)*
+  **Part 0, the facts (no building):** (a) **Commands:** every type but a hospital VS is one `RCAV`, valid once its
+  real duration has passed (the clock goes bold; earlier says "Too Early!"); a **hospital VS** is `RCAV` (valid at
+  bold), then `CAV #### STR` (valid at once, within 12 s), then `RCAV` again once the STR's 10:00 has passed. VF is the
+  same as any type: one `RCAV` once it shows DONE. Chat's assumption holds. (b) **AD notes:** only the "Clear @ HH:MM"
+  note exists. The "20 min" length post-it went with E54 and was not rebuilt. (c) **The hose cursor:** a drawn nozzle,
+  32 px: a yellow head (`--nozzle-head` #ffd23a, black outline) on a short stub of garden-hose green (#22a34a), pointing
+  up and left, turned with the jet. (d) **Art:** the title scene is code-drawn (`core/title.js`): a big green mommy
+  alien with three eyes on stalks and a too-wide smile, and three small green babies with two antennae each, singing;
+  the options screen has its own code-drawn purple three-headed blob (`#setup-critter`) and a small green doodle
+  alien by the HOW TO PLAY signs. **How To Play's cartoon uses the game's own art:** the Gemini nest and egg, the cord,
+  the H sign, the pan, the splats, **sweet Mom from the Gemini kit** (step 5) and **the crab hatchling puppet** (step 6).
+  So the two differ: the title's mommy is a reusable code replica (green, three eye stalks, thick outline); the title
+  has no hatchling-style art (its babies have two antennae, not three eye stalks). (e) **Room on the options screen**
+  (everything left of the How To Play panel, full height): 1478 × 1080 px at 1920 × 1080, 1039 × 900 at 1440 × 900,
+  922 × 720 at 1280 × 720, 736 × 640 at 1024 × 640; the menu block itself (critter, buttons, START, hint) is 494 px
+  wide and 477 / 463 / 427 / 385 px tall.
+  **Part 1, E60, built** (`b28af64`): `rejectPlace: "pendulum"`: the plate sits centred in the pendulum window, between
+  the face's bottom and the sign's top, never over the face (its reduced-motion "5×" included), the sign or the
+  caption; where the window is shorter than the plate its type shrinks to fit (never under 10 px). A pinball backglass
+  look: a dotted ring of bulbs inside the light outline, swapping bright and dim together every 0.6 s (one flash each
+  1.2 s; held through repeats), and lit lettering with a halo. Reduced motion: the bulbs lit and still. **Fit:**
+  186 × 43 px plate in an 81 px window (21 px type) at 1920 × 1080; 154 × 36 in 60 (17 px) at 1440 × 900; 125 × 30 in
+  38 (14 px) at 1280 × 720; 105 × 26 in 35 (12 px) at 1024 × 640.
+  **Part 2, VF returns, built** (`e35c68c`): VF is a plain member of the bag (10–30 min from the table): eggs are VS,
+  SS, EOS, MB, AD and VF, so **VF is one egg in six (about 17%)**. While it fuels, its timer box says a dim **FUELING**
+  (`--fuel-ink`), scaled to fit the box's MM:SS width and height (13.3 / 13.1 / 11.6 / 9.3 px type at the four sizes;
+  it fits everywhere, small at 1024 × 640); the unit and "VF" stay; its clock runs on hidden, Time Warp included. As it
+  goes bold (the RCAV window opens) the box says **DONE** on green (#24c45a) with one soft size pulse (no brightness
+  change), held: `vfDoneSeconds` 0.9 s in all, then the ordinary pink bold timer. DONE fits at every size. **The alien
+  pump** (`art.js`, in the nest's own picture): a teal body, a charcoal grip and stubby hose from the upper right, a
+  steel spout down in the egg, a little green light; it pulls up and out as DONE shows (reduced motion: it simply goes).
+  100 / 78 / 57 / 49 px wide at the four sizes, clear of every readout and every other nest. *(Code: it reads clearly
+  as a pump and is nothing like the yellow hose nozzle; it is flatter than the Gemini nest beside it, a placeholder in
+  the same style as the H sign. Chat may want a commissioned piece.)* No VF tag or bubble; "Clear Fueling" is in no code.
+- ⏳ **E61. The types reference (combined batch, Part 3): three things to settle before it's built. PENDING (Chat).**
+  **(1) A conflict with a ruling:** row 1 shows the "Patient Refused" bubble beside SS, EOS and MB eggs, but in play
+  those never get it: Chat's 2026-10-02 ruling (item 3) gives the bubble to **VS refusal eggs only** ("Other CAV types
+  get neither the sign nor the bubble"), and the reference is to show the real tags as players see them. Either the
+  row shows a VS refusal egg with its bubble (and SS, EOS, MB eggs plain), or the ruling changes so standard types get
+  the bubble in play too. **(2) Row 3's line:** "The note shows how long, or what time." Only the "what time" note
+  exists (Part 0b); the line would promise a "how long" note players never see. Keep the line and bring the "20 min"
+  note back, or change the line. **(3) Where the menu goes:** the options screen's right side is its How To Play panel;
+  "move the menu to the opposite side" needs that panel to move or go. Which? **Parts 4 (the Alien Time footer, under
+  the reference) and 5 (replica art) wait with it**, since Code stopped at Part 3 as the ground rules say. Needed: (1),
+  (2), (3), and a word to go on with 4 and 5.
 - ⏳ **E60. Where the rejected-Enter words go when "above the clock" is taken.** **"drop" approved** *(Chat,
   2026-10-03: "It must never cover the Time Warp sign or its caption. Report whether the clock face has anything players
   need (digits, hands) in the covered top strip at any size; if so, tell me before shipping and propose where the message

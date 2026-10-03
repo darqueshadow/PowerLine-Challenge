@@ -472,6 +472,14 @@ y= 48 └───────────────────────�
 
 ---
 
+## Not a slot yet: VF's alien fuel pump (code-drawn, 2026-10-03)
+
+> Chat's combined batch (Part 2) brought VF back with an **alien fuel pump** that stands in the egg while it fuels and
+> pulls out as its timer box says DONE. It is **drawn in code** (`core/art.js`, `.pump`): a teal body, a charcoal grip
+> and stubby hose, a steel spout, a small green light, in the nest's own picture (about 100 px wide at 1920 × 1080,
+> 49 px at 1024 × 640). It must stay clearly unlike the player's hose nozzle (yellow head, green hose). If it looks flat
+> beside the Gemini art, Chat will commission a piece; nothing to draw until then.
+
 ## Slot 5: the scary mom face — RETIRED (Chat, 2026-10-02)
 
 > **Retired:** the HUD face now shows the Mom kit's head, pose A (the cut-outs of sm_org in the sweet waves, hm_org

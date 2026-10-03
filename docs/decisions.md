@@ -1065,3 +1065,26 @@ marker that appears later can't land on it; another note already up is avoided t
 up; all 12 at once), since a nest with a note never has a marker of its own. A rig check that sets `style.animation =
 'none'` must put it back, or a later "it drops in" check fails. The AD-at-the-wall-clock test clears the rest of the
 board as it goes, or the pool runs dry before the AD's minute.
+
+## Built 2026-10-03 — Egg Timer: Chat's combined batch, Parts 0–2; stopped at Part 3 (E61)
+
+**Solved:** Chat's combined batch (filed verbatim in `Game/cartridges/Egg Timer/Previous Versions/
+EGG_TIMER_COMBINED_BATCH_2026-10-03.md`; it replaces every earlier queued message). **Part 0** answered from the code
+(packet §11): the command table matches Chat's assumption; only the "Clear @" AD note exists; the hose cursor is a
+yellow nozzle on a green stub; the title's mommy is a reusable code replica, How To Play uses the game's Gemini art;
+the options screen has 736–1478 px of width beside its How To Play panel. **Part 1, E60** (`b28af64`): the error plate
+sits in the grandfather clock's pendulum window (between face and sign), a pinball backglass sign with a bulb ring
+(one flash each 1.2 s), its type shrinking to fit on small screens. **Part 2, VF** (`e35c68c`): back in the bag (one egg
+in six); FUELING / DONE in its timer box; a code-drawn alien pump in the egg. **Stopped at Part 3** as the ground rules
+say: its row 1 puts the "Patient Refused" bubble beside SS, EOS and MB eggs, which the 2026-10-02 ruling gives to VS
+refusal eggs only; plus row 3's "how long" note that doesn't exist and where the options screen's How To Play panel goes
+(**E61**). Parts 3, 4 and 5 not built. Not pushed. Rigs at the end: logic 212/0, browser 653/0.
+**Approach:** `placeReject()` reads the face's and sign's boxes each time a message shows; the bulbs are a dotted
+`::before` border swapping colour on a 1.2 s `steps(1)` cycle (rig: at most 2 swaps in any second, none under reduced
+motion). VF's FUELING is the timer box's own text at 0.7 em with its line height and min-width scaled back up, so the box
+keeps its MM:SS size; DONE reads the snapshot's new `sinceBold`. The pump is a `<g class="pump">` in the nest's SVG,
+shown by `.nest.fueling` / `.nest.fueled`.
+**If you touch this again:** a rig scene that fakes a state on every nest must stub `ET.view.render` first, or the next
+frame repaints it away. The bulbs at a 1 s cycle (a swap every 0.5 s) sometimes measured 3 swaps in a second from frame
+jitter; 1.2 s can't. The reduced-motion check on Mom's fade (rig R) once read 1.00 on a busy machine and passed on the
+re-run.
