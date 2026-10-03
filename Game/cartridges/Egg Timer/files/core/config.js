@@ -45,7 +45,7 @@
     // E55: pops in, looks down and patches the egg, turns to the player and giggles, ducks out; never blocking typing.
     // Chat's giggle ruling (2026-10-02, flash safety): pose C held at least 0.5 s, one swap in and one out, and at most
     // 2 pose changes in any second of the visit (A→B, B→C, C→B: the first and last at least 1 s apart). That doesn't
-    // fit 1.5 s without speeding something up, which the ruling forbids, so the visit is 2.2 s (⚠️ flagged to Chat:
+    // fit 1.5 s without speeding something up, which the ruling forbids, so the visit is 2.2 s (Chat approved, 2026-10-02:
     // everything up to B keeps its old seconds; B holds through the drool, C 0.6 s, then out).
     momRepairSeconds: 2.2,   // [T] (was 1.5)
     // Mom kit (Chat's brief, 2026-10-02): the visit, in the player's seconds from the STR. in: she's slid in by then;

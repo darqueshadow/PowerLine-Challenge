@@ -922,3 +922,12 @@ canvas. Colours: `--mom-drool*` in `theme.css` (theme baseline rewritten; 4 rule
 `momTimeline` to a share is a bug (the giggle sound's trigger was one, caught by rig H). Rig H counts every pose change
 through a visit (5 ms steps) and scans the floor canvas for any halo pixel over an obstacle; rig L prints each size's
 small heads as a note.
+
+**Known facts (Chat, 2026-10-02, later):** Chat approved the **2.2 s visit** (the 2-pose-changes-a-second rig check
+stays) and the **steady** glow (no pulse); the giggle sound stays where it is, as she turns to face the player (Andrew
+judges it in Rec-Bay 4). **How To Play's step 5 is 4.4 s** (was 3.5) to hold the visit. **Small heads (E58's
+"nest" fallback only; every edge entry is full size), no change yet:** 1920 × 1080 none (smallest 71 px); 1440 × 900
+nests 9 and 10 (and 1, creepy) 55 × 63 px; 1280 × 720 nests 9 and 10 40 × 46 px, nests 5, 8 (and 6, 11, creepy) about
+54 × 62 px; 1024 × 640 nests 9 and 10 34 × 39 px, nests 5, 8, 11 (and 6, creepy) about 47 × 53 px (nest numbers as rig L
+counts them). Chat is checking with Andrew what screen sizes real stations use; if any run below 1920 × 1080, a ruling
+for nests 9 and 10 follows.

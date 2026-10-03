@@ -3,7 +3,8 @@
 > **1, the giggle (flash safety):** pose C held at least 0.5 s with a gentle bob, one swap in and one out, at most 2 pose
 > changes in any second of the visit; under reduced motion no bob, and the tongue wobbles for the whole hold. *(Code: it
 > doesn't fit 1.5 s without speeding something up, so the visit is now **2.2 s** [T]: everything up to B keeps its old
-> seconds, B holds 0.45 s through the drool, C 0.6 s, B 0.2 s, out 0.18 s. Flagged to Chat. The How To Play cartoon's
+> seconds, B holds 0.45 s through the drool, C 0.6 s, B 0.2 s, out 0.18 s. **Chat approved the 2.2 s**, later the same
+> day, with the steady glow; the giggle sound stays as she turns to face the player. The How To Play cartoon's
 > step 5 grew from 3.5 to 4.4 s to fit it.)* **2, E58: "nest"**, struck in §11. **3, the drool, the drop and the splat
 > are glowing purple** (were yolk yellow), the outline and glossy streaks kept, with a steady halo that follows the
 > shapes; the halo counts in the safe-landing check and washes off with the splat. Next free **E59**.

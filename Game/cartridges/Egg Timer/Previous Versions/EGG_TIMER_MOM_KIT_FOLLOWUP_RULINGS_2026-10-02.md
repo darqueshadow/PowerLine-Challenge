@@ -39,3 +39,15 @@ FINAL REPORT (short, plain English)
 - Screen sizes where her head falls below about 60 px.
 - Whether the unit number and timer stay visible during the visit.
 - Anything that looked wrong or that you did not do.
+
+---
+
+## Chat's answers to Code's report (2026-10-02, later), filed verbatim
+
+Chat rulings on the Mom kit report:
+1. 2.2s visit approved. The 2-pose-changes-per-second rig check stays.
+2. Purple glow approved as steady (no pulse).
+3. Leave the giggle sound where it is (on turning to face the player). Andrew will judge it in Rec-Bay 4.
+4. Push now under the standing rule, including the two commits from the other session. One-line report when done.
+5. Small heads: no change yet. I'm confirming with Andrew what screen sizes real stations use. If any run below 1920x1080 I'll come back with a ruling for nests 9 and 10.
+Add the 2.2s visit, the step-5 length (4.4s) and the small-screen head sizes to docs/decisions.md as known facts.
