@@ -1632,12 +1632,18 @@ try {
       // Chat (2026-10-02): every nest's "Patient Refused" bubble instead, at rest: clear of every readout, every nest's egg
       // and twigs, the other bubbles, the Command Lines, the trough, the sink's hose tag and the wall clock
       document.querySelectorAll('.nest .refused').forEach(p => { p.hidden = false; p.style.animation = 'none'; });
+      ET.view.placeBubbles();   // as each frame places them once they show (Chat, 2026-10-03: off Time Warp's words)
+      const flipped = document.querySelectorAll('.nest .refused.flip').length;
+      const warpWords = [document.querySelector('#warp .plaque').getBoundingClientRect()];
+      { const rg = document.createRange(); rg.selectNodeContents(document.querySelector('#warp .caption')); warpWords.push(...rg.getClientRects()); }
       const bubbles = [...document.querySelectorAll('.nest .refused')].map(e => e.getBoundingClientRect());
       const keepOff = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0)
-        .concat(nests.map(x => x.art));
+        .concat(nests.map(x => x.art), warpWords.filter(r => r.width > 0));
       const bubbleBad = bubbles.filter((r, i) => keepOff.some(o => hit(r, o)) || bubbles.some((o, j) => j !== i && hit(r, o)) || r.left < f.left || r.right > f.right).length;
       const bubbleAbove = [...document.querySelectorAll('.nest')].every(n => n.querySelector('.refused').getBoundingClientRect().bottom <= n.querySelector('.clock').getBoundingClientRect().top);
       const bubbleSize = Math.round(Math.min(...bubbles.map(r => r.width)));
+      // …and never over its own unit number or timer (above them, whichever shoulder it's on)
+      const bubbleOwn = [...document.querySelectorAll('.nest')].every(n => { const b = n.querySelector('.refused').getBoundingClientRect(); return [...n.querySelectorAll('.readout > span')].every(x => !hit(b, x.getBoundingClientRect())); });
       document.querySelectorAll('.nest .refused').forEach(p => { p.hidden = true; p.style.animation = ''; });
       // Chat (2026-10-02): the rejected-Enter message, at its longest, above Time Warp's clock: clear of every nest, readout,
       // Command Line, the trough, the hose tag and the wall clock, and on the board
@@ -1653,7 +1659,7 @@ try {
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1665,7 +1671,7 @@ try {
     }
     eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading fits inside its box   ${at}`);
     ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
-    ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleSize >= 44, `Chat (2026-10-02): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout, nest, Command Line, the trough, the hose tag, the wall clock and each other   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide]`);
+    ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleOwn && lay.bubbleSize >= 44, `Chat (2026-10-02/03): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout (their own unit and timer too), nest, Command Line, the trough, the hose tag, the wall clock, each other and Time Warp's sign and caption   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide, ${lay.flipped} flipped to the other shoulder]`);
     ok(lay.rejectHits === 0 && lay.rejectOk, `Chat (2026-10-02): the rejected-Enter message sits at Time Warp's clock, on the board, clear of every nest, readout, Command Line, the trough, the hose tag, the wall clock and the TIME WARP sign and caption   ${at} [${lay.rejectHits} touching, ${lay.rejectBox.join("×")} px, ⏳ E60: ${lay.rejectOnClock} of the clock's ${lay.clockTall} px covered]`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);

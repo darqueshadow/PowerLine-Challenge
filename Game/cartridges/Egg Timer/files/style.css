@@ -885,6 +885,12 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .refused::before, .refused::after { content: ""; position: absolute; top: 100%; width: 1.15em; height: 0.95em; clip-path: polygon(0 100%, 30% 0, 100% 0); }
 .refused::before { left: 0.5em; margin-top: -1px; background: var(--outline); }
 .refused::after { left: calc(0.5em + 3px); margin-top: -3px; width: calc(1.15em - 4px); height: calc(0.95em - 3px); background: var(--refused-bg); }
+/* Chat (2026-10-03): where Time Warp's sign or caption is in the way, the bubble sits on the nest's other shoulder (view.js
+   adds .flip), its tail turned to point back down at the egg */
+.refused.flip { left: auto; right: 93%; }
+.refused.flip::before, .refused.flip::after { clip-path: polygon(100% 100%, 70% 0, 0 0); }
+.refused.flip::before { left: auto; right: 0.5em; }
+.refused.flip::after { left: auto; right: calc(0.5em + 3px); }
 @keyframes refused-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes hsign-drop {
   0% { transform: translateY(-160%) rotate(-24deg); }

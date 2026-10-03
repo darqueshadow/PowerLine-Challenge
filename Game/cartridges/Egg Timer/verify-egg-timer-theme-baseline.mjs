@@ -3555,6 +3555,21 @@ export default {
   "margin-top": "-3px",
   "width": "calc(1.15em - 4px)"
  },
+ ".refused.flip": {
+  "left": "auto",
+  "right": "93%"
+ },
+ ".refused.flip::before, .refused.flip::after": {
+  "clip-path": "polygon(100% 100%, 70% 0px, 0px 0px)"
+ },
+ ".refused.flip::before": {
+  "left": "auto",
+  "right": "0.5em"
+ },
+ ".refused.flip::after": {
+  "left": "auto",
+  "right": "calc(0.5em + 3px)"
+ },
  "@keyframes refused-in » 0%": {
   "opacity": "0"
  },

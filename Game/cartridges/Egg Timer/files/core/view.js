@@ -1083,6 +1083,23 @@
     top = Math.min(top, warp.querySelector(".plaque").getBoundingClientRect().top - gap - h);
     el.style.top = (top - fr.top) + "px";
   }
+  /* Chat's ruling (2026-10-03): a "Patient Refused" bubble whose place on the nest's right shoulder would reach into
+     Time Warp's sign or caption (the bottom row's inner nests, at 1440 × 900 and smaller) flips to the nest's other
+     shoulder, away from the centre, still above its readout (the layout rig checks every nest at every size). */
+  function warpWords() {
+    var out = [warp.querySelector(".plaque").getBoundingClientRect()];
+    var cap = warp.querySelector(".caption");
+    if (cap.textContent) { var rg = document.createRange(); rg.selectNodeContents(cap); out.push.apply(out, rg.getClientRects()); }
+    return out;
+  }
+  function placeBubble(v) {
+    var b = v.refused;
+    b.classList.remove("flip");
+    var r = b.getBoundingClientRect(), words = warpWords();
+    var hits = words.some(function (w) { return w.width > 0 && w.left < r.right && r.left < w.right && w.top < r.bottom && r.top < w.bottom; });
+    if (hits) b.classList.add("flip");
+    v.refusedAt = innerWidth + "x" + innerHeight;
+  }
   function showReject(text) {
     var el = reject.el;
     if (!el) return;
@@ -1281,6 +1298,8 @@
         var refusing = !s.hospital && s.code === C.eggType && (s.state === "active" || s.state === "overtime") &&
           C.refusedBubble.on && snap.wave <= C.refusedBubble.untilWave;
         if (v.refused.hidden === refusing) v.refused.hidden = !refusing;
+        // Chat (2026-10-03): placed once it shows (and again after a resize), never mid unlock pop (the scale)
+        if (refusing && v.refusedAt !== innerWidth + "x" + innerHeight && !el.classList.contains("unlock")) placeBubble(v);
 
         drawCord(s.id, s, snap.time);
 
@@ -1501,6 +1520,8 @@
     /* For rigs: the scary mom face. `mom(which)` shows it now ("top" or "panel") and returns where it went;
        `momState()` gives this game's count so far and the next scheduled time. */
     mom: function (which) { return showMom(which); },
+    /* For rigs: place every bubble that shows now (as the frame would once it shows). */
+    placeBubbles: function () { nests.forEach(function (v) { if (!v.refused.hidden) placeBubble(v); }); },
     /* A rejected Enter's words, above Time Warp's clock (boxes.js calls it). */
     reject: function (text) { showReject(text); },
     /* For rigs: the message, whether it shows, and how many times (and when) it has come on. */
