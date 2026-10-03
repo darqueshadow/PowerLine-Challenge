@@ -2057,6 +2057,8 @@ try {
       // Chat's playtest rulings (2026-10-02): the lit sign, its caption and the lightning are hot red, each darker than the
       // mint it replaced; the grandfather clock's glow, the nests' glow and the wall clock keep their greens
       const lum = (c) => { const [r, g, b] = c.match(/\d+/g).slice(0, 3).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+      // read it lit and steady: the sign flashes 3 times as Time Warp starts, so wait (up to 3 s) until those are over
+      for (let i = 0; i < 8; i++) { const a = await ev("ET.view.warpSign().log.length"); await wait(600); if (await ev(`ET.view.warpSign().lit && ET.view.warpSign().log.length === ${a}`)) break; }
       const red = await ev(`(() => { const p = document.querySelector('#warp .plaque'), cs = getComputedStyle(p);
         return { lit: p.classList.contains('on'), bg: cs.backgroundColor, ink: cs.color, caption: getComputedStyle(document.querySelector('#warp .caption')).color,
           core: getComputedStyle(document.querySelector('#cords .bolt-core')).stroke, clockGlow: getComputedStyle(document.querySelector('#warp .clock-art')).filter }; })()`);
