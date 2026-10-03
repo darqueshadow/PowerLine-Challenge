@@ -3551,7 +3551,7 @@ export default {
   "color": "rgb(59, 10, 92)",
   "min-width": "5ch"
  },
- ":is(.nest, .toon).bold .readout": {
+ ":is(.nest, .toon).bold .readout, #board.widest .readout": {
   "font-weight": "900"
  },
  ":is(.nest, .toon).bold .readout .unit": {

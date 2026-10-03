@@ -877,7 +877,7 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 /* Refinement 5 §2: at the limit all three boxes change on the same instant (one class, .bold): every box goes
    bold, the unit's type turns dark green (on white, [T]), the type box keeps its colours, and the timer turns
    hot pink with white type (unchanged, approved) */
-:is(.nest, .toon).bold .readout { font-weight: 900; }
+:is(.nest, .toon).bold .readout, #board.widest .readout { font-weight: 900; }   /* .widest: view.js measuring tabs at the widest */
 :is(.nest, .toon).bold .readout .unit { color: var(--readout-bold-unit-ink); }
 :is(.nest, .toon).bold .readout .clock { background: var(--readout-bold-timer-bg); color: var(--readout-bold-timer-ink); }
 /* Chat (2026-10-03, K): an overrunning timer box swaps to the inverse, white with pink figures (5:1 either way); view.js

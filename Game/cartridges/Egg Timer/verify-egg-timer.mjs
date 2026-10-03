@@ -1294,6 +1294,12 @@ try {
         bg: getComputedStyle(e).backgroundColor, ink: getComputedStyle(e).color, anim: getComputedStyle(e).animationName, z: Number(getComputedStyle(e).zIndex) < Number(getComputedStyle(${q(" .mess")}).zIndex) }; })()`);
     ok(bub.shown && bub.text === "PatientRefused" && bub.anim === "refused-in, mark-bounce" && bub.sign, `…from the pop: the bubble reads "Patient Refused" (no H sign), fading in   [${bub.text}, ${bub.anim}]`);
     ok(bub.above && !bub.onReadout && bub.z, `…a tab on its timer box (Chat, 2026-10-03, G), else on the shoulder; clear of every readout box, and the gunk covers it as it covers the H sign (E14)   [${bub.spot}; ${[bub.above, bub.onReadout, bub.z]}]`);
+    {
+      // live play really places it (not only the rigs' hook): once the nests' unlock pops are over, it has a spot
+      let placed = false;
+      for (let i = 0; i < 40 && !placed; i++) { await wait(50); placed = await ev(`(ET.view.markState().find(m => m && m.id === ${r.id}) || {}).placed === true`); }
+      ok(placed, "…placed by the game itself in live play, once the unlock pops are over (G fix: placement used to wait for a class that never went)");
+    }
     eq([bub.bg, bub.ink], ["rgb(255, 182, 39)", "rgb(42, 26, 0)"], "Chat (2026-10-03, B): …amber with dark lettering (no white fill; not red, pink or green)");
     await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${r.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
     eq(await ev(`${q(" .refused")}.hidden`), false, "…still there while it cracks");
@@ -1343,6 +1349,11 @@ try {
       return { id: n.id, unit: n.unit, shown: !e.hidden && e.offsetWidth > 40, text: e.textContent, want: 'Clear @ ' + want, side: e.className,
         hmFont: getComputedStyle(hm).fontFamily, hmColor: cs.color, lblFont: getComputedStyle(lbl).fontFamily, bg: cs.backgroundColor, tilt: cs.transform !== 'none',
         z: Number(cs.zIndex) < Number(getComputedStyle(document.querySelector('.nest[data-id="' + n.id + '"] .mess')).zIndex) }; })()`);
+    {
+      let placed = false;
+      for (let i = 0; i < 40 && !placed; i++) { await wait(50); placed = await ev(`ET.view.notePlaced(${ad.id})`); }
+      ok(placed, "…and the game places the note itself in live play (G fix)");
+    }
     ok(!!ad && ad.shown && ad.text === ad.want, `an AD egg shows its "Clear @ HH:MM" note from the pop   [${ad && ad.text}]`);
     ok(!!ad && /DSEG7/.test(ad.hmFont) && ad.hmColor === "rgb(57, 255, 20)" && /Fredoka/.test(ad.lblFont) && ad.bg === "rgb(43, 42, 46)" && ad.tilt && ad.z, `…HH:MM in the wall clock's green 7-segment face, "Clear @" in cream rounded lettering, on charcoal, tilted, under the gunk (E14)   [${ad && ad.side}]`);
     // the rest of the board is cleared as it goes bold, so the game lasts until the AD's minute (a pool can't run dry)
@@ -1840,7 +1851,10 @@ try {
         ns.forEach((n, i) => { const k = mode === 'h' ? 'h' : mode === 'r' ? 'r' : ((i + (mode === 'mix1' ? 1 : 0)) % 2 ? 'h' : 'r');
           n.dataset.mk = k; n.querySelector('.hsign').hidden = k !== 'h'; n.querySelector('.refused').hidden = k !== 'r';
           n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.animation = 'none'; }); });
+        // placed while no egg is bold, measured with every one bold (its widest readout): a tab must stay clear (G fix)
+        ns.forEach(n => n.classList.remove('bold'));
         ET.view.placeMarks();
+        ns.forEach(n => n.classList.add('bold'));
         const items = [];
         ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { if (!e.hidden) items.push({ n, e, r: e.getBoundingClientRect() }); }));
         const ro = [...document.querySelectorAll('.nest .readout > span')].map(e => e.getBoundingClientRect());

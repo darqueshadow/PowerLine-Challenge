@@ -1228,6 +1228,12 @@
   /* Where a nest's marks go for `kind` ("h": the H sign and the hospital; "r": the bubble and the house): the mark's
      shoulder, and whether the building fits. Decided from the layout boxes, so it is the same however often it's asked. */
   function decideMarks(v, kind, markOnly) {
+    // measured with every readout at its widest (bold), so a tab placed now stays clear when a readout goes bold later
+    var wide = !board.classList.contains("widest");
+    if (wide) board.classList.add("widest");
+    try { return decideMarksWide(v, kind, markOnly); } finally { if (wide) board.classList.remove("widest"); }
+  }
+  function decideMarksWide(v, kind, markOnly) {
     var mark = kind === "h" ? v.hsign : v.refused, bld = kind === "h" ? v.hosp : v.house || null;
     var keep = markKeepOff(v), b = board.getBoundingClientRect();
     var clear = function (e, more) {
@@ -1241,6 +1247,7 @@
     // bubble, on a few nests at the smaller sizes), back on the nest's shoulder, its old place, not attached
     var spots = ["tab-r", "tab-b", "shoulder", "shoulder-l"], spot = null;
     for (var i = 0; i < spots.length && !spot; i++) { markSpot(v, mark, spots[i]); if (clear(mark)) spot = spots[i]; }
+    v.markForced = !spot;   // nowhere clear: the tab beside the timer anyway (rigs report it)
     if (!spot) markSpot(v, mark, spot = "tab-r");
     var flip = spot === "shoulder-l", fits = false;
     // the building also keeps off every other nest's sign and bubble, where those go (G: a bubble hanging below its
@@ -1275,6 +1282,16 @@
   /* For the AD note (2026-10-03): every spot a nest's marks can take, the H sign with its hospital and the bubble with
      its house, as decideMarks places them, measured once per window size. The elements are shown unseen for the
      measuring and put back as they were. */
+  /* A web font that loads after the first placements widens the readouts and the notes: when one does, every sign,
+     bubble, building and note is placed again (their cached spots and footprints forgotten) at the real widths. */
+  var fontGen = 0, fontSeen = 0;
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", function () { fontGen++; });
+  function fontsChanged() {
+    if (fontSeen === fontGen) return false;
+    fontSeen = fontGen;
+    nests.forEach(function (v) { v.markAt = v.noteAt = v.fpAt = v.mfpAt = null; });
+    return false;   // (forgotten now; this frame places them afresh)
+  }
   /* Where a nest's sign and bubble go (no buildings), once per window size: what every building keeps off. */
   function markOnlyFootprint(n) {
     var key = innerWidth + "x" + innerHeight;
@@ -1563,6 +1580,12 @@
 
     render: function (snap) {
       var C = ET.CONFIG;
+      // signs, bubbles, buildings and notes are placed only while no nest is mid unlock pop: a scaled nest measures small
+      // and would let a tab be placed into its readout (G fix, 2026-10-03)
+      // (the .unlock class stays on after its 0.4 s pop: what counts is the pop still running)
+      var settled = ![].some.call(board.querySelectorAll(".nest.unlock"), function (e) {
+        return e.getAnimations().some(function (a) { return a.animationName === "unlock" && a.playState === "running"; });
+      }) && !fontsChanged();
       hud.wave.textContent = snap.wave;
       hud.cavs.textContent = snap.resolved + "/" + snap.quota;
       hud.score.textContent = snap.score;
@@ -1650,12 +1673,12 @@
         // never mid unlock pop (the scale)
         var markKind = signed ? "h" : refusing ? "r" : null;
         if (!markKind) { if (!v.hosp.hidden) v.hosp.hidden = true; if (!v.house.hidden) v.house.hidden = true; v.markAt = null; }
-        else if (v.markAt !== markKind + innerWidth + "x" + innerHeight && !el.classList.contains("unlock")) placeMarks(v, markKind);
+        else if (v.markAt !== markKind + innerWidth + "x" + innerHeight && settled) placeMarks(v, markKind);
         // Chat (2026-10-03): an AD's "Clear @ HH:MM" note, from the pop until the egg is cleared or hatches
         if (v.note.hidden === !!s.note) v.note.hidden = !s.note;
         if (s.note) {
           fillNote(v.note, s.note);
-          if (v.noteAt !== innerWidth + "x" + innerHeight && !el.classList.contains("unlock")) placeNote(v);
+          if (v.noteAt !== innerWidth + "x" + innerHeight && settled) placeNote(v);
         }
 
         drawCord(s.id, s, snap.time);
@@ -1879,6 +1902,10 @@
     mom: function (which) { return showMom(which); },
     /* For rigs: place every bubble that shows now (as the frame would once it shows). */
     /* For rigs (K): when a nest's timer box has swapped colours (the player's seconds), and whether it's inverted now. */
+    /* For rigs (G): each nest's mark and where it went, and whether it was forced (no spot was clear). */
+    notePlaced: function (id) { return !!nests[id].noteAt; },
+    markState: function () { return nests.map(function (v) { var m = !v.hsign.hidden ? v.hsign : !v.refused.hidden ? v.refused : null;
+      return m ? { placed: !!v.markAt, id: Number(v.el.dataset.id), spot: m.classList.contains("tab-b") ? "below" : m.style.left ? (m.classList.contains("flip") ? "shoulder-l" : "shoulder") : "right", forced: !!v.markForced } : null; }); },
     /* For rigs (D2): where each slime landed (field px), at what scale, or that none could. */
     slimeLog: function () { return slimeLog.slice(); },
     invertLog: function (id) { var v = nests[id]; return { log: (v.invLog || []).slice(), on: !!v.invOn }; },
