@@ -25,7 +25,9 @@
     "Fast clear: pan, neat splat, big points",
     "Slow clear: messier splat, fewer points",
     "Hospital egg? Get the STR on, and Mom patches it up",
-    "Too slow: the egg hatches, the crab dances and does its goofy hop"
+    // ⚑ Chat (2026-10-03, F): "the baby" in place of Andrew's "the crab" (the hatchling is now the title's baby); to
+    // be reverted if Andrew objects
+    "Too slow: the egg hatches, the baby dances and does its goofy hop"
   ];
   // the still strip's key frame for each step (seconds into it)
   var KEY = [1.25, 2.2, 1.6, 1.8, 2.6, 1.2];

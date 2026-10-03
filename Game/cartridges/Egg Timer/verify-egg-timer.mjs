@@ -236,7 +236,7 @@ try {
     // 2026-10-02): it holds a six-step animated cartoon, Andrew's captions, the same on the options screen
     const CAPS = ["The Queen lays an egg", "The CAV runs out, the egg starts to crack", "Fast clear: pan, neat splat, big points",
       "Slow clear: messier splat, fewer points", "Hospital egg? Get the STR on, and Mom patches it up",
-      "Too slow: the egg hatches, the crab dances and does its goofy hop"];
+      "Too slow: the egg hatches, the baby dances and does its goofy hop"];   // ⚑ Chat 2026-10-03 (F): "baby" for Andrew's "crab"
     const card = await ev(`(() => { const c = document.querySelector('#howto-title'); return {
       caps: ET.howto.CAPTIONS.slice(), still: [...c.querySelectorAll('.toon-still > li')].map(l => l.querySelector('.num').textContent + ' ' + l.querySelector('.say').textContent),
       stage: c.querySelector('.toon-anim .toon-stage').getBoundingClientRect().width, mini: !!c.querySelector('.toon-anim .toon-mini'), dots: c.querySelectorAll('.toon-anim .dots li').length,
