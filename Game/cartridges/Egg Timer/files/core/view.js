@@ -1003,10 +1003,15 @@
     box.setAttribute("aria-hidden", "true");
     var face = document.createElement("div");
     face.className = "face";
-    face.appendChild(ET.art.momFaceSvg());
+    // Chat's playtest rulings (2026-10-02): the Mom kit's head, pose A (the cut-out of sm_org / hm_org); showMom() picks
+    // which Mom by the wave, as her visit does (momSweetUntilWave)
+    var head = document.createElement("img");
+    head.alt = "";
+    head.draggable = false;
+    face.appendChild(head);
     box.appendChild(face);
     screen.appendChild(box);
-    mom = { box: box, face: face, timer: null };
+    mom = { box: box, face: face, head: head, timer: null, wave: 1 };
   }
   function momZone(which) {
     var sr = mom.box.parentNode.getBoundingClientRect(), br = board.getBoundingClientRect();
@@ -1033,6 +1038,9 @@
     mom.face.style.top = z.from === "top" ? "0" : "";
     mom.face.style.bottom = z.from === "bottom" ? "0" : "";
     b.style.setProperty("--mom", C.momFaceSeconds + "s");
+    mom.kind = mom.wave <= C.momSweetUntilWave ? "sweet" : "creepy";
+    var src = ET.mom.sources(mom.kind).filter(function (s) { return /--down@/.test(s); })[0];
+    if (mom.head.getAttribute("src") !== src) mom.head.src = src;
     b.hidden = false;
     replay(mom.face, "face", "from-" + z.from);
     momShown++;
@@ -1244,6 +1252,7 @@
       paintTips(snap);       // E28
 
       // Refinement 5 §5: the scary mom face, when this wave's moment comes (never in cleanup or on pause)
+      if (mom) mom.wave = snap.wave;
       if (momAt !== null && snap.phase === "wave" && snap.time >= momAt) {
         momAt = null;
         showMom();
@@ -1442,7 +1451,7 @@
     /* For rigs: the scary mom face. `mom(which)` shows it now ("top" or "panel") and returns where it went;
        `momState()` gives this game's count so far and the next scheduled time. */
     mom: function (which) { return showMom(which); },
-    momState: function () { return { shown: momShown, at: momAt, visible: !mom.box.hidden }; },
+    momState: function () { return { shown: momShown, at: momAt, visible: !mom.box.hidden, kind: mom.kind || null, src: mom.head.getAttribute("src") }; },
 
     /* For rigs: the Time Warp lightning: shown, how many links, its path, and when it last re-jagged (seconds). */
     lightning: function () { return { on: bolt.g.style.display !== "none", links: bolt.links, d: bolt.core.getAttribute("d"), log: bolt.log.slice() }; },

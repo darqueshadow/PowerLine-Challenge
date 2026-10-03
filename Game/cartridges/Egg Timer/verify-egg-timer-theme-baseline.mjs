@@ -3951,11 +3951,11 @@ export default {
  "#mom .face": {
   "position": "absolute"
  },
- "#mom .face svg": {
+ "#mom .face img": {
   "display": "block",
   "height": "100%",
-  "overflow-x": "visible",
-  "overflow-y": "visible",
+  "object-fit": "contain",
+  "object-position": "50% 0px",
   "width": "100%"
  },
  "#mom .face.from-top": {
@@ -4001,55 +4001,6 @@ export default {
  },
  "@keyframes mom-bottom » 100%": {
   "transform": "translateY(105%)"
- },
- ".mom-face .skin": {
-  "fill": "rgb(63, 122, 44)",
-  "stroke": "rgb(12, 26, 8)",
-  "stroke-width": "5"
- },
- ".mom-face .shade": {
-  "fill": "rgb(36, 80, 26)",
-  "opacity": "0.7"
- },
- ".mom-face .stalk": {
-  "fill": "none",
-  "stroke": "rgb(12, 26, 8)",
-  "stroke-linecap": "round",
-  "stroke-width": "7"
- },
- ".mom-face .eye": {
-  "fill": "rgb(255, 242, 214)",
-  "stroke": "rgb(12, 26, 8)",
-  "stroke-width": "4"
- },
- ".mom-face .vein": {
-  "fill": "none",
-  "stroke": "rgb(208, 16, 42)",
-  "stroke-width": "2"
- },
- ".mom-face .pin": {
-  "fill": "rgb(12, 0, 0)"
- },
- ".mom-face .brow": {
-  "fill": "none",
-  "stroke": "rgb(12, 26, 8)",
-  "stroke-linecap": "round",
-  "stroke-width": "6"
- },
- ".mom-face .maw": {
-  "fill": "rgb(42, 0, 8)",
-  "stroke": "rgb(12, 26, 8)",
-  "stroke-width": "4"
- },
- ".mom-face .teeth": {
-  "fill": "none",
-  "stroke": "rgb(244, 236, 204)",
-  "stroke-linejoin": "miter",
-  "stroke-width": "3.5"
- },
- ".mom-face .drool": {
-  "fill": "rgb(184, 255, 94)",
-  "opacity": "0.85"
  },
  "#popups": {
   "bottom": "0px",

@@ -2687,6 +2687,16 @@ try {
       ok(gone, `…and is gone again by itself a moment later   [after ${Date.now() - t0} ms]`);
     }
     ok((await ev("window.__hiss")) >= 4, `each one comes with the hiss and gurgle   [${await ev("window.__hiss")} of 4]`);
+    {
+      // Chat's playtest rulings (2026-10-02): the face is the Mom kit's head, pose A: sweet Mom (sm_org) in wave 1, creepy
+      // Mom (hm_org) after, as her visit; the old drawn face is gone
+      const sweet = await ev("(() => { ET.view.mom('top'); const s = ET.view.momState(), i = document.querySelector('#mom .face img'); return [s.kind, s.src, !!i && i.complete && i.naturalWidth > 100, !!document.querySelector('#mom svg, .mom-face'), typeof ET.art.momFaceSvg]; })()");
+      eq(sweet, ["sweet", "art/mom-sweet--down@2x.png", true, false, "undefined"], "the HUD face is sweet Mom's head, pose A (sm_org's cut-out), in wave 1; the old drawn face is gone");
+      const creepy = await ev("(() => { const was = ET.CONFIG.momSweetUntilWave; ET.CONFIG.momSweetUntilWave = 0; ET.view.mom('top'); ET.CONFIG.momSweetUntilWave = was; const s = ET.view.momState(); return [s.kind, s.src]; })()");
+      eq(creepy, ["creepy", "art/mom-creepy--down@2x.png"], "…and creepy Mom's (hm_org's cut-out) after the sweet waves");
+      let gone = false;
+      for (let i = 0; i < 60 && !gone; i++) { gone = await ev("document.querySelector('#mom').hidden"); if (!gone) await wait(50); }
+    }
     // the schedule: at most once a wave, sometimes not at all, held by a pause
     await ev("ET.CONFIG.momFaceChance = 1; ET.CONFIG.momFaceWindow = [0.5, 1]; __et.start(1, { hospital: 0 }); __et.advance(0.1); 1");
     await ev("__et.advance(3)");
