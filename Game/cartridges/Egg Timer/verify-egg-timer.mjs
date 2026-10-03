@@ -1179,7 +1179,7 @@ try {
     const asks = await ev(`(() => { const n = ${q("")}, c = n.querySelector('.readout .code');
       return { cls: n.classList.contains('asks'), text: c.textContent, anim: getComputedStyle(c).animationName, others: getComputedStyle(n.querySelector('.readout .unit')).animationName, bold: n.classList.contains('bold'),
                hint: document.querySelector('#console .box input').placeholder, tip: ET.view.tips()[0].text }; })()`);
-    ok(asks.cls && asks.text === "" && asks.anim === "cue" && asks.others === "none" && asks.bold, `E53: the RCAV empties the type box, which takes the cyan "place me" pulse; the egg stays bold   [${JSON.stringify(asks.text)} ${asks.anim}]`);
+    ok(asks.cls && ["CAV", "STR"].includes(asks.text) && asks.anim === "cue" && asks.others === "none" && asks.bold, `E53: after the RCAV the type box takes the cyan "place me" pulse and (J, 2026-10-03) spells the next command; the egg stays bold   [${JSON.stringify(asks.text)} ${asks.anim}]`);
     eq(asks.hint, "CAV + unit + type", "E53: …and the empty Command Line's grey hint asks for the CAV");
     eq(asks.tip, `Now type CAV ${h.unit} STR`, "E28's wave-1 tag follows the step: it asks for the STR now");
     await shot("08-hospital-asks");
@@ -1220,6 +1220,28 @@ try {
     await typeAndEnter(`RCAV ${h.unit}`);
     await ev("__et.advance(0.01)");
     eq(await ev(`[${q("")}.dataset.state, ${q(" .pan")}.classList.contains('hit'), ${q(" .hsign")}.hidden]`), ["splat", true, true], "the final RCAV is an ordinary clear: the pan and the splat, and the sign goes");
+  }
+  {
+    // Chat (2026-10-03, J): after a hospital egg's RCAV, its type box spells the STR: CAV and STR in turn, 0.75 s each;
+    // reduced motion: both words, stacked and still
+    const spell = (reduce) => ev(`(() => { __et.start(1, { hospital: 1 }); let n = null;
+      for (let i = 0; i < 4000 && !(n = __et.snapshot().nests.find(x => x.state === 'overtime')); i++) __et.advance(0.05);
+      if (__et.paused()) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      __et.submit('RCAV ' + n.unit); __et.advance(0.001);
+      const c = document.querySelector('.nest[data-id="' + n.id + '"] .readout .code'), seen = [];
+      for (let k = 0; k < 60; k++) { seen.push([__et.snapshot().time, c.textContent, c.classList.contains('both')]); __et.advance(0.05); }
+      return seen; })()`);
+    const sp = await spell(false);
+    const changes = sp.slice(1).filter((x, i) => x[1] !== sp[i][1]).map((x) => x[0]);
+    let worst = 0;
+    for (let i = 0; i < changes.length; i++) { let k = 0; for (let j = i; j < changes.length && changes[j] < changes[i] + 1 - 1e-6; j++) k++; worst = Math.max(worst, k); }
+    const words = [...new Set(sp.map((x) => x[1]))].sort();
+    ok(words.join(" ") === "CAV STR" && sp[0][1] === "CAV" && changes.length >= 3 && worst <= 2, `Chat (2026-10-03, J): after the RCAV the type box spells it, CAV then STR in turn; SAFETY at most 2 changes in any second   [${changes.length} changes in 3 s, worst ${worst}]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    const st = await spell(true);
+    ok(st.every((x) => x[1] === "CAVSTR" && x[2]), `…with reduced motion both words, CAV over STR, still   [${st[0][1]}]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
   {
     // Chat's playtest rulings (2026-10-02): a VS refusal egg's "Patient Refused" bubble, from the pop to its RCAV

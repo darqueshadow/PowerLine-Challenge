@@ -903,6 +903,9 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 :is(.nest, .toon)[data-state="escape"] .readout > span { filter: brightness(var(--blank-dim, 0.45)) saturate(0.5); }
 /* ⏳ placeholder cue (E53): a hospital egg whose VS is off asks for its STR: the empty type box pulses cyan */
 :is(.nest, .toon).asks .readout .code { animation: cue 0.6s steps(2) infinite; }
+/* Chat (2026-10-03, J): reduced motion: CAV over STR, both still, small enough to fit the box's height and width */
+.nest .readout .code.both { display: inline-flex; flex-direction: column; justify-content: center; font-size: 0.6em; line-height: 1.04; min-width: calc(3ch / 0.6); padding: calc(0.1em / 0.6) calc(0.3em / 0.6); }
+.nest .readout .code.both i { font-style: normal; }
 @keyframes cue { 50% { border-color: var(--cyan); } }
 
 /* E55 (ruled 2026-10-02; ⏳ placeholder art): the hospital sign on the nest's shoulder, clear of the egg, its readout

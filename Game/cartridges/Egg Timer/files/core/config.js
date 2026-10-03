@@ -58,6 +58,9 @@
     // with this many of the player's seconds for the CAV #### STR: flat across waves, no jitter, no shrinking. Window 1's
     // tier is taken at the RCAV (it's paid at the STR, the save), and Time Warp doesn't count the waiting egg as bold.
     hospitalResetSeconds: 12,   // [T]
+    // Chat (2026-10-03, J): during those 12 s the type box spells the next command, CAV and STR in turn, one word this
+    // many of the player's seconds (0.75: 1.33 changes a second, under the 2-a-second cap). Reduced motion: both, still.
+    hospitalPromptSwap: 0.75,   // [T]
     // E55 (ruled): Mom repairs the egg as the STR goes on: sweet Mom on hospital eggs up to this wave, creepy Mom after
     // (matching the scary HUD face). Her art: the two Gemini parts kits (Andrew approved, 2026-10-02; core/mom.js).
     momSweetUntilWave: 1,

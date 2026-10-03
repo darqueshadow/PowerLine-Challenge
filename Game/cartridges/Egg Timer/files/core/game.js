@@ -538,6 +538,7 @@
           grow: running ? (n.repaired ? 1 : Math.min(1, (self.clock - n.startedClock) / Math.max(0.001, n.boldClock - n.startedClock))) : 0,
           // after a hospital egg's RCAV its cracks go on from where they were through the restarted countdown
           sinceBold: n.state === "overtime" ? t - n.boldAt : null,   // the player's seconds since it went bold (VF's DONE)
+          sinceRemoved: n.removed ? t - n.resetAt : null,             // J: the player's seconds since a hospital egg's RCAV
           crack: n.state !== "overtime" ? 0 : n.removed ? Math.min(1, n.crackAt + (1 - n.crackAt) * (t - n.resetAt) / Math.max(0.001, n.hatchAt - n.resetAt))
             : Math.min(1, (t - n.boldAt) / Math.max(0.001, n.hatchAt - n.boldAt))
         };

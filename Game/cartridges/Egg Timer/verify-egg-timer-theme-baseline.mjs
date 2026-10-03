@@ -3680,6 +3680,21 @@ export default {
   "animation-timeline": "auto",
   "animation-timing-function": "steps(2)"
  },
+ ".nest .readout .code.both": {
+  "display": "inline-flex",
+  "flex-direction": "column",
+  "font-size": "0.6em",
+  "justify-content": "center",
+  "line-height": "1.04",
+  "min-width": "calc(5ch)",
+  "padding-bottom": "calc(0.166667em)",
+  "padding-left": "calc(0.5em)",
+  "padding-right": "calc(0.5em)",
+  "padding-top": "calc(0.166667em)"
+ },
+ ".nest .readout .code.both i": {
+  "font-style": "normal"
+ },
  "@keyframes cue » 50%": {
   "border-bottom-color": "rgb(34, 227, 255)",
   "border-left-color": "rgb(34, 227, 255)",

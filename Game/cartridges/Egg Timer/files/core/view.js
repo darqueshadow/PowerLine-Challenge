@@ -1558,7 +1558,16 @@
 
         var shows = s.state === "laying" || s.state === "active" || s.state === "overtime";
         v.unit.textContent = shows ? s.unit : (C.unitAssignment === "per-nest" && s.unit ? s.unit : "----");
-        v.code.textContent = shows ? s.code : "";
+        // J (Chat, 2026-10-03): a hospital egg waiting for its STR spells it in the type box, CAV and STR in turn
+        // (hospitalPromptSwap), or under reduced motion both words, stacked and still
+        var spell = !!s.removed && shows;
+        var both = spell && reducedMotion();
+        if (v.code.classList.contains("both") !== both) v.code.classList.toggle("both", both);
+        if (both) { if (v.code.textContent !== "CAVSTR") v.code.innerHTML = "<i>CAV</i><i>STR</i>"; }
+        else {
+          var word = spell ? (Math.floor(s.sinceRemoved / C.hospitalPromptSwap) % 2 ? C.hospitalType : "CAV") : shows ? s.code : "";
+          if (v.code.textContent !== word) v.code.textContent = word;
+        }
         v.clock.textContent = s.state === "active" || s.state === "overtime" ? clockText(s.elapsed) : "--:--";
         // Chat (2026-10-03): a VF's timer box says FUELING while it fuels (its clock runs on, hidden), then DONE in green
         // for vfDoneSeconds from the moment it goes bold, then the ordinary bold timer; its pump stands in the egg till DONE
