@@ -461,7 +461,10 @@ try {
     try {
       if (failListing) pump = await failDiskListing(b);
       await b.goto(url);
-      const t = await until(async () => /disk library/i.test(String(await b.ev("__cat.text()"))), 10000);
+      /* 🔄 2026-10-02 — the terminal no longer says anything here (Andrew's ruling:
+         the public build shows no internal text), so "the scan finished" is read off
+         the crate, which only goes unavailable once the scan has come back unlistable */
+      const t = await until(async () => JSON.parse(await b.ev(CRATE)).off, 10000);
       const s = JSON.parse(await b.ev(CRATE));
       s.t = t;
       return s;
@@ -484,8 +487,10 @@ try {
     /* 🚨 the fault wording belongs to the shell alone. Here it would tell a
        browser user something is broken when nothing is. */
     ok(!s.fault && !/fault/i.test(s.text), `${name}: and does NOT call it a fault`);
-    ok(/disk library: not readable from this origin/i.test(s.lines),
-       `${name}: the terminal line stays, as flavour`);
+    /* 🔄 2026-10-02 — it USED to stay "as flavour"; his ruling for the public build is
+       that no error and no internal text may show, and that line named a README path */
+    ok(!/not readable from this origin|readme/i.test(s.lines),
+       `${name}: the terminal says nothing about it: no internal text, no README path   [${s.lines.split("\n").filter(Boolean).slice(-2).join(" | ")}]`);
   }
 
   /* --- C. the Developer Mode gate -------------------------------------- */
