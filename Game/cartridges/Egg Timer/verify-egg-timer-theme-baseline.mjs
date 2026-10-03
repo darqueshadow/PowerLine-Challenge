@@ -3703,6 +3703,32 @@ export default {
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "1.5"
  },
+ ".bld.house .wall": {
+  "fill": "rgb(246, 238, 220)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2"
+ },
+ ".bld.house .roof": {
+  "fill": "rgb(122, 79, 176)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-linejoin": "round",
+  "stroke-width": "2"
+ },
+ ".bld.house .chimney": {
+  "fill": "rgb(160, 112, 58)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
+ },
+ ".bld.house .win": {
+  "fill": "rgb(143, 216, 255)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
+ },
+ ".bld.house .door": {
+  "fill": "rgb(107, 74, 140)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
+ },
  ".refused": {
   "align-items": "center",
   "animation-delay": "0s",
@@ -3718,7 +3744,7 @@ export default {
   "animation-timing-function": "ease-out",
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "rgb(232, 223, 204)",
+  "background-color": "rgb(255, 182, 39)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",
@@ -3747,11 +3773,11 @@ export default {
   "border-top-style": "solid",
   "border-top-width": "2px",
   "box-shadow": "rgb(0, 0, 0) 2px 2px 0px",
-  "color": "rgb(74, 53, 96)",
+  "color": "rgb(42, 26, 0)",
   "display": "flex",
   "flex-direction": "column",
   "font-family": "\"Trebuchet MS\", Verdana, sans-serif",
-  "font-size": "clamp(8px, 0.075 * min(15.5cqw, 23cqh), 14px)",
+  "font-size": "clamp(10px, 0.095 * min(15.5cqw, 23cqh), 17px)",
   "font-weight": "700",
   "left": "93%",
   "letter-spacing": "0.02em",
@@ -3792,7 +3818,7 @@ export default {
  ".refused::after": {
   "background-attachment": "initial",
   "background-clip": "initial",
-  "background-color": "rgb(232, 223, 204)",
+  "background-color": "rgb(255, 182, 39)",
   "background-image": "initial",
   "background-origin": "initial",
   "background-position-x": "initial",

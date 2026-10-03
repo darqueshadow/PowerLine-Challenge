@@ -68,8 +68,10 @@
   --bld-wall: #f6eedc;                    /* the hospital's and house's cream walls (Chat, 2026-10-03) */
   --bld-window: #8fd8ff;                  /* their sky-blue windows */
   --bld-door: #6b4a8c;                    /* their plum doors */
-  --refused-bg: #e8dfcc;                  /* "Patient Refused" bubble, dusty cream (quieter than the H sign's blue) */
-  --refused-ink: #4a3560;                 /* its lettering, muted plum (7.9:1 on the cream) */
+  --refused-bg: #ffb627;                  /* "Patient Refused" bubble, amber (Chat, 2026-10-03: no white fill; not red, pink or green) */
+  --refused-ink: #2a1a00;                 /* its lettering, dark brown (10.6:1 on the amber) */
+  --house-roof: #7a4fb0;                  /* the house's roof, plum (Chat, 2026-10-03) */
+  --house-chimney: #a0703a;               /* its chimney, warm brown */
   --plaster: #f2c9a0;                     /* Mom's sticking plaster */
   --plaster-pad: #fff3e6;                 /* its pad */
   /* Mom kit: creepy Mom's drool and its splat (code-drawn, Chat's brief 2026-10-02), with the cartoon outline and a

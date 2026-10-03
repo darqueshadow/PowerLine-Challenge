@@ -192,6 +192,20 @@
       return d;
     },
 
+    /* Chat (2026-10-03, B): a flat, cute house beside a VS refusal egg, on the other side from its bubble: cream walls,
+       a plum roof with a chimney, a round window and a door. Drawn in code. */
+    houseEl: function () {
+      var d = document.createElement("div");
+      d.className = "bld house";
+      var svg = el("svg", { viewBox: "0 0 40 40", "aria-hidden": "true" }, d);
+      el("rect", { class: "chimney", x: 26, y: 5, width: 5, height: 10, rx: 1 }, svg);
+      el("rect", { class: "wall", x: 6, y: 18, width: 28, height: 20, rx: 3 }, svg);
+      el("path", { class: "roof", d: "M2 20 L20 4 L38 20 Z" }, svg);
+      el("circle", { class: "win", cx: 12.5, cy: 26, r: 3.4 }, svg);
+      el("path", { class: "door", d: "M21 38 V30 Q25.5 26 30 30 V38 Z" }, svg);
+      return d;
+    },
+
     /* Chat's playtest rulings (2026-10-02): a refusal egg's marker, a small comic speech bubble reading "Patient
        Refused", its tail pointing down at the egg. Drawn in code, quieter than the H sign (style.css places it). */
     refusedEl: function () {

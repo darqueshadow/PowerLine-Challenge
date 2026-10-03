@@ -1205,10 +1205,10 @@ try {
     const bub = await ev(`(() => { const e = ${q(" .refused")}, b = e.getBoundingClientRect(), t = ${q(" .clock")}.getBoundingClientRect(), ro = [...${q("")}.querySelectorAll('.readout > span')].map(x => x.getBoundingClientRect());
       const hit = (a, c) => a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom;
       return { shown: !e.hidden && e.offsetWidth > 30, text: e.textContent, above: b.bottom <= t.top, onReadout: ro.some(x => hit(b, x)), sign: ${q(" .hsign")}.hidden,
-        bg: getComputedStyle(e).backgroundColor, anim: getComputedStyle(e).animationName, z: Number(getComputedStyle(e).zIndex) < Number(getComputedStyle(${q(" .mess")}).zIndex) }; })()`);
+        bg: getComputedStyle(e).backgroundColor, ink: getComputedStyle(e).color, anim: getComputedStyle(e).animationName, z: Number(getComputedStyle(e).zIndex) < Number(getComputedStyle(${q(" .mess")}).zIndex) }; })()`);
     ok(bub.shown && bub.text === "PatientRefused" && bub.anim === "refused-in" && bub.sign, `…from the pop: the bubble reads "Patient Refused" (no H sign), fading in   [${bub.text}, ${bub.anim}]`);
     ok(bub.above && !bub.onReadout && bub.z, "…above the timer, clear of every readout box, and the gunk covers it as it covers the H sign (E14)");
-    eq(bub.bg, "rgb(232, 223, 204)", "…dusty cream, quieter than the H sign's blue");
+    eq([bub.bg, bub.ink], ["rgb(255, 182, 39)", "rgb(42, 26, 0)"], "Chat (2026-10-03, B): …amber with dark lettering (no white fill; not red, pink or green)");
     await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${r.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
     eq(await ev(`${q(" .refused")}.hidden`), false, "…still there while it cracks");
     await ev(`(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })), __et.submit('RCAV ${r.unit}'), __et.advance(0.01), 1)`);
@@ -1728,6 +1728,7 @@ try {
         m.hidden = true; m.style.animation = ''; m.classList.remove('flip'); n.querySelectorAll('.bld').forEach(d => { d.hidden = true; d.classList.remove('flip'); });
       }));
       document.querySelectorAll('.nest .refused').forEach(p => { p.hidden = true; p.style.animation = ''; });
+      document.querySelectorAll('.nest .bld').forEach(d => { d.hidden = true; d.classList.remove('flip'); });
       const noteFixed = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0).concat(warpWords.filter(r => r.width > 0));
       const nestEls = [...document.querySelectorAll('.nest')], notes = nestEls.map(n => n.querySelector('.postit'));
       const noteAt = { kind: 'clock', at: 23 * 3600 + 59 * 60 };
@@ -1758,7 +1759,7 @@ try {
           const eg = { left: own.art.left + (own.art.right - own.art.left) * 0.27, right: own.art.right - (own.art.right - own.art.left) * 0.27, top: own.art.top, bottom: own.art.bottom - (own.art.bottom - own.art.top) * 0.3 };
           return ro.some(o => hit(r, o)) || nests.some((x, j) => ns[j] !== it.n && hit(r, x.art)) || fx.some(o => hit(r, o)) || items.some(o => o !== it && hit(r, o.r))
             || r.left < f.left - 1 || r.right > f.right + 1 || r.top < f.top - 1; }).length;
-        const out = { bad, flips: ns.filter(n => n.querySelector('.hsign.flip, .refused.flip')).map(n => n.dataset.id), skipped: ns.filter(n => n.dataset.mk === 'h' && n.querySelector('.bld.hosp').hidden).map(n => n.dataset.id),
+        const out = { bad, flips: ns.filter(n => n.querySelector('.hsign.flip, .refused.flip')).map(n => n.dataset.id), skipped: ns.filter(n => n.querySelector(n.dataset.mk === 'h' ? '.bld.hosp' : '.bld.house').hidden).map(n => n.dataset.id),
           sign: Math.round(ns[0].querySelector('.hsign').getBoundingClientRect().width) };
         ns.forEach(n => { n.querySelector('.hsign').hidden = true; n.querySelector('.refused').hidden = true; n.querySelectorAll('.bld').forEach(d => { d.hidden = true; d.classList.remove('flip'); }); n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.animation = ''; e.classList.remove('flip'); }); });
         return out;
@@ -1795,7 +1796,7 @@ try {
     ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleOwn && lay.bubbleSize >= 44, `Chat (2026-10-02/03): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout (their own unit and timer too), nest, Command Line, the trough, the hose tag, the wall clock, each other and Time Warp's sign and caption   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide, ${lay.flipped} flipped to the other shoulder]`);
     {
       const m = lay.markRuns;
-      ok(Object.values(m).every((x) => x.bad === 0), `Chat (2026-10-03, A): the 1.4× H sign (or the bubble) and its building, placed by the game, touch no readout, other nest, own egg, Time Warp's words, hose tag, trough, Command Line or each other, all hospital, all refusal and both mixes   ${at} [${Object.entries(m).map(([k, x]) => k + " " + x.bad).join(", ")}; sign ${m.h.sign} px; flipped ${m.h.flips.join(" ") || "none"}; hospitals skipped ${m.h.skipped.join(" ") || "none"}]`);
+      ok(Object.values(m).every((x) => x.bad === 0), `Chat (2026-10-03, A and B): the 1.4× H sign or the bigger amber bubble, with its hospital or house, placed by the game, touch no readout, other nest, own egg, Time Warp's words, hose tag, trough, Command Line or each other, all hospital, all refusal and both mixes   ${at} [${Object.entries(m).map(([k, x]) => k + " " + x.bad).join(", ")}; sign ${m.h.sign} px; flipped ${m.h.flips.join(" ") || "none"}; hospitals skipped ${m.h.skipped.join(" ") || "none"}; houses skipped ${m.r.skipped.join(" ") || "none"}]`);
     }
     ok(lay.pumpBad === 0 && lay.fuelSpill === 0, `Chat (2026-10-03): every VF's pump stays clear of every readout and every other nest, and FUELING fits its timer box   ${at} [${lay.pumpBad} touching, pump ${lay.pumpPx} px wide, FUELING in ${lay.fuelPx} px type]`);
     ok(lay.noteOneBad === 0 && lay.noteAllBad === 0, `Chat (2026-10-03): the AD "Clear @" note sits beside its nest clear of every readout, nest, H sign, bubble, other note, Time Warp's words, the trough, the hose tag and the wall clock, one at a time with every other nest's sign or bubble and building up where the game puts them, and all 12 at once   ${at} [${lay.noteOneBad} + ${lay.noteAllBad} touching, ${lay.noteSize.join("×")} px, ${lay.noteHigh} on a shoulder with all 12 up]`);

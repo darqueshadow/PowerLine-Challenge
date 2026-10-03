@@ -913,6 +913,12 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .bld.hosp .h { fill: none; stroke: var(--hospital-ink); stroke-width: 2; stroke-linecap: square; }
 .bld.hosp .win { fill: var(--bld-window); stroke: var(--outline); stroke-width: 1.5; }
 .bld.hosp .door { fill: var(--bld-door); stroke: var(--outline); stroke-width: 1.5; }
+/* Chat (2026-10-03, B): the house beside a VS refusal egg, on the other side from its bubble: flat and cute */
+.bld.house .wall { fill: var(--bld-wall); stroke: var(--outline); stroke-width: 2; }
+.bld.house .roof { fill: var(--house-roof); stroke: var(--outline); stroke-width: 2; stroke-linejoin: round; }
+.bld.house .chimney { fill: var(--house-chimney); stroke: var(--outline); stroke-width: 1.5; }
+.bld.house .win { fill: var(--bld-window); stroke: var(--outline); stroke-width: 1.5; }
+.bld.house .door { fill: var(--bld-door); stroke: var(--outline); stroke-width: 1.5; }
 /* Chat's playtest rulings (2026-10-02): a refusal egg's "Patient Refused" bubble, drawn in code, in the H sign's place
    above the timer (the two never share a nest), its tail pointing down at the egg. Quieter than the sign: dusty cream,
    a thinner outline, small type; it fades in (no drop, no bounce). The gunk covers it, as it covers the sign (E14). */
@@ -921,7 +927,7 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
   display: flex; flex-direction: column; align-items: center;
   padding: 0.2em 0.45em 0.25em;
   font-family: var(--font-ui); font-weight: 700; line-height: 1.05; letter-spacing: 0.02em; text-transform: uppercase;
-  font-size: clamp(8px, calc(min(15.5cqw, 23cqh) * 0.075), 14px);   /* about 7.5% of the nest's width */
+  font-size: clamp(10px, calc(min(15.5cqw, 23cqh) * 0.095), 17px);   /* about 9.5% of the nest's width (Chat, 2026-10-03: bigger; was 7.5%) */
   background: var(--refused-bg); color: var(--refused-ink);
   border: 2px solid var(--outline); border-radius: 0.9em;
   box-shadow: 2px 2px 0 var(--shadow);

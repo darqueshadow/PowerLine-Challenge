@@ -1340,6 +1340,10 @@
         var refused = ET.art.refusedEl();
         refused.hidden = true;
         n.appendChild(refused);
+        // Chat (2026-10-03, B): its house, on the other side of the egg (placeMarks picks the sides, or skips it)
+        var house = ET.art.houseEl();
+        house.hidden = true;
+        n.appendChild(house);
         // Chat (2026-10-03): an AD's "Clear @ HH:MM" note, stuck on beside the nest (placeNote picks the side)
         var note = document.createElement("div");
         note.className = "postit side-left";
@@ -1355,7 +1359,7 @@
 
         board.appendChild(n);
         nests.push({
-          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, hosp: hosp, refused: refused, note: note, pan: pan,
+          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, hosp: hosp, refused: refused, house: house, note: note, pan: pan,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
@@ -1384,6 +1388,7 @@
         v.hsign.hidden = true;
         v.refused.hidden = true;
         v.hosp.hidden = true;
+        v.house.hidden = true;
         v.markAt = null;
         v.note.hidden = true;
         v.noteAt = null;
@@ -1485,7 +1490,7 @@
         // Chat (2026-10-03): the H sign or the bubble, and its building, placed once they show (and again after a resize),
         // never mid unlock pop (the scale)
         var markKind = signed ? "h" : refusing ? "r" : null;
-        if (!markKind) { if (!v.hosp.hidden) v.hosp.hidden = true; v.markAt = null; }
+        if (!markKind) { if (!v.hosp.hidden) v.hosp.hidden = true; if (!v.house.hidden) v.house.hidden = true; v.markAt = null; }
         else if (v.markAt !== markKind + innerWidth + "x" + innerHeight && !el.classList.contains("unlock")) placeMarks(v, markKind);
         // Chat (2026-10-03): an AD's "Clear @ HH:MM" note, from the pop until the egg is cleared or hatches
         if (v.note.hidden === !!s.note) v.note.hidden = !s.note;
