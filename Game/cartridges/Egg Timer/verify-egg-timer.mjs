@@ -552,7 +552,7 @@ try {
     const m = await ev(`(() => { const e = document.querySelector('#reject'), r = e.getBoundingClientRect(), a = document.querySelector('#warp .clock-art').getBoundingClientRect(), cs = getComputedStyle(e);
       return { above: r.bottom <= a.bottom, centred: Math.abs((r.left + r.right) / 2 - (a.left + a.right) / 2) < 2, bg: cs.backgroundColor, edge: cs.borderTopColor, ink: cs.color,
         anim: cs.animationName, underLine: !!document.querySelector('.box .err'), overBanner: Number(cs.zIndex) > Number(getComputedStyle(document.querySelector('#banner')).zIndex) }; })()`);
-    ok(m.above && m.centred && !m.underLine && m.overBanner, "Chat (2026-10-02): the words show at Time Warp's clock, centred on it, over the wave banner, not under the Command Line (⏳ E60: dropped onto its top where a readout is in the way)");
+    ok(m.above && m.centred && !m.underLine && m.overBanner, "Chat (2026-10-02): the words show at Time Warp's clock, centred on it, over the wave banner, not under the Command Line (E60, 2026-10-03: in its pendulum window)");
     eq([m.bg, m.edge, m.ink, m.anim], ["rgb(18, 8, 20)", "rgb(244, 236, 204)", "rgb(255, 107, 120)", "none"], "…on a solid dark plate with a light outline, light red, steady (no animation)");
   }
   eq((await snap()).pool, 3, "…with no pool penalty");
@@ -578,6 +578,21 @@ try {
     let worst = 0;
     for (let i = 0; i < log.length; i++) { let k = 0; for (let j = i; j < log.length && log[j] < log[i] + 1; j++) k++; worst = Math.max(worst, k); }
     ok(worst <= 2, `SAFETY: the message comes on at most 2 times in any second   [worst ${worst}]`);
+    // E60 (Chat, 2026-10-03): a pinball backglass sign. Its bulbs swap bright/dim together: count the swaps over 2 s
+    const bulbs = await ev(`new Promise((done) => { const e = document.querySelector('#reject'), seen = [];
+      const t0 = performance.now(), look = () => getComputedStyle(e, '::before').borderTopColor;
+      let last = look(), swaps = [];
+      const tick = () => { const now = look(); if (now !== last) { swaps.push(performance.now() - t0); last = now; }
+        if (performance.now() - t0 < 2000) { if (!e.hidden) requestAnimationFrame(tick); else done({ swaps, gone: true }); } else done({ swaps, style: getComputedStyle(e, '::before').borderTopStyle, anim: getComputedStyle(e, '::before').animationName }); };
+      ET.view.reject('ERROR'); const keep = setInterval(() => ET.view.reject('ERROR'), 300); setTimeout(() => clearInterval(keep), 2100);
+      requestAnimationFrame(tick); })`);
+    let worstB = 0;
+    for (let i = 0; i < bulbs.swaps.length; i++) { let k = 0; for (let j = i; j < bulbs.swaps.length && bulbs.swaps[j] < bulbs.swaps[i] + 1000; j++) k++; worstB = Math.max(worstB, k); }
+    ok(bulbs.style === "dotted" && bulbs.anim === "reject-bulbs" && bulbs.swaps.length >= 2 && worstB <= 2, `E60: a ring of bulbs that swap bright and dim together, held through repeats: SAFETY at most 2 swaps (one flash) in any second   [${bulbs.swaps.length} swaps in 2 s, worst ${worstB}]`);
+    await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    for (let i = 0; i < 20 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
+    eq(await ev("(ET.view.reject('ERROR'), getComputedStyle(document.querySelector('#reject'), '::before').animationName)"), "none", "…with reduced motion the bulbs stay lit and still");
+    await c.send("Emulation.setEmulatedMedia", { features: [] });
   }
   for (let i = 0; i < 80 && (await ev("__et.boxes().error[0]")); i++) await wait(50);
   await c.insert("RCAV 1");
@@ -1693,16 +1708,18 @@ try {
       const rj = document.querySelector('#reject'), rjWas = rj.textContent;
       rj.hidden = true; ET.view.reject('RCAV first!');   // placed as the game places it (⏳ E60 "drop")
       const rr = rj.getBoundingClientRect(), artBox = document.querySelector('#warp .clock-art').getBoundingClientRect(), artTop = artBox.top;
-      const rejectKeep = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock, #warp .plaque, #warp .caption')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0);
+      const rejectKeep = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock, #warp .plaque, #warp .caption, #warp .face')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0);
       const rejectHits = rejectKeep.concat(nests.map(x => x.art)).filter(o => hit(rr, o)).length;
       const rejectOk = rr.top >= f.top && rr.left >= f.left && rr.right <= f.right && rr.bottom <= artBox.bottom;
-      const rejectBox = [Math.round(rr.width), Math.round(rr.height)], rejectOnClock = Math.max(0, Math.round(rr.bottom - artTop)), clockTall = Math.round(artBox.height);
+      const faceBox = document.querySelector('#warp .face').getBoundingClientRect(), signBox = document.querySelector('#warp .plaque').getBoundingClientRect();
+      const rejectBox = [Math.round(rr.width), Math.round(rr.height)], rejectOnClock = Math.round(signBox.top - faceBox.bottom), clockTall = Math.round(parseFloat(getComputedStyle(rj).fontSize));
+      const rejectInWindow = rr.top >= faceBox.bottom && rr.bottom <= signBox.top;
       rj.hidden = true; rj.textContent = rjWas;
       // E24: the mute button in the HUD bar's left end, clear of its words, the wall clock and the board
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { rejectInWindow, noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1716,7 +1733,7 @@ try {
     ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
     ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleOwn && lay.bubbleSize >= 44, `Chat (2026-10-02/03): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout (their own unit and timer too), nest, Command Line, the trough, the hose tag, the wall clock, each other and Time Warp's sign and caption   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide, ${lay.flipped} flipped to the other shoulder]`);
     ok(lay.noteOneBad === 0 && lay.noteAllBad === 0, `Chat (2026-10-03): the AD "Clear @" note sits beside its nest clear of every readout, nest, H sign, bubble, other note, Time Warp's words, the trough, the hose tag and the wall clock, one at a time with every marker up and all 12 at once   ${at} [${lay.noteOneBad} + ${lay.noteAllBad} touching, ${lay.noteSize.join("×")} px, ${lay.noteHigh} on a shoulder with all 12 up]`);
-    ok(lay.rejectHits === 0 && lay.rejectOk, `Chat (2026-10-02): the rejected-Enter message sits at Time Warp's clock, on the board, clear of every nest, readout, Command Line, the trough, the hose tag, the wall clock and the TIME WARP sign and caption   ${at} [${lay.rejectHits} touching, ${lay.rejectBox.join("×")} px, ⏳ E60: ${lay.rejectOnClock} of the clock's ${lay.clockTall} px covered]`);
+    ok(lay.rejectHits === 0 && lay.rejectOk && lay.rejectInWindow, `E60 (Chat, 2026-10-03): the rejected-Enter plate sits in the clock's pendulum window, below its face (the "5×" label included) and above the TIME WARP sign, clear of the caption, every nest, readout, Command Line, the trough, the hose tag and the wall clock   ${at} [${lay.rejectHits} touching, ${lay.rejectBox.join("×")} px in a ${lay.rejectOnClock} px window, ${lay.clockTall} px type]`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);

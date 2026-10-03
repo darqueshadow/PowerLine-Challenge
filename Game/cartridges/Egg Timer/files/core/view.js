@@ -1054,8 +1054,9 @@
      errorSeconds; a repeat while it shows changes the words (if they differ) and restarts its time, and is never taken
      away and put back, so a run of rejected Enters holds it steady instead of flashing it. */
   var reject = { el: null, timer: null, shows: 0, log: [] };
-  /* Where the words go: centred on Time Warp's clock, just above it. ⏳ E60 "drop": where a readout or a nest is in the
-     way, moved down just under it, onto the clock's top, never as far as the TIME WARP sign. */
+  /* Where the words go. E60 (Chat, 2026-10-03): "pendulum", in the clock's pendulum window, below its face and above its
+     sign. (Earlier: "above", centred just above the clock; "drop", moved down onto the clock's top where a readout was in
+     the way, which covered the face and hands.) */
   function placeReject() {
     var el = reject.el;
     var fr = field.getBoundingClientRect(), art = warp.querySelector(".clock-art").getBoundingClientRect();
@@ -1064,6 +1065,19 @@
     var r = { left: left, right: left + w };
     el.style.left = (left - fr.left) + "px";
     el.style.top = (top - fr.top) + "px";
+    el.style.fontSize = "";
+    if (ET.CONFIG.rejectPlace === "pendulum") {
+      // E60 (Chat, 2026-10-03): centred in the pendulum window, between the face's bottom and the sign's top; on a small
+      // screen where the plate is taller than that gap, its type shrinks until it fits (never under 10 px)
+      var face = warp.querySelector(".face").getBoundingClientRect(), sign = warp.querySelector(".plaque").getBoundingClientRect();
+      var room = sign.top - face.bottom - 2 * gap, fs = parseFloat(getComputedStyle(el).fontSize);
+      if (h > room && room > 0) { fs = Math.max(10, fs * room / h); el.style.fontSize = fs + "px"; w = el.offsetWidth; h = el.offsetHeight; }
+      left = (art.left + art.right) / 2 - w / 2;
+      top = face.bottom + gap + Math.max(0, (room - h) / 2);
+      el.style.left = (left - fr.left) + "px";
+      el.style.top = (top - fr.top) + "px";
+      return;
+    }
     if (ET.CONFIG.rejectPlace !== "drop") return;
     var keep = [];
     nests.forEach(function (n) {

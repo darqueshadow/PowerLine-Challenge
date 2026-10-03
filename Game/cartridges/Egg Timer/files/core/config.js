@@ -251,7 +251,10 @@
     // (the gap between them: about 144 px at 1920×1080, 73 px at 1024×640), so "above" alone covers one. "drop": just
     // above the clock where that's clear, else moved down onto the clock's top, just under those readouts (view.js
     // measures it each time it shows). "above": always directly above, as asked, readouts or not.
-    rejectPlace: "drop",
+    // E60 (Chat, 2026-10-03, combined batch Part 1): "drop" covered the clock's face and hands, so the words go in the
+    // PENDULUM window, below the face and above the sign, never over either (or the caption). "drop" and "above" stay as
+    // the earlier choices, for history.
+    rejectPlace: "pendulum",
     sound: true,            // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
 
     // ── Music (Chat ruling, 2026-09-25) ──────────────────────────────────────

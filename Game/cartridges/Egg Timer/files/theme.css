@@ -26,6 +26,7 @@
   --reject-bg: #120814;                   /* near-black plum (the rejected-Enter message's plate, Chat 2026-10-02) */
   --reject-ink: #ff6b78;                  /* light alarm red (its words, 6.4:1 on the plate) */
   --reject-edge: #f4eccc;                 /* bone white (its outline) */
+  --reject-glow: rgba(255, 107, 120, 0.6); /* its lit lettering's halo (E60's pinball look, 2026-10-03) */
 
   /* Display boxes (the three readouts under each nest) */
   --readout-unit-bg: #fff;                /* white */
