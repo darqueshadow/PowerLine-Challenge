@@ -323,10 +323,14 @@ function oneEgg(hospital, wave = 1) {
   while (n.state !== "overtime") g.step(0.05);
   eq(g.submit(`CAV ${n.unit} STR`).why, "rcav-first", "E53: …and once it's cracking, before the RCAV");
   eq([n.removed, n.state], [false, "overtime"], "…which leaves the VS on, the egg still cracking");
+  advance(g, 1.8);                             // a little way into window 1, so its tier isn't simply the first
   const s0 = g.score, res0 = g.resolved;
   g.drain();
+  const into = g.time - n.boldAt, span = n.hatchAt - n.boldAt, crackWas = g.snapshot().nests.find((x) => x.id === n.id).crack;
   const r1 = g.submit("RCAV " + n.unit);
   ok(r1.ok && r1.removed && r1.points === 0, "the RCAV is accepted: it takes the VS off, for no points yet");
+  ok(Math.abs(n.hatchAt - g.time - 12) < 1e-9 && ET.CONFIG.hospitalResetSeconds === 12, `Chat (2026-10-02): the RCAV restarts the hatch countdown at 12 s (the player's seconds), not the rest of window 1   [${(n.hatchAt - g.time).toFixed(2)} s; window 1 had ${(span - into).toFixed(2)} s left]`);
+  ok(Math.abs(g.snapshot().nests.find((x) => x.id === n.id).crack - crackWas) < 1e-6, "…the cracks go on from where they were (no jump back)");
   eq([n.state, n.removed, g.score - s0, g.resolved - res0], ["overtime", true, 0, 0], "…the egg keeps cracking (still bold), nothing scored or resolved");
   const sn = g.snapshot().nests.find((x) => x.id === n.id);
   eq([sn.code, sn.removed], ["", true], "E53: the readout's type box empties, asking for the STR");
@@ -335,10 +339,11 @@ function oneEgg(hospital, wave = 1) {
   eq(g.submit(`CAV ${n.unit} VS`).why, null, "E53: CAV with any other type is ERROR");
   ok(n.removed && n.state === "overtime", "…and none of those undo the RCAV");
   g.streak = 4;   // as if four fast clears came before
-  const into = g.time - n.boldAt, span = n.hatchAt - n.boldAt, s1 = g.score;
+  advance(g, 7);                               // well into the 12 s: the tier must still be the RCAV's
+  const s1 = g.score;
   const r2 = g.submit(`cav ${n.unit} str, to hospital`);
   ok(r2.ok && r2.repaired, "CAV #### STR (any case, with a comment) puts the STR on");
-  eq(g.score - s1, R.clearPoints(into, span), "E52: window 1 scores by tier at the STR, exactly as a clear would");
+  ok(R.clearTier(into, span) === 2 && g.score - s1 === R.clearPoints(into, span), `Chat (2026-10-02): window 1 is paid at the STR by the tier the RCAV landed in, not by the restarted 12 s   [tier ${R.clearTier(into, span)}, ${g.score - s1} points]`);
   const ev = g.drain(), rep = ev.find((e) => e.type === "repaired");
   ok(!!rep && rep.tier === R.clearTier(into, span) && rep.points === r2.points && rep.mom === "sweet", `…the "repaired" event carries the tier, the points and wave 1's sweet Mom   [tier ${rep && rep.tier}, ${rep && rep.mom}]`);
   ok(!ev.some((e) => e.type === "cleared"), "E52: no \"cleared\" event at window 1 (no pan, THONG, splat, mess or pieces)");
@@ -389,13 +394,14 @@ function oneEgg(hospital, wave = 1) {
   eq(g.drain().find((e) => e.type === "repaired").mom, "creepy", "E55: from wave 2 the repair is creepy Mom's");
 }
 {
-  // a hospital egg waiting for its STR is still bold, so it holds Time Warp off
+  // Chat (2026-10-02): a hospital egg waiting for its STR after the RCAV doesn't count as bold for Time Warp
   const { g, n } = oneEgg(1);
   g.spawned = g.quota;                         // as if the wave's last egg has spawned
+  const before = g.warping();
   g.submit("RCAV " + n.unit);
-  const held = g.warping();
-  g.submit(`CAV ${n.unit} STR`);
-  eq([held, g.warping()], [false, true], "Time Warp waits while a hospital egg waits for its STR, and comes on once the STR runs");
+  const waiting = g.warping(), left = n.hatchAt - g.time;
+  advance(g, 2);
+  eq([before, waiting, g.warping(), +(n.hatchAt - g.time).toFixed(6)], [false, true, true, +(left - 2).toFixed(6)], "Time Warp waits while the egg is bold before its RCAV, then runs while it waits for its STR; its countdown is the player's seconds, so the warp doesn't shorten it");
 }
 {
   // E53's window switch: a hospital egg's first window × hospitalWindowScale; the STR's window is never scaled

@@ -45,6 +45,10 @@
     // E53 (ruled: "playtest the window early; if it's too tight, propose a longer window for hospital eggs only"): a
     // hospital egg's FIRST window × this. 1 = the same window as every egg, as ruled; a longer one is a proposal first.
     hospitalWindowScale: 1,  // [T]
+    // Chat's playtest rulings (2026-10-02): when the RCAV is accepted on a hospital VS egg its hatch countdown restarts
+    // with this many of the player's seconds for the CAV #### STR: flat across waves, no jitter, no shrinking. Window 1's
+    // tier is taken at the RCAV (it's paid at the STR, the save), and Time Warp doesn't count the waiting egg as bold.
+    hospitalResetSeconds: 12,   // [T]
     // E55 (ruled): Mom repairs the egg as the STR goes on: sweet Mom on hospital eggs up to this wave, creepy Mom after
     // (matching the scary HUD face). Her art: the two Gemini parts kits (Andrew approved, 2026-10-02; core/mom.js).
     momSweetUntilWave: 1,

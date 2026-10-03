@@ -115,6 +115,10 @@
     n.hospital = false;    // the H sign: this egg needs RCAV, then CAV #### STR
     n.removed = false;     // a hospital egg's VS is off and its STR not yet on
     n.repaired = false;    // a hospital egg on its STR (Mom has repaired it)
+    n.resetAt = 0;         // Chat (2026-10-02): when the RCAV restarted a hospital egg's countdown…
+    n.crackAt = 0;         // …how far it had cracked then…
+    n.rcavTier = 0;        // …and window 1's tier and points, taken at the RCAV
+    n.rcavPoints = 0;
     n.startedAt = 0;
     n.startedClock = 0;
     n.boldClock = 0;
@@ -252,11 +256,12 @@
   /* Time Warp is on once the wave's last CAV has spawned (it starts at once: nothing waits to be placed now, E54), and
      no egg is bold; or (E39) while 2 or more eggs are each over 8:00 from their bold mark, again with no egg bold
      (checked every step, so it re-checks after each clear, hatch and pop). A hospital egg waiting for its STR is still
-     bold (overtime), so it holds the warp off too. */
+     bold (overtime) but doesn't hold the warp off (Chat's playtest rulings, 2026-10-02). */
   Game.prototype.warping = function () {
     if (this.phase !== "wave") return false;
     var live = this.nests.filter(function (n) { return n.unlocked; });
-    if (live.some(function (n) { return n.state === "overtime"; })) return false;   // never while an egg is bold
+    // never while an egg is bold; a hospital egg waiting for its STR after the RCAV doesn't count (Chat, 2026-10-02)
+    if (live.some(function (n) { return n.state === "overtime" && !n.removed; })) return false;
     if (this.spawned >= this.quota) return true;
     return this.farEggs() >= ET.CONFIG.warpFar.eggs;
   };
@@ -379,14 +384,13 @@
     });
   };
 
-  /* E52 (ruled 2026-10-02): CAV #### STR on a hospital egg whose VS is off. Window 1 scores here, by the same tiers as
-     any clear, at this moment (the egg is saved). No pan, no THONG, no splat, mess or pieces: Mom repairs the egg. The
+  /* E52 (ruled 2026-10-02): CAV #### STR on a hospital egg whose VS is off. Window 1 scores here (the egg is saved), by
+     the same tiers as any clear, the tier taken at the RCAV (Chat's playtest rulings, 2026-10-02; E52 took it here). No pan, no THONG, no splat, mess or pieces: Mom repairs the egg. The
      egg ladder follows the final clear only, so the streak stays where it is. The STR's clock starts now. */
   Game.prototype.repair = function (n) {
     var C = ET.CONFIG;
-    var into = this.time - n.boldAt, span = n.hatchAt - n.boldAt;
-    var points = ET.rules.clearPoints(into, span);
-    var tier = ET.rules.clearTier(into, span);
+    // Chat (2026-10-02): the tier was taken at the RCAV, in window 1; it's paid now, as the egg is saved
+    var points = n.rcavPoints, tier = n.rcavTier;
     this.score += points;
     this.stats.repaired++;
     n.removed = false;
@@ -418,6 +422,13 @@
       if (hit && hit.state === "overtime" && !hit.removed) {
         // E53: a hospital egg's first RCAV takes the VS off; the egg keeps cracking until the STR is on
         if (hit.hospital && !hit.repaired) {
+          // Chat's playtest rulings (2026-10-02): window 1's tier is taken here, and the countdown restarts for the STR
+          var into = this.time - hit.boldAt, span = hit.hatchAt - hit.boldAt;
+          hit.rcavTier = ET.rules.clearTier(into, span);
+          hit.rcavPoints = ET.rules.clearPoints(into, span);
+          hit.crackAt = Math.min(1, into / Math.max(0.001, span));
+          hit.resetAt = this.time;
+          hit.hatchAt = this.time + ET.CONFIG.hospitalResetSeconds;
           hit.removed = true;
           this.stats.removed++;
           this.emit("removed", { nest: hit.id });
@@ -511,7 +522,9 @@
           elapsed: running ? self.clock - n.startedClock : 0,   // displayed seconds, still counting through overtime
           // a repaired egg is already full grown: the STR's clock doesn't shrink it
           grow: running ? (n.repaired ? 1 : Math.min(1, (self.clock - n.startedClock) / Math.max(0.001, n.boldClock - n.startedClock))) : 0,
-          crack: n.state === "overtime" ? Math.min(1, (t - n.boldAt) / Math.max(0.001, n.hatchAt - n.boldAt)) : 0
+          // after a hospital egg's RCAV its cracks go on from where they were through the restarted countdown
+          crack: n.state !== "overtime" ? 0 : n.removed ? Math.min(1, n.crackAt + (1 - n.crackAt) * (t - n.resetAt) / Math.max(0.001, n.hatchAt - n.resetAt))
+            : Math.min(1, (t - n.boldAt) / Math.max(0.001, n.hatchAt - n.boldAt))
         };
       })
     };
