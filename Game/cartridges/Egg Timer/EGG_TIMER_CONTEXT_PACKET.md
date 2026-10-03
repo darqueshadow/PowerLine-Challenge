@@ -1,3 +1,12 @@
+> **FILING NOTE — Claude Code, 2026-10-03 (later: Chat's rulings on E59, E60 and the bubble; the AD note back).**
+> Filed verbatim as `Previous Versions/EGG_TIMER_E59_E60_RULINGS_AND_AD_NOTE_2026-10-03.md`. **E59:** the bag, MB kept,
+> 70% kept (Andrew tunes it after playtests); VF stays out (open, Andrew's); **the AD note is back** (Chat's second
+> message), in a new spot, beside its nest, built `97a64c8`. **E60: "drop" approved**, never over the sign or caption
+> (rig-checked); **but the dropped words cover the clock's face, both hands and its centre at every size** (and the
+> reduced-motion "5×" label), so Code proposes the pendulum window instead (E60, §11): **not changed yet**. **The bubble**
+> beside Time Warp's caption now flips to its nest's other shoulder (`bf1f33a`). **Item 2's Mom line corrected** (Mom
+> comes at the STR; the 12 s needs no change). Wall clock and the clock's mint untouched. Not pushed. Next free **E61**.
+
 > **FILING NOTE — Claude Code, 2026-10-03 (Chat's playtest findings and rulings of 2026-10-02; E59 and E60 proposed).**
 > Filed verbatim as `Previous Versions/EGG_TIMER_PLAYTEST_RULINGS_2026-10-02.md` (the second message, which replaced the
 > first; both kept). **Built**, one commit each, both rigs green after each, not pushed (§11, "Raised by Chat's playtest"):
@@ -1066,9 +1075,8 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   the egg is saved, so an egg that hatches anyway pays nothing; the STR earns nothing of its own; the final RCAV scores
   its own tier as before. **Time Warp** no longer counts the waiting egg as bold (it used to hold the warp off); its
   countdown is the player's seconds, so the warp doesn't shorten it. **Mom:** she comes at the STR, as E55 built her,
-  after the 12 s, so her visit takes none of the player's time. *(Code: Chat's "it starts when sweet Mom's visit ends"
-  reads as if she came at the RCAV; she doesn't, and creepy Mom takes over from wave 2. If Chat wants her at the RCAV
-  instead, that moves her visit and is a new item.)*
+  after the 12 s, so her visit takes none of the player's time. *(Chat, 2026-10-03: "Mom's visit comes at the STR, not
+  the RCAV, so the 12 s reset needs no change"; the earlier "starts when her visit ends" line is withdrawn.)*
 - **3. The H sign and the "Patient Refused" bubble (built).** The **H sign** already sat above its own timer, on the
   nest's shoulder, clear of every readout at all four sizes (rig L, unchanged). **VS refusal eggs** now show a small
   code-drawn comic bubble, "PATIENT / REFUSED", dusty cream (`--refused-bg`) with a thin outline, its tail down at the
@@ -1080,7 +1088,12 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   hose tag or the wall clock at any size. **One crowding note:** at 1440 × 900 and smaller, the bubble of the bottom
   row's second nest reaches into Time Warp's caption ("All clocks 5× fast…") and covers a word or two of it while both
   show (the H sign on that nest already touches the caption's box; the nests draw over the Time Warp panel there, E50).
-  Not crowded enough for "wave 1 only"; `refusedBubble.untilWave` [T] does that if Chat wants it.
+  Not crowded enough for "wave 1 only"; `refusedBubble.untilWave` [T] does that if Chat wants it. **Fixed (Chat,
+  2026-10-03: "shift that nest's bubble sideways or up… do not switch to wave-1-only"):** a bubble whose spot would reach
+  Time Warp's sign or caption sits on its nest's **other shoulder**, tail turned back to the egg (`.flip`, measured once
+  it shows and after a resize). With all 12 up, one flips at 1440 × 900, 1280 × 720 and 1024 × 640 (the bottom row's
+  inner-left nest), none at 1920 × 1080; none touches the caption, a readout (its own unit and timer included), a nest or
+  another bubble at any size.
 - **4. Time Warp red (built).** The lit sign `--warp-red` #ff1f3d with near-black red lettering and a red glow, the
   caption #ff5c6c, the lightning's glow red and its core pale pink-red #ffc2ca. Each is darker than the mint it
   replaces (luminance 0.23 / 0.30 / 0.64 against 0.75 / 0.90). The flash guards, the wobble (a transform) and reduced
@@ -1098,7 +1111,11 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   gone. **A repeat** while it shows changes the words and restarts its time, never off and on (rig: 0 new showings for
   3 repeats; at most 1 a second). **Directly above the clock doesn't fit at any size:** see ⏳ **E60**.
 
-- ⏳ **E59. Which CAV types eggs are laid with. PENDING (Chat).** Chat's playtest found every egg a VS and asked for SS,
+- **E59. Which CAV types eggs are laid with. Mostly ruled** *(Chat, 2026-10-03: "(a) keep the 'bag'. (b) keep MB. (e)
+  leave the hospital share at 70%; Andrew will tune it after playtests. (c) VF stays out and (d) the AD post-it stays off
+  until Andrew answers")*. **(d) answered the same day** (Chat: "bring back the AD 'Clear @ HH:MM' post-it… in a NEW
+  spot"): **built**, see the AD note below. ⏳ **Still open: (c) VF** (Andrew's). *(Original item follows.)*
+  ⏳ **E59. Which CAV types eggs are laid with. PENDING (Chat).** Chat's playtest found every egg a VS and asked for SS,
   EOS, AD and VF. E54 (ruled, approved by Andrew 2026-10-02) made every egg a VS. **Built as the smallest fix**, the
   switch `eggTypes` in `config.js`: **"bag"** (built, the default now): the pre-E54 shuffle bag (Refinement 4 §4, E19,
   E20) holding every row of Andrew's table once, shuffled on the game's seeded source, refilled when empty, fresh each
@@ -1110,7 +1127,29 @@ one commit each. Where an item changes an earlier ruling, that ruling is named; 
   or bring back its hidden timer (that needs a placement step); (d) AD plays as a plain egg; its post-it ("Clear @
   HH:MM", E1) went with E54: bring it back?; (e) with 70% of VS eggs only, hospital eggs are rare now: change
   `hospitalShare`? Needed: (a)–(e).
-- ⏳ **E60. Where the rejected-Enter words go when "above the clock" is taken. PENDING (Chat).** Directly above Time
+- **The AD "Clear @ HH:MM" note (built 2026-10-03, Chat).** An AD egg says "Clear @ HH:MM" again and goes bold when the
+  wall clock reads it (E1: the next whole minute after its start plus its 10–30 whole-minute draw; `postItCodes`,
+  `adClockTarget` back in `config.js`). The look Andrew approved 2026-09-23: HH:MM in the wall clock's green DSEG7,
+  "Clear @" in cream Fredoka, on charcoal with the green edge. **The new spot:** stuck on beside its own nest at the
+  egg's height, tilted (about 7°), on the side **away from the board's centre** if that's clear, else the other side,
+  else up by its own shoulder (where an AD has no H sign or bubble). `placeNote()` measures once it shows and after a
+  resize, against every readout and nest, the H sign and bubble spots of every other nest (shown or not), other notes
+  already up, Time Warp's words, the trough and the hose tag. **Measured (rig L), two worst cases, all four sizes:** one
+  note at a time with every other nest's H sign and bubble up (both shoulders), and all 12 notes at once: **nothing
+  touched.** Size: 122 × 41 px at 1920 × 1080, 100 × 35 at 1440 × 900, 92 × 33 at 1280 × 720 and 1024 × 640. With all 12
+  up, the outer middle-row nest's note goes up by its shoulder (1 nest; 2 at 1024 × 640); otherwise every note sits
+  beside its egg, outer side, the board's middle-right inner nest on its inner side. It never covers the unit number
+  (it sits above every readout). The gunk covers it (E14).
+- ⏳ **E60. Where the rejected-Enter words go when "above the clock" is taken.** **"drop" approved** *(Chat,
+  2026-10-03: "It must never cover the Time Warp sign or its caption. Report whether the clock face has anything players
+  need (digits, hands) in the covered top strip at any size; if so, tell me before shipping and propose where the message
+  goes at that size.")* **Report:** it never covers the sign or the caption (rig L checks both). **But the words cover
+  the clock's whole face, both hands and the centre cap at every size** (6–10 of its 10 hour ticks), and under reduced
+  motion the face's "5×" label, which stands in for the turning hands. **Proposal: the pendulum window**, below the face
+  and above the sign, which shows nothing players read: the room there is 81 px for 45 px of words at 1920 × 1080, 60
+  for 39 at 1440 × 900, 38 for 36 at 1280 × 720 and 35 for 30 at 1024 × 640, so it fits at every size (tightly on the two
+  small ones). **Not changed:** "drop" is as built until Chat says. Needed: the pendulum window, or keep "drop".
+  *(Original item follows.)* ⏳ **E60. PENDING (Chat).** Directly above Time
   Warp's clock is where the top row's two middle readouts sit, at every measured size: the gap between them is about
   144 px at 1920 × 1080 and 73 px at 1024 × 640, and "RCAV first!" needs 216 and 133 px. **Built as the switch**
   `rejectPlace`: **"drop"** (built): the words start just above the clock and, where a readout or nest is in the way,

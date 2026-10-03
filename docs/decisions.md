@@ -1041,7 +1041,27 @@ for the bag. The hospital egg's crack carries on from where it was through the r
 **If you touch this again:** **E59** (which types, MB, VF, AD's post-it, the hospital share now that only VS eggs
 qualify) and **E60** (directly above the clock is where the top row's middle readouts sit at every size, so "drop" moves
 the words onto the clock's top: 65/62/61/52 px of a 208/164/119/103 px clock) wait on Chat. Item 2's "starts when sweet
-Mom's visit ends" doesn't match the build: Mom comes at the STR, after the 12 s; flagged. The bubble covers a word or two
+Mom's visit ends" line is withdrawn (Chat, 2026-10-03): Mom comes at the STR, after the 12 s, so the reset needs no
+change. The bubble covers a word or two
 of Time Warp's caption at 1440 × 900 and smaller (bottom row, second nest); not "crowded" by the rig's rules. Measure
 anything over a nest after its 0.4 s unlock (`offsetWidth`, not the bounding box), and a rejected Enter needs the game
 unpaused (a paused game blocks `submit`).
+
+## Built 2026-10-03 — Egg Timer: Chat's E59/E60/bubble rulings, and the AD note back
+
+**Solved:** Chat's rulings (filed verbatim in `Game/cartridges/Egg Timer/Previous Versions/
+EGG_TIMER_E59_E60_RULINGS_AND_AD_NOTE_2026-10-03.md`): **E59** keep the bag, keep MB, keep 70%; VF stays out (open,
+Andrew's). **The AD "Clear @ HH:MM" note is back** (`97a64c8`): E1's whole-minute bold on the wall clock, the 2026-09-23
+LED look, in a new spot: stuck on beside its own nest at the egg's height, tilted, outer side, else inner, else up by
+its own shoulder. **The bubble** that met Time Warp's caption (the bottom row's inner-left nest, 1440 × 900 and smaller)
+flips to its nest's other shoulder (`bf1f33a`). **E60 "drop" approved**, but the dropped words cover the clock's face,
+hands and centre (and the reduced-motion "5×") at every size; Code proposed the pendulum window (fits at all four sizes)
+and changed nothing. Not pushed. Rigs at the end: logic 211/0, browser 642/0.
+**Approach:** `placeBubble()` / `placeNote()` in `view.js` measure once the marker shows (never mid unlock pop) and again
+after a resize; `ET.view.placeBubbles()` and `ET.view.fillNote(id, note)` let rig L place them as a frame would. The
+note's keep-off list covers where every other nest's H sign and bubble can go (either shoulder), shown or not, so a
+marker that appears later can't land on it; another note already up is avoided too.
+**If you touch this again:** rig L measures the note in two worst cases (one at a time with every other nest's markers
+up; all 12 at once), since a nest with a note never has a marker of its own. A rig check that sets `style.animation =
+'none'` must put it back, or a later "it drops in" check fails. The AD-at-the-wall-clock test clears the rest of the
+board as it goes, or the pool runs dry before the AD's minute.
