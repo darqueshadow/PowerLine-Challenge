@@ -1719,12 +1719,14 @@ try {
       // Chat (2026-10-03): the AD "Clear @" note. (A) one at a time, with every other nest's H sign and bubble (either
       // shoulder) up; (B) all 12 at once: never on a readout, a nest, a marker, another note, Time Warp's sign or caption,
       // the trough, the hose tag or the wall clock, and on the board
+      // every other nest's marks where the game puts them: the H sign with its hospital, and the bubble with its house
       const marks = [];
-      document.querySelectorAll('.nest').forEach(n => {
-        const h = n.querySelector('.hsign'), b = n.querySelector('.refused');
-        h.hidden = false; h.style.animation = 'none'; marks.push({ n, r: h.getBoundingClientRect() }); h.hidden = true; h.style.animation = '';
-        b.classList.remove('flip'); marks.push({ n, r: b.getBoundingClientRect() }); b.classList.add('flip'); marks.push({ n, r: b.getBoundingClientRect() }); b.classList.remove('flip');
-      });
+      document.querySelectorAll('.nest').forEach(n => ['h', 'r'].forEach(k => {
+        const m = n.querySelector(k === 'h' ? '.hsign' : '.refused'); m.hidden = false; m.style.animation = 'none';
+        ET.view.placeMarks();
+        n.querySelectorAll(k === 'h' ? '.hsign, .bld.hosp' : '.refused, .bld.house').forEach(e => { if (!e.hidden) marks.push({ n, r: e.getBoundingClientRect() }); });
+        m.hidden = true; m.style.animation = ''; m.classList.remove('flip'); n.querySelectorAll('.bld').forEach(d => { d.hidden = true; d.classList.remove('flip'); });
+      }));
       document.querySelectorAll('.nest .refused').forEach(p => { p.hidden = true; p.style.animation = ''; });
       const noteFixed = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0).concat(warpWords.filter(r => r.width > 0));
       const nestEls = [...document.querySelectorAll('.nest')], notes = nestEls.map(n => n.querySelector('.postit'));
@@ -1739,6 +1741,29 @@ try {
       notes.forEach((p, i) => { if (noteBad(i, false)) noteAllBad++; });
       const noteSize = [Math.round(notes[0].getBoundingClientRect().width), Math.round(notes[0].getBoundingClientRect().height)], noteHigh = notes.filter(p => p.classList.contains('high')).length;
       notes.forEach(q => { q.hidden = true; });
+      // Chat (2026-10-03, A/B): every nest's H sign or bubble, with its building, placed by the game (placeMarks), at rest:
+      // all hospital, all refusal, and the two alternating mixes. Clear of every readout, every other nest, its own egg,
+      // Time Warp's sign and caption, the hose tag, the trough, the wall clock, the Command Lines, each other and the edges
+      const markRun = (mode) => {
+        const ns = [...document.querySelectorAll('.nest')];
+        ns.forEach((n, i) => { const k = mode === 'h' ? 'h' : mode === 'r' ? 'r' : ((i + (mode === 'mix1' ? 1 : 0)) % 2 ? 'h' : 'r');
+          n.dataset.mk = k; n.querySelector('.hsign').hidden = k !== 'h'; n.querySelector('.refused').hidden = k !== 'r';
+          n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.animation = 'none'; }); });
+        ET.view.placeMarks();
+        const items = [];
+        ns.forEach(n => n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { if (!e.hidden) items.push({ n, r: e.getBoundingClientRect() }); }));
+        const ro = [...document.querySelectorAll('.nest .readout > span')].map(e => e.getBoundingClientRect());
+        const fx = [...document.querySelectorAll('#hose-tag, #trough > *, .wallclock, #console .box')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0).concat(warpWords.filter(r => r.width > 0));
+        const bad = items.filter(it => { const r = it.r, own = nests[ns.indexOf(it.n)];
+          const eg = { left: own.art.left + (own.art.right - own.art.left) * 0.27, right: own.art.right - (own.art.right - own.art.left) * 0.27, top: own.art.top, bottom: own.art.bottom - (own.art.bottom - own.art.top) * 0.3 };
+          return ro.some(o => hit(r, o)) || nests.some((x, j) => ns[j] !== it.n && hit(r, x.art)) || fx.some(o => hit(r, o)) || items.some(o => o !== it && hit(r, o.r))
+            || r.left < f.left - 1 || r.right > f.right + 1 || r.top < f.top - 1; }).length;
+        const out = { bad, flips: ns.filter(n => n.querySelector('.hsign.flip, .refused.flip')).map(n => n.dataset.id), skipped: ns.filter(n => n.dataset.mk === 'h' && n.querySelector('.bld.hosp').hidden).map(n => n.dataset.id),
+          sign: Math.round(ns[0].querySelector('.hsign').getBoundingClientRect().width) };
+        ns.forEach(n => { n.querySelector('.hsign').hidden = true; n.querySelector('.refused').hidden = true; n.querySelectorAll('.bld').forEach(d => { d.hidden = true; d.classList.remove('flip'); }); n.querySelectorAll('.hsign, .refused, .bld').forEach(e => { e.style.animation = ''; e.classList.remove('flip'); }); });
+        return out;
+      };
+      const markRuns = { h: markRun('h'), r: markRun('r'), mix0: markRun('mix0'), mix1: markRun('mix1') };
       // Chat (2026-10-02): the rejected-Enter message, at its longest, above Time Warp's clock: clear of every nest, readout,
       // Command Line, the trough, the hose tag and the wall clock, and on the board
       const rj = document.querySelector('#reject'), rjWas = rj.textContent;
@@ -1755,7 +1780,7 @@ try {
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { pumpBad, fuelSpill, fuelPx, pumpPx, rejectInWindow, noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { markRuns, pumpBad, fuelSpill, fuelPx, pumpPx, rejectInWindow, noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1768,8 +1793,12 @@ try {
     eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading fits inside its box   ${at}`);
     ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
     ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleOwn && lay.bubbleSize >= 44, `Chat (2026-10-02/03): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout (their own unit and timer too), nest, Command Line, the trough, the hose tag, the wall clock, each other and Time Warp's sign and caption   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide, ${lay.flipped} flipped to the other shoulder]`);
+    {
+      const m = lay.markRuns;
+      ok(Object.values(m).every((x) => x.bad === 0), `Chat (2026-10-03, A): the 1.4× H sign (or the bubble) and its building, placed by the game, touch no readout, other nest, own egg, Time Warp's words, hose tag, trough, Command Line or each other, all hospital, all refusal and both mixes   ${at} [${Object.entries(m).map(([k, x]) => k + " " + x.bad).join(", ")}; sign ${m.h.sign} px; flipped ${m.h.flips.join(" ") || "none"}; hospitals skipped ${m.h.skipped.join(" ") || "none"}]`);
+    }
     ok(lay.pumpBad === 0 && lay.fuelSpill === 0, `Chat (2026-10-03): every VF's pump stays clear of every readout and every other nest, and FUELING fits its timer box   ${at} [${lay.pumpBad} touching, pump ${lay.pumpPx} px wide, FUELING in ${lay.fuelPx} px type]`);
-    ok(lay.noteOneBad === 0 && lay.noteAllBad === 0, `Chat (2026-10-03): the AD "Clear @" note sits beside its nest clear of every readout, nest, H sign, bubble, other note, Time Warp's words, the trough, the hose tag and the wall clock, one at a time with every marker up and all 12 at once   ${at} [${lay.noteOneBad} + ${lay.noteAllBad} touching, ${lay.noteSize.join("×")} px, ${lay.noteHigh} on a shoulder with all 12 up]`);
+    ok(lay.noteOneBad === 0 && lay.noteAllBad === 0, `Chat (2026-10-03): the AD "Clear @" note sits beside its nest clear of every readout, nest, H sign, bubble, other note, Time Warp's words, the trough, the hose tag and the wall clock, one at a time with every other nest's sign or bubble and building up where the game puts them, and all 12 at once   ${at} [${lay.noteOneBad} + ${lay.noteAllBad} touching, ${lay.noteSize.join("×")} px, ${lay.noteHigh} on a shoulder with all 12 up]`);
     ok(lay.rejectHits === 0 && lay.rejectOk && lay.rejectInWindow, `E60 (Chat, 2026-10-03): the rejected-Enter plate sits in the clock's pendulum window, below its face (the "5×" label included) and above the TIME WARP sign, clear of the caption, every nest, readout, Command Line, the trough, the hose tag and the wall clock   ${at} [${lay.rejectHits} touching, ${lay.rejectBox.join("×")} px in a ${lay.rejectOnClock} px window, ${lay.clockTall} px type]`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);

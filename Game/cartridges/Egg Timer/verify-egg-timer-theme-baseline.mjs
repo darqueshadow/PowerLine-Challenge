@@ -3618,12 +3618,13 @@ export default {
   "animation-range-start": "normal",
   "animation-timeline": "auto",
   "animation-timing-function": "cubic-bezier(0.3, 0.8, 0.4, 1.3)",
+  "margin-top": "-11.4%",
   "pointer-events": "none",
   "position": "absolute",
-  "right": "-10%",
+  "right": "-13.8%",
   "top": "10%",
   "transform-origin": "50% 100%",
-  "width": "19%",
+  "width": "26.6%",
   "z-index": "4"
  },
  ".hsign svg": {
@@ -3647,6 +3648,60 @@ export default {
   "fill": "rgb(138, 90, 43)",
   "stroke": "rgb(26, 13, 46)",
   "stroke-width": "2.5"
+ },
+ ".hsign.flip": {
+  "left": "-13.8%",
+  "right": "auto"
+ },
+ ".bld": {
+  "left": "-14%",
+  "pointer-events": "none",
+  "position": "absolute",
+  "top": "8%",
+  "transform-origin": "50% 100%",
+  "width": "26%",
+  "z-index": "4"
+ },
+ ".bld.flip": {
+  "left": "auto",
+  "right": "-14%"
+ },
+ ".bld svg": {
+  "display": "block",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "width": "100%"
+ },
+ ".bld.hosp .wall": {
+  "fill": "rgb(246, 238, 220)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2"
+ },
+ ".bld.hosp .roof": {
+  "fill": "rgb(20, 86, 200)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2"
+ },
+ ".bld.hosp .plate": {
+  "fill": "rgb(20, 86, 200)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
+ },
+ ".bld.hosp .h": {
+  "fill": "none",
+  "stroke": "rgb(255, 255, 255)",
+  "stroke-linecap": "square",
+  "stroke-width": "2"
+ },
+ ".bld.hosp .win": {
+  "fill": "rgb(143, 216, 255)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
+ },
+ ".bld.hosp .door": {
+  "fill": "rgb(107, 74, 140)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "1.5"
  },
  ".refused": {
   "align-items": "center",

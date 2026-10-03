@@ -895,11 +895,24 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 /* E55 (ruled 2026-10-02; ⏳ placeholder art): the hospital sign on the nest's shoulder, clear of the egg, its readout
    and the readout of the nest above it (the layout rig measures every sign at every size). Each time it's shown it drops in from above and lands with a little bounce (Andrew's handoff: the Queen drops
    it as the egg is laid). Under reduced motion it's simply there. */
-.hsign { position: absolute; right: -10%; top: 10%; width: 19%; z-index: 4; pointer-events: none; transform-origin: 50% 100%; animation: hsign-drop 0.45s cubic-bezier(0.3, 0.8, 0.4, 1.3) both; }
+.hsign { position: absolute; right: -13.8%; top: 10%; margin-top: -11.4%; width: 26.6%; z-index: 4; pointer-events: none; transform-origin: 50% 100%; animation: hsign-drop 0.45s cubic-bezier(0.3, 0.8, 0.4, 1.3) both; }
 .hsign svg { display: block; width: 100%; overflow: visible; }
 .hsign .plate { fill: var(--hospital-blue); stroke: var(--outline); stroke-width: 3; }
 .hsign .h { fill: none; stroke: var(--hospital-ink); stroke-width: 5; stroke-linecap: square; }
 .hsign .stake { fill: var(--stake); stroke: var(--outline); stroke-width: 2.5; }
+/* Chat (2026-10-03, A): the sign 1.4× (it was 19% of the nest; 1.6× doesn't fit at every size), grown up from where its
+   stake stands (the negative margin, a share of the nest's width); placeMarks may move it to the other shoulder (.flip) */
+.hsign.flip { right: auto; left: -13.8%; }
+/* its hospital, on the other side of the egg (or skipped where there's no room): flat and cute, drawn in code */
+.bld { position: absolute; left: -14%; top: 8%; width: 26%; z-index: 4; pointer-events: none; transform-origin: 50% 100%; }
+.bld.flip { left: auto; right: -14%; }
+.bld svg { display: block; width: 100%; overflow: visible; }
+.bld.hosp .wall { fill: var(--bld-wall); stroke: var(--outline); stroke-width: 2; }
+.bld.hosp .roof { fill: var(--hospital-blue); stroke: var(--outline); stroke-width: 2; }
+.bld.hosp .plate { fill: var(--hospital-blue); stroke: var(--outline); stroke-width: 1.5; }
+.bld.hosp .h { fill: none; stroke: var(--hospital-ink); stroke-width: 2; stroke-linecap: square; }
+.bld.hosp .win { fill: var(--bld-window); stroke: var(--outline); stroke-width: 1.5; }
+.bld.hosp .door { fill: var(--bld-door); stroke: var(--outline); stroke-width: 1.5; }
 /* Chat's playtest rulings (2026-10-02): a refusal egg's "Patient Refused" bubble, drawn in code, in the H sign's place
    above the timer (the two never share a nest), its tail pointing down at the egg. Quieter than the sign: dusty cream,
    a thinner outline, small type; it fades in (no drop, no bounce). The gunk covers it, as it covers the sign (E14). */

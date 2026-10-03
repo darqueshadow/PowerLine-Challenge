@@ -177,6 +177,21 @@
       return d;
     },
 
+    /* Chat (2026-10-03): a flat, cute hospital beside a hospital egg, on the other side from its H sign: a cream block
+       with a blue roof band, the white-on-blue H (never a red cross), round windows and a door. Drawn in code. */
+    hospitalEl: function () {
+      var d = document.createElement("div");
+      d.className = "bld hosp";
+      var svg = el("svg", { viewBox: "0 0 40 40", "aria-hidden": "true" }, d);
+      el("rect", { class: "wall", x: 3, y: 12, width: 34, height: 26, rx: 4 }, svg);
+      el("rect", { class: "roof", x: 1, y: 7, width: 38, height: 8, rx: 3 }, svg);
+      el("rect", { class: "plate", x: 14, y: 1.5, width: 12, height: 11, rx: 3 }, svg);
+      el("path", { class: "h", d: "M17.5 4 V10 M22.5 4 V10 M17.5 7 H22.5" }, svg);
+      [[9, 21], [31, 21]].forEach(function (p) { el("circle", { class: "win", cx: p[0], cy: p[1], r: 3.4 }, svg); });
+      el("path", { class: "door", d: "M15 38 V29 Q20 24 25 29 V38 Z" }, svg);
+      return d;
+    },
+
     /* Chat's playtest rulings (2026-10-02): a refusal egg's marker, a small comic speech bubble reading "Patient
        Refused", its tail pointing down at the egg. Drawn in code, quieter than the H sign (style.css places it). */
     refusedEl: function () {

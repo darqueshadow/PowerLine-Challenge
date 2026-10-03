@@ -65,6 +65,9 @@
   --hospital-blue: #1456c8;               /* road-sign blue (white on it 6.6:1) */
   --hospital-ink: #fff;                   /* the sign's white H */
   --stake: #8a5a2b;                       /* the sign's wooden stake */
+  --bld-wall: #f6eedc;                    /* the hospital's and house's cream walls (Chat, 2026-10-03) */
+  --bld-window: #8fd8ff;                  /* their sky-blue windows */
+  --bld-door: #6b4a8c;                    /* their plum doors */
   --refused-bg: #e8dfcc;                  /* "Patient Refused" bubble, dusty cream (quieter than the H sign's blue) */
   --refused-ink: #4a3560;                 /* its lettering, muted plum (7.9:1 on the cream) */
   --plaster: #f2c9a0;                     /* Mom's sticking plaster */

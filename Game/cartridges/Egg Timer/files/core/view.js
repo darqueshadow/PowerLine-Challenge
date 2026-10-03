@@ -485,6 +485,8 @@
       var parts = [n.el, n.readout];
       if (!n.hsign.hidden) parts.push(n.hsign);
       if (!n.refused.hidden) parts.push(n.refused);
+      if (n.hosp && !n.hosp.hidden) parts.push(n.hosp);
+      if (n.house && !n.house.hidden) parts.push(n.house);
       parts.forEach(function (e) {
         var r = fieldRect(e, f);
         if (r.r - r.l < 1) return;
@@ -1106,13 +1108,72 @@
     if (cap.textContent) { var rg = document.createRange(); rg.selectNodeContents(cap); out.push.apply(out, rg.getClientRects()); }
     return out;
   }
-  function placeBubble(v) {
-    var b = v.refused;
-    b.classList.remove("flip");
-    var r = b.getBoundingClientRect(), words = warpWords();
-    var hits = words.some(function (w) { return w.width > 0 && w.left < r.right && r.left < w.right && w.top < r.bottom && r.top < w.bottom; });
-    if (hits) b.classList.add("flip");
-    v.refusedAt = innerWidth + "x" + innerHeight;
+  /* Chat (2026-10-03, items A and B): the H sign (now 1.4×: 1.6× doesn't fit at every size) or the bubble on the nest's
+     right shoulder, its building (the hospital, or the house) on the other side of the egg. Either may swap shoulders
+     where the right one is in the way; the building is skipped where its side has no room. Measured from the layout
+     boxes (offsetLeft/Top), so a drop-in or a bounce under way doesn't move the answer, against every readout, every
+     other nest, this egg, Time Warp's sign and caption, the hose tag, the trough, the Command Lines and the board's
+     edges; never against another nest's marks (the layout rig checks every mix of them at every size). */
+  function restRect(v, e) {
+    var n = v.el.getBoundingClientRect(), l = n.left + e.offsetLeft, t = n.top + e.offsetTop;
+    return { left: l, top: t, right: l + e.offsetWidth, bottom: t + e.offsetHeight };
+  }
+  function markKeepOff(v) {
+    var out = [];
+    nests.forEach(function (n) {
+      [].forEach.call(n.readout.children, function (e) { out.push(e.getBoundingClientRect()); });
+      var s = n.svg.getBoundingClientRect();
+      if (n !== v) out.push({ left: s.left + s.width * 0.1, right: s.right - s.width * 0.1, top: s.top + s.height * 0.2, bottom: s.bottom - s.height * 0.1 });
+      else out.push({ left: s.left + s.width * 0.315, right: s.right - s.width * 0.315, top: s.top + s.height * 0.22, bottom: s.top + s.height * 0.745 });   // its own egg, full grown
+    });
+    out = out.concat(warpWords());
+    [].forEach.call(document.querySelectorAll("#hose-tag, #trough > *, .wallclock, #console .box"), function (e) { out.push(e.getBoundingClientRect()); });
+    return out.filter(function (r) { return r.right - r.left > 0; });   // (hand-made boxes have no width field)
+  }
+  /* Where a nest's marks go for `kind` ("h": the H sign and the hospital; "r": the bubble and the house): the mark's
+     shoulder, and whether the building fits. Decided from the layout boxes, so it is the same however often it's asked. */
+  function decideMarks(v, kind) {
+    var mark = kind === "h" ? v.hsign : v.refused, bld = kind === "h" ? v.hosp : v.house || null;
+    var keep = markKeepOff(v), b = board.getBoundingClientRect();
+    var clear = function (e) {
+      var r = restRect(v, e);
+      if (r.left < b.left - 1 || r.right > b.right + 1 || r.top < b.top - 1) return false;
+      return !keep.some(function (k) { return k.left < r.right - 0.5 && r.left < k.right - 0.5 && k.top < r.bottom - 0.5 && r.top < k.bottom - 0.5; });
+    };
+    mark.classList.remove("flip");
+    var flip = false;
+    if (!clear(mark)) { mark.classList.add("flip"); flip = clear(mark); if (!flip) mark.classList.remove("flip"); }
+    var fits = false;
+    if (bld) { bld.classList.toggle("flip", flip); fits = clear(bld); }
+    return { mark: mark, bld: bld, flip: flip, fits: fits };
+  }
+  function placeMarks(v, kind) {
+    [v.hosp, v.house].forEach(function (o) { if (o && !o.hidden) o.hidden = true; });
+    var own = kind === "h" ? v.hosp : v.house;
+    if (own) { own.hidden = false; own.style.visibility = "hidden"; }   // laid out (a hidden box measures nothing), unseen
+    var d = decideMarks(v, kind);
+    if (d.bld) { d.bld.style.visibility = ""; d.bld.hidden = !d.fits; }
+    v.markAt = kind + innerWidth + "x" + innerHeight;
+  }
+  /* For the AD note (2026-10-03): every spot a nest's marks can take, the H sign with its hospital and the bubble with
+     its house, as decideMarks places them, measured once per window size. The elements are shown unseen for the
+     measuring and put back as they were. */
+  function markFootprint(n) {
+    var key = innerWidth + "x" + innerHeight;
+    if (n.fpAt === key) return n.fp;
+    var els = [n.hsign, n.hosp, n.refused, n.house].filter(Boolean);
+    var saved = els.map(function (e) { return [e, e.hidden, e.className, e.style.visibility]; });
+    els.forEach(function (e) { e.hidden = false; e.style.visibility = "hidden"; });
+    var out = [];
+    ["h", "r"].forEach(function (kind) {
+      var d = decideMarks(n, kind);
+      out.push(restRect(n, d.mark));
+      if (d.bld && d.fits) out.push(restRect(n, d.bld));
+    });
+    saved.forEach(function (x) { x[0].hidden = x[1]; x[0].className = x[2]; x[0].style.visibility = x[3]; });
+    n.fp = out;
+    n.fpAt = key;
+    return out;
   }
   /* Chat (2026-10-03): an AD's "Clear @ HH:MM" note, "Clear @" in chunky cream lettering and HH:MM in the wall clock's
      own 7-segment face (the look Andrew approved 2026-09-23). */
@@ -1140,32 +1201,66 @@
       out.push({ left: s.left + s.width * 0.1, right: s.right - s.width * 0.1, top: s.top + s.height * 0.2, bottom: s.bottom - s.height * 0.1 });
       if (n === v) return;
       if (!n.note.hidden && n.noteAt) out.push(n.note.getBoundingClientRect());   // another AD's note already up
-      // where the other nest's H sign and bubble go (either shoulder), measured whether they show now or not
-      var r = n.el.getBoundingClientRect(), w = r.width;
-      out.push({ left: r.left - w * 0.25, right: r.right + w * 0.6, top: r.top - w * 0.05, bottom: r.top + w * 0.42 });
+      // where the other nest's H sign or bubble and its building go, shown or not, exactly as the game places them
+      // (2026-10-03; it was a rough box, which the H sign at 1.4× and the buildings outgrew)
+      out.push.apply(out, markFootprint(n));
     });
     out = out.concat(warpWords());
     var tag = document.querySelector("#hose-tag");
     if (tag) out.push(tag.getBoundingClientRect());
     [].forEach.call(document.querySelectorAll("#trough > *"), function (e) { out.push(e.getBoundingClientRect()); });
-    return out.filter(function (r) { return r.width > 0; });
+    return out.filter(function (r) { return r.right - r.left > 0; });   // (hand-made boxes have no width field)
   }
+  /* With no clear spot (two ADs side by side, one boxed in at the board's edge), a neighbour's note already up may move
+     to its own other clear spot to make room; if it can't, nothing moves and this note takes its outer side. */
   function placeNote(v) {
+    if (tryNote(v)) return;
+    var others = nests.filter(function (u) { return u !== v && !u.note.hidden && u.noteAt; });
+    for (var i = 0; i < others.length; i++) {
+      var u = others[i], was = u.note.className;
+      u.note.hidden = true;
+      var ok = tryNote(v);
+      u.note.hidden = false;
+      if (ok && tryNote(u)) return;
+      u.note.className = was;
+    }
+    tryNote(v, true);
+  }
+  function tryNote(v, force) {
     var el = v.note, b = board.getBoundingClientRect(), r0 = v.el.getBoundingClientRect();
     var outer = (r0.left + r0.right) / 2 < (b.left + b.right) / 2 ? "side-left" : "side-right";
     var inner = outer === "side-left" ? "side-right" : "side-left";
     // beside the egg, outer side then inner; then up on its own shoulder (an AD never has an H sign or a bubble there)
-    var sides = [outer, inner, outer + " high", inner + " high"], keep = noteKeepOff(v), pick = outer;
+    var sides = [outer, inner, outer + " high", inner + " high"], keep = noteKeepOff(v), pick = null;
+    var room = function (r) {   // how far the note could slide sideways before it met something (or the board's edge)
+      var gap = Math.min(r.left - b.left, b.right - r.right);
+      keep.forEach(function (k) {
+        if (k.top >= r.bottom || r.top >= k.bottom) return;
+        if (k.left >= r.right) gap = Math.min(gap, k.left - r.right);
+        else if (k.right <= r.left) gap = Math.min(gap, r.left - k.right);
+      });
+      return gap;
+    };
+    var best = -1;
     for (var i = 0; i < sides.length; i++) {
       el.classList.remove("side-left", "side-right", "high");
       sides[i].split(" ").forEach(function (c) { el.classList.add(c); });
       var r = el.getBoundingClientRect();
       var clear = r.left >= b.left && r.right <= b.right && !keep.some(function (k) { return k.left < r.right && r.left < k.right && k.top < r.bottom && r.top < k.bottom; });
-      if (clear) { pick = sides[i]; break; }
+      if (!clear) continue;
+      // 2026-10-03: beside the egg, both sides clear: the one with more room, so a neighbour boxed in at the board's edge
+      // still has the gap between them; up on a shoulder only when neither side beside the egg is clear
+      var gap = room(r);
+      if (i < 2 && gap > best) { best = gap; pick = sides[i]; }
+      if (i >= 2 && pick === null) { pick = sides[i]; break; }
+      if (i === 1 && pick !== null) break;
     }
+    if (pick === null && !force) return false;
+    if (pick === null) pick = outer;
     el.classList.remove("side-left", "side-right", "high");
     pick.split(" ").forEach(function (c) { el.classList.add(c); });
     v.noteAt = innerWidth + "x" + innerHeight;
+    return true;
   }
   function showReject(text) {
     var el = reject.el;
@@ -1237,6 +1332,10 @@
         var hsign = ET.art.hSignEl();
         hsign.hidden = true;
         n.appendChild(hsign);
+        // Chat (2026-10-03): its hospital, on the other side of the egg (placeMarks picks the sides, or skips it)
+        var hosp = ET.art.hospitalEl();
+        hosp.hidden = true;
+        n.appendChild(hosp);
         // Chat (2026-10-02): a VS refusal egg's "Patient Refused" bubble, in the same place above the timer
         var refused = ET.art.refusedEl();
         refused.hidden = true;
@@ -1256,7 +1355,7 @@
 
         board.appendChild(n);
         nests.push({
-          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, refused: refused, note: note, pan: pan,
+          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, hosp: hosp, refused: refused, note: note, pan: pan,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
@@ -1284,6 +1383,8 @@
         ET.mess.clear(v.mess);
         v.hsign.hidden = true;
         v.refused.hidden = true;
+        v.hosp.hidden = true;
+        v.markAt = null;
         v.note.hidden = true;
         v.noteAt = null;
         v.mend = null;
@@ -1381,8 +1482,11 @@
         var refusing = !s.hospital && s.code === C.eggType && (s.state === "active" || s.state === "overtime") &&
           C.refusedBubble.on && snap.wave <= C.refusedBubble.untilWave;
         if (v.refused.hidden === refusing) v.refused.hidden = !refusing;
-        // Chat (2026-10-03): placed once it shows (and again after a resize), never mid unlock pop (the scale)
-        if (refusing && v.refusedAt !== innerWidth + "x" + innerHeight && !el.classList.contains("unlock")) placeBubble(v);
+        // Chat (2026-10-03): the H sign or the bubble, and its building, placed once they show (and again after a resize),
+        // never mid unlock pop (the scale)
+        var markKind = signed ? "h" : refusing ? "r" : null;
+        if (!markKind) { if (!v.hosp.hidden) v.hosp.hidden = true; v.markAt = null; }
+        else if (v.markAt !== markKind + innerWidth + "x" + innerHeight && !el.classList.contains("unlock")) placeMarks(v, markKind);
         // Chat (2026-10-03): an AD's "Clear @ HH:MM" note, from the pop until the egg is cleared or hatches
         if (v.note.hidden === !!s.note) v.note.hidden = !s.note;
         if (s.note) {
@@ -1610,7 +1714,8 @@
        `momState()` gives this game's count so far and the next scheduled time. */
     mom: function (which) { return showMom(which); },
     /* For rigs: place every bubble that shows now (as the frame would once it shows). */
-    placeBubbles: function () { nests.forEach(function (v) { if (!v.refused.hidden) placeBubble(v); }); },
+    placeBubbles: function () { ET.view.placeMarks(); },
+    placeMarks: function () { nests.forEach(function (v) { if (!v.refused.hidden) placeMarks(v, "r"); else if (!v.hsign.hidden) placeMarks(v, "h"); }); },
     /* For rigs: fill a nest's AD note and place it, as a frame does once it shows. */
     fillNote: function (id, note) { var v = nests[id]; v.note.hidden = false; fillNote(v.note, note); placeNote(v); return v.note.className; },
     /* A rejected Enter's words, above Time Warp's clock (boxes.js calls it). */
