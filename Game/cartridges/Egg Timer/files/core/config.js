@@ -240,7 +240,13 @@
     panSeconds: 0.32,        // [T] the frying pan's slam, well under 0.5 s; never holds the keyboard
     // (Refinement 2's fried eggs by overtime third are replaced by the egg ladder, Refinement 3 rulings, below.)
     thongPitchJitter: 0.06,  // [T] ±6% pitch on each THONG so repeats don't grate
-    errorSeconds: 1.0,       // [T] how long the red ERROR shows under the Command Line
+    errorSeconds: 1.0,       // [T] how long a rejected Enter's words show (above Time Warp's clock since 2026-10-02)
+    // ⏳ E60 PENDING (Chat): Chat's playtest (2026-10-02) put the rejected-Enter words directly above Time Warp's clock,
+    // never over a timer, nest or readout. At every measured size the top row's two middle readouts sit at that height
+    // (the gap between them: about 144 px at 1920×1080, 73 px at 1024×640), so "above" alone covers one. "drop": just
+    // above the clock where that's clear, else moved down onto the clock's top, just under those readouts (view.js
+    // measures it each time it shows). "above": always directly above, as asked, readouts or not.
+    rejectPlace: "drop",
     sound: true,            // ⏳ placeholder sounds, synthesised; the real ones are Gemini's
 
     // ── Music (Chat ruling, 2026-09-25) ──────────────────────────────────────

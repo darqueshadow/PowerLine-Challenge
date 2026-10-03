@@ -1050,6 +1050,49 @@
     return which;
   }
 
+  /* Chat's playtest rulings (2026-10-02): one message above Time Warp's clock for every Command Line. It shows for
+     errorSeconds; a repeat while it shows changes the words (if they differ) and restarts its time, and is never taken
+     away and put back, so a run of rejected Enters holds it steady instead of flashing it. */
+  var reject = { el: null, timer: null, shows: 0, log: [] };
+  /* Where the words go: centred on Time Warp's clock, just above it. ⏳ E60 "drop": where a readout or a nest is in the
+     way, moved down just under it, onto the clock's top, never as far as the TIME WARP sign. */
+  function placeReject() {
+    var el = reject.el;
+    var fr = field.getBoundingClientRect(), art = warp.querySelector(".clock-art").getBoundingClientRect();
+    var gap = 4, w = el.offsetWidth, h = el.offsetHeight;
+    var left = (art.left + art.right) / 2 - w / 2, top = art.top - gap - h;
+    var r = { left: left, right: left + w };
+    el.style.left = (left - fr.left) + "px";
+    el.style.top = (top - fr.top) + "px";
+    if (ET.CONFIG.rejectPlace !== "drop") return;
+    var keep = [];
+    nests.forEach(function (n) {
+      // every nest, in play or not: one may come into play while the words show
+      [].forEach.call(n.readout.children, function (e) { keep.push(e.getBoundingClientRect()); });
+      var s = n.svg.getBoundingClientRect();   // the egg and twigs (the art's empty margins left out), as the layout rig
+      keep.push({ left: s.left + s.width * 0.1, right: s.right - s.width * 0.1, top: s.top + s.height * 0.2, bottom: s.bottom - s.height * 0.1 });
+    });
+    for (var pass = 0; pass < 8; pass++) {
+      var moved = false;
+      keep.forEach(function (k) {
+        if (k.left < r.right && r.left < k.right && k.top < top + h && top < k.bottom) { top = k.bottom + gap; moved = true; }
+      });
+      if (!moved) break;
+    }
+    // never down onto the TIME WARP sign (its wobble stays clear of the words)
+    top = Math.min(top, warp.querySelector(".plaque").getBoundingClientRect().top - gap - h);
+    el.style.top = (top - fr.top) + "px";
+  }
+  function showReject(text) {
+    var el = reject.el;
+    if (!el) return;
+    if (el.textContent !== text) el.textContent = text;
+    if (el.hidden) { el.hidden = false; reject.shows++; reject.log.push(performance.now() / 1000); if (reject.log.length > 200) reject.log.splice(0, 100); }
+    placeReject();   // (new words are a new width; it never goes off and on again)
+    clearTimeout(reject.timer);
+    reject.timer = setTimeout(function () { el.hidden = true; }, ET.CONFIG.errorSeconds * 1000);
+  }
+
   ET.view = {
     build: function () {
       field = $("#field");
@@ -1066,6 +1109,13 @@
       hud.poolLabel.textContent = ET.CONFIG.poolKey;
       wall = { hm: $("#wall-hm"), ss: $("#wall-ss") };
       warp = $("#warp");
+      // Chat's playtest rulings (2026-10-02): a rejected Enter's words (ERROR, "Too Early!", "RCAV first!") show just above
+      // the grandfather clock, where the player is looking, on a solid dark plate with a light outline
+      reject.el = document.createElement("div");
+      reject.el.id = "reject";
+      reject.el.setAttribute("aria-live", "assertive");
+      reject.el.hidden = true;
+      field.appendChild(reject.el);   // over the board and the wave banner; placed at the clock by placeReject()
       // E27: the Time Accelerator's grandfather clock (⏳ placeholder art), in front of its plaque
       warp.insertBefore(ET.art.clockSvg(ET.CONFIG.warpFactor), warp.firstChild);
       hands = { hour: warp.querySelector(".hour"), minute: warp.querySelector(".minute"), face: warp.querySelector(".face") };
@@ -1451,6 +1501,10 @@
     /* For rigs: the scary mom face. `mom(which)` shows it now ("top" or "panel") and returns where it went;
        `momState()` gives this game's count so far and the next scheduled time. */
     mom: function (which) { return showMom(which); },
+    /* A rejected Enter's words, above Time Warp's clock (boxes.js calls it). */
+    reject: function (text) { showReject(text); },
+    /* For rigs: the message, whether it shows, and how many times (and when) it has come on. */
+    rejectState: function () { return { text: reject.el ? reject.el.textContent : "", shown: !!reject.el && !reject.el.hidden, shows: reject.shows, log: reject.log.slice() }; },
     momState: function () { return { shown: momShown, at: momAt, visible: !mom.box.hidden, kind: mom.kind || null, src: mom.head.getAttribute("src") }; },
 
     /* For rigs: the Time Warp lightning: shown, how many links, its path, and when it last re-jagged (seconds). */

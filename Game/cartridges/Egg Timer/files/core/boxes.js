@@ -8,7 +8,7 @@
      F12         the NEXT Command Line, and clear it (with 1 line: just clear it)
      F3          types COM at the cursor (Andrew's all-games rule, 2026-10-01)
      Enter       submit the active box. Any rejected Enter clears it and shows a
-                 red ERROR under it, with a buzz (Refinement 2 §6).
+                 red ERROR above Time Warp's clock, with a buzz (Refinement 2 §6; moved 2026-10-02).
    All of them wrap at the ends; with 1 line Tab does nothing. Ctrl+Tab, Alt and
    the arrows are left alone (Left/Right move the text cursor as normal).
    Esc (pause) is script.js's. Text staged in an inactive box clears when a new
@@ -58,15 +58,14 @@
     if (!r.ok && !r.blocked) showError(b, r.why);
   }
 
-  /* Refinement 2 §6: a red ERROR under the Command Line for about a second, and a buzz. Andrew, 2026-10-01: an RCAV
-     before its CAV's real duration has passed says "Too Early!" instead. E53 (ruled 2026-10-02): a CAV STR on a hospital
-     egg whose VS is still on says "RCAV first!". */
+  /* Refinement 2 §6: a red ERROR for about a second, and a buzz. Andrew, 2026-10-01: an RCAV before its CAV's real
+     duration has passed says "Too Early!" instead. E53 (ruled 2026-10-02): a CAV STR on a hospital egg whose VS is still
+     on says "RCAV first!". Chat's playtest rulings (2026-10-02): the words show above Time Warp's clock, where the player
+     is looking (view.js), not under the line; the line's border still turns red. A repeat while one shows holds it
+     steady and restarts its time: nothing goes off and on again, so it can't flash. */
   var WHY = { early: "Too Early!", "rcav-first": "RCAV first!" };
   function showError(b, why) {
-    b.el.querySelector(".err").textContent = WHY[why] || "ERROR";
-    b.el.classList.remove("rejected");
-    void b.el.offsetWidth;
-    b.el.style.setProperty("--error", ET.CONFIG.errorSeconds + "s");
+    if (ET.view && ET.view.reject) ET.view.reject(WHY[why] || "ERROR");
     b.el.classList.add("rejected");
     clearTimeout(b.errorTimer);
     b.errorTimer = setTimeout(function () { b.el.classList.remove("rejected"); }, ET.CONFIG.errorSeconds * 1000);
@@ -86,8 +85,7 @@
         el.className = "box";
         el.style.setProperty("--box", COLORS[i]);
         // E28: a grey "RCAV + unit" in an empty line, gone as soon as the player types
-        el.innerHTML = '<span class="num">' + (i + 1) + '</span><input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="60" placeholder="RCAV + unit">' +
-          '<span class="err" aria-live="assertive">ERROR</span>';
+        el.innerHTML = '<span class="num">' + (i + 1) + '</span><input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="60" placeholder="RCAV + unit">';
         consoleEl.insertBefore(el, document.querySelector("#line-hints"));
         var input = el.querySelector("input");
         input.setAttribute("aria-label", "Command Line " + (i + 1));
@@ -157,6 +155,7 @@
       return {
         count: count, active: active,
         error: boxes.slice(0, count).map(function (b) { return b.el.classList.contains("rejected"); }),
+        say: ET.view && ET.view.rejectState ? ET.view.rejectState() : null,
         values: boxes.slice(0, count).map(function (b) { return b.input.value; }),
         focused: document.activeElement === (boxes[active] && boxes[active].input)
       };

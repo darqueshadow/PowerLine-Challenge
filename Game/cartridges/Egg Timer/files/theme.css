@@ -22,7 +22,10 @@
   --outline: #1a0d2e;                     /* near-black aubergine (the cartoon outline everywhere) */
   --shadow: #000;                         /* black (every hard offset shadow) */
   --overlay: rgba(0, 0, 0, 0.55);         /* 55% black (pause veil) */
-  --error-red: #e8102a;                   /* alarm red (ERROR under a Command Line) */
+  --error-red: #e8102a;                   /* alarm red (a rejected Command Line's border) */
+  --reject-bg: #120814;                   /* near-black plum (the rejected-Enter message's plate, Chat 2026-10-02) */
+  --reject-ink: #ff6b78;                  /* light alarm red (its words, 6.4:1 on the plate) */
+  --reject-edge: #f4eccc;                 /* bone white (its outline) */
 
   /* Display boxes (the three readouts under each nest) */
   --readout-unit-bg: #fff;                /* white */

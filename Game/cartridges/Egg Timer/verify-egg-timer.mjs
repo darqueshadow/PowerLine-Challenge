@@ -544,15 +544,16 @@ try {
   await typeAndEnter(`RCAV ${n.unit}`);
   eq((await snap()).nests.find((x) => x.id === n.id).state, "active", "RCAV before the trigger does nothing");
   eq(await ev("__et.boxes().values[0]"), "", "a rejected Enter (RCAV too early) clears the Command Line");
-  eq(await ev("__et.boxes().error[0]"), true, "…and a red ERROR shows under it");
-  eq(await ev("document.querySelector('.box.active .err').textContent"), "Too Early!", "Andrew, 2026-10-01: an RCAV before the CAV's real duration says \"Too Early!\"");
-  eq(await ev("getComputedStyle(document.querySelector('.box.active .err')).visibility"), "visible", "…drawn directly under the box");
+  eq(await ev("__et.boxes().error[0]"), true, "…and the line's border turns red");
+  eq(await ev("[__et.boxes().say.text, __et.boxes().say.shown]"), ["Too Early!", true], "Andrew, 2026-10-01: an RCAV before the CAV's real duration says \"Too Early!\"");
   {
-    const eb = await ev("document.querySelector('.box.active').getBoundingClientRect().bottom");
-    const et = await ev("document.querySelector('.box.active .err').getBoundingClientRect().top");
-    const vh = await ev("innerHeight");
-    const errBottom = await ev("document.querySelector('.box.active .err').getBoundingClientRect().bottom");
-    ok(et >= eb && errBottom <= vh, `…below the box and still on screen   [box ${eb.toFixed(0)}, ERROR ${et.toFixed(0)}–${errBottom.toFixed(0)}, window ${vh}]`);
+    // Chat's playtest rulings (2026-10-02): the words sit just above Time Warp's clock, on a solid dark plate with a light
+    // outline, and no longer under the Command Line
+    const m = await ev(`(() => { const e = document.querySelector('#reject'), r = e.getBoundingClientRect(), a = document.querySelector('#warp .clock-art').getBoundingClientRect(), cs = getComputedStyle(e);
+      return { above: r.bottom <= a.bottom, centred: Math.abs((r.left + r.right) / 2 - (a.left + a.right) / 2) < 2, bg: cs.backgroundColor, edge: cs.borderTopColor, ink: cs.color,
+        anim: cs.animationName, underLine: !!document.querySelector('.box .err'), overBanner: Number(cs.zIndex) > Number(getComputedStyle(document.querySelector('#banner')).zIndex) }; })()`);
+    ok(m.above && m.centred && !m.underLine && m.overBanner, "Chat (2026-10-02): the words show at Time Warp's clock, centred on it, over the wave banner, not under the Command Line (⏳ E60: dropped onto its top where a readout is in the way)");
+    eq([m.bg, m.edge, m.ink, m.anim], ["rgb(18, 8, 20)", "rgb(244, 236, 204)", "rgb(255, 107, 120)", "none"], "…on a solid dark plate with a light outline, light red, steady (no animation)");
   }
   eq((await snap()).pool, 3, "…with no pool penalty");
   eq(await ev("document.querySelector('.box.active').getBoundingClientRect().width > 0.9 * document.querySelector('#console').getBoundingClientRect().width"), true, "…and the Command Line keeps its full width (no class clash with the title screen's .error)");
@@ -564,7 +565,20 @@ try {
     ok(gone, "the ERROR is gone after about a second");
   }
   await typeAndEnter("RCAV 1");
-  eq(await ev("document.querySelector('.box.active .err').textContent"), "ERROR", "…any other rejected Enter still says ERROR");
+  eq(await ev("__et.boxes().say.text"), "ERROR", "…any other rejected Enter still says ERROR");
+  {
+    // a run of rejected Enters holds the one message steady and restarts its time: it never goes off and on again
+    const s0 = await ev("__et.boxes().say.shows");
+    await typeAndEnter("RCAV 2");
+    await typeAndEnter("RCAV 3");
+    await typeAndEnter("RCAV 4");
+    const s1 = await ev("__et.boxes().say");
+    ok(s1.shown && s1.shows === s0, `Chat (2026-10-02): repeat errors hold one message steady and restart its time, no re-flash   [${s1.shows - s0} new showings for 3 more errors]`);
+    const log = s1.log;
+    let worst = 0;
+    for (let i = 0; i < log.length; i++) { let k = 0; for (let j = i; j < log.length && log[j] < log[i] + 1; j++) k++; worst = Math.max(worst, k); }
+    ok(worst <= 2, `SAFETY: the message comes on at most 2 times in any second   [worst ${worst}]`);
+  }
   for (let i = 0; i < 80 && (await ev("__et.boxes().error[0]")); i++) await wait(50);
   await c.insert("RCAV 1");
   await press("F12");
@@ -1115,7 +1129,7 @@ try {
     eq([sign.onReadout, sign.onEgg], [false, false], "…on the nest's shoulder, clear of the readout and the egg");
     eq(await ev(`${q(" .refused")}.hidden`), true, "Chat (2026-10-02): a hospital egg never gets the \"Patient Refused\" bubble");
     await typeAndEnter(`CAV ${h.unit} STR`);
-    eq([await ev("__et.boxes().values[0]"), await ev("__et.boxes().error[0]"), await ev("document.querySelector('.box .err').textContent")], ["", true, "RCAV first!"], "E53: CAV STR before the RCAV: the line clears and says \"RCAV first!\"");
+    eq([await ev("__et.boxes().values[0]"), await ev("__et.boxes().error[0]"), await ev("__et.boxes().say.text")], ["", true, "RCAV first!"], "E53: CAV STR before the RCAV: the line clears and says \"RCAV first!\"");
     await ev(`(() => { for (let i = 0; i < 1200 && __et.snapshot().nests.find(n => n.id === ${h.id}).state !== 'overtime'; i++) __et.advance(0.05); return 1; })()`);
     await press("F12");
     await typeAndEnter(`RCAV ${h.unit}`);
@@ -1625,11 +1639,21 @@ try {
       const bubbleAbove = [...document.querySelectorAll('.nest')].every(n => n.querySelector('.refused').getBoundingClientRect().bottom <= n.querySelector('.clock').getBoundingClientRect().top);
       const bubbleSize = Math.round(Math.min(...bubbles.map(r => r.width)));
       document.querySelectorAll('.nest .refused').forEach(p => { p.hidden = true; p.style.animation = ''; });
+      // Chat (2026-10-02): the rejected-Enter message, at its longest, above Time Warp's clock: clear of every nest, readout,
+      // Command Line, the trough, the hose tag and the wall clock, and on the board
+      const rj = document.querySelector('#reject'), rjWas = rj.textContent;
+      rj.hidden = true; ET.view.reject('RCAV first!');   // placed as the game places it (⏳ E60 "drop")
+      const rr = rj.getBoundingClientRect(), artBox = document.querySelector('#warp .clock-art').getBoundingClientRect(), artTop = artBox.top;
+      const rejectKeep = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock, #warp .plaque, #warp .caption')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0);
+      const rejectHits = rejectKeep.concat(nests.map(x => x.art)).filter(o => hit(rr, o)).length;
+      const rejectOk = rr.top >= f.top && rr.left >= f.left && rr.right <= f.right && rr.bottom <= artBox.bottom;
+      const rejectBox = [Math.round(rr.width), Math.round(rr.height)], rejectOnClock = Math.max(0, Math.round(rr.bottom - artTop)), clockTall = Math.round(artBox.height);
+      rj.hidden = true; rj.textContent = rjWas;
       // E24: the mute button in the HUD bar's left end, clear of its words, the wall clock and the board
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1642,6 +1666,7 @@ try {
     eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading fits inside its box   ${at}`);
     ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
     ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleSize >= 44, `Chat (2026-10-02): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout, nest, Command Line, the trough, the hose tag, the wall clock and each other   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide]`);
+    ok(lay.rejectHits === 0 && lay.rejectOk, `Chat (2026-10-02): the rejected-Enter message sits at Time Warp's clock, on the board, clear of every nest, readout, Command Line, the trough, the hose tag, the wall clock and the TIME WARP sign and caption   ${at} [${lay.rejectHits} touching, ${lay.rejectBox.join("×")} px, ⏳ E60: ${lay.rejectOnClock} of the clock's ${lay.clockTall} px covered]`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);
     eq(lay.covered, 0, `no nest's egg or twigs cover another nest's readout   ${at}`);
