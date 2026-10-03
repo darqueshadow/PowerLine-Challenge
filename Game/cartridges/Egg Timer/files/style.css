@@ -776,13 +776,15 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 /* Chat (2026-10-03, D): the horror alien's slime where it hit the screen (view.js slime()): on the board, under Time Warp,
    every nest, readout and timer. Mom's drool purple, never red, with the same steady glow. Its streaks run down once;
    the whole of it fades over its last 1.2 s. No flash: nothing brightens. Reduced motion: short streaks, no run. */
-.slime { position: absolute; z-index: 0; pointer-events: none; animation: slime-fade 1.2s ease-in calc(var(--life, 4.5s) - 1.2s) forwards; }
-.slime svg { display: block; width: 100%; overflow: visible; filter: drop-shadow(0 0 5px var(--mom-drool-glow)); }
+/* D2 (2026-10-03): near its nest (view.js picks the spot), twice the size, held fully there for --hold, then it fades
+   over --fade while its drips run; the glow brighter and wider than the drool's (two steady halos), never pulsing */
+.slime { position: absolute; z-index: 0; pointer-events: none; animation: slime-fade var(--fade, 4s) ease-in var(--hold, 2s) forwards; }
+.slime svg { display: block; width: 100%; overflow: visible; filter: drop-shadow(0 0 6px var(--mom-drool)) drop-shadow(0 0 16px var(--mom-drool-glow)); }
 .slime .blob { fill: var(--mom-drool); stroke: var(--outline); stroke-width: 2.5; }
 .slime .drip { fill: none; stroke: var(--mom-drool); stroke-linecap: round; }
 .slime .bulb { fill: var(--mom-drool); }
 .slime .shine { fill: none; stroke: var(--mom-drool-shine); stroke-width: 2.2; stroke-linecap: round; opacity: 0.75; }
-.slime .run { transform-box: fill-box; transform-origin: 50% 0; animation: slime-run 2s ease-in both; }
+.slime .run { transform-box: fill-box; transform-origin: 50% 0; animation: slime-run 2s ease-in var(--hold, 2s) both; }
 @keyframes slime-run { from { transform: scaleY(0.05); } to { transform: none; } }
 @keyframes slime-fade { to { opacity: 0; } }
 .slime.still .run { animation: none; }

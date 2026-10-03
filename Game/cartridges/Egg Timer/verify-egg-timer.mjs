@@ -908,9 +908,17 @@ try {
     ok(!!h && h.gone !== undefined && h.gone - h.big >= 0.3 && h.gone <= C.total + 0.4, `…holds a moment, then drops away out of view   [held ${h && h.gone !== undefined ? (h.gone - h.big).toFixed(2) : "?"} s, gone at ${h && h.gone && h.gone.toFixed(2)} s]`);
     {
       const jump = C.total * (1 - C.leap), want = C.leap * C.total + 0.18 * jump;
-      ok(!!h && near(h.slime, want, 0.25) && h.slimeUnder && h.slimeFill === "rgb(176, 77, 255)" && h.slimeFade === "slime-fade", `Chat (2026-10-03, D): as the alien hits the screen a glowing purple splat lands, under Time Warp, every nest, readout and timer   [at ${h && h.slime && h.slime.toFixed(2)} s, ${want.toFixed(2)} wanted; ${h && h.slimeFill}]`);
+      ok(!!h && near(h.slime, want, 0.25) && h.slimeUnder && h.slimeFill === "rgb(176, 77, 255)" && h.slimeFade === "slime-fade", `Chat (2026-10-03, D): as the alien hits the screen a glowing purple splat lands, in a layer under Time Warp, every nest, readout and timer   [at ${h && h.slime && h.slime.toFixed(2)} s, ${want.toFixed(2)} wanted; ${h && h.slimeFill}]`);
       ok(!!h && h.slimeRuns.length >= 4 && h.slimeRuns.every((a) => a === "slime-run") && !h.slimeStill, `…its slime streaks run down, then all of it fades and goes   [${h && h.slimeRuns.length} streaks]`);
-      const gone = await ev(`new Promise((done) => setTimeout(() => done(document.querySelectorAll('#board .slime').length), ET.CONFIG.hatchSlime.seconds * 1000 + 600))`);
+      // D2 (2026-10-03): near the hatching nest, clear of every nest, readout, Time Warp, the hose tag; held, then fading
+      const sl = await ev(`(() => { const e = document.querySelector('#board .slime'); if (!e) return null; const r = e.getBoundingClientRect();
+        const hit = (a, c) => a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom;
+        const keep = [...document.querySelectorAll('.nest')].map(n => { const s = n.querySelector('.nest-art').getBoundingClientRect(); return { left: s.left + s.width * 0.1, right: s.right - s.width * 0.1, top: s.top + s.height * 0.2, bottom: s.bottom - s.height * 0.1 }; })
+          .concat([...document.querySelectorAll('.nest .readout > span, #warp .clock-art, #warp .plaque, #warp .caption, #hose-tag, .wallclock, #console .box')].map(x => x.getBoundingClientRect()).filter(x => x.width > 0));
+        const cs = getComputedStyle(e), log = ET.view.slimeLog();
+        return { clear: !keep.some(k => hit(r, k)), w: Math.round(r.width), delay: cs.animationDelay, dur: cs.animationDuration, glow: getComputedStyle(e.querySelector('svg')).filter, last: log[log.length - 1] }; })()`);
+      ok(!!sl && sl.clear && sl.delay === "2s" && sl.dur === "4s" && /drop-shadow.*drop-shadow/.test(sl.glow), `Chat (2026-10-03, D2): it lands at the clear spot nearest its nest, touching no nest, readout, Time Warp, the hose tag or a Command Line; fully there 2 s, then fading over 4 s, two steady halos   [${sl && sl.w} px wide, scale ${sl && sl.last && sl.last.scale}]`);
+      const gone = await ev(`new Promise((done) => setTimeout(() => done(document.querySelectorAll('#board .slime').length), (ET.CONFIG.hatchSlime.hold + ET.CONFIG.hatchSlime.fade) * 1000 + 600))`);
       eq(gone, 0, "…and is gone by itself after its few seconds");
     }
     ok(!!h && h.hushAtFreeze && h.hushStare && h.stingers === 1 && !h.hushEnd, `the sound (Andrew, 2026-10-01): the music drops out for the stare, the jump hits with the stinger, and the music comes back   [${JSON.stringify(h && [h.hushAtFreeze, h.hushStare, h.stingers, h.hushEnd])}]`);

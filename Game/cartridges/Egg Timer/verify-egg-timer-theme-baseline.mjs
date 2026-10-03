@@ -3215,9 +3215,9 @@ export default {
   "animation-play-state": "paused"
  },
  ".slime": {
-  "animation-delay": "calc(3.3s)",
+  "animation-delay": "2s",
   "animation-direction": "normal",
-  "animation-duration": "1.2s",
+  "animation-duration": "4s",
   "animation-fill-mode": "forwards",
   "animation-iteration-count": "1",
   "animation-name": "slime-fade",
@@ -3232,7 +3232,7 @@ export default {
  },
  ".slime svg": {
   "display": "block",
-  "filter": "drop-shadow(rgba(199, 125, 255, 0.7) 0px 0px 5px)",
+  "filter": "drop-shadow(rgb(176, 77, 255) 0px 0px 6px) drop-shadow(rgba(199, 125, 255, 0.7) 0px 0px 16px)",
   "overflow-x": "visible",
   "overflow-y": "visible",
   "width": "100%"
@@ -3258,7 +3258,7 @@ export default {
   "stroke-width": "2.2"
  },
  ".slime .run": {
-  "animation-delay": "0s",
+  "animation-delay": "2s",
   "animation-direction": "normal",
   "animation-duration": "2s",
   "animation-fill-mode": "both",
