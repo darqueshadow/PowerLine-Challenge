@@ -773,11 +773,11 @@ section("U. ⏳ E59 (2026-10-02): one mode, the type bag back; E56: about 70% of
   };
   const laid = run(4);
   const codes = [...new Set(laid.map((x) => x.code))].sort();
-  eq(codes, ["AD", "EOS", "MB", "SS", "VF", "VS"], "E59 (bag): every type in the table is laid but the STR (the hospital step); VF is back (Chat, 2026-10-03)");
+  eq(codes, ["AD", "EOS", "MB", "SS", "VS"], "E59 (bag): every type in the table is laid but the STR (the hospital step) and VF (out of play: vfInPlay false, Chat 2026-10-03, E)");
   // a shuffle bag: every run of 5 straight from a fresh bag holds each type once (a wave start empties the bag, so
   // count within the first wave's eggs only)
-  const first6 = laid.slice(0, 6).map((x) => x.code).sort();
-  eq(first6, ["AD", "EOS", "MB", "SS", "VF", "VS"], "…out of a shuffle bag: the first six eggs are one of each");
+  const first5 = laid.slice(0, 5).map((x) => x.code).sort();
+  eq(first5, ["AD", "EOS", "MB", "SS", "VS"], "…out of a shuffle bag: the first five eggs are one of each");
   const counts = codes.map((k) => laid.filter((x) => x.code === k).length);
   ok(Math.max(...counts) - Math.min(...counts) <= 12, `…so the mix stays even   [${codes.map((k, i) => k + " " + counts[i]).join(", ")}]`);
   ok(laid.filter((x) => x.hospital).every((x) => x.code === "VS"), "only a VS egg can be a hospital egg");
@@ -790,8 +790,15 @@ section("U. ⏳ E59 (2026-10-02): one mode, the type bag back; E56: about 70% of
   for (let i = 0; i < 20000 && laidVS.length < 40; i++) { allVS.pool = 3; allVS.step(0.05); allVS.drain().forEach((e) => { if (e.type === "laying") laidVS.push(allVS.nests[e.nest].type.code); }); inState(allVS, "overtime").forEach((n) => allVS.submit("RCAV " + n.unit)); }
   ok(laidVS.length >= 40 && laidVS.every((c) => c === "VS"), `the switch's "VS" is E54 as built: every egg a VS   [${laidVS.length}]`);
   eq(ET.CONFIG.hospitalShare, 0.7, "E56: the share is a setting, 0.7 [T]");
-  const vfShare = laid.filter((x) => x.code === "VF").length / laid.length;
-  ok(Math.abs(vfShare - 1 / 6) < 0.03, `VF makes up a sixth of the eggs (one in each bag of six)   [${(vfShare * 100).toFixed(1)}%]`);
+  eq([ET.CONFIG.vfInPlay, laid.filter((x) => x.code === "VF").length], [false, 0], "Chat (2026-10-03, E): VF is out of play, behind a switch: no VF egg is laid");
+  {
+    const was = ET.CONFIG.vfInPlay;
+    ET.CONFIG.vfInPlay = true;
+    try {
+      const vfRun = run(4), vfShare = vfRun.filter((x) => x.code === "VF").length / vfRun.length;
+      ok(Math.abs(vfShare - 1 / 6) < 0.03, `…and with the switch on, VF is back in the bag, one egg in six, as built   [${(vfShare * 100).toFixed(1)}%]`);
+    } finally { ET.CONFIG.vfInPlay = was; }
+  }
   eq(JSON.stringify(run(9).slice(0, 60)), JSON.stringify(run(9).slice(0, 60)), "the roll comes from the game's seeded source, so ?seed= replays which eggs are hospital eggs");
   const none = new ET.Game({ types, units, rng: ET.seededRandom(3), hospitalShare: 0 });
   eq([none.first.code, none.second.code], ["VS", "STR"], "the game takes its VS and STR from the table by code");

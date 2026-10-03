@@ -45,6 +45,9 @@
     // says DONE in green for vfDoneSeconds (one soft pulse, then held), then it is the normal pink bold timer. A code-drawn
     // alien pump stands in the egg while it fuels and pulls out at DONE.
     fuelType: "VF",
+    // Chat (2026-10-03, E): VF is out of play: the bag is VS, SS, EOS, MB, AD. Its FUELING / DONE timer box and its pump
+    // stay in the code and the art; true puts VF back in the bag as it was built.
+    vfInPlay: false,
     vfDoneSeconds: 0.9,      // [T] 0.3 s pulse + about 0.6 s held
     hospitalType: "STR",
     hospitalShare: 0.7,      // [T] E56 (ruled): about 70% are hospital eggs, a plain random roll per egg

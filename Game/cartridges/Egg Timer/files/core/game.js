@@ -59,10 +59,10 @@
     this.first = byCode(this.types, C.eggType);
     this.second = byCode(this.types, C.hospitalType);
     // E59 (ruled): which types eggs are laid with ("bag": every row of the table but the STR, the hospital step; VF back
-    // in since Chat's combined batch, 2026-10-03; "VS": E54)
+    // in since Chat's combined batch, 2026-10-03, then out again by vfInPlay, item E; "VS": E54)
     var self = this;
     this.eggTypes = (opts.eggTypes || C.eggTypes) === "VS" ? (this.first ? [this.first] : [])
-      : this.types.filter(function (t) { return t !== self.second; });
+      : this.types.filter(function (t) { return t !== self.second && (C.vfInPlay || t.code !== C.fuelType); });   // E: VF off
     this.typeBag = [];
     this.hospitalShare = opts.hospitalShare !== undefined ? opts.hospitalShare : C.hospitalShare;
     // the pool is the distinct unit numbers (Refinement 4 §3); the sheet's five doubles were removed 2026-09-23, this stays as a guard

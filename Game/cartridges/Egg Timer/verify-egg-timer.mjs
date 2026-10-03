@@ -1247,7 +1247,8 @@ try {
   {
     // Chat (2026-10-03, combined batch Part 2): a VF fuels: FUELING in its timer box, its pump in the egg; DONE in green as
     // it goes bold (the RCAV window opens then), then the ordinary pink timer. Its clock runs on, hidden.
-    const vf = await ev(`(() => { __et.start(1, { hospital: 0, eggTypes: "bag" }); let n = null;
+    // (Chat, 2026-10-03, E: VF is out of play; this scene switches it back on to keep its timer box and pump tested)
+    const vf = await ev(`(() => { window.__vfWas = ET.CONFIG.vfInPlay; ET.CONFIG.vfInPlay = true; __et.start(1, { hospital: 0, eggTypes: "bag" }); let n = null;
       const clr = (keep) => __et.snapshot().nests.filter(x => x.state === 'overtime' && x.id !== keep).forEach(x => { __et.submit('RCAV ' + x.unit); if (x.hospital) __et.submit('CAV ' + x.unit + ' STR'); });
       for (let i = 0; i < 20000 && !(n = __et.snapshot().nests.find(x => x.state === 'active' && x.code === 'VF')); i++) { __et.advance(0.05); clr(-1); }
       if (!n) return null; __et.advance(0.5); clr(n.id);
@@ -1268,6 +1269,7 @@ try {
     ok(done.a.text === "DONE" && done.a.bg === "rgb(36, 196, 90)" && done.a.anim === "fuel-done" && done.a.out === "pump-out" && done.a.since < 0.1, `…as it goes bold the box turns green and says DONE with one soft pulse, and the pump pulls out   [${done.a.text}, ${done.a.bg}]`);
     ok(/^\d\d:\d\d$/.test(done.b.text) && done.b.bg === "rgb(209, 0, 106)" && done.b.pump === "none", `…then, after ${await ev("ET.CONFIG.vfDoneSeconds")} s, the ordinary pink bold timer   [${done.b.text}, ${done.b.bg}]`);
     ok((await ev(`(__et.submit('RCAV ${vf.unit}') || {}).ok`)) === true, "…and an RCAV clears it, as any egg");
+    await ev("(ET.CONFIG.vfInPlay = window.__vfWas, 1)");
   }
   {
     // Chat (2026-10-03): an AD egg's "Clear @ HH:MM" note, back, stuck on beside its nest, from the pop until it's cleared
