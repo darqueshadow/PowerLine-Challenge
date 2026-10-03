@@ -3211,8 +3211,88 @@ export default {
  ".nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip": {
   "animation-play-state": "paused"
  },
- "body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg": {
+ "body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg, body.paused .slime, body.paused .slime .run": {
   "animation-play-state": "paused"
+ },
+ ".slime": {
+  "animation-delay": "calc(3.3s)",
+  "animation-direction": "normal",
+  "animation-duration": "1.2s",
+  "animation-fill-mode": "forwards",
+  "animation-iteration-count": "1",
+  "animation-name": "slime-fade",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in",
+  "pointer-events": "none",
+  "position": "absolute",
+  "z-index": "0"
+ },
+ ".slime svg": {
+  "display": "block",
+  "filter": "drop-shadow(rgba(199, 125, 255, 0.7) 0px 0px 5px)",
+  "overflow-x": "visible",
+  "overflow-y": "visible",
+  "width": "100%"
+ },
+ ".slime .blob": {
+  "fill": "rgb(176, 77, 255)",
+  "stroke": "rgb(26, 13, 46)",
+  "stroke-width": "2.5"
+ },
+ ".slime .drip": {
+  "fill": "none",
+  "stroke": "rgb(176, 77, 255)",
+  "stroke-linecap": "round"
+ },
+ ".slime .bulb": {
+  "fill": "rgb(176, 77, 255)"
+ },
+ ".slime .shine": {
+  "fill": "none",
+  "opacity": "0.75",
+  "stroke": "rgb(243, 220, 255)",
+  "stroke-linecap": "round",
+  "stroke-width": "2.2"
+ },
+ ".slime .run": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "2s",
+  "animation-fill-mode": "both",
+  "animation-iteration-count": "1",
+  "animation-name": "slime-run",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease-in",
+  "transform-box": "fill-box",
+  "transform-origin": "50% 0px"
+ },
+ "@keyframes slime-run » 0%": {
+  "transform": "scaleY(0.05)"
+ },
+ "@keyframes slime-run » 100%": {
+  "transform": "none"
+ },
+ "@keyframes slime-fade » 100%": {
+  "opacity": "0"
+ },
+ ".slime.still .run": {
+  "animation-delay": "0s",
+  "animation-direction": "normal",
+  "animation-duration": "auto",
+  "animation-fill-mode": "none",
+  "animation-iteration-count": "1",
+  "animation-name": "none",
+  "animation-play-state": "running",
+  "animation-range-end": "normal",
+  "animation-range-start": "normal",
+  "animation-timeline": "auto",
+  "animation-timing-function": "ease"
  },
  "@keyframes hatch-scare » 0%": {
   "transform": "translate(0px, 0px)"

@@ -890,6 +890,11 @@ try {
         } else if (out.big !== undefined && out.gone === undefined) {
           out.gone = t;
         }
+        // Chat (2026-10-03, D): the slime, as the alien hits the screen
+        const sl = document.querySelector('#board .slime');
+        if (sl && out.slime === undefined) { const warp = document.querySelector('#warp'), bl = sl.querySelector('.blob');
+          out.slime = t; out.slimeUnder = !!(sl.compareDocumentPosition(warp) & Node.DOCUMENT_POSITION_FOLLOWING) && getComputedStyle(sl).zIndex === '0';
+          out.slimeFill = getComputedStyle(bl).fill; out.slimeStill = sl.classList.contains('still'); out.slimeRuns = [...sl.querySelectorAll('.run')].map(g => getComputedStyle(g).animationName); out.slimeFade = getComputedStyle(sl).animationName; }
         if (t < 4.6) requestAnimationFrame(look); else { out.hushEnd = ET.audio.hushed(); done(out); }
       })();
     })`);
@@ -901,6 +906,13 @@ try {
     ok(!!h && near(h.leap, C.leap * C.total) && h.alien === "scuttler" && h.leapt, `…then jumps at the player: the same alien, out of its nest   [at ${h && h.leap && h.leap.toFixed(2)} s]`);
     ok(!!h && h.big !== undefined && h.big - h.leap <= 0.3, `…sudden and fast: it fills the screen almost at once   [${h && h.big !== undefined ? ((h.big - h.leap) * 1000).toFixed(0) + " ms" : "never"}]`);
     ok(!!h && h.gone !== undefined && h.gone - h.big >= 0.3 && h.gone <= C.total + 0.4, `…holds a moment, then drops away out of view   [held ${h && h.gone !== undefined ? (h.gone - h.big).toFixed(2) : "?"} s, gone at ${h && h.gone && h.gone.toFixed(2)} s]`);
+    {
+      const jump = C.total * (1 - C.leap), want = C.leap * C.total + 0.18 * jump;
+      ok(!!h && near(h.slime, want, 0.25) && h.slimeUnder && h.slimeFill === "rgb(176, 77, 255)" && h.slimeFade === "slime-fade", `Chat (2026-10-03, D): as the alien hits the screen a glowing purple splat lands, under Time Warp, every nest, readout and timer   [at ${h && h.slime && h.slime.toFixed(2)} s, ${want.toFixed(2)} wanted; ${h && h.slimeFill}]`);
+      ok(!!h && h.slimeRuns.length >= 4 && h.slimeRuns.every((a) => a === "slime-run") && !h.slimeStill, `…its slime streaks run down, then all of it fades and goes   [${h && h.slimeRuns.length} streaks]`);
+      const gone = await ev(`new Promise((done) => setTimeout(() => done(document.querySelectorAll('#board .slime').length), ET.CONFIG.hatchSlime.seconds * 1000 + 600))`);
+      eq(gone, 0, "…and is gone by itself after its few seconds");
+    }
     ok(!!h && h.hushAtFreeze && h.hushStare && h.stingers === 1 && !h.hushEnd, `the sound (Andrew, 2026-10-01): the music drops out for the stare, the jump hits with the stinger, and the music comes back   [${JSON.stringify(h && [h.hushAtFreeze, h.hushStare, h.stingers, h.hushEnd])}]`);
     {
       // levels, with the randomness seeded (as in section S): the stinger as loud as THONG and no louder; the boing under the loud cues
@@ -918,13 +930,14 @@ try {
     ok(!!k && k.anim === "hatch-hop" && k.leap === undefined && k.freeze === undefined, `a cute hatch comes out, dances and ends with a goofy hop toward the player: no freeze, no scare   [${k && k.anim}]`);
     ok(!!k && k.boing !== undefined && near(k.boing, C.freeze * C.total) && !k.hushEnd, `…with a boing as it hops, and the music never drops out   [at ${k && k.boing && k.boing.toFixed(2)} s]`);
     const kf = await ev(`(() => { const out = {}; for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; }
-      for (const r of rs) if (r.type === CSSRule.KEYFRAMES_RULE && ['hatch-scare', 'hatch-hop', 'scare-jump'].includes(r.name)) out[r.name] = /opacity|filter|brightness|color/.test(r.cssText); } return out; })()`);
-    eq(kf, { "hatch-scare": false, "hatch-hop": false, "scare-jump": false }, "SAFETY: the hatch only moves: nothing in it changes opacity, colour or brightness, so nothing can flash");
+      for (const r of rs) if (r.type === CSSRule.KEYFRAMES_RULE && ['hatch-scare', 'hatch-hop', 'scare-jump', 'slime-run'].includes(r.name)) out[r.name] = /opacity|filter|brightness|color/.test(r.cssText); } return out; })()`);
+    eq(Object.keys(kf).sort().map((k) => k + " " + kf[k]), ["hatch-hop false", "hatch-scare false", "scare-jump false", "slime-run false"], "SAFETY: the hatch only moves: nothing in it changes opacity, colour or brightness, so nothing can flash (the slime's streaks too; it fades once, slowly, as it goes)");
     await c.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     for (let i = 0; i < 60 && !(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
     const r = await hatchRun("horror", "wriggler", "scare");
     ok(!!r && r.anim === "none", `reduced motion: the alien sits still in its nest   [${r && r.anim}]`);
     ok(!!r && r.still && r.transform === "none" && near(r.leap, C.leap * C.total), `E49 (ruled "still"): the full-screen alien just appears for the hold, no zoom, no movement   [${r && r.transform}]`);
+    ok(!!r && r.slimeStill && near(r.slime, C.leap * C.total, 0.2) && r.slimeRuns.every((a) => a === "none"), `Chat (2026-10-03, D): reduced motion: the splat is there at once, its short streaks still, and it fades as it goes   [${r && r.slimeRuns.join(" ")}]`);
     await c.send("Emulation.setEmulatedMedia", { features: [] });
     for (let i = 0; i < 60 && (await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")); i++) await wait(50);
   }

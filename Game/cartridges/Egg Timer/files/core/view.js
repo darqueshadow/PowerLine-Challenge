@@ -842,7 +842,12 @@
         return;
       }
       if (!h.frozen && h.t >= C.hatchScare.freeze * total) { h.frozen = true; h.v.el.classList.add("freeze"); if (ET.audio) ET.audio.stare(); }
-      if (!h.leapt && h.t >= C.hatchScare.leap * total) { h.leapt = true; leap(h.v); }
+      if (!h.leapt && h.t >= C.hatchScare.leap * total) {
+        h.leapt = true;
+        // the slime lands as the alien hits the screen (Chat, 2026-10-03, D); under reduced motion it's there at once
+        if (leap(h.v)) h.slimeAt = h.t + (reducedMotion() ? 0 : C.hatchSlime.impact * total * (1 - C.hatchScare.leap));
+      }
+      if (h.slimeAt !== undefined && !h.slimed && h.t >= h.slimeAt) { h.slimed = true; slime(); }
     });
     hatching = hatching.filter(function (h) { return h.t < total; });
   }
@@ -850,7 +855,7 @@
   function leap(v) {
     var still = reducedMotion();
     var alien = v.el.dataset.alien;
-    if ((still && ET.CONFIG.hatchScareReduced === "none") || !alien || !scare) { if (ET.audio) ET.audio.unhush(0); return; }
+    if ((still && ET.CONFIG.hatchScareReduced === "none") || !alien || !scare) { if (ET.audio) ET.audio.unhush(0); return false; }
     if (ET.audio) ET.audio.stinger();   // the stinger, and the music back after it
     ET.aliens.fill(scare.slot, alien);
     scare.nest = v;
@@ -867,6 +872,59 @@
     scare.el.classList.remove("go");
     void scare.el.offsetWidth;
     scare.el.classList.add("go");
+    return true;
+  }
+  /* Chat (2026-10-03, D): the horror alien's slime, where it hit the screen (the middle of the view). One layer on the
+     board, after the floor gunk and before Time Warp, so the clock, every nest, readout and timer draw over it, and the
+     Command Lines are off the board. A flat purple splat (irregular, glossy, glowing steadily like Mom's drool), a few
+     droplets, and streaks that run down from its lower edge; the whole of it fades out over its last 1.2 s and goes.
+     A pause holds it (body.paused). Reduced motion: the streaks are short and don't run. */
+  function slime() {
+    var C = ET.CONFIG.hatchSlime, b = board.getBoundingClientRect(), still = reducedMotion();
+    var size = Math.min(b.width, b.height) * C.size, NSV = "http://www.w3.org/2000/svg";
+    var d = document.createElement("div");
+    d.className = "slime" + (still ? " still" : "");
+    d.style.left = (innerWidth / 2 - b.left - size / 2).toFixed(1) + "px";
+    d.style.top = (innerHeight / 2 - b.top - size / 2).toFixed(1) + "px";
+    d.style.width = size.toFixed(1) + "px";
+    d.style.setProperty("--life", C.seconds + "s");
+    var svg = document.createElementNS(NSV, "svg");
+    svg.setAttribute("viewBox", "-50 -50 100 260");
+    svg.setAttribute("aria-hidden", "true");
+    var mk = function (tag, attrs) { var e = document.createElementNS(NSV, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; };
+    // the streaks first, so the splat's edge sits over their tops
+    var runs = 4 + Math.floor(Math.random() * 3);
+    for (var i = 0; i < runs; i++) {
+      var x = -30 + 60 * (i + 0.2 + Math.random() * 0.6) / runs, w = 5 + Math.random() * 5;
+      var len = still ? 18 + Math.random() * 18 : 60 + Math.random() * 130, top = 18 + Math.random() * 10;
+      var g = document.createElementNS(NSV, "g");
+      g.setAttribute("class", "run");
+      g.style.animationDuration = (1.4 + Math.random() * 1.1).toFixed(2) + "s";
+      g.style.animationDelay = (Math.random() * 0.35).toFixed(2) + "s";
+      svg.appendChild(g);
+      var line = document.createElementNS(NSV, "path");
+      line.setAttribute("class", "drip");
+      line.setAttribute("d", "M" + x.toFixed(1) + " " + top.toFixed(1) + " L" + (x + (Math.random() - 0.5) * 4).toFixed(1) + " " + (top + len).toFixed(1));
+      line.setAttribute("stroke-width", w.toFixed(1));
+      g.appendChild(line);
+      var bulb = document.createElementNS(NSV, "circle");
+      bulb.setAttribute("class", "bulb");
+      bulb.setAttribute("cx", x.toFixed(1)); bulb.setAttribute("cy", (top + len).toFixed(1)); bulb.setAttribute("r", (w * 0.75).toFixed(1));
+      g.appendChild(bulb);
+    }
+    // the splat: an irregular blob, a few droplets thrown off it, and glossy streaks
+    var pts = [], n = 11;
+    for (var k = 0; k < n; k++) { var a = k / n * Math.PI * 2, r = 26 + Math.random() * 14; pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.86]); }
+    var path = "M" + ((pts[0][0] + pts[n - 1][0]) / 2).toFixed(1) + " " + ((pts[0][1] + pts[n - 1][1]) / 2).toFixed(1);
+    for (k = 0; k < n; k++) { var p = pts[k], q = pts[(k + 1) % n]; path += " Q" + p[0].toFixed(1) + " " + p[1].toFixed(1) + " " + ((p[0] + q[0]) / 2).toFixed(1) + " " + ((p[1] + q[1]) / 2).toFixed(1); }
+    mk("path", { class: "blob", d: path + " Z" });
+    for (k = 0; k < 5; k++) { var a2 = Math.random() * Math.PI * 2, r2 = 44 + Math.random() * 10; mk("circle", { class: "blob", cx: (Math.cos(a2) * r2).toFixed(1), cy: (Math.sin(a2) * r2 * 0.86).toFixed(1), r: (2 + Math.random() * 3).toFixed(1) }); }
+    mk("path", { class: "shine", d: "M-16 -14 Q-6 -22 6 -18" });
+    mk("path", { class: "shine", d: "M10 -8 Q16 -6 18 2" });
+    d.appendChild(svg);
+    d.addEventListener("animationend", function (e) { if (e.target === d && d.parentNode) d.parentNode.removeChild(d); });
+    board.insertBefore(d, warp);
+    return d;
   }
 
   var nozzle = null;
@@ -1376,6 +1434,7 @@
     },
 
     reset: function () {
+      [].forEach.call(document.querySelectorAll("#board .slime"), function (s) { s.parentNode.removeChild(s); });   // D: a new game, a clean screen
       nests.forEach(function (v) {
         v.el.classList.add("inactive");
         v.el.classList.remove("unlock");

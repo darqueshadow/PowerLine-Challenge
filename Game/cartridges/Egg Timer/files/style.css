@@ -772,7 +772,20 @@ h2 {
 :is(.nest, .toon).hop .creature { animation: hatch-hop var(--hatch, 3.2s) ease-in-out forwards; }
 .nest.leapt .creature { visibility: hidden; }
 .nest.freeze .alien .wig, .nest.freeze .alien .squish, .nest.freeze .alien .drip { animation-play-state: paused; }
-body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg { animation-play-state: paused; }
+body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .alien .squish, body.paused .nest .alien .drip, body.paused #scare.go svg, body.paused .slime, body.paused .slime .run { animation-play-state: paused; }
+/* Chat (2026-10-03, D): the horror alien's slime where it hit the screen (view.js slime()): on the board, under Time Warp,
+   every nest, readout and timer. Mom's drool purple, never red, with the same steady glow. Its streaks run down once;
+   the whole of it fades over its last 1.2 s. No flash: nothing brightens. Reduced motion: short streaks, no run. */
+.slime { position: absolute; z-index: 0; pointer-events: none; animation: slime-fade 1.2s ease-in calc(var(--life, 4.5s) - 1.2s) forwards; }
+.slime svg { display: block; width: 100%; overflow: visible; filter: drop-shadow(0 0 5px var(--mom-drool-glow)); }
+.slime .blob { fill: var(--mom-drool); stroke: var(--outline); stroke-width: 2.5; }
+.slime .drip { fill: none; stroke: var(--mom-drool); stroke-linecap: round; }
+.slime .bulb { fill: var(--mom-drool); }
+.slime .shine { fill: none; stroke: var(--mom-drool-shine); stroke-width: 2.2; stroke-linecap: round; opacity: 0.75; }
+.slime .run { transform-box: fill-box; transform-origin: 50% 0; animation: slime-run 2s ease-in both; }
+@keyframes slime-run { from { transform: scaleY(0.05); } to { transform: none; } }
+@keyframes slime-fade { to { opacity: 0; } }
+.slime.still .run { animation: none; }
 @keyframes hatch-scare {
   0% { transform: translate(0, 0); }
   9% { transform: translate(0, -14px); }

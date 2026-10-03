@@ -163,6 +163,11 @@
     // Andrew, 2026-10-01: a horror hatch's timeline, as shares of escapeSeconds [T]: it freezes and stares from `freeze`
     // and jumps at the player at `leap`. ⚠️ style.css's hatch keyframes use the same shares (55%, 78%): change both.
     hatchScare: { freeze: 0.55, leap: 0.78 },
+    // Chat (2026-10-03, D): where a horror alien hits the screen (`impact`: the share of its jump when it fills the view,
+    // style.css's scare-jump 18%), a glowing purple splat (Mom's drool colours, never red) with slime streaks that run
+    // down and fade, under every timer, readout, nest and Command Line. `size`: a share of the board's shorter side;
+    // `seconds`: its whole life. No impact flash. Reduced motion: the splat, short streaks, the same fade.
+    hatchSlime: { impact: 0.18, size: 0.34, seconds: 4.5 },   // [T]
     // E49 (Andrew, 2026-10-01: keep "still" as built): the jump under reduced motion. "still": no zoom and no movement,
     // the full-screen alien simply appears for the hold, then goes (the scare stays; nothing moves). "none": none at all.
     hatchScareReduced: "still",
