@@ -2083,7 +2083,11 @@ try {
     const cue = () => ev(`(() => { const s = document.querySelector('.nest.asks .readout .code'); if (!s) return null; const cs = getComputedStyle(s); return { anim: cs.animationName, border: cs.borderTopColor }; })()`);
     // E55: the H sign's drop and Mom's repair, read the moment the STR goes on
     // Mom kit: read early in her entrance (u about 0.06): sliding in, or (reduced motion) fading in where she rests
-    const hosp = (b) => ev(`(() => { __et.submit('CAV ${b.unit} STR'); __et.advance(0.09); const m = document.querySelector('#popups .mom-visit');
+    // deterministic (Chat, 2026-10-03): unpaused so the STR is taken, then a zero-length frame so this visit is painted at
+    // exactly 0.09 s in, and the NEWEST visit read (an older one could still be in the layer on a slow machine)
+    const hosp = (b) => ev(`(() => { if (__et.paused()) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      const took = __et.submit('CAV ${b.unit} STR'); __et.advance(0.09); __et.advance(0);
+      const all = [...document.querySelectorAll('#popups .mom-visit')], m = took && took.ok ? all[all.length - 1] : null;
       const t = m ? m.querySelector('.mom-rig').style.transform : '';
       return { sign: getComputedStyle(document.querySelector('.nest[data-id="${b.id}"] .hsign')).animationName, slide: !!t && t !== 'translate(0px, 0px)',
                fade: m ? Number(m.style.opacity || 1) : null, there: !!m && m.querySelector('.mom-head').getBoundingClientRect().height > 10 }; })()`);
