@@ -20,3 +20,15 @@ written earlier in another file is not an OK.
 - Before asking, run `git log origin/main..main` and tell Andrew everything that would go out,
   including other sessions' commits.
 - Committing locally is fine. Branches and worktrees are fine. Only the push needs his word.
+
+## 🚫 A session pushes only its OWN commits
+
+Standing rule, Andrew, 2026-10-03: "Only push things exclusive to each session. So do not push another
+session's work." Even with his OK, a push carries only the commits this session made.
+
+- Push a prefix of `main`, never the whole branch: `git push origin <last-own-commit>:main`, where every
+  commit in `origin/main..<last-own-commit>` is this session's own.
+- If another session's commit sits underneath yours, you cannot push yours yet. Don't cherry-pick, rebase
+  or reorder `main` to get round it (the other sessions share this working tree). Tell Andrew it waits
+  until the commits underneath go out.
+- Prefixes in commit subjects (`Egg Timer:`, `C64 …`, `decisions.md: the C64 …`) are how you tell whose is whose.
