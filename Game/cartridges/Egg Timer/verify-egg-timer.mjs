@@ -1205,6 +1205,27 @@ try {
     ok(!!other && other[0] !== "VS" && other[1] === false && other[2] && other[3], `…another CAV type gets neither the H sign nor the bubble, even with every VS a hospital egg   [${other}]`);
   }
   {
+    // Chat (2026-10-03): an AD egg's "Clear @ HH:MM" note, back, stuck on beside its nest, from the pop until it's cleared
+    const ad = await ev(`(() => { __et.start(1, { hospital: 0, eggTypes: "bag" }); let n = null;
+      for (let i = 0; i < 6000 && !(n = __et.snapshot().nests.find(x => x.state === 'active' && x.code === 'AD')); i++) __et.advance(0.05);
+      if (!n) return null; __et.advance(0.05);
+      const e = document.querySelector('.nest[data-id="' + n.id + '"] .postit'), cs = getComputedStyle(e), hm = e.querySelector('.led-hm'), lbl = e.querySelector('.led-text');
+      const at = n.note.at, want = String(Math.floor(at / 3600) % 24).padStart(2, '0') + ':' + String(Math.floor(at / 60) % 60).padStart(2, '0');
+      return { id: n.id, unit: n.unit, shown: !e.hidden && e.offsetWidth > 40, text: e.textContent, want: 'Clear @ ' + want, side: e.className,
+        hmFont: getComputedStyle(hm).fontFamily, hmColor: cs.color, lblFont: getComputedStyle(lbl).fontFamily, bg: cs.backgroundColor, tilt: cs.transform !== 'none',
+        z: Number(cs.zIndex) < Number(getComputedStyle(document.querySelector('.nest[data-id="' + n.id + '"] .mess')).zIndex) }; })()`);
+    ok(!!ad && ad.shown && ad.text === ad.want, `an AD egg shows its "Clear @ HH:MM" note from the pop   [${ad && ad.text}]`);
+    ok(!!ad && /DSEG7/.test(ad.hmFont) && ad.hmColor === "rgb(57, 255, 20)" && /Fredoka/.test(ad.lblFont) && ad.bg === "rgb(43, 42, 46)" && ad.tilt && ad.z, `…HH:MM in the wall clock's green 7-segment face, "Clear @" in cream rounded lettering, on charcoal, tilted, under the gunk (E14)   [${ad && ad.side}]`);
+    // the rest of the board is cleared as it goes bold, so the game lasts until the AD's minute (a pool can't run dry)
+    await ev(`(() => { for (let i = 0; i < 40000 && __et.snapshot().nests.find(n => n.id === ${ad.id}).state !== 'overtime'; i++) {
+      __et.advance(0.05); __et.snapshot().nests.filter(n => n.state === 'overtime' && n.id !== ${ad.id}).forEach(n => { __et.submit('RCAV ' + n.unit); if (n.hospital) __et.submit('CAV ' + n.unit + ' STR'); }); } return 1; })()`);
+    const wall = await ev(`(() => { const s = __et.snapshot(); return [Math.floor(s.wall / 60) % 1440, document.querySelector('.nest[data-id="${ad.id}"] .postit').hidden]; })()`);
+    const [hh, mm] = ad.want.slice(8).split(":").map(Number);
+    ok(wall[0] === hh * 60 + mm && wall[1] === false, `…it goes bold as the wall clock reaches it, the note still up   [${ad.want}]`);
+    await ev(`(__et.submit('RCAV ${ad.unit}'), __et.advance(0.01), 1)`);
+    eq(await ev(`document.querySelector('.nest[data-id="${ad.id}"] .postit').hidden`), true, "…and it goes with the clear");
+  }
+  {
     // creepy Mom from wave 2 (momSweetUntilWave), and a pause holds her
     const kind = await ev(`(() => { const was = ET.CONFIG.momSweetUntilWave; ET.CONFIG.momSweetUntilWave = 0; __et.start(1, { hospital: 1 }); __et.advance(0.1);
       let n = null; for (let i = 0; i < 1200 && !(n = __et.snapshot().nests.find(x => x.state === 'overtime')); i++) __et.advance(0.05);
@@ -1644,7 +1665,29 @@ try {
       const bubbleSize = Math.round(Math.min(...bubbles.map(r => r.width)));
       // …and never over its own unit number or timer (above them, whichever shoulder it's on)
       const bubbleOwn = [...document.querySelectorAll('.nest')].every(n => { const b = n.querySelector('.refused').getBoundingClientRect(); return [...n.querySelectorAll('.readout > span')].every(x => !hit(b, x.getBoundingClientRect())); });
+      // Chat (2026-10-03): the AD "Clear @" note. (A) one at a time, with every other nest's H sign and bubble (either
+      // shoulder) up; (B) all 12 at once: never on a readout, a nest, a marker, another note, Time Warp's sign or caption,
+      // the trough, the hose tag or the wall clock, and on the board
+      const marks = [];
+      document.querySelectorAll('.nest').forEach(n => {
+        const h = n.querySelector('.hsign'), b = n.querySelector('.refused');
+        h.hidden = false; h.style.animation = 'none'; marks.push({ n, r: h.getBoundingClientRect() }); h.hidden = true; h.style.animation = '';
+        b.classList.remove('flip'); marks.push({ n, r: b.getBoundingClientRect() }); b.classList.add('flip'); marks.push({ n, r: b.getBoundingClientRect() }); b.classList.remove('flip');
+      });
       document.querySelectorAll('.nest .refused').forEach(p => { p.hidden = true; p.style.animation = ''; });
+      const noteFixed = [...document.querySelectorAll('.nest .readout > span, #console .box, #trough > *, #hose-tag, .wallclock')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0).concat(warpWords.filter(r => r.width > 0));
+      const nestEls = [...document.querySelectorAll('.nest')], notes = nestEls.map(n => n.querySelector('.postit'));
+      const noteAt = { kind: 'clock', at: 23 * 3600 + 59 * 60 };
+      const noteBad = (i, withMarks) => { const r = notes[i].getBoundingClientRect();
+        return noteFixed.some(o => hit(r, o)) || nests.some(x => hit(r, x.art)) || (withMarks && marks.some(m => m.n !== nestEls[i] && hit(r, m.r)))
+          || notes.some((o, j) => j !== i && !o.hidden && hit(r, o.getBoundingClientRect())) || r.left < f.left || r.right > f.right; };
+      let noteOneBad = 0, noteAllBad = 0;
+      notes.forEach((p, i) => { notes.forEach(q => { q.hidden = true; }); ET.view.fillNote(i, noteAt); if (noteBad(i, true)) noteOneBad++; });
+      notes.forEach(q => { q.hidden = true; });
+      notes.forEach((p, i) => ET.view.fillNote(i, noteAt));
+      notes.forEach((p, i) => { if (noteBad(i, false)) noteAllBad++; });
+      const noteSize = [Math.round(notes[0].getBoundingClientRect().width), Math.round(notes[0].getBoundingClientRect().height)], noteHigh = notes.filter(p => p.classList.contains('high')).length;
+      notes.forEach(q => { q.hidden = true; });
       // Chat (2026-10-02): the rejected-Enter message, at its longest, above Time Warp's clock: clear of every nest, readout,
       // Command Line, the trough, the hose tag and the wall clock, and on the board
       const rj = document.querySelector('#reject'), rjWas = rj.textContent;
@@ -1659,7 +1702,7 @@ try {
       const M = document.querySelector('#mute').getBoundingClientRect(), H = document.querySelector('.hud').getBoundingClientRect();
       const hudWords = [...document.querySelectorAll('.hud > div:not(#cleanup)')].map(e => e.getBoundingClientRect());
       const muteClear = M.width > 20 && M.top >= H.top && M.bottom <= H.bottom && !hudWords.concat([clock, field]).some(r => hit(r, M));
-      return { flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
+      return { noteOneBad, noteAllBad, noteSize, noteHigh, flipped, bubbleOwn, rejectHits, rejectOk, rejectBox, rejectOnClock, clockTall, bubbleBad, bubbleAbove, bubbleSize, muteClear, bulbOnWord, tagged, tagIn: tag.left >= f.left && tag.right <= f.right && tag.bottom <= f.bottom + 1, doodled, spill, signsInside, signOnReadout, inside, overlaps, covered, panelGone: howto.width === 0 && innerWidth - field.right < 20, clearOfTop,
                warpBig, warpBehind, warpCentre, tipsIn,
                clockCentre: Math.abs((clock.left + clock.right) / 2 - (field.left + field.right) / 2) < 3 && clock.top < field.top + 30 && clock.right <= field.right,
                w: innerWidth, h: innerHeight };
@@ -1672,6 +1715,7 @@ try {
     eq(lay.spill, 0, `Refinement 4 §5: every box's widest reading fits inside its box   ${at}`);
     ok(lay.signsInside && lay.signOnReadout === 0, `E55: every H sign stays on the board, clear of every readout   ${at} [${lay.signOnReadout} on a readout]`);
     ok(lay.bubbleBad === 0 && lay.bubbleAbove && lay.bubbleOwn && lay.bubbleSize >= 44, `Chat (2026-10-02/03): all 12 "Patient Refused" bubbles sit above their timers, on the board, clear of every readout (their own unit and timer too), nest, Command Line, the trough, the hose tag, the wall clock, each other and Time Warp's sign and caption   ${at} [${lay.bubbleBad} touching, ${lay.bubbleSize} px wide, ${lay.flipped} flipped to the other shoulder]`);
+    ok(lay.noteOneBad === 0 && lay.noteAllBad === 0, `Chat (2026-10-03): the AD "Clear @" note sits beside its nest clear of every readout, nest, H sign, bubble, other note, Time Warp's words, the trough, the hose tag and the wall clock, one at a time with every marker up and all 12 at once   ${at} [${lay.noteOneBad} + ${lay.noteAllBad} touching, ${lay.noteSize.join("×")} px, ${lay.noteHigh} on a shoulder with all 12 up]`);
     ok(lay.rejectHits === 0 && lay.rejectOk, `Chat (2026-10-02): the rejected-Enter message sits at Time Warp's clock, on the board, clear of every nest, readout, Command Line, the trough, the hose tag, the wall clock and the TIME WARP sign and caption   ${at} [${lay.rejectHits} touching, ${lay.rejectBox.join("×")} px, ⏳ E60: ${lay.rejectOnClock} of the clock's ${lay.clockTall} px covered]`);
     ok(lay.inside, `every nest and readout stays inside the board   ${at}`);
     eq(lay.overlaps, 0, `no two readouts overlap   ${at}`);

@@ -1100,6 +1100,59 @@
     if (hits) b.classList.add("flip");
     v.refusedAt = innerWidth + "x" + innerHeight;
   }
+  /* Chat (2026-10-03): an AD's "Clear @ HH:MM" note, "Clear @" in chunky cream lettering and HH:MM in the wall clock's
+     own 7-segment face (the look Andrew approved 2026-09-23). */
+  function fillNote(el, note) {
+    var nt = "Clear @ " + hhmm(note.at);
+    if (el.textContent === nt) return;
+    el.textContent = "";
+    var lbl = document.createElement("span"), hm = document.createElement("span");
+    lbl.className = "led-text";
+    lbl.textContent = "Clear @ ";
+    hm.className = "led-hm";
+    hm.textContent = hhmm(note.at);
+    el.appendChild(lbl);
+    el.appendChild(hm);
+  }
+  /* Its spot: stuck on beside its own nest, at the egg's height, tilted. The side away from the board's centre first,
+     else the other, whichever is clear of every nest, readout, H sign and bubble (shown or not: both shoulders of every
+     other nest), any other AD note already up, Time Warp's words, the hose tag and the trough; failing both, up on its
+     own shoulder (outer, then inner), where an AD has no H sign or bubble; failing all, the outer side. */
+  function noteKeepOff(v) {
+    var out = [], hit = [];
+    nests.forEach(function (n) {
+      [].forEach.call(n.readout.children, function (e) { out.push(e.getBoundingClientRect()); });
+      var s = n.svg.getBoundingClientRect();
+      out.push({ left: s.left + s.width * 0.1, right: s.right - s.width * 0.1, top: s.top + s.height * 0.2, bottom: s.bottom - s.height * 0.1 });
+      if (n === v) return;
+      if (!n.note.hidden && n.noteAt) out.push(n.note.getBoundingClientRect());   // another AD's note already up
+      // where the other nest's H sign and bubble go (either shoulder), measured whether they show now or not
+      var r = n.el.getBoundingClientRect(), w = r.width;
+      out.push({ left: r.left - w * 0.25, right: r.right + w * 0.6, top: r.top - w * 0.05, bottom: r.top + w * 0.42 });
+    });
+    out = out.concat(warpWords());
+    var tag = document.querySelector("#hose-tag");
+    if (tag) out.push(tag.getBoundingClientRect());
+    [].forEach.call(document.querySelectorAll("#trough > *"), function (e) { out.push(e.getBoundingClientRect()); });
+    return out.filter(function (r) { return r.width > 0; });
+  }
+  function placeNote(v) {
+    var el = v.note, b = board.getBoundingClientRect(), r0 = v.el.getBoundingClientRect();
+    var outer = (r0.left + r0.right) / 2 < (b.left + b.right) / 2 ? "side-left" : "side-right";
+    var inner = outer === "side-left" ? "side-right" : "side-left";
+    // beside the egg, outer side then inner; then up on its own shoulder (an AD never has an H sign or a bubble there)
+    var sides = [outer, inner, outer + " high", inner + " high"], keep = noteKeepOff(v), pick = outer;
+    for (var i = 0; i < sides.length; i++) {
+      el.classList.remove("side-left", "side-right", "high");
+      sides[i].split(" ").forEach(function (c) { el.classList.add(c); });
+      var r = el.getBoundingClientRect();
+      var clear = r.left >= b.left && r.right <= b.right && !keep.some(function (k) { return k.left < r.right && r.left < k.right && k.top < r.bottom && r.top < k.bottom; });
+      if (clear) { pick = sides[i]; break; }
+    }
+    el.classList.remove("side-left", "side-right", "high");
+    pick.split(" ").forEach(function (c) { el.classList.add(c); });
+    v.noteAt = innerWidth + "x" + innerHeight;
+  }
   function showReject(text) {
     var el = reject.el;
     if (!el) return;
@@ -1174,6 +1227,11 @@
         var refused = ET.art.refusedEl();
         refused.hidden = true;
         n.appendChild(refused);
+        // Chat (2026-10-03): an AD's "Clear @ HH:MM" note, stuck on beside the nest (placeNote picks the side)
+        var note = document.createElement("div");
+        note.className = "postit side-left";
+        note.hidden = true;
+        n.appendChild(note);
 
         // ⏳ placeholder: the frying pan (Refinement 2 §5)
         var pan = ET.art.panEl();
@@ -1184,7 +1242,7 @@
 
         board.appendChild(n);
         nests.push({
-          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, refused: refused, pan: pan,
+          el: n, svg: svg, readout: ro, mess: mess, hsign: hsign, refused: refused, note: note, pan: pan,
           unit: ro.querySelector(".unit"), code: ro.querySelector(".code"), clock: ro.querySelector(".clock"),
           egg: svg.querySelector(".egg"), cracks: svg.querySelectorAll(".crack")
         });
@@ -1212,6 +1270,8 @@
         ET.mess.clear(v.mess);
         v.hsign.hidden = true;
         v.refused.hidden = true;
+        v.note.hidden = true;
+        v.noteAt = null;
         v.mend = null;
         v.crackShown = 0;
         v.pan.className = "pan";
@@ -1300,6 +1360,12 @@
         if (v.refused.hidden === refusing) v.refused.hidden = !refusing;
         // Chat (2026-10-03): placed once it shows (and again after a resize), never mid unlock pop (the scale)
         if (refusing && v.refusedAt !== innerWidth + "x" + innerHeight && !el.classList.contains("unlock")) placeBubble(v);
+        // Chat (2026-10-03): an AD's "Clear @ HH:MM" note, from the pop until the egg is cleared or hatches
+        if (v.note.hidden === !!s.note) v.note.hidden = !s.note;
+        if (s.note) {
+          fillNote(v.note, s.note);
+          if (v.noteAt !== innerWidth + "x" + innerHeight && !el.classList.contains("unlock")) placeNote(v);
+        }
 
         drawCord(s.id, s, snap.time);
 
@@ -1522,6 +1588,8 @@
     mom: function (which) { return showMom(which); },
     /* For rigs: place every bubble that shows now (as the frame would once it shows). */
     placeBubbles: function () { nests.forEach(function (v) { if (!v.refused.hidden) placeBubble(v); }); },
+    /* For rigs: fill a nest's AD note and place it, as a frame does once it shows. */
+    fillNote: function (id, note) { var v = nests[id]; v.note.hidden = false; fillNote(v.note, note); placeNote(v); return v.note.className; },
     /* A rejected Enter's words, above Time Warp's clock (boxes.js calls it). */
     reject: function (text) { showReject(text); },
     /* For rigs: the message, whether it shows, and how many times (and when) it has come on. */

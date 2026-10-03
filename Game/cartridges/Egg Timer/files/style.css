@@ -892,6 +892,32 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
 .refused.flip::before { left: auto; right: 0.5em; }
 .refused.flip::after { left: auto; right: calc(0.5em + 3px); }
 @keyframes refused-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Chat (2026-10-03): the AD "Clear @ HH:MM" note, back in a new spot: stuck on beside its own nest at the egg's height,
+   tilted like a note slapped on, on the side view.js picks (away from the centre if that's clear). The look Andrew
+   approved 2026-09-23: HH:MM in the wall clock's LED green 7-segment face, "Clear @" in chunky cream lettering, on dark
+   charcoal with the LED-green edge. The gunk covers it (E14), as the H sign and the bubble. */
+.postit {
+  position: absolute; top: 38%; z-index: 4; pointer-events: none;
+  padding: 2px 6px;
+  background: var(--note-clock-bg);
+  color: var(--led);
+  border: 3px solid var(--led);
+  box-shadow: 3px 3px 0 var(--hot);
+  font-family: var(--font-led);
+  font-weight: 900;
+  font-size: clamp(10px, calc(min(15.5cqw, 23cqh) * 0.075), 15px);
+  text-shadow: 1px 1px 0 var(--led-shadow);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.postit .led-text { font-family: var(--font-rounded); font-weight: 700; color: var(--note-clock-label); text-shadow: 1px 1px 0 var(--shadow); }
+.postit.side-left { right: 95%; transform: rotate(-7deg); transform-origin: 100% 50%; }
+.postit.side-right { left: 95%; transform: rotate(6deg); transform-origin: 0 50%; }
+/* with no room beside the egg: up by its own shoulder, where the H sign or bubble would be (an AD has neither) */
+.postit.high { top: 2%; }
+.postit.high.side-left { right: 99%; }
+.postit.high.side-right { left: 99%; }
 @keyframes hsign-drop {
   0% { transform: translateY(-160%) rotate(-24deg); }
   70% { transform: translateY(0) rotate(5deg); }

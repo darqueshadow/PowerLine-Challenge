@@ -55,6 +55,11 @@
     // Chat's playtest rulings (2026-10-02): a VS refusal egg (not a hospital egg, not another type) shows a small "Patient Refused" speech bubble above its timer
     // from the pop until its RCAV is accepted. "If crowded, show it in wave 1 only": untilWave Infinity = every wave.
     refusedBubble: { on: true, untilWave: Infinity },   // [T]
+    // Chat (2026-10-03): the AD "Clear @ HH:MM" note is back (E54 had taken it out), in a new spot: stuck on beside its
+    // own nest, tilted, at the egg's height (view.js picks the side). The types that carry it; they draw whole minutes.
+    postItCodes: ["AD"],
+    // E1 (ruled): "Clear @" is the next whole minute after the start, plus the draw, so it never bolds before the draw
+    adClockTarget: "full-minutes",   // "full-minutes" | "shown-minute"
     // E55: pops in, looks down and patches the egg, turns to the player and giggles, ducks out; never blocking typing.
     // Chat's giggle ruling (2026-10-02, flash safety): pose C held at least 0.5 s, one swap in and one out, and at most
     // 2 pose changes in any second of the visit (A→B, B→C, C→B: the first and last at least 1 s apart). That doesn't

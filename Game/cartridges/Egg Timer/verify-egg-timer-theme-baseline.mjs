@@ -3576,6 +3576,76 @@ export default {
  "@keyframes refused-in » 100%": {
   "opacity": "1"
  },
+ ".postit": {
+  "background-attachment": "initial",
+  "background-clip": "initial",
+  "background-color": "rgb(43, 42, 46)",
+  "background-image": "initial",
+  "background-origin": "initial",
+  "background-position-x": "initial",
+  "background-position-y": "initial",
+  "background-repeat": "initial",
+  "background-size": "initial",
+  "border-bottom-color": "rgb(57, 255, 20)",
+  "border-bottom-style": "solid",
+  "border-bottom-width": "3px",
+  "border-image-outset": "0",
+  "border-image-repeat": "stretch",
+  "border-image-slice": "100%",
+  "border-image-source": "none",
+  "border-image-width": "1",
+  "border-left-color": "rgb(57, 255, 20)",
+  "border-left-style": "solid",
+  "border-left-width": "3px",
+  "border-right-color": "rgb(57, 255, 20)",
+  "border-right-style": "solid",
+  "border-right-width": "3px",
+  "border-top-color": "rgb(57, 255, 20)",
+  "border-top-style": "solid",
+  "border-top-width": "3px",
+  "box-shadow": "rgb(255, 61, 127) 3px 3px 0px",
+  "color": "rgb(57, 255, 20)",
+  "font-family": "\"DSEG7 Classic\", \"Courier New\", Courier, monospace",
+  "font-size": "clamp(10px, 0.075 * min(15.5cqw, 23cqh), 15px)",
+  "font-weight": "900",
+  "line-height": "1.1",
+  "padding-bottom": "2px",
+  "padding-left": "6px",
+  "padding-right": "6px",
+  "padding-top": "2px",
+  "pointer-events": "none",
+  "position": "absolute",
+  "text-shadow": "rgb(15, 58, 0) 1px 1px 0px",
+  "text-wrap-mode": "nowrap",
+  "top": "38%",
+  "white-space-collapse": "collapse",
+  "z-index": "4"
+ },
+ ".postit .led-text": {
+  "color": "rgb(255, 243, 209)",
+  "font-family": "Fredoka, \"Arial Rounded MT Bold\", \"Trebuchet MS\", sans-serif",
+  "font-weight": "700",
+  "text-shadow": "rgb(0, 0, 0) 1px 1px 0px"
+ },
+ ".postit.side-left": {
+  "right": "95%",
+  "transform": "rotate(-7deg)",
+  "transform-origin": "100% 50%"
+ },
+ ".postit.side-right": {
+  "left": "95%",
+  "transform": "rotate(6deg)",
+  "transform-origin": "0px 50%"
+ },
+ ".postit.high": {
+  "top": "2%"
+ },
+ ".postit.high.side-left": {
+  "right": "99%"
+ },
+ ".postit.high.side-right": {
+  "left": "99%"
+ },
  "@keyframes hsign-drop » 0%": {
   "transform": "translateY(-160%) rotate(-24deg)"
  },

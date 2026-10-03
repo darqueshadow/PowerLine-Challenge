@@ -59,6 +59,8 @@
        two in play since E54) has min === max; a ranged one draws uniformly. */
     minutesFor: function (type, rng) {
       if (type.min === type.max) return type.min;
+      // a type with a "Clear @" note (AD) draws whole minutes (Timer Refinement §4)
+      if (C().postItCodes.indexOf(type.code) >= 0) return type.min + Math.floor(rng() * (type.max - type.min + 1));
       return type.min + rng() * (type.max - type.min);
     },
 

@@ -117,6 +117,7 @@
     n.repaired = false;    // a hospital egg on its STR (Mom has repaired it)
     n.resetAt = 0;         // Chat (2026-10-02): when the RCAV restarted a hospital egg's countdown…
     n.crackAt = 0;         // …how far it had cracked then…
+    n.note = null;         // an AD's "Clear @ HH:MM" (Chat, 2026-10-03)
     n.rcavTier = 0;        // …and window 1's tier and points, taken at the RCAV
     n.rcavPoints = 0;
     n.startedAt = 0;
@@ -245,7 +246,18 @@
     n.state = "active";
     n.startedAt = this.time - late;
     n.startedClock = this.clock - late * (rate === undefined ? this.rate : rate);
-    n.boldClock = n.startedClock + ET.rules.minutesFor(n.type, this.rng) * 60;
+    var minutes = ET.rules.minutesFor(n.type, this.rng);
+    n.boldClock = n.startedClock + minutes * 60;
+    n.note = null;
+    // Chat (2026-10-03), as Timer Refinement §4 and E1: an AD says "Clear @ HH:MM" and goes bold when the WALL clock reads
+    // it, the next whole minute after its start plus the draw ("shown-minute": the minute showing at the start, plus it)
+    if (ET.CONFIG.postItCodes.indexOf(n.type.code) >= 0) {
+      var wall = this.wallStart + n.startedClock;
+      var minute = ET.CONFIG.adClockTarget === "full-minutes" ? Math.ceil(wall / 60) : Math.floor(wall / 60);
+      var target = (minute + minutes) * 60;
+      n.boldClock = target - this.wallStart;
+      n.note = { kind: "clock", minutes: minutes, at: ((target % 86400) + 86400) % 86400 };
+    }
     this.emit("active", { nest: n.id, how: n.how, hospital: n.hospital });
   };
 
@@ -514,6 +526,7 @@
           // E53: between the RCAV and the STR the type box is empty, asking for the STR
           code: n.type && !n.removed ? n.type.code : n.removed ? "" : null,
           hospital: n.hospital,
+          note: running && n.note ? { kind: n.note.kind, minutes: n.note.minutes, at: n.note.at } : null,
           removed: n.removed,
           repaired: n.repaired,
           // the cord (Refinement 3 §7): 0–1 through the lay, then 0–1 through the retract after the pop (not the STR's start)

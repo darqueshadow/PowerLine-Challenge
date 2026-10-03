@@ -796,11 +796,37 @@ section("U. ⏳ E59 (2026-10-02): one mode, the type bag back; E56: about 70% of
   eq(["mode"].filter((k) => k in none), [], "E54: no mode");
 }
 
+section("AD. Chat (2026-10-03): the AD \"Clear @ HH:MM\" note is back (E1: the next whole minute after the start, plus the draw)");
+{
+  eq([ET.CONFIG.postItCodes, ET.CONFIG.adClockTarget], [["AD"], "full-minutes"], "only AD carries the note; E1's \"full-minutes\"");
+  const AD = { code: "AD", meaning: "Admin CAV", min: 10, max: 30, twoPhaseOnly: false, hiddenUntilTrigger: false };
+  let checked = 0, whole = true, never = true, inRange = true;
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const g = new ET.Game({ types: [AD], units, rng: ET.seededRandom(seed), wallStart: 14 * 3600 + 15 * 60 + 40, eggTypes: "bag" });
+    g.start();
+    for (let i = 0; i < 400 && !g.nests.some((n) => n.state === "active"); i++) g.step(0.05);
+    const n = g.nests.find((x) => x.state === "active");
+    const sn = g.snapshot().nests.find((x) => x.id === n.id);
+    const startWall = g.wallStart + n.startedClock, boldWall = g.wallStart + n.boldClock;
+    whole = whole && Number.isInteger(n.note.minutes) && Math.abs(boldWall % 60) < 1e-6 && sn.note.at === boldWall % 86400;
+    never = never && boldWall - startWall >= n.note.minutes * 60 - 1e-6 && boldWall - startWall < n.note.minutes * 60 + 60;
+    inRange = inRange && n.note.minutes >= 10 && n.note.minutes <= 30 && sn.note.kind === "clock";
+    checked++;
+  }
+  ok(checked === 8 && inRange, "an AD egg pops with a \"Clear @\" note, its draw 10–30 whole minutes");
+  ok(whole, "…its bold mark lands on the whole minute the note names (the wall clock)");
+  ok(never, "…never sooner than the draw, never a minute or more past it (E1: rounded up)");
+  const vs = new ET.Game({ types: [T("VS", 10)], units, rng: ET.seededRandom(3) });
+  vs.start();
+  for (let i = 0; i < 400 && !vs.nests.some((n) => n.state === "active"); i++) vs.step(0.05);
+  eq(vs.snapshot().nests.find((x) => x.state === "active").note, null, "a VS has no note");
+}
+
 section("L. the build questions' switches match the rulings (Draft 9, 2026-09-17; D5 superseded 2026-09-22)");
 eq([ET.CONFIG.unitAssignment, ET.CONFIG.stopSpawningAtQuota, ET.CONFIG.keepTextOnReject, "timerDisplay" in ET.CONFIG],
   ["per-spawn", true, false, false], "D2 per spawn · D4 stop at quota · D6 superseded: a rejected Enter clears the box · D5's switch is gone");
 eq([ET.CONFIG.hoseWhen, ET.CONFIG.errorOnEmpty], ["always", false], "the hose is always the in-game cursor (Hose ruling, replacing E5) · E6 no ERROR on an empty Enter");
-eq(["vfHides", "adClockTarget", "adNoteFrom", "postItCodes", "placementPoints", "placementTimeoutStart", "progressionOnePhaseWaves"].filter((k) => k in ET.CONFIG), [], "E54: the VF, AD and placement switches are gone with what they set");
+eq(["vfHides", "adNoteFrom", "placementPoints", "placementTimeoutStart", "progressionOnePhaseWaves"].filter((k) => k in ET.CONFIG), [], "E54: the VF and placement switches are gone with what they set (AD's note is back, Chat 2026-10-03)");
 eq(ET.CONFIG.eggTypes, "bag", "⏳ E59 PENDING: eggs come out of the type bag (Chat's playtest, 2026-10-02; E54's all-VS is \"VS\")");
 eq([ET.CONFIG.eggType, ET.CONFIG.hospitalType, ET.CONFIG.hospitalShare, ET.CONFIG.hospitalWindowScale, ET.CONFIG.momSweetUntilWave],
   ["VS", "STR", 0.7, 1, 1], "E52–E56 (ruled 2026-10-02): VS eggs, STR second, 70% hospital, window 1 the same as every egg's, sweet Mom in wave 1");
