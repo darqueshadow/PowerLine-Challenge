@@ -1182,7 +1182,7 @@
       [].forEach.call(n.readout.querySelectorAll(":scope > span"), function (e) { out.push(e.getBoundingClientRect()); });   // the three boxes (the tabs live in the readout too, G)
       var s = n.svg.getBoundingClientRect();
       if (n !== v) out.push({ left: s.left + s.width * 0.1, right: s.right - s.width * 0.1, top: s.top + s.height * 0.2, bottom: s.bottom - s.height * 0.1 });
-      else out.push({ left: s.left + s.width * 0.315, right: s.right - s.width * 0.315, top: s.top + s.height * 0.22, bottom: s.top + s.height * 0.745 });   // its own egg, full grown
+      else out.push({ own: true, left: s.left + s.width * 0.315, right: s.right - s.width * 0.315, top: s.top + s.height * 0.22, bottom: s.top + s.height * 0.745 });   // its own egg, full grown
     });
     out = out.concat(warpWords());
     [].forEach.call(document.querySelectorAll("#hose-tag, #trough > *, .wallclock, #console .box"), function (e) { out.push(e.getBoundingClientRect()); });
@@ -1194,7 +1194,8 @@
     var mark = kind === "h" ? v.hsign : v.refused, bld = kind === "h" ? v.hosp : v.house || null;
     var keep = markKeepOff(v), b = board.getBoundingClientRect();
     var clear = function (e, more) {
-      var r = restRect(v, e), list = more ? keep.concat(more) : keep;
+      // H (2026-10-03): a building stands behind its own nest and egg, so only a mark keeps off its own egg
+      var r = restRect(v, e), list = more ? keep.filter(function (k) { return !k.own; }).concat(more) : keep;
       r.bottom += (r.bottom - r.top) * 0.08 + 1;   // room for the bounce's dip below it (C: 7% down, a little squash)
       if (r.left < b.left - 1 || r.right > b.right + 1 || r.top < b.top - 1) return false;
       return !list.some(function (k) { return k.left < r.right + 0.5 && r.left < k.right + 0.5 && k.top < r.bottom + 0.5 && r.top < k.bottom + 0.5; });   // half a pixel clear, never touching

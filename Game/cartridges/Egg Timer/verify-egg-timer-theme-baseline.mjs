@@ -3745,13 +3745,15 @@ export default {
   "animation-range-start": "normal",
   "animation-timeline": "auto",
   "animation-timing-function": "ease-in-out",
-  "left": "-14%",
+  "left": "50%",
+  "margin-left": "-13%",
+  "margin-top": "-1%",
   "pointer-events": "none",
   "position": "absolute",
-  "top": "8%",
+  "top": "0px",
   "transform-origin": "50% 100%",
   "width": "26%",
-  "z-index": "4"
+  "z-index": "-1"
  },
  ".bld.hosp": {
   "animation-delay": "0.95s"
@@ -3766,8 +3768,8 @@ export default {
   "transform": "translateY(2%) scale(0.98, 1.02)"
  },
  ".bld.flip": {
-  "left": "auto",
-  "right": "-14%"
+  "left": "50%",
+  "right": "auto"
  },
  ".bld svg": {
   "display": "block",

@@ -917,7 +917,9 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
    stake stands (the negative margin, a share of the nest's width); placeMarks may move it to the other shoulder (.flip) */
 .hsign.flip { right: auto; left: -13.8%; }
 /* its hospital, on the other side of the egg (or skipped where there's no room): flat and cute, drawn in code */
-.bld { position: absolute; left: -14%; top: 8%; width: 26%; z-index: 4; pointer-events: none; transform-origin: 50% 100%; animation: mark-bounce 1s ease-in-out 0.5s infinite; }
+/* Chat (2026-10-03, H): above and behind its own nest, centred, peeking out over the nest, which draws in front (z -1
+   inside the nest), its foot just behind the top of the egg (margin: a share of the nest's width) */
+.bld { position: absolute; left: 50%; margin-left: -13%; top: 0; margin-top: -1%; width: 26%; z-index: -1; pointer-events: none; transform-origin: 50% 100%; animation: mark-bounce 1s ease-in-out 0.5s infinite; }
 .bld.hosp { animation-delay: 0.95s; }   /* half a bounce after its sign's (which starts as the sign lands, at 0.45 s) */
 /* Chat (2026-10-03, C): the sign or bubble and its building bounce steadily, one bounce a second, half a bounce apart:
    a dip from where they stand with a little squash, then a little stretch back. It never rises above where it stands
@@ -927,7 +929,7 @@ body.paused .nest .creature, body.paused .nest .alien .wig, body.paused .nest .a
   40% { transform: translateY(7%) scale(1.04, 0.94); }
   60% { transform: translateY(2%) scale(0.98, 1.02); }
 }
-.bld.flip { left: auto; right: -14%; }
+.bld.flip { left: 50%; right: auto; }   /* (H: no sides any more) */
 .bld svg { display: block; width: 100%; overflow: visible; }
 .bld.hosp .wall { fill: var(--bld-wall); stroke: var(--outline); stroke-width: 2; }
 .bld.hosp .roof { fill: var(--hospital-blue); stroke: var(--outline); stroke-width: 2; }
