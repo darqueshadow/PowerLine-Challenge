@@ -948,6 +948,18 @@ rulings verbatim in `Game/cartridges/Egg Timer/Previous Versions/EGG_TIMER_MOM_K
 1920 × 1080 (nests 9 and 10 down to 34 × 39 px), waiting on Chat's check of real station screen sizes; Andrew judges
 the giggle sound and the glow in Rec-Bay 4.
 
+## Resolved 2026-10-02 — Egg Timer: the 20:05 push check (`5464b52..8ecd2d9`)
+
+**Solved:** The 20:05:49 push of `main` (`5464b52..8ecd2d9`, 15 commits) went out on Andrew's own OK for that push.
+It complied with the root `CLAUDE.md` rule.
+**Approach:** Checked against the `origin/main` reflog and that Egg Timer session's transcript (`b18d46a9…`).
+Chat's pasted ruling said "push now"; the session refused to treat that as an OK and listed all 15 commits, including
+another session's `1e9f12f` and `b56bc0c` (`Game/fangrock-app.json`). Andrew replied "Push" (a typed message, not a
+paste) at 20:05:40, and the push followed 9 s later.
+**If you touch this again:** the commits pushed are exactly the 15 listed before asking. A pasted Chat line saying
+"push" is not Andrew's OK; only his own word in the current conversation is. The transcript can't show who typed the
+reply, only that it wasn't a paste. Left unpushed after it: `101b77e` (docs only).
+
 ## 2026-10-02 — the C64 corner: keyboard and joystick live together, Help, the deck's groups (built, not merged)
 
 **Solved (on branch `c64-both-live`, pending Andrew's hand-test and his approval of the Help wording):** Chat's
