@@ -180,10 +180,33 @@ if (!process.versions.electron) {
     if (s.length > shown) { process.stdout.write(s.slice(shown)); shown = s.length; }
   };
   const timer = setInterval(pump, 250);
+  /* 🆕 2026-10-04 — THE HARD WATCHDOG (Andrew's ruling): one hang must never
+     freeze the rig for more than a few minutes. 📌 A run stuck on the empty-drive
+     LOAD hang sat at §F2 for over an hour, because every wait after it timed out
+     one by one. The log is the heartbeat: silent for SILENT_MS, or the whole run
+     past RUN_MS (a clean run takes about 7 min), and the Electron child is killed,
+     with its own process tree and nothing else (`taskkill /T` on its PID). The
+     longest quiet stretch in a healthy run is one slow load (idleLoad, 200 s). */
+  const SILENT_MS = 4 * 60000, RUN_MS = 30 * 60000, started = Date.now();
+  let heard = Date.now(), heardLen = 0, killed = false;
+  const dog = setInterval(() => {
+    const len = shown;
+    if (len !== heardLen) { heardLen = len; heard = Date.now(); }
+    const why = Date.now() - heard > SILENT_MS ? `no output for ${SILENT_MS / 60000} min`
+      : Date.now() - started > RUN_MS ? `the run passed ${RUN_MS / 60000} min` : null;
+    if (!why || killed) return;
+    killed = true;
+    pump();
+    const last = readFileSync(log, "utf8").split("\n").filter((l) => /^([A-Z][0-9]?\. |\[control\])/.test(l)).pop() || "(no section yet)";
+    process.stdout.write(`\n  FAIL  WATCHDOG: ${why}; the rig was killed. Last section: ${last}\n`);
+    if (process.platform === "win32") spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+    else child.kill("SIGKILL");
+  }, 5000);
   child.on("exit", (code) => {
     clearInterval(timer);
+    clearInterval(dog);
     pump();
-    process.exit(code === null ? 1 : code);
+    process.exit(killed ? 1 : code === null ? 1 : code);
   });
 } else {
   /* 🚨 NOT `await runRig()`. Electron holds back its `ready` event until an ES
@@ -744,7 +767,15 @@ async function runRig() {
       await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 30000);
       await click("#btn-load");
       await until("__cat.machine().busy", 3000, 20);
-      await idle();
+      /* 🆕 2026-10-04 — THE EMPTY-DRIVE HANG STOPS THE RUN HERE (Andrew's ruling:
+         one hang must never freeze the rig). An empty drive answers in a second
+         or two; 60 s still busy is the known hang (docs/decisions.md, OPEN
+         2026-10-02). The hub stays busy and refuses Reset for two minutes after
+         it, so every section below would only time out one by one. Stop, name it. */
+      if ((await idle()) < 0) {
+        const stuck = (await screen()).filter(Boolean).slice(-2).join(" | ");
+        throw new Error(`the empty-drive LOAD hang (known, OPEN 2026-10-02) at press ${i + 1} of 12: still busy after 60 s   [${stuck}]`);
+      }
       await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 30000);
       const rows = (await screen()).filter(Boolean);
       const answer = rows.lastIndexOf("READY.");
