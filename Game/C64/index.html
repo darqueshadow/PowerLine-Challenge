@@ -263,8 +263,10 @@
       <div class="c64-part c64-arrows" id="c64-arrows" role="group" aria-labelledby="c64-arrows-label">
         <span class="c64-part__label c64-part__label--over" id="c64-arrows-label">Arrows<span class="c64-part__hint" id="c64-arrows-hint" aria-hidden="true"></span></span>
         <span class="c64-arrows__switch">
-          <button type="button" class="c64-arrows__opt" id="c64-arrows-stick" data-arrows="stick" aria-pressed="false">Stick</button>
-          <button type="button" class="c64-arrows__opt" id="c64-arrows-cursor" data-arrows="cursor" aria-pressed="false">Cursor</button>
+          <!-- 🆕 2026-10-04 — a small joystick and a C64 cursor key beside the words
+               (his ruling, Phase 3); the words and the ids stay -->
+          <button type="button" class="c64-arrows__opt" id="c64-arrows-stick" data-arrows="stick" aria-pressed="false"><svg class="c64-arrows__icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="10.2" width="10" height="2.8" rx="1.2" fill="currentColor"/><rect x="6.2" y="4.4" width="1.6" height="6.4" fill="currentColor"/><circle cx="7" cy="3.6" r="2.4" fill="#c8402f"/></svg><span>Stick</span></button>
+          <button type="button" class="c64-arrows__opt" id="c64-arrows-cursor" data-arrows="cursor" aria-pressed="false"><svg class="c64-arrows__icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="1.2" y="1.2" width="11.6" height="11.6" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 2.9 9.3 5.8H4.7Z M7 11.1 4.7 8.2H9.3Z" fill="currentColor"/></svg><span>Cursor</span></button>
         </span>
       </div>
 
@@ -318,12 +320,15 @@
           <h3>How to use it</h3>
           <ol>
             <li><b>Pick a disk</b> from the crates on the left.</li>
-            <li><b>Insert Disk</b> puts it in the drive. A tape goes in the datasette.</li>
-            <li><b>Load</b> starts it. If it asks, choose <b>Play</b> or <b>Instructions</b>.</li>
+            <!-- 🔄 2026-10-04 — reworded for Phase 2's buttons (his ruling 6, Phase 3) -->
+            <li><b>Insert Disk</b> puts it in the drive. A tape goes in the datasette. If a game is running, it ends first.</li>
+            <li><b>Load</b> loads the game and runs it. If it asks, choose <b>Play</b> or <b>Instructions</b>. If the button says <b>Run</b>, click it to start what was loaded.</li>
+            <li><b>Load "$",8 + List</b> shows what is on the disk.</li>
             <li>When the game asks for <b>another disk or side</b>, click <b>Swap disk</b>.</li>
             <li><b>Pause</b> freezes the game. Click it again to carry on.</li>
             <li><b>Full Screen</b> fills the window with the game. <b>Exit Full Screen</b> brings the disks back.</li>
-            <li><b>Eject</b> takes the disk out, so you can put in another game.</li>
+            <li><b>Eject (ends game)</b> takes the disk out and ends the game, back to READY.</li>
+            <li><b>Reset (F12)</b> goes back to the boot screen. The disk stays in.</li>
             <li><b>Power</b> turns the C64 off and takes you back to the Arcade.</li>
           </ol>
           <ul class="c64-help-panel__tips">
@@ -341,6 +346,10 @@
     </div>
 
   </div>
+  <!-- 🆕 2026-10-04 — THE DATASETTE'S ROOM (his ruling, Phase 3): beside the
+       1541, with the C64's deck shifted right to make the space. EMPTY until the
+       Datasette art is approved (Phase 4). Corner only; cat.css shows it. -->
+  <div id="datasette-bay" aria-hidden="true"></div>
 </div><!-- /#machine -->
 
 <!-- ---- the crates ------------------------------------------------------

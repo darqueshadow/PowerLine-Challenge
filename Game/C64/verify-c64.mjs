@@ -1369,6 +1369,14 @@ async function runRig() {
     const tFastOff = await until("__cat.corner().fastLoad === false", 8000);
     ok(tFastOff >= 0 && !(await ev("__cat.corner().fastOn")) && (await fastPill()) === "Off",
        `and again: Off   [${took(tFastOff)}, ${await fastPill()}]`);
+    /* 🆕 2026-10-04 — Phase 3 shifted the deck right for the Datasette's room:
+       measured at THIS window, Help once ran off the deck's edge */
+    const fit = JSON.parse(await ev(`JSON.stringify((function () { var d = document.getElementById("deck").getBoundingClientRect(),
+      s = document.getElementById("c64-side").getBoundingClientRect(), h = document.getElementById("c64-help").getBoundingClientRect(),
+      b = document.getElementById("datasette-bay").getBoundingClientRect();
+      return { deck: Math.round(d.right), side: Math.round(s.right), help: Math.round(h.right), room: Math.round(b.width) }; })())`));
+    ok(fit.side <= fit.deck + 1 && fit.help <= fit.deck && fit.room >= 100,
+       `the deck, shifted right for the Datasette's room, still holds its whole panel   [panel to ${fit.side}, Help to ${fit.help}, deck to ${fit.deck}; room ${fit.room}px]`);
     ok(corner.monitor === true, "the screen wears the monitor bezel");
     ok(corner.lamps.power === true && corner.lamps.loading === false && corner.lamps.failed === false,
        `the drive's green light is on and steady, and the red one is dark when idle   [${JSON.stringify(corner.lamps)}]`);

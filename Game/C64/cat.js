@@ -2112,7 +2112,7 @@
       ["Arrow keys", "Move the joystick. Or, with Arrows set to Cursor, move the C64's cursor."],
       [HOTKEY_INPUT, "Switch the arrow keys between Stick and Cursor. Remembered for each game."],
       [HOTKEY_PORT, "Move the joystick to the other port (1 or 2). Remembered for each game."],
-      [HOTKEY_EXIT, "Reset the C64, back to READY. The disk stays in."],
+      [HOTKEY_EXIT, "Reset the C64, back to the boot screen. The disk stays in."],
       ["Esc", "RUN/STOP."],
       ["Shift + Esc", "Load from tape (Shift + RUN/STOP)."],
       ["Tab", "The C64's CTRL key."],

@@ -1167,6 +1167,35 @@ try {
       ok(e.title === `${setC.name} · ${want}` && e.disk === want,
          `a ${kind}'s line is its name and "${want}", on ONE line   ["${e.title}"]`);
     }
+
+    /* 🆕 2026-10-04 — PHASE 3, THE LAYOUT (his rulings, corner only): Insert under
+       the art box with Eject BESIDE it; the 1541 in the bottom-left corner; an
+       EMPTY room to its right for the Datasette, with the C64's deck shifted
+       right of it; small icons on the Arrows switch; Help reworded. */
+    const LAY = JSON.parse(await b.ev(`JSON.stringify((function () {
+      var r = function (id) { var e = document.getElementById(id); if (!e) return null; var b = e.getBoundingClientRect();
+        return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom), w: Math.round(b.width) }; };
+      var bay = document.getElementById("datasette-bay");
+      return { shot: r("detail-shot"), ins: r("btn-insert"), ej: r("btn-eject"), drive: r("drive-1541"), crates: r("crates"),
+               bay: r("datasette-bay"), bayShown: bay ? getComputedStyle(bay).display !== "none" : false, bayKids: bay ? bay.childElementCount : -1,
+               deck: r("deck"), side: r("c64-side"),
+               insIn: document.getElementById("btn-insert").parentNode.id, ejIn: document.getElementById("btn-eject").parentNode.id,
+               icons: ["c64-arrows-stick", "c64-arrows-cursor"].map(function (id) { var b = document.getElementById(id);
+                 return !!b.querySelector("svg.c64-arrows__icon") + ":" + b.textContent.trim(); }) }; })())`));
+    ok(LAY.insIn === "crates" && LAY.ejIn === "crates" && Math.abs(LAY.ins.t - LAY.ej.t) <= 2 && LAY.ins.r <= LAY.ej.l && LAY.ins.t >= LAY.shot.b,
+       `Insert sits under the art box with Eject BESIDE it, both still in the crates   [shot ends ${LAY.shot.b}; insert ${LAY.ins.l}-${LAY.ins.r} @${LAY.ins.t}, eject ${LAY.ej.l}-${LAY.ej.r} @${LAY.ej.t}]`);
+    ok(LAY.drive.l - LAY.crates.l <= 2 && LAY.drive.t >= LAY.ins.b && LAY.crates.b - LAY.drive.b <= 40,
+       `the 1541 sits in the bottom-left corner   [1541 ${LAY.drive.l},${LAY.drive.t}-${LAY.drive.b}; column ${LAY.crates.l},…-${LAY.crates.b}]`);
+    ok(LAY.bayShown && LAY.bayKids === 0 && LAY.bay.w >= 100 && LAY.bay.l >= LAY.drive.r - 1 && LAY.deck.l >= LAY.bay.r - 1 && LAY.side.l > LAY.bay.r,
+       `an EMPTY room to its right for the Datasette, and the C64's deck shifted right of it   [room ${LAY.bay.l}-${LAY.bay.r} (${LAY.bayKids} inside), deck from ${LAY.deck.l}]`);
+    const helpR = JSON.parse(await b.ev(`JSON.stringify(Math.round(document.getElementById("c64-help").getBoundingClientRect().right))`));
+    ok(LAY.side.r <= LAY.deck.r + 1 && helpR <= LAY.deck.r,
+       `and the shifted deck still holds its whole panel: nothing runs off its right edge   [panel to ${LAY.side.r}, Help to ${helpR}, deck to ${LAY.deck.r}]`);
+    ok(LAY.icons.join("|") === "true:Stick|true:Cursor",
+       `the Arrows switch has a joystick and a cursor-key icon, and keeps its words   [${LAY.icons.join(" | ")}]`);
+    const helpText = String(await b.ev(`document.getElementById("c64-help-panel").textContent.replace(/\\s+/g, " ")`));
+    ok(["Eject (ends game)", "ends the game", 'Load "$",8 + List', "says Run", "Reset (F12)", "boot screen", "If a game is running, it ends first"].every((w) => helpText.includes(w)),
+       `Help is reworded for the new buttons, and says Reset (F12) goes back to the boot screen`);
   });
 
   /* the era line */
@@ -1182,6 +1211,11 @@ try {
                word: d("#detail-shot .detail-shot__word"), meta: d("#detail-meta"), syn: d("#detail-synopsis"), drive: d("#drive") }; })())`));
     ok(!plainLook.corner && plainLook.word === "none" && plainLook.meta !== "none" && plainLook.syn !== "none" && plainLook.drive !== "none",
        `and the corner's Phase 1 changes stay out of it: meta, synopsis and the Drive 8 row still show   [${JSON.stringify(plainLook)}]`);
+    /* 🆕 2026-10-04 — and Phase 3's layout stays out of it too */
+    const plainLay = JSON.parse(await b.ev(`JSON.stringify({ crates: getComputedStyle(document.getElementById("crates")).display,
+      detail: getComputedStyle(document.getElementById("detail")).display, bay: getComputedStyle(document.getElementById("datasette-bay")).display })`));
+    ok(plainLay.crates === "flex" && plainLay.detail !== "contents" && plainLay.bay === "none",
+       `and the corner's Phase 3 layout stays out of it: the crates column, the detail panel, no Datasette room   [${JSON.stringify(plainLay)}]`);
     ok((await b.ev(`document.getElementById("btn-fastload").hidden`)) === true,
        "nor the fast-load cartridge, where there is no C64 to plug it into");
   });
