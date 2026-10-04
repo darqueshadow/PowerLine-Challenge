@@ -12,6 +12,7 @@ The root PLC track (resume word **`Continue_PLC`**) keeps its one-shot handoffs 
 - C64 corner redesign in progress (Phases 0-5).
 - Swap loses disk saves (a fresh image each time): parked, not fixed.
 - Load on an empty-directory disk can hang the hub: logged, not fixed.
+- The empty-drive Load hang (intermittent, verify-c64 §F2): logged, not fixed; its own root-cause pass comes AFTER Phase 5.
 
 ## 🚫 Never push `main` without Andrew's explicit OK
 
