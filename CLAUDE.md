@@ -11,8 +11,9 @@ The root PLC track (resume word **`Continue_PLC`**) keeps its one-shot handoffs 
 → `(PCL)/memory/`. That file is not auto-loaded, so read it when `Continue_PLC` is typed.
 - C64 corner redesign in progress (Phases 0-5).
 - Swap loses disk saves (a fresh image each time): parked, not fixed.
-- Load on an empty-directory disk can hang the hub: logged, not fixed.
-- The empty-drive Load hang (intermittent, verify-c64 §F2): logged, not fixed; its own root-cause pass comes AFTER Phase 5.
+- Load on an empty-directory disk can hang the hub: not reproduced on 2026-10-04 (3 of 3 answered), probably gone.
+- The stuck-drive Load hang (about 1 "file not found" load in 40, inside the emulator core): recovered, not prevented.
+  The corner resets by itself with the disk in (`1c27d2b`, docs/decisions.md "Built 2026-10-04").
 
 ## 🚫 Never push `main` without Andrew's explicit OK
 
