@@ -836,7 +836,9 @@ try {
       ok(mach.m.on && mach.m.started && /emulator\/index\.html\?machine=1/.test(mach.m.src),
          `the screen is the real C64 (the machine page), not the terminal   [${mach.m.src}]`);
       ok(mach.out === "none" && mach.frame > 300, `the terminal is off the glass and the machine fills it   [out ${mach.out}, ${Math.round(mach.frame)}px]`);
-      eq(mach.buttons.join(","), "btn-listing,btn-run,btn-reset", "the deck grows List, Run and Reset");
+      /* 🔄 2026-10-04 — Phase 2 (his rulings): ONE Load button that becomes Run,
+         ONE Directory button that types LIST itself, so only Reset is added */
+      eq(mach.buttons.join(","), "btn-reset", "the deck grows Reset, and no separate List or Run");
       ok(typeof mach.note === "string" && mach.note.length > 0, `the hub speaks on the deck's note line   [${mach.note}]`);
       const before = Number(await b.ev("__cat.lines().length"));
       await b.ev(`__cat.execute('LOAD"PITSTOP",8')`);

@@ -1126,6 +1126,27 @@
     } else if (ch.length) {
       btnLoad.textContent = "Load…";
     }
+    /* 🆕 2026-10-04 — ONE BUTTON, LOAD OR RUN (his ruling): Run only when a load
+       came back to READY. and RUN was not typed. It types exactly RUN. */
+    if (MACHINE && loadMode === "run") {
+      btnLoad.dataset.cmd = "RUN";
+      btnLoad.textContent = "Run";
+    }
+  }
+  function loadDefault() { loadMode = "load"; paintLoad(); }
+
+  /* 🆕 2026-10-04 — RESET AND WAIT FOR READY. (Phase 2's Eject and Insert).
+     📏 Measured: cat:resetdone comes back 75 frames after the restart, BEFORE
+     the KERNAL has finished booting, and keys typed in that gap are lost (the
+     rig's next typed line lost its first character). So the game is only over
+     once the boot screen's READY. is really up. */
+  function resetToReady() {
+    return machineCall({ type: "cat:reset" }, ["cat:resetdone", "cat:resetfailed"], 20000)
+      .then(function (r) {
+        if (r.type !== "cat:resetdone") throw new Error(String(r.reason || "no reason given"));
+        return machineCall({ type: "cat:awaitready", ms: 15000 }, ["cat:atready"], 20000);
+      })
+      .then(function () { gameOn = false; loadMode = "load"; });
   }
 
   /* =======================================================================
@@ -1265,6 +1286,7 @@
   }
 
   function pressLoad() {
+    if (loadMode === "run") { runLoaded(); return; }
     var ch = choicesOf(inserted);
     if (ch.length > 1) {
       if (!pickEl.hidden && pickAnchor === btnLoad) { closePick(true); return; }
@@ -1360,7 +1382,13 @@
     paintDrive(isCartridge(disk) ? null : "loading");
     releaseMachineFocus();
     var files = (disk.files || []).map(function (f) { return new URL(f.url, location.href).href; });
-    DRIVE.play(disk, { medium: mediumOfDisk(disk), host: screenShell })
+    /* 🆕 2026-10-04 — INSERT WHILE A GAME IS RUNNING RESETS FIRST (his ruling).
+       At a bare READY. it still goes into the running machine, no reset (§C). */
+    var ended = gameOn;
+    (ended ? resetToReady()
+      .then(function () { write("game ended: reset for the new disk.", "dim"); },
+            function (err) { throw new Error("the game would not stop: " + err.message); }) : Promise.resolve())
+      .then(function () { return DRIVE.play(disk, { medium: mediumOfDisk(disk), host: screenShell }); })
       .then(function () {
         return machineCall({ type: "cat:insert", files: files }, ["cat:inserted", "cat:insertfailed"], 60000);
       })
@@ -1396,23 +1424,40 @@
       });
   }
 
+  /* 🔄 2026-10-04 — EJECT IS A FULL STOP (his ruling, "Eject (ends game)"):
+     the drive is emptied, then the machine is reset, so it ends on the boot
+     screen's READY. with the latch up and the green lamp on.
+     🚨 A PAUSED MACHINE IS RESUMED FIRST. A reset is paced in emulated frames,
+     so it cannot finish on a frozen machine, and the end state is a READY.
+     prompt. This replaces 2026-09-25's "Eject works without unpausing". */
   function machineEject() {
     if (busy) return;
     setBusy(true);
     var was = inserted.displayName.toUpperCase();
-    machineCall({ type: "cat:eject" }, ["cat:ejected", "cat:ejectfailed"], 20000)
+    var wake = paused
+      ? machineCall({ type: "cat:resume" }, ["cat:resumed", "cat:resumefailed"], 5000)
+          .then(function (m) {
+            if (m.type !== "cat:resumed") throw new Error("the machine would not resume: " + String(m.reason || "no reason given"));
+            paused = false;
+            paintPause();
+          })
+      : Promise.resolve();
+    wake
+      .then(function () { return machineCall({ type: "cat:eject" }, ["cat:ejected", "cat:ejectfailed"], 20000); })
       .then(function (m) {
         if (m.type !== "cat:ejected") throw new Error(String(m.reason || "no reason given"));
         learnFor = null; learnWant = null;
         medium = null;
         setDrive(null);
         latchTo("up");
-        paintLoad();
         renderSwap(null);
-        write("removed: " + was, "dim");
+        return resetToReady().catch(function (err) { throw new Error("the disk is out, but the reset failed: " + err.message); });
+      })
+      .then(function () {
+        write("removed: " + was + ". game over: back to ready.", "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not eject: " + err.message, "err"); })
-      .then(function () { setBusy(false); ready(); renderBox(); focusMachine(); });
+      .then(function () { paintLoad(); setBusy(false); ready(); renderBox(); focusMachine(); });
   }
 
   /* A command button on the real C64: TYPE the string, then RETURN. */
@@ -1434,10 +1479,12 @@
       .then(function (m) {
         if (m.type !== "cat:resetdone") throw new Error(String(m.reason || "no reason given"));
         learnFor = null; learnWant = null;
+        gameOn = false;
+        loadMode = "load";
         write("reset." + (inserted ? " " + inserted.displayName.toUpperCase() + " is still in." : ""), "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not reset: " + err.message, "err"); })
-      .then(function () { setBusy(false); ready(); focusMachine(); });
+      .then(function () { paintLoad(); setBusy(false); ready(); focusMachine(); });
   }
 
   /* ---- the sides of a multi-disk game ------------------------------------
@@ -1503,6 +1550,7 @@
       .then(function (m) {
         if (m.type !== "cat:swapped") throw new Error(String(m.note || "no reason given").replace(/^could not swap: /, ""));
         disk.side = Number(m.index) || 0;
+        loadMode = "load";   /* 🆕 2026-10-04 — a waiting Run was for the other disk */
         write(sideLabel(disk, disk.side).toLowerCase() + " is in the drive.", "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not swap sides: " + err.message, "err"); })
@@ -1510,6 +1558,7 @@
       .then(function () {
         led.classList.remove("on");
         paintDrive(null);
+        paintLoad();
         setBusy(false);
         renderSides(inserted);
         focusMachine();
@@ -1546,7 +1595,7 @@
            started itself and must not be typed into. */
         if (!m.ready) {
           var why = String(m.why || "");
-          if (why === "started") { write("it started on its own.", "dim"); return true; }
+          if (why === "started") { write("it started on its own.", "dim"); return true; }   /* 🚫 never flips to Run */
           if (why === "error") {
             write("the load failed, so run was not typed.", "warn");
             /* 🆕 2026-10-03 — the 1541's DOS error blink, for the one error it
@@ -1558,6 +1607,8 @@
           else write("run was not typed (" + (why || "no reason given") + "). type run yourself.", "warn");
           return false;
         }
+        /* 🆕 2026-10-04 — at READY. with RUN not typed, the button becomes Run */
+        if (!autoRun) { loadMode = "run"; write("loaded. press run to start it.", "dim"); return false; }
         return machineCall({ type: "cat:type", text: "RUN\n" }, ["cat:typed", "cat:typefailed"], 30000)
           .then(function (t) {
             if (t.type !== "cat:typed") throw new Error("could not type run: " + String(t.reason || "no reason given"));
@@ -1565,16 +1616,62 @@
           }, function (err) {
             if (err.byPowerOff) throw err;
             throw new Error("could not type run: " + err.message);
-          });
+          })
+          .catch(function (err) { if (!err.byPowerOff) loadMode = "run"; throw err; });
       })
       /* 🆕 2026-10-01 — the game is going (it started itself, or RUN was
          typed): hand over to the title's input. Not on a failed load. */
-      .then(function (going) { if (going) applyInput(disk); })
+      .then(function (going) { if (going) { gameOn = true; applyInput(disk); } })
       .catch(function (err) {
         if (err.byPowerOff) return;
         write(/^could not type run/.test(err.message) ? err.message + "." : "could not load: " + err.message, "err");
       })
-      .then(function () { paintDrive(notFound ? "failed" : null); setBusy(false); focusMachine(); });
+      .then(function () { paintDrive(notFound ? "failed" : null); paintLoad(); setBusy(false); focusMachine(); });
+  }
+
+  /* 🆕 2026-10-04 — the Run half of the one Load button: types RUN, and the
+     button goes back to Load. The game is going, so its input takes over. */
+  function runLoaded() {
+    if (busy) return;
+    var disk = inserted;
+    setBusy(true);
+    machineCall({ type: "cat:type", text: "RUN\n" }, ["cat:typed", "cat:typefailed"], 30000)
+      .then(function (m) {
+        if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
+        loadMode = "load";
+        gameOn = true;
+        applyInput(disk);
+      })
+      .catch(function (err) { if (!err.byPowerOff) write("could not type run: " + err.message + ".", "err"); })
+      .then(function () { paintLoad(); setBusy(false); focusMachine(); });
+  }
+
+  /* 🆕 2026-10-04 — ONE DIRECTORY BUTTON (his ruling): it types LOAD"$",8, waits
+     for READY., then types LIST itself — two things a player would type. A
+     failed LOAD"$" (an empty drive) is said, and LIST is not typed after it,
+     since LIST would then print whatever program is in memory. Loading "$"
+     replaces that program, so a waiting Run goes back to Load too. */
+  function pressDirectory() {
+    if (busy) return;
+    setBusy(true);
+    var dir = btnList.dataset.cmd;
+    machineCall({ type: "cat:type", text: dir + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
+      .then(function (m) {
+        if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
+        loadMode = "load";
+        return machineCall({ type: "cat:awaitready", ms: 60000 }, ["cat:atready"], 70000);
+      })
+      .then(function (m) {
+        if (!m.ready) {
+          write(m.why === "error" ? "no directory: " + String(m.error || "the drive said no").replace(/^\?/, "").toLowerCase() + "." :
+                "the directory did not finish, so list was not typed.", "warn");
+          return;
+        }
+        return machineCall({ type: "cat:type", text: "LIST\n" }, ["cat:typed", "cat:typefailed"], 30000)
+          .then(function (t) { if (t.type !== "cat:typed") throw new Error("could not type list: " + String(t.reason || "no reason given")); });
+      })
+      .catch(function (err) { if (!err.byPowerOff) write("could not read the directory: " + err.message, "err"); })
+      .then(function () { paintLoad(); setBusy(false); focusMachine(); });
   }
 
   /* One entry point for every command button and for the tooling surface. */
@@ -1878,6 +1975,15 @@
          as the strip's bottom line — the same element, not a second spot.
      ===================================================================== */
   var paused    = false;   /* what the MACHINE last confirmed */
+  /* 🆕 2026-10-04 — PHASE 2 (his rulings). `gameOn`: the hub's own Load got a
+     game going (it started itself, or RUN was typed), so Insert resets first and
+     Eject is a full stop. 📌 Only what the HUB started: a LOAD and RUN typed by
+     hand are not seen, and Insert then goes in without a reset, as before.
+     `loadMode`: "run" only when a load came back to READY. with RUN NOT typed
+     (never on "started"); Reset, Eject, Swap and Directory put it back. */
+  var gameOn    = false;
+  var loadMode  = "load";
+  var autoRun   = true;    /* rig-only switch (__cat.autoRun), to reach the "run" state on demand */
   var pauseAsk  = false;   /* a pause or resume is on its way */
   var fullView  = false;
   var ejectHome = document.createComment(" Eject's place in the crates ");
@@ -1938,6 +2044,8 @@
   /* the machine went away (power off, or it failed) — a switched-off C64 is
      not paused, and the next one boots running */
   function forgetPause() {
+    gameOn = false;          /* the machine went away, and the game with it */
+    loadMode = "load";
     paused = false;
     pauseAsk = false;
     helpPaused = false;
@@ -2111,8 +2219,14 @@
     cratesEl.addEventListener("mousedown", function (e) {
       if (machineStarted && e.target.closest && e.target.closest("#btn-insert, #btn-eject, #side-swap button")) e.preventDefault();
     });
-    btnListing.hidden = false;
-    btnRun.hidden = false;
+    /* 🔄 2026-10-04 — PHASE 2 (his rulings): ONE Directory button types
+       LOAD"$",8 then LIST itself, and ONE Load button turns into Run when there
+       is something to run. List and Run stay in the markup (the ordinary hub's
+       markup is shared) but are not shown here. */
+    btnListing.hidden = true;
+    btnRun.hidden = true;
+    btnEject.querySelector(".eject-word").textContent = "Eject (ends game)";
+    btnEject.title = "Take the disk out and end the game: back to READY.";
     btnReset.hidden = false;
     /* 🆕 2026-09-17 — the fast loader, off until asked for. It PAINTS FROM THE
        MACHINE'S ANSWER, never from the click: changeSettingOption can land in
@@ -2135,7 +2249,8 @@
         .then(function () { focusMachine(); });
     });
     paintFast();
-    btnList.textContent = "Load \"$\",8";
+    btnList.textContent = "Load \"$\",8 + List";
+    btnList.title = 'Types LOAD"$",8, then LIST';
     btnReset.title = "Reset the C64, back to READY. The disk stays in the drive (" + HOTKEY_EXIT + ")";
     deckNote.hidden = false;
     paintLoad();
@@ -2823,6 +2938,7 @@
          🚫 data-cmd is NOT touched. Two rig assertions pin it to the exact string
          LOAD"*",8,1, and the button must go on saying what it types. */
       if (b === btnLoad && MACHINE && machineStarted) { pressLoad(); return; }
+      if (b === btnList && MACHINE && machineStarted) { pressDirectory(); return; }
       submitCommand(b.dataset.cmd);
     });
   });
@@ -3027,8 +3143,14 @@
                busy: busy, src: machineStarted ? machineFrame.getAttribute("src") : null,
                /* 🆕 2026-09-25 */
                paused: paused, full: fullView, pauseAvailable: !sidePause.disabled,
-               pauseHeld: sidePause.classList.contains("is-held") };
+               pauseHeld: sidePause.classList.contains("is-held"),
+               /* 🆕 2026-10-04 — Phase 2 */
+               gameOn: gameOn, loadMode: loadMode };
     },
+    /* 🆕 2026-10-04 — RIG ONLY: with auto-RUN off, a load that comes back to
+       READY. leaves the button on Run, which is the one state the rig cannot
+       otherwise reach on demand (it is what a failed RUN leaves). */
+    autoRun: function (on) { autoRun = on !== false; return autoRun; },
     note: function () { return deckNote.hidden ? null : deckNote.textContent; },
     /* 🆕 2026-09-17 — the measured key map, which OUTLIVED the card that showed
        it. verify-c64 §J presses every one of these on the real core; it used to

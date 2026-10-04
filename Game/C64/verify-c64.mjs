@@ -123,7 +123,9 @@ function rigFixtures() {
     [`${RIG_CHOICE}.d64`, rigFileD64("RIG CHOICE", [{ name: "RIG PLAY", text: "RIG PLAY RAN" }, { name: "RIG HELP", text: "RIG HELP RAN" }, { name: "RIG PART", text: "RIG PART RAN" }])],
     [`${RIG_PLAIN}.d64`, rigFileD64("RIG PLAIN", [{ name: "RIG PLAIN", text: "RIG PLAIN RAN" }])],
     [`${RIG_ONE}.d64`, rigFileD64("RIG ONE", [{ name: "RIG PART", text: "RIG PART RAN" }, { name: "RIG ONE", text: "RIG ONE RAN" }])],
-    [`${RIG_TRIO} - d1.d64`, rigFileD64("RIG TRIO 1", [])],
+    /* 🔄 2026-10-04 — d1 holds one program, so §Q can leave the button on Run
+       and see a Swap put it back to Load (Phase 2). d2 and d3 stay empty. */
+    [`${RIG_TRIO} - d1.d64`, rigFileD64("RIG TRIO 1", [{ name: "RIG TRIO", text: "RIG TRIO RAN" }])],
     [`${RIG_TRIO} - d2.d64`, rigFileD64("RIG TRIO 2", [])],
     [`${RIG_TRIO} - d3.d64`, rigFileD64("RIG TRIO 3", [])],
     [RIG_MANIFEST, Buffer.from(JSON.stringify({
@@ -476,7 +478,12 @@ async function runRig() {
     ok(!(await ev("!!document.getElementById('c64-keys')")), "the Keyboard part is gone: there is no keyboard to select");
     ok(sideNow.shown && sideNow.power === "true" && sideNow.oldButtons === 0,
        "the side panel replaces the Input / Port / Power Off buttons, and its power light is on");
-    ok(deck.list && deck.run && deck.reset, "the deck has List, Run and Reset");
+    /* 🔄 2026-10-04 — Phase 2 (his rulings): ONE Directory button, ONE Load button
+       that becomes Run when there is something to run, and Eject says it ends the game */
+    const dirText = String(await ev("document.getElementById('btn-list').textContent")).replace(/\u00a0/g, " ");
+    const ejText = await ev("document.getElementById('btn-eject').querySelector('.eject-word').textContent");
+    ok(!deck.list && !deck.run && deck.reset && dirText === 'Load "$",8 + List' && ejText === "Eject (ends game)",
+       `the deck has one Directory button, no separate List or Run, and Reset; Eject says it ends the game   [${dirText} / ${ejText}]`);
     ok(await ev("document.getElementById('btn-insert').parentNode.id === 'crates' && document.getElementById('btn-insert').classList.contains('btn--insert')"),
        "Insert Disk sits where the disks are, styled as the primary action (his addendum)");
     /* his F-key addendum: each hint names the key that emu.js and cat.js actually catch */
@@ -566,17 +573,15 @@ async function runRig() {
       return toReady(after(await screen(), /^LIST$/)).filter(Boolean);
     };
     await clearScreen();
-    await click("#btn-list");               // LOAD "$",8
+    await click("#btn-list");               // LOAD "$",8, then LIST, by itself (Phase 2)
     await idle();
     /* 🚨 measured failure: a clicked Load button kept focus, and the next Space
        typed by hand pressed it again */
     ok(await ev("document.activeElement === document.getElementById('machine-frame')"),
        `clicking a deck button leaves the keyboard in the machine   [focus: ${await ev("document.activeElement.id || document.activeElement.tagName")}]`);
-    const tDirB = await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).slice(-1)[0] === "READY.", 60000);
-    await click("#btn-listing");            // LIST
-    await idle();
+    const tDirB = await untilScreen((r) => after(r, /^LOAD"\$",8$/).includes("LIST"), 60000);
     const dirButton = await directory();
-    ok(tDirB >= 0 && /^0 "/.test(dirButton[0] || ""), `buttons: LOAD "$",8 then List print the disk's directory   [${dirButton[0]} … ${dirButton.length} lines${dirButton.length ? "" :
+    ok(tDirB >= 0 && /^0 "/.test(dirButton[0] || ""), `one Directory button types LOAD "$",8, then LIST by itself: the disk's directory   [${dirButton[0]} … ${dirButton.length} lines${dirButton.length ? "" :
        "; screen: " + (await screen()).filter(Boolean).slice(-6).join(" / ") + "; note: " + (await ev("__cat.note()")) + "; busy " + (await ev("__cat.machine().busy"))}]`);
     await clearScreen();
     await type('LOAD"$",8\n');
@@ -621,14 +626,16 @@ async function runRig() {
     const typedTail = loadTyped.length ? "" : (await screen()).filter(Boolean).slice(-4).join(" / ");
     ok(loadTyped.join("|") === loadButton.join("|"), `typed: LOAD"*",8,1 gives the same lines   [${loadTyped.join(" | ")}${typedTail
        ? (/LOAD"#",8,1/.test(typedTail) ? "; * arrived as SHIFT+*, the SYMBOLIC keymap's race — is the machine still on positional?" : "") + "; screen: " + typedTail : ""}]`);
-    await click("#btn-run");
-    await idle();
+    /* 🔄 2026-10-04 — no separate Run button now (Phase 2): the hub did not load
+       this one, so RUN is typed by hand, as a player would. The Load button's own
+       Run is §Q's. */
+    await type("RUN\n");
     /* ⚠️ A GAME CAN CLEAR THE SCREEN BEFORE THIS LOOKS — measured: BadLands'
        trainer menu was up before a check for the RUN line ran, and the check
        failed on a Run button that had worked. So: either RUN is on the screen,
        or BASIC's screen (the LOAD it answered) is gone because something ran. */
     const tRunB = await untilScreen((r) => r.includes("RUN") || !r.includes('LOAD"*",8,1'), 20000);
-    ok(tRunB >= 0, `the Run button types RUN, and the machine runs what it loaded   [${took(tRunB)}]`);
+    ok(tRunB >= 0, `RUN typed by hand runs what it loaded   [${took(tRunB)}]`);
 
     /* --- D2. the Load button runs what it loaded ------------------------------
        🆕 2026-09-17, his ask. The naive version of this — type RUN after a fixed
@@ -707,8 +714,15 @@ async function runRig() {
     await press("F12");
     await idle();
     await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
+    /* 🆕 2026-10-04 — something on the screen first, so a reset can be seen */
+    await type("PRINT 4321\n");
+    await untilScreen((r) => r.includes(" 4321"), 6000);
     await click("#btn-eject");
     await idle();
+    const tFresh = await untilScreen((r) => r[1].trim() === "**** COMMODORE 64 BASIC V2 ****" && r[5] === "READY." && !r.includes(" 4321"), 20000);
+    const ejLamps = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
+    ok(tFresh >= 0 && !ejLamps.latch.down && ejLamps.lamps.power === true && !(await ev("__cat.machine().gameOn")),
+       `Eject is a full stop: the boot screen's READY., latch up, green on   [${took(tFresh)}; ${(await screen()).filter(Boolean).slice(0, 3).join(" / ")}]`);
     const ej = JSON.parse(await ev(`JSON.stringify({ inserted: __cat.inserted(), latch: __cat.corner().latch.down,
       cmd: document.getElementById("btn-load").dataset.cmd })`));
     ok(ej.inserted === null && ej.cmd === 'LOAD"*",8,1',
@@ -787,14 +801,14 @@ async function runRig() {
     await press("F9");
     const tSwapG = await until(`document.getElementById('c64-side').dataset.port === '${portWant}'`, 5000);
     ok(tSwapG >= 0, `F9 on the hub's side reaches the machine and swaps the port   [port ${portWas} -> ${await ev("document.getElementById('c64-side').dataset.port")}]`);
-    await click("#btn-listing");
+    /* 🔄 2026-10-04 — List is not shown in the corner now (Phase 2); the Directory
+       button types LOAD"$",8 (the drive is empty here, so it stops at the error) */
+    await click("#btn-list");
     await idle();
-    /* LIST can print a long program and scroll its own line up, so look for it
-       anywhere after the PRINT 3 that came before it */
-    const tTyped = await untilScreen((r) => after(r, /^PRINT 3$/).includes("LIST"), 8000);
+    const tTyped = await untilScreen((r) => after(r, /^PRINT 3$/).includes('LOAD"$",8'), 8000);
     const portAfterG = String(await ev("document.getElementById('c64-side').dataset.port"));
     ok(tTyped >= 0 && portAfterG === portWant,
-       `a command button types with the stick live, and nothing switches   [LIST ${took(tTyped)}, port still ${portAfterG}; ${(await screen()).filter(Boolean).slice(-4).join(" | ")}]`);
+       `a command button types with the stick live, and nothing switches   [LOAD"$",8 ${took(tTyped)}, port still ${portAfterG}; ${(await screen()).filter(Boolean).slice(-4).join(" | ")}]`);
     await press("F9");
     await until(`document.getElementById('c64-side').dataset.port === '${portWas}'`, 5000);
 
@@ -1009,6 +1023,69 @@ async function runRig() {
     await ev("__cat.full(false)");
     await until("!__cat.machine().full", 3000);
 
+    /* 🆕 2026-10-04 — PHASE 2 (his rulings).
+       ONE LOAD BUTTON: it turns into Run ONLY when a load came back to READY. with
+       RUN not typed (never on "started"). The hub types RUN itself whenever it can,
+       so the rig switches that off (__cat.autoRun, rig-only) to reach the state a
+       failed RUN leaves. Reset, Eject and Swap (below, on the trio) put Load back. */
+    const loadCmd = () => ev("document.getElementById('btn-load').dataset.cmd");
+    const toRun = async () => {
+      await clearScreen();
+      await click("#btn-load");
+      await untilScreen((r) => r.includes('LOAD"RIG ONE",8,1'), 10000);
+      await idleLoad();
+    };
+    ok((await ev("__cat.machine().gameOn")) === true, "[control] after Load ran it, the hub knows a game is going");
+    await ev("__cat.autoRun(false)");
+    await toRun();
+    ok((await loadText()) === "Run" && (await loadCmd()) === "RUN" && !(await screen()).includes("RIG ONE RAN"),
+       `a load that ends at READY. with RUN not typed: the button says Run, and nothing ran   [${await loadText()} / ${await loadCmd()}]`);
+    await click("#btn-load");
+    const tRunQ = await ran("RIG ONE RAN");
+    await idle();
+    ok(tRunQ >= 0 && String(await loadText()).replace(/\u00a0/g, " ") === 'Load "RIG ONE",8,1' && (await ev("__cat.machine().gameOn")) === true,
+       `Run types RUN: it ran, and the button is back to Load   [${took(tRunQ)}, ${await loadText()}]`);
+    await toRun();
+    await press("F12");
+    await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
+    await idle();
+    ok(String(await loadText()).replace(/\u00a0/g, " ") === 'Load "RIG ONE",8,1' && !(await ev("__cat.machine().gameOn")),
+       `Reset (F12) puts Run back to Load   [${await loadText()}]`);
+    await toRun();
+    await click("#btn-eject");
+    await idle();
+    ok((await loadCmd()) === 'LOAD"*",8,1' && (await ev("__cat.machine().loadMode")) === "load",
+       `Eject puts Run back to Load   [${await loadText()}]`);
+    await ev("__cat.autoRun(true)");
+
+    /* INSERT WHILE A GAME IS RUNNING RESETS FIRST; at a bare READY. it does not */
+    await insertRig(rid(RIG_ONE));
+    await clearScreen();
+    await click("#btn-load");
+    await ran("RIG ONE RAN");
+    await idleLoad();
+    await type("PRINT 6543\n");
+    await untilScreen((r) => r.includes(" 6543"), 6000);
+    ok((await ev("__cat.machine().gameOn")) === true, "[control] a game the hub ran is going");
+    /* ⚠️ rid() knows only the choice, one and trio disks: the trio it is */
+    await ev(`__cat.select(${JSON.stringify(rid(RIG_TRIO))})`);
+    const preIns = JSON.stringify(await ev("JSON.stringify({ game: __cat.machine().gameOn, busy: __cat.machine().busy, dis: document.getElementById('btn-insert').disabled })"));
+    await click("#btn-insert");
+    await until(`__cat.inserted() === ${JSON.stringify(rid(RIG_TRIO))}`, 60000);
+    await idle();
+    const tIns = await untilScreen((r) => r[1].trim() === "**** COMMODORE 64 BASIC V2 ****" && r[5] === "READY." && !r.includes(" 6543"), 10000);
+    const insRows = await screen();
+    ok(tIns >= 0 && !(await ev("__cat.machine().gameOn")),
+       `Insert while a game is running resets first: the boot screen, the old game gone   [${took(tIns)}; ${insRows.filter(Boolean).slice(0, 3).join(" / ")}${tIns >= 0 ? "" :
+         "; before " + preIns + "; hub said " + JSON.stringify(await ev("__cat.lines().slice(-4)")) + "; machine " + JSON.stringify(await inMachine("CAT_EMU.machine()")) + "; rows " + insRows.filter(Boolean).join(" / ")}]`);
+    await type("PRINT 7654\n");
+    await untilScreen((r) => r.includes(" 7654"), 6000);
+    await ev(`__cat.select(${JSON.stringify(rid(RIG_ONE))})`);
+    await click("#btn-insert");
+    await until(`__cat.inserted() === ${JSON.stringify(rid(RIG_ONE))}`, 60000);
+    await idle();
+    ok((await screen()).includes(" 7654"), "[control] Insert at a bare READY. goes in without a reset: the screen is untouched");
+
     /* several entries: the prompt, with ONLY those entries */
     await insertRig(rid(RIG_CHOICE));
     ok((await loadText()) === "Load…", `several entries: the Load button says it will ask   [${await loadText()}]`);
@@ -1135,6 +1212,14 @@ async function runRig() {
     const latchSettled = (down) => until(`!__cat.corner().latch.moving && __cat.corner().latch.down === ${down}`, 5000);
     await insertRig(rid(RIG_TRIO));
     ok((await latchSettled(true)) >= 0, `the latch drops once the disk is in   [${JSON.stringify(await latchQ())}]`);
+    /* 🆕 2026-10-04 — Phase 2: leave the button on Run, so the swap below can put it back */
+    await ev("__cat.autoRun(false)");
+    await clearScreen();
+    await click("#btn-load");
+    await untilScreen((r) => r.includes('LOAD"*",8,1'), 10000);
+    await idleLoad();
+    await ev("__cat.autoRun(true)");
+    ok((await loadText()) === "Run", `[control] Disk 1's program loaded, and the button says Run   [${await loadText()}]`);
 
     let sq = await sidesQ();
     ok(sq.buttons.join("|") === "Swap disk…" && sq.now === "Disk 1 of 3", `three disks: ONE button, and the drive says which is in   [${sq.buttons.join("|")} / ${sq.now}]`);
@@ -1147,6 +1232,8 @@ async function runRig() {
     await idle();
     ok(tPick >= 0 && (await until("document.activeElement === document.getElementById('machine-frame')", 3000)) >= 0,
        `picking Disk 3 puts it in, and the keyboard goes back to the machine   [${took(tPick)}]`);
+    ok((await ev("document.getElementById('btn-load').dataset.cmd")) === 'LOAD"*",8,1',
+       `and the Swap put Run back to Load   [${await loadText()}]`);
     await clearScreen();
     await type('LOAD"$",8\n');
     await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).slice(-1)[0] === "READY.", 60000);
@@ -1499,8 +1586,9 @@ async function runRig() {
     await type("PRINT X\n");
     ok((await untilScreen((r) => toReady(after(r, /^PRINT X$/))[0] === " 7", 6000)) >= 0,
        "the machine carried on through the change of view: X is still 7");
-    /* Eject, paused, in full screen: his ruling is that Eject works WITHOUT
-       unpausing, and in full screen it also leaves full screen */
+    /* Eject, paused, in full screen. 🔄 2026-10-04 — Eject is a full stop now
+       (Phase 2): it resumes the machine, empties the drive and resets to READY.;
+       in full screen it also leaves full screen, as before */
     await click("#c64-pause");
     await until("__cat.machine().paused === true", 5000);
     await wait(300);
@@ -1510,11 +1598,14 @@ async function runRig() {
     const E = JSON.parse(await ev(FULL_LOOK));
     ok(tEj >= 0 && E.crates.w > 100 && E.ejectIn === "crates" && E.swapIn === "crates" && E.insertIn === "crates",
        `Eject in full screen ejects AND leaves full screen: the disks are back, Eject and the swap are home   [${took(tEj)}, crates ${E.crates.w}px, eject ${E.ejectIn}]`);
-    ok((await ev("__cat.machine().paused")) === true && (await inMachine("CAT_EMU.machine().medium")) === null,
-       "and it worked without unpausing: still paused, and the machine's drive is empty");
+    await idle();
+    const tEjP = await untilScreen((r) => r[1].trim() === "**** COMMODORE 64 BASIC V2 ****" && r[5] === "READY.", 20000);
+    ok(tEjP >= 0 && (await ev("__cat.machine().paused")) === false && (await inMachine("CAT_EMU.machine().medium")) === null,
+       `and paused, Eject ends the game anyway: running again, the drive empty, the boot screen's READY.   [${took(tEjP)}]`);
     ok(E.label === "Full Screen", `the part reads Full Screen again   [${E.label}]`);
-    await click("#c64-pause");
-    await until("__cat.machine().paused === false", 5000);
+    /* the reset cleared X: set it again for the checks that follow */
+    await type("X=7\n");
+    await untilScreen((r) => toReady(after(r, /^X=7$/)).slice(-1)[0] === "READY.", 6000);
     /* Exit Full Screen leaves full screen only */
     await click("#c64-full");
     await until("__cat.machine().full === true", 3000);
@@ -1578,10 +1669,11 @@ async function runRig() {
     section("S. the deck's buttons in etched groups: Start, and Directory");
     const groups = await ev("JSON.stringify(__cat.corner().groups)").then(JSON.parse);
     const gOf = (id) => groups.find((g) => g.id === id) || { buttons: [] };
-    ok(gOf("deck-start").label === "Start" && gOf("deck-start").buttons.join(",") === "btn-load,btn-run",
-       `START holds Load and Run   [${JSON.stringify(gOf("deck-start"))}]`);
-    ok(gOf("deck-dir").label === "Directory" && gOf("deck-dir").buttons.join(",") === "btn-list,btn-listing",
-       `DIRECTORY holds Load "$",8 and List   [${JSON.stringify(gOf("deck-dir"))}]`);
+    /* 🔄 2026-10-04 — Phase 2: one button in each */
+    ok(gOf("deck-start").label === "Start" && gOf("deck-start").buttons.join(",") === "btn-load",
+       `START holds the one Load / Run button   [${JSON.stringify(gOf("deck-start"))}]`);
+    ok(gOf("deck-dir").label === "Directory" && gOf("deck-dir").buttons.join(",") === "btn-list",
+       `DIRECTORY holds the one Load "$",8 + List button   [${JSON.stringify(gOf("deck-dir"))}]`);
     const etch = JSON.parse(await ev(`JSON.stringify(["deck-start", "deck-dir"].map(function (id) {
       var g = document.getElementById(id), s = getComputedStyle(g), l = getComputedStyle(g.querySelector(".deck-group__label"));
       return { border: s.borderTopStyle, w: s.borderTopWidth, label: l.display, shown: g.getBoundingClientRect().width > 0 }; }))`));
