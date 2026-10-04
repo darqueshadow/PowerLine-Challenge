@@ -1144,8 +1144,38 @@
       btnLoad.dataset.cmd = "RUN";
       btnLoad.textContent = "Run";
     }
+    paintDatasette();
   }
   function loadDefault() { loadMode = "load"; paintLoad(); }
+
+  /* 🆕 2026-10-04 — THE DATASETTE (his rulings, Phase 4): the cassette shows
+     while a tape is in, and the game's name is printed on its blank label (in
+     code, never in the art). A long name SHRINKS, and wraps to two lines,
+     rather than being clipped. Painted with the Load button, so every insert,
+     swap and eject repaints it. */
+  var dsTape  = document.getElementById("datasette-tape");
+  var dsLabel = document.getElementById("datasette-label");
+  var LABEL_PX = { max: 13, min: 5 };
+  function paintDatasette() {
+    if (!dsTape) return;
+    var tape = !!(MACHINE && inserted && medium === "tape");
+    dsTape.hidden = !tape;
+    var name = tape ? inserted.displayName : "";
+    if (dsLabel.textContent !== name) dsLabel.textContent = name;
+    if (tape) fitLabel();
+  }
+  /* largest size that fits the label's box, both ways; measured, not guessed */
+  function fitLabel() {
+    var box = dsLabel;
+    if (!box.clientWidth) return;   /* not laid out (full screen, narrow, hidden) */
+    var px = LABEL_PX.max;
+    box.style.fontSize = px + "px";
+    while (px > LABEL_PX.min && (box.scrollHeight > box.clientHeight + 1 || box.scrollWidth > box.clientWidth + 1)) {
+      px -= 0.5;
+      box.style.fontSize = px + "px";
+    }
+  }
+  if (dsLabel && window.ResizeObserver) new ResizeObserver(function () { if (!dsTape.hidden) fitLabel(); }).observe(dsLabel);
 
   /* 🆕 2026-10-04 — RESET AND WAIT FOR READY. (Phase 2's Eject and Insert).
      📏 Measured: cat:resetdone comes back 75 frames after the restart, BEFORE

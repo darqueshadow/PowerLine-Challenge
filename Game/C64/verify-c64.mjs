@@ -716,6 +716,13 @@ async function runRig() {
     ok(tTape >= 0 && tapeDeck.medium === "tape",
        `${TAPE.name} goes in as a tape   [${took(tTape)}, ${tapeDeck.medium}]`);
     ok(tapeDeck.cmd === "LOAD" && tapeDeck.text === "Load", `the Load button now types LOAD, and says so   [${tapeDeck.text}]`);
+    /* 🆕 2026-10-04 — PHASE 4: the cassette is in the Datasette, with the game's
+       name printed on its label (his ruling), fitted, never clipped */
+    const lbl = JSON.parse(await ev(`JSON.stringify((function () { var t = document.getElementById("datasette-tape"), l = document.getElementById("datasette-label"),
+      c = t.getBoundingClientRect(); return { shown: !t.hidden && c.width > 0, text: l.textContent, px: parseFloat(l.style.fontSize) || 0,
+      fits: l.scrollWidth <= l.clientWidth + 1 && l.scrollHeight <= l.clientHeight + 1, w: Math.round(c.width) }; })())`));
+    ok(lbl.shown && lbl.text === TAPE.name && lbl.fits && lbl.px >= 5,
+       `the cassette shows in the Datasette with "${TAPE.name}" on its label, fitted   [${lbl.text} at ${lbl.px}px, fits ${lbl.fits}, cassette ${lbl.w}px wide]`);
     const trapsTape = await inMachine("EJS_emulator.allSettings.vice_virtual_device_traps");
     ok(trapsTape === "enabled", `with a tape in, the traps a .T64 needs are on   [${trapsTape}]`);
     await click("#btn-load");
@@ -757,6 +764,10 @@ async function runRig() {
       cmd: document.getElementById("btn-load").dataset.cmd })`));
     ok(ej.inserted === null && ej.cmd === 'LOAD"*",8,1',
        `the drive is empty again, and Load is back to LOAD"*",8,1   [${ej.inserted}, ${ej.cmd}]`);
+    const lblOut = JSON.parse(await ev(`JSON.stringify((function () { var t = document.getElementById("datasette-tape"), l = document.getElementById("datasette-label"),
+      c = t.getBoundingClientRect(); return { shown: !t.hidden && c.width > 0, text: l.textContent, px: parseFloat(l.style.fontSize) || 0,
+      fits: l.scrollWidth <= l.clientWidth + 1 && l.scrollHeight <= l.clientHeight + 1, w: Math.round(c.width) }; })())`));
+    ok(!lblOut.shown && lblOut.text === "", `and the cassette has left the Datasette   [shown ${lblOut.shown}]`);
     await type('LOAD"$",8\n');
     ok((await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).includes("?FILE NOT FOUND  ERROR"), 30000)) >= 0,
        "and the machine agrees: LOAD\"$\",8 finds nothing");

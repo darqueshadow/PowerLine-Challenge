@@ -1178,6 +1178,8 @@ try {
       var bay = document.getElementById("datasette-bay");
       return { shot: r("detail-shot"), ins: r("btn-insert"), ej: r("btn-eject"), drive: r("drive-1541"), crates: r("crates"),
                bay: r("datasette-bay"), bayShown: bay ? getComputedStyle(bay).display !== "none" : false, bayKids: bay ? bay.childElementCount : -1,
+               ds: r("datasette"), dsIn: (document.getElementById("datasette") || {}).parentNode === bay, tapeHidden: document.getElementById("datasette-tape").hidden,
+               dsImgs: Array.prototype.map.call(document.querySelectorAll("#datasette img"), function (i) { return i.complete && i.naturalWidth > 0; }).join(","),
                deck: r("deck"), side: r("c64-side"), sideSpread: (function () { var p = document.getElementById("c64-side").getBoundingClientRect(), c = [];
         Array.prototype.forEach.call(document.getElementById("c64-side").children, function (k) { var b = k.getBoundingClientRect();
           if (b.width && b.height && getComputedStyle(k).position !== "absolute") c.push(b.top + b.height / 2); });
@@ -1191,8 +1193,13 @@ try {
        `the 1541 sits in the bottom-left corner   [1541 ${LAY.drive.l},${LAY.drive.t}-${LAY.drive.b}; column ${LAY.crates.l},…-${LAY.crates.b}]`);
     /* 🔄 2026-10-04 — the deck tightened for the room (his ruling): at least ~280 px
        at this 1280 window (was 100), and the side panel still ONE row */
-    ok(LAY.bayShown && LAY.bayKids === 0 && LAY.bay.w >= 280 && LAY.bay.l >= LAY.drive.r - 1 && LAY.deck.l >= LAY.bay.r - 1 && LAY.side.l > LAY.bay.r,
-       `an EMPTY room to its right for the Datasette, at least 280 px wide, and the C64's deck shifted right of it   [room ${LAY.bay.l}-${LAY.bay.r} = ${LAY.bay.w}px (${LAY.bayKids} inside), deck from ${LAY.deck.l}]`);
+    ok(LAY.bayShown && LAY.bay.w >= 280 && LAY.bay.l >= LAY.drive.r - 1 && LAY.deck.l >= LAY.bay.r - 1 && LAY.side.l > LAY.bay.r,
+       `a room to its right for the Datasette, at least 280 px wide, and the C64's deck shifted right of it   [room ${LAY.bay.l}-${LAY.bay.r} = ${LAY.bay.w}px, deck from ${LAY.deck.l}]`);
+    /* 🆕 2026-10-04 — PHASE 4: the Datasette in that room, whole, at least ~280 px wide
+       at this window, its art loaded, and no cassette with no tape in */
+    ok(LAY.dsIn && LAY.ds.w >= 280 && LAY.ds.l >= LAY.bay.l - 1 && LAY.ds.r <= LAY.bay.r + 1 && LAY.ds.t >= LAY.bay.t - 1 && LAY.ds.b <= LAY.bay.b + 1
+       && LAY.dsImgs === "true,true,true" && LAY.tapeHidden,
+       `the Datasette sits whole in its room, ${LAY.ds.w} px wide, its three pictures loaded, no cassette shown without a tape   [${LAY.ds.l}-${LAY.ds.r} x ${LAY.ds.t}-${LAY.ds.b} in ${LAY.bay.l}-${LAY.bay.r} x ${LAY.bay.t}-${LAY.bay.b}; ${LAY.dsImgs}]`);
     ok(LAY.sideSpread <= 30, /* a wrapped row sits ~50 px lower; one row measures ~15 */ `the tightened side panel is still one row, nothing wrapped   [centres spread ${LAY.sideSpread}px]`);
     const helpR = JSON.parse(await b.ev(`JSON.stringify(Math.round(document.getElementById("c64-help").getBoundingClientRect().right))`));
     ok(LAY.side.r <= LAY.deck.r + 1 && helpR <= LAY.deck.r,

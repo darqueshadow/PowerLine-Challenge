@@ -349,7 +349,22 @@
   <!-- 🆕 2026-10-04 — THE DATASETTE'S ROOM (his ruling, Phase 3): beside the
        1541, with the C64's deck shifted right to make the space. EMPTY until the
        Datasette art is approved (Phase 4). Corner only; cat.css shows it. -->
-  <div id="datasette-bay" aria-hidden="true"></div>
+  <div id="datasette-bay" aria-hidden="true">
+    <!-- 🆕 2026-10-04 — THE DATASETTE (his ruling, Phase 4). Layers, bottom up:
+         the unlit SAVE lamp (seen through BASE's cut hole), BASE (lid removed),
+         the cassette (only while a tape is in; the hub prints the game's name on
+         its blank label), and the lid, hinged at its top edge, with a smoked
+         window. Art: Documents/Asset Packs/Datasette/build.py. Corner only. -->
+    <div class="datasette" id="datasette">
+      <span class="datasette__lamp" aria-hidden="true"></span>
+      <img class="datasette__base" src="datasette/datasette-base.png" alt="">
+      <div class="datasette__tape" id="datasette-tape" hidden>
+        <img src="datasette/cassette.png" alt="">
+        <span class="datasette__label" id="datasette-label"></span>
+      </div>
+      <img class="datasette__lid" id="datasette-lid" src="datasette/datasette-lid.png" alt="">
+    </div>
+  </div>
 </div><!-- /#machine -->
 
 <!-- ---- the crates ------------------------------------------------------

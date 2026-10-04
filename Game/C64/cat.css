@@ -825,6 +825,47 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-corner:not(.is-full) #screen-shell { grid-column: 1 / -1; }
 #cat.is-corner:not(.is-full) #datasette-bay { display: block; grid-column: 1; grid-row: 2; min-width: 0; }
 #cat.is-corner:not(.is-full) #deck { grid-column: 2; grid-row: 2; }
+/* ---- 🆕 2026-10-04 — THE DATASETTE (his ruling, Phase 4) --------------------
+   One canvas for BASE and the lid (they line up to the pixel), so both fill the
+   box; the cassette and the lamp are placed by the fractions build.py measured
+   (Documents/Asset Packs/Datasette/meta.json). 📏 It takes the bay's height, or
+   its width if that is smaller: 282 x 154 at the rig's 1280 window, 313 x 171
+   at 1920 x 1080. Bottom-left, beside the 1541. */
+#cat.is-corner:not(.is-full) #datasette-bay { position: relative; container-type: size; }
+.datasette {
+  position: absolute; left: 0; bottom: 0;
+  width: min(100cqw, 100cqh * 1.83333);
+  aspect-ratio: 2816 / 1536;
+  perspective: 900px;
+}
+.datasette > img, .datasette__tape, .datasette__lamp { position: absolute; display: block; }
+.datasette__base, .datasette__lid { inset: 0; width: 100%; height: 100%; }
+.datasette__base { z-index: 1; }
+.datasette__lamp {
+  z-index: 0; left: 74.503%; top: 68.294%; width: 2.947%; height: 5.469%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #6b2a22, #3a120d 60%, #220806);
+}
+.datasette__tape { z-index: 2; left: 15.038%; top: 11.433%; width: 48.349%; height: 48.349%; }
+.datasette__tape[hidden] { display: none; }
+.datasette__tape > img { width: 100%; height: 100%; display: block; }
+/* the blank label's part the closed lid's WINDOW shows: the frame hides its top
+   sliver and, where the window's corners are cut, its ends (📏 at label height
+   the window spans ~12-88% of the cassette). Text kept inside that, so a closed
+   lid never clips a name. */
+.datasette__label {
+  position: absolute; left: 13.5%; right: 13.5%; top: 11.5%; height: 21.5%;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  overflow: hidden;
+  font: 700 10px/1 var(--mono);
+  letter-spacing: .02em;
+  color: #2a2c6e;                     /* a ballpoint's blue on the cream label */
+  overflow-wrap: anywhere;
+}
+/* hinged at the lid's top edge (9.5% down the canvas); opens toward the viewer */
+.datasette__lid { z-index: 3; transform-origin: 50% 9.505%; transition: transform 450ms ease; }
+.datasette.is-open .datasette__lid { transform: rotateX(-45deg); }
+
 /* 🆕 2026-10-04 — THE DECK TIGHTENED FOR THE DATASETTE'S ROOM (his ruling):
    paddings and gaps ONLY. Every control keeps its size, the side panel stays
    ONE row (no wrap), and the 1541 is untouched. 📏 Measured (room before → after):
