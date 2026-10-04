@@ -5,6 +5,14 @@ the root PLC session, every cartridge session (Egg Timer, Asteroid Command, The 
 and anything else opened in a subfolder. Folder-specific rules live in `Game/CLAUDE.md` and each
 cartridge's own `CLAUDE.md`.
 
+## ⏸ Parked work — read `MEMORY.md` in this folder
+
+The root PLC track (resume word **`Continue_PLC`**) keeps its one-shot handoffs in `(PCL)/MEMORY.md`
+→ `(PCL)/memory/`. That file is not auto-loaded, so read it when `Continue_PLC` is typed.
+- C64 corner redesign in progress (Phases 0-5).
+- Swap loses disk saves (a fresh image each time): parked, not fixed.
+- Load on an empty-directory disk can hang the hub: logged, not fixed.
+
 ## 🚫 Never push `main` without Andrew's explicit OK
 
 Standing rule, Andrew, 2026-10-02. **Do not `git push` `main` (or any branch to `origin`) unless Andrew
