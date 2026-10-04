@@ -1093,8 +1093,8 @@ try {
     ok(s.keycard === false, "the key card is off the panel");
     const kc = JSON.parse(await b.ev("JSON.stringify(__cat.keycard())"));
     ok(kc.length === 17, `but its 17 measured key positions are still carried   [${kc.length}]`);
-    ok(s.cartPort && s.drivePort, "the cartridge port and the drive port are both on the panel");
-    ok(s.cartridge === null, "the cartridge port is empty, with no .CRT in the library");
+    /* 🔄 2026-10-04 — both removed (his ruling, Phase 1) */
+    ok(!s.cartPort && !s.drivePort, "the empty cartridge port and the drive socket are gone from the panel");
     ok(s.monitor === true, "the corner's screen wears the monitor bezel");
     ok(s.lamps.power && !s.lamps.loading && !s.lamps.failed,
        `the drive's green lamp is steady and the red one is dark when idle   [${JSON.stringify(s.lamps)}]`);
@@ -1112,20 +1112,74 @@ try {
       return { onScreen: r.bottom <= innerHeight && r.width > 20, bottom: Math.round(r.bottom), h: innerHeight }; })())`));
     ok(power.onScreen, `the grown panel did not push the power rocker off the screen   [bottom ${power.bottom} of ${power.h}]`);
     ok((await b.ev(`document.getElementById("btn-fastload").hidden`)) === false,
-       "the fast-load cartridge is at the cartridge port");
-    ok(s.fastSeated === false,
-       "and it starts OUT of the slot, so the corner runs at the real machine's speed");
+       "Fast Load is on the panel");
+    ok(s.fastOn === false && (await b.ev(`document.getElementById("btn-fastload-state").textContent`)) === "Off",
+       "and it starts Off, so the corner runs at the real machine's speed");
     /* it is a real button, not a decoration: clickable, focusable, and it must
        be REFUSED while a .CRT game holds the one expansion port */
     ok((await b.ev(`document.getElementById("btn-fastload").tagName`)) === "BUTTON",
        "and it is a real button, not a picture of one");
+
+    /* 🆕 2026-10-04 — PHASE 1, his rulings, CORNER ONLY: the empty frame is the
+       word "Artwork" with no disk drawing; under the 1541 ONE line, the name plus
+       "Disk k of n" for a set; the meta line, the synopsis and the deck's Drive 8
+       row are out of view. The era line below asserts the ordinary hub kept them. */
+    const LOOK = `JSON.stringify((function () {
+      var d = function (sel) { var e = document.querySelector(sel); return e ? getComputedStyle(e).display : "missing"; };
+      var f = document.getElementById("detail-shot");
+      return { corner: document.getElementById("cat").classList.contains("is-corner"),
+               cls: f.className, sleeve: d("#detail-shot .sleeve"), word: d("#detail-shot .detail-shot__word"),
+               wordText: f.querySelector(".detail-shot__word").textContent,
+               meta: d("#detail-meta"), syn: d("#detail-synopsis"), drive: d("#drive"),
+               title: document.getElementById("detail-title").textContent,
+               disk: (document.querySelector("#detail-title .detail-disk") || { textContent: "" }).textContent }; })())`;
+    const bareC = JSON.parse(await b.ev(`JSON.stringify(__cat.disks().map(function (d) {
+      return { id: d.id, name: d.displayName, files: (d.files || []).map(function (f) { return f.name; }) };
+    }))`)).find((d) => /^lib-/.test(d.id) &&
+      ![d.name, ...d.files.map((f) => f.replace(/\.[^.]+$/, ""))].some((n) => artKeys.has(n.trim().toLowerCase())));
+    if (bareC) {
+      await b.ev(`__cat.select(${JSON.stringify(bareC.id)})`);
+      await wait(300);
+      const e = JSON.parse(await b.ev(LOOK));
+      ok(e.corner && e.cls.includes("is-empty") && e.sleeve === "none" && e.word === "block" && e.wordText === "Artwork",
+         `a disk with no art: the frame says "Artwork", with no disk drawing   [${e.cls}, sleeve ${e.sleeve}, word ${e.word} "${e.wordText}"]`);
+      ok(e.meta === "none" && e.syn === "none" && e.drive === "none",
+         `under the 1541, nothing but the one line: no meta, no synopsis, no Drive 8 row   [${e.meta}/${e.syn}/${e.drive}]`);
+      ok(e.title === bareC.name && e.disk === "",
+         `and a single disk's line is its name alone   ["${e.title}"]`);
+    } else {
+      console.log("  skip  corner no-art word — every Cracked disk has art in the folder");
+    }
+    /* 🔄 2026-10-04 — a two-sided game says "Side A" (matching its "Swap to Side B"
+       button), a numbered set "Disk 1 of n" (his ruling). One of each, if the library has it. */
+    const sets = JSON.parse(await b.ev(`JSON.stringify(__cat.disks().filter(function (d) {
+      return d.runner === "emulator" && d.files && d.files.length > 1; })
+      .map(function (d) { return { id: d.id, name: d.displayName, n: d.files.length, first: d.files[0].label || "" }; }))`));
+    for (const [kind, setC] of [["two-sided game", sets.find((d) => /^Side /.test(d.first))],
+                                ["numbered set", sets.find((d) => !/^Side /.test(d.first))]]) {
+      if (!setC) { console.log(`  skip  corner line for a ${kind} — none in the library`); continue; }
+      const want = /^Side /.test(setC.first) ? setC.first : `Disk 1 of ${setC.n}`;
+      await b.ev(`__cat.select(${JSON.stringify(setC.id)})`);
+      await wait(300);
+      const e = JSON.parse(await b.ev(LOOK));
+      ok(e.title === `${setC.name} · ${want}` && e.disk === want,
+         `a ${kind}'s line is its name and "${want}", on ONE line   ["${e.title}"]`);
+    }
   });
 
   /* the era line */
   await bookOn("", async (b) => {
     const s = JSON.parse(await b.ev(CORNER));
     ok(s.monitor === false, "the ordinary hub does NOT get a 1980s monitor bezel around its PET-era terminal");
-    ok(s.cable === false && s.cartridge === null, "and none of the C64's hardware shows there");
+    ok(s.cable === false, "and none of the C64's hardware shows there");
+    /* 🆕 2026-10-04 — Phase 1 is corner only: the ordinary hub keeps its sleeve,
+       its meta line, its synopsis and its Drive 8 row */
+    const plainLook = JSON.parse(await b.ev(`JSON.stringify((function () {
+      var d = function (sel) { var e = document.querySelector(sel); return e ? getComputedStyle(e).display : "missing"; };
+      return { corner: document.getElementById("cat").classList.contains("is-corner"),
+               word: d("#detail-shot .detail-shot__word"), meta: d("#detail-meta"), syn: d("#detail-synopsis"), drive: d("#drive") }; })())`));
+    ok(!plainLook.corner && plainLook.word === "none" && plainLook.meta !== "none" && plainLook.syn !== "none" && plainLook.drive !== "none",
+       `and the corner's Phase 1 changes stay out of it: meta, synopsis and the Drive 8 row still show   [${JSON.stringify(plainLook)}]`);
     ok((await b.ev(`document.getElementById("btn-fastload").hidden`)) === true,
        "nor the fast-load cartridge, where there is no C64 to plug it into");
   });

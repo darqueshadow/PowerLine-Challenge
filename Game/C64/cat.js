@@ -102,14 +102,12 @@
   /* 🆕 2026-09-16 — the multi-disk side swap (his second addendum) */
   var sideSwap   = document.getElementById("side-swap");
   var driveSide  = document.getElementById("drive-side");
-  /* 🆕 2026-09-17 — the corner's new hardware: the cartridge port, the joystick
-     cable, and the 1541 front the disk artwork now sits in */
-  var cartPort   = document.getElementById("c64-cart");
-  var cartShell  = document.getElementById("c64-cart-shell");
-  var cartName   = document.getElementById("c64-cart-name");
-  var cartStatus = document.getElementById("c64-cart-status");
+  /* 🆕 2026-09-17 — the corner's new hardware: the joystick cable, and the 1541
+     front the disk artwork now sits in.
+     🗑 2026-10-04 — the cartridge port went (his ruling, Phase 1). */
   var driveBay   = document.getElementById("drive-bay");
   var btnFast    = document.getElementById("btn-fastload");
+  var fastState  = document.getElementById("btn-fastload-state");
   var fastLoad   = false;   /* what the MACHINE last confirmed, not what was asked */
   /* 🆕 2026-09-25 — Pause and Full Screen (see PAUSE AND FULL SCREEN below) */
   var catEl      = document.getElementById("cat");
@@ -531,6 +529,33 @@
     return null;
   }
 
+  /* 🆕 2026-10-04 — ONE LINE UNDER THE 1541 (his ruling, Phase 1): the game's
+     name, plus "Disk 1 of 2" for a multi-disk set ("Side A" for a two-sided
+     game), and nothing else. In the
+     corner the meta line and the synopsis are hidden (cat.css), and so is the
+     deck's old "Drive 8 / name / Now playing" row. The disk number is the one
+     in the drive when this is the inserted game, and Disk 1 (what Insert puts
+     in) when it is only picked. The ordinary hub keeps the bare name. */
+  /* 🔄 2026-10-04 — a TWO-SIDED game says "Side A" / "Side B" here, to match
+     its "Swap to Side B" button (his ruling); a numbered set says "Disk 1 of 3". */
+  function detailDisk(disk) {
+    var n = disk && disk.runner === "emulator" && disk.files ? disk.files.length : 0;
+    if (n < 2) return "";
+    var k = disk === inserted ? (disk.side || 0) : 0;
+    var lab = sideLabel(disk, k);
+    return /^Side /.test(lab) ? lab : "Disk " + (k + 1) + " of " + n;
+  }
+  function paintDetailLine(disk) {
+    dTitle.textContent = disk.displayName;
+    var d = MACHINE ? detailDisk(disk) : "";
+    if (!d) return;
+    dTitle.appendChild(document.createTextNode(" · "));
+    var sp = document.createElement("span");
+    sp.className = "detail-disk";
+    sp.textContent = d;
+    dTitle.appendChild(sp);
+  }
+
   function renderDetail(disk) {
     if (!disk) {
       dShot.className = "is-empty";
@@ -568,7 +593,7 @@
       dShot.style.backgroundImage = "";
     }
 
-    dTitle.textContent = disk.displayName;
+    paintDetailLine(disk);
 
     /* what is genuinely known about every disk, invented for none of them:
        how many sides, and what the hub has flagged it as. */
@@ -1090,6 +1115,7 @@
     btnLoad.dataset.cmd = tape ? "LOAD" : 'LOAD"*",8,1';
     btnLoad.textContent = tape ? "Load" : "Load \"*\",8,1";
     driveLabel.textContent = tape ? "Tape" : "Drive 8";
+    if (MACHINE) paintFast();   /* a .CRT in or out decides whether Fast Load can switch */
     /* 🆕 2026-10-01 — a title the library manifest names says what IT types:
        its one file by name, or "Load…" when there is a choice to make first.
        A title the manifest does not name keeps LOAD"*",8,1 exactly. */
@@ -1346,7 +1372,6 @@
           setDrive(disk);
           if (!isCartridge(disk)) latchFor(disk);
           paintLoad();
-          paintCart(disk);
           renderSwap(disk);
           write((medium === "tape" ? "tape inserted: " : "disk inserted: ") + disk.displayName.toUpperCase(), "dim");
         } else {
@@ -1437,6 +1462,7 @@
     var multi = !!(disk && disk.runner === "emulator" && disk.files && disk.files.length > 1 && disk === inserted);
     sideSwap.hidden = !multi;
     driveSide.hidden = !multi;
+    if (MACHINE && selected) paintDetailLine(selected);   /* the side in the drive changed */
     if (!multi) { driveSide.textContent = ""; return; }
     var cur = disk.side || 0;
     driveSide.textContent = "Now playing: " + sideLabel(disk, cur);
@@ -1676,22 +1702,12 @@
     var f = (disk.files && disk.files[0] && disk.files[0].url) || "";
     return /\.crt$/i.test(String(f));
   }
-  function paintCart(disk) {
-    if (cartShell.hidden === undefined) return;
-    var on = isCartridge(disk);
-    cartShell.hidden = !on;
-    cartName.textContent = on ? disk.displayName.toUpperCase() : "";
-    cartStatus.textContent = on ? "Cartridge in: " + disk.displayName : "Cartridge port empty";
-    /* the fast loader and a .CRT game cannot both be in the one port */
-    paintFast();
-  }
-
   /* 🆕 2026-09-17 — THE DRIVE'S TWO LAMPS, and what each one is allowed to say.
      🚨 Green is POWER and is steady; red is ACTIVITY and is SOLID for the length
      of an access; a BLINKING red is the 1541's DOS error signal and belongs to a
      disk that actually failed. The hub used to blink red on every successful
      insert, which to anyone who has used the machine reads as "that disk died".
-     🚫 Never call this with "loading" for a cartridge — see paintCart. */
+     🚫 Never call this with "loading" for a cartridge — see isCartridge. */
   /* 🔄 2026-09-17, his ask — THE DECK'S OWN LAMP IS THE SAME DRIVE'S LAMP. The
      little light beside "Drive 8" now follows exactly what the drive bay does,
      because there is only one drive: solid red for the length of an access, dark
@@ -1744,20 +1760,22 @@
     led.classList.toggle("is-failed", state === "failed");
   }
 
-  /* 🔄 2026-09-17 — FAST LOAD IS A CARTRIDGE NOW, so "on" means SEATED IN THE
-     PORT and "off" means standing below it. The position is the state; there is
-     no label making a claim the machine has not confirmed.
-     🚨 ONE EXPANSION PORT, ONE CARTRIDGE — the real constraint, not a drawing
-     limitation. A .CRT game in the slot means the fast loader physically cannot
-     be in it, so the button says so rather than overlapping two carts. */
+  /* 🔄 2026-10-04 — FAST LOAD IS A PLAIN TOGGLE (his ruling, Phase 1). From
+     2026-09-17 it was drawn as a cartridge seated in or standing out of the
+     port; the port went, so On/Off is said in words on the switch, still
+     painted from the machine's answer.
+     📌 A .CRT game in the machine still refuses it: a real fast loader WAS a
+     cartridge, and the C64 has one expansion port. The library holds none. */
   function paintFast() {
-    var taken = !cartShell.hidden;
-    btnFast.classList.toggle("is-seated", fastLoad && !taken);
+    var taken = isCartridge(inserted);
+    btnFast.classList.toggle("is-on", fastLoad && !taken);
     btnFast.setAttribute("aria-pressed", String(fastLoad));
+    fastState.textContent = fastLoad && !taken ? "On" : "Off";
     btnFast.disabled = taken;
     btnFast.title = taken
-      ? "The cartridge port is taken by " + (cartName.textContent || "a game") + " — a C64 has one expansion port"
-      : (fastLoad ? "Fast-load cartridge in. Click to take it out." : "A fast-load cartridge: click to plug it in, and the drive loads warped.");
+      ? "A cartridge game is in, and a C64 has one expansion port: Fast Load cannot go in with it"
+      : (fastLoad ? "Fast Load is on: the drive loads warped. Click to switch it off."
+                  : "Fast Load is off: click to switch it on, and the drive loads warped.");
   }
   function paintPower(on) {
     sidePower.setAttribute("aria-pressed", String(on));
@@ -2028,6 +2046,10 @@
   }
 
   function setupMachineDeck() {
+    /* 🆕 2026-10-04 — THE CORNER'S OWN FLAG (his rulings, Phase 1: every change
+       is corner only). cat.css scopes the corner's layout to #cat.is-corner, so
+       the ordinary hub, which shares this page, never sees it. */
+    catEl.classList.add("is-corner");
     /* the play bar's numbered disk buttons are not used here: the sides have
        their own control beside Insert Disk (renderSides) */
     /* his addendum: Input, Port and Power Off become the side panel. The play
@@ -2106,8 +2128,8 @@
           if (m.type !== "cat:warped") throw new Error(String(m.reason || "no reason given"));
           fastLoad = !!m.on;
           paintFast();
-          write(fastLoad ? "fast load cartridge in: the drive loads warped."
-                         : "fast load cartridge out: the drive runs at its own speed.", "dim");
+          write(fastLoad ? "fast load on: the drive loads warped."
+                         : "fast load off: the drive runs at its own speed.", "dim");
         })
         .catch(function (err) { write("could not change fast load: " + err.message, "warn"); })
         .then(function () { focusMachine(); });
@@ -3021,8 +3043,9 @@
       return {
         monitor: screenShell.classList.contains("is-monitor"),
         keycard: !!document.getElementById("c64-keycard"),
-        cartridge: cartShell.hidden ? null : cartName.textContent,
-        cartPort: !cartPort.hidden,
+        /* 🔄 2026-10-04 — both removed (his ruling, Phase 1): these now say
+           whether either is still on the page, and must be false */
+        cartPort: !!document.getElementById("c64-cart"),
         drivePort: !!document.getElementById("c64-iec"),
         /* 🔄 2026-09-17 — the drawn cable became a joystick glyph on the live
            port. The keys stay named `cable`/`cablePort` so the rigs that already
@@ -3038,11 +3061,11 @@
                  moving: driveBay.classList.contains("is-dropping") || driveBay.classList.contains("is-lifting") },
         ejectBy: btnEject.parentNode ? btnEject.parentNode.id : null,
         insertBy: btnInsert.parentNode ? btnInsert.parentNode.id : null,
-        /* fastLoad is what the MACHINE confirmed; fastSeated is where the
-           cartridge is actually drawn. They must agree — if they ever do not,
+        /* fastLoad is what the MACHINE confirmed; fastOn is what the switch
+           actually shows. They must agree — if they ever do not,
            the panel is telling the player something the core did not say. */
         fastLoad: fastLoad,
-        fastSeated: btnFast.classList.contains("is-seated"),
+        fastOn: btnFast.classList.contains("is-on"),
         fastBlocked: btnFast.disabled,
         keys: { arrows: HOTKEY_INPUT, port: HOTKEY_PORT, reset: HOTKEY_EXIT },
         arrows: sideArrows.dataset.arrows || null,

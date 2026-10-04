@@ -765,6 +765,28 @@ html.cat-link #cat { visibility: hidden; }
 #detail-synopsis { margin: 6px 0 0; }
 #detail-synopsis.is-empty { color: var(--cat-ink-dim); font-style: italic; }
 
+/* ---- 🆕 2026-10-04 — THE CORNER'S DETAIL, Phase 1 (his rulings) -----------
+   📌 CORNER ONLY: cat.js puts .is-corner on #cat in cracked mode. The ordinary
+   hub shares this page and keeps the sleeve, the meta line and the synopsis.
+   · the empty frame is the word "Artwork" alone, no disk drawing (is-empty stays);
+   · under the 1541, ONE line: the name, plus "Disk 1 of 2" for a set;
+   · the deck's "Drive 8 / name / Now playing" row is gone from view. Its
+     elements stay in the DOM: cat.js still writes them, and the ordinary hub
+     shows them. The 1541's own lamps are #drive-lamps, not #drive-led. */
+.detail-shot__word { display: none; }
+#cat.is-corner #detail-shot.is-empty .sleeve { display: none; }
+#cat.is-corner #detail-shot.is-empty .detail-shot__word {
+  display: block;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #6d6650;
+}
+#cat.is-corner #detail-meta,
+#cat.is-corner #detail-synopsis,
+#cat.is-corner #drive { display: none; }
+#detail-title .detail-disk { color: var(--cat-warn); }
+
 /* ---- the hotkey hint on a play-bar control ------------------------------
    His ask, 2026-09-11: "Input: Joystick  [F2 to swap]", secondary-styled, and
    the same pattern for the port so it is ready when that key settles.
@@ -1210,116 +1232,29 @@ html.cat-link #cat { visibility: hidden; }
 }
 .c64-part.is-grey .c64-part__label--over { opacity: 1; filter: none; }
 
-/* ---- the cartridge port ------------------------------------------------
-   A card-EDGE slot: very flat, ~14:1, black inside, with the gold fingers of
-   the MACHINE's gripper along the bottom. 🚫 Not a pin socket — the pins are on
-   the cartridge's own tongue. Empty is the normal state: the library holds no
-   .CRT today (112 titles, all .D64/.T64), so this sits open until one arrives. */
-.c64-cart {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 4px;
-  padding: 5px 9px 4px;
-  font-family: var(--mono);
-  position: relative;
-}
-.c64-cart__well {
-  position: relative;
-  width: clamp(54px, 6vw, 86px);
-  height: 16px;
-  border-radius: 2px;
-  background: linear-gradient(#0c0a12, #15121b 60%, #0c0a12);
-  box-shadow: inset 0 3px 5px rgba(0, 0, 0, .9), inset 0 -1px 0 #2a241a,
-              0 1px 0 rgba(255, 246, 219, .5);
-  overflow: hidden;
-}
-/* 22 contacts a side on the real thing; drawn as a fading gold comb */
-.c64-cart__fingers {
-  position: absolute;
-  left: 4px; right: 4px; bottom: 2px;
-  height: 5px;
-  background: repeating-linear-gradient(90deg, #c9a24a 0 2px, transparent 2px 4px);
-  opacity: .55;
-  -webkit-mask-image: linear-gradient(transparent, #000);
-  mask-image: linear-gradient(transparent, #000);
-}
-/* the seated cartridge: a low dark block standing proud of the slot, its paper
-   label on the TOP face — the same label idiom the drive already draws.
-   🆕 2026-09-17 — TWO THINGS CAN OCCUPY THIS, and only ever one at a time: a .CRT
-   game (#c64-cart-shell) or the fast-load cartridge (#btn-fastload). That is not
-   a limitation of the drawing, it is how the machine works — one expansion port,
-   no expander here — so cat.js enforces it rather than letting them overlap. */
-.c64-cart__shell {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  width: clamp(58px, 6.4vw, 92px);
-  padding: 4px 4px 7px;
-  border-radius: 3px 3px 1px 1px;
-  background: linear-gradient(#2a2a2e, #1e1e21 60%, #141416);
-  box-shadow: inset 0 1px 0 #4a4a50, 0 2px 4px rgba(0, 0, 0, .55);
-}
-.c64-cart__shell[hidden] { display: none; }
-.c64-cart__paper {
-  display: block;
-  border-radius: 1px;
-  background: #f4eedb;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, .45), inset 0 0 0 1px #d6cdb0;
-  overflow: hidden;
-}
-.c64-cart__band { display: block; height: 4px; background: #d9534f; }
-.c64-cart__name {
-  display: block;
-  padding: 2px 3px;
-  color: #2b2517;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  line-height: 1.15;
-  text-align: center;
-  text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* 🗑 2026-10-04 — THE CARTRIDGE PORT AND THE DRIVE (serial) PORT ARE GONE (his
+   ruling, Phase 1), and their rules with them: .c64-cart*, .c64-iec*. */
 
-/* ---- the drive (serial) port -------------------------------------------
-   A 6-pin DIN, always plugged: the drive is part of this machine. Beige cable,
-   as Commodore's own was, so it can never be mistaken for the joystick's black
-   one. The key notch at 12 o'clock is the recognisable feature. */
-.c64-iec {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 4px;
-  padding: 5px 9px 4px;
-  font-family: var(--mono);
+/* ---- Fast Load: a plain toggle ------------------------------------------
+   🔄 2026-10-04 — it was a cartridge seated in or standing out of the port;
+   the port went, so it is a part like the others, saying Off / On in words.
+   Lit the way a live port is lit, from the machine's answer (cat.js paintFast). */
+.c64-fast__pill {
+  padding: 3px 9px;
+  border-radius: 3px;
+  background: linear-gradient(#5b5246, #3d362d);
+  color: #cfc3a6;
+  font: 700 clamp(8px, 1vh, 10px) var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 #7a6f60, 0 1px 0 rgba(255, 246, 219, .35);
 }
-.c64-iec__socket {
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #d6d3cc, #8e8b84 62%, #55534e);
-  box-shadow: inset 0 0 0 2px #3a372f, 0 1px 0 rgba(255, 246, 219, .45);
-  display: grid;
-  place-items: center;
+.c64-fast.is-on .c64-fast__pill {
+  background: linear-gradient(#fff1c4, #ffd479);
+  color: #2b2517;
+  box-shadow: inset 0 1px 0 #fffaea, 0 0 8px rgba(255, 212, 121, .6);
 }
-.c64-iec__hood {
-  position: relative;
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 34%, #ded7c6, #c5bda9 60%, #9a9384);
-  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, .45);
-}
-.c64-iec__notch {
-  position: absolute;
-  top: -1px; left: 50%;
-  width: 4px; height: 4px;
-  margin-left: -2px;
-  border-radius: 0 0 2px 2px;
-  background: #2a271f;
-}
+.c64-fast:disabled { cursor: not-allowed; filter: brightness(.55) grayscale(.6); }
 
 /* power: a rocker in its housing, and the red light */
 .c64-power__body { display: flex; align-items: center; gap: 8px; }
@@ -1857,43 +1792,6 @@ html.cat-link #cat { visibility: hidden; }
 .c64-part.is-grey .c64-part__hint { opacity: 1; filter: none; }
 
 
-/* ---- the fast-load cartridge -------------------------------------------
-   🆕 2026-09-17, his call. It is a CARTRIDGE, not a switch, because that is
-   what a fast loader actually was. OUT of the slot when off, seated IN it when
-   on — so the state is a physical position and nothing has to be labelled.
-   🚨 It is a real <button>: it must be clickable, focusable and reachable by
-   keyboard, which the .c64-cart__shell span beside it is not. */
-.c64-cart__fast {
-  appearance: none;
-  border: 0;
-  cursor: pointer;
-  /* OUT: standing below the port, clear of the slot's mouth */
-  bottom: -30px;
-  padding: 4px 4px 7px;
-  transition: bottom 260ms cubic-bezier(.3, .8, .4, 1), filter 200ms ease;
-  filter: brightness(.86);
-}
-.c64-cart__fast:hover:not(:disabled) { filter: brightness(1); }
-.c64-cart__fast:focus-visible { outline: 2px solid #3f329b; outline-offset: 3px; }
-/* IN: seated in the slot, the way a cartridge sits proud of the case */
-.c64-cart__fast.is-seated {
-  bottom: 12px;
-  filter: brightness(1);
-  box-shadow: inset 0 1px 0 #4a4a50, 0 3px 7px rgba(0, 0, 0, .6);
-}
-.c64-cart__fast.is-seated .c64-cart__band { background: #4f9f4a; }
-.c64-cart__fast:disabled { cursor: not-allowed; filter: brightness(.55) grayscale(.6); }
-/* the port has to be tall enough to hold a cartridge standing below it */
-.c64-cart { padding-bottom: 34px; }
-/* 🔄 2026-09-25 — AND THE DECK HAS TO LEAVE ROOM FOR IT (his approval of the fix).
-   Standing OUT, the cartridge hangs ~22px below the side panel — on purpose, it
-   is the whole state signal — but nothing reserved that space, so it sat on top
-   of the deck's note line ("DISK INSERTED: …"). The panel now keeps a margin
-   the height of the overhang whenever the fast loader is shown. 🚫 The fix is
-   the ROOM, not the cartridge: moving it up into the panel would shrink its
-   travel into the slot, and the travel is what says on or off. */
-#c64-side:has(#btn-fastload:not([hidden])) { margin-bottom: 26px; }
-
 /* ---- the C64 badge on the monitor's chin --------------------------------
    🔄 2026-09-17 — this said TOMMODORE CAT until his call. The rainbow bar and
    the model name are drawn; the C= chicken-head device is deliberately NOT — it
@@ -1926,7 +1824,6 @@ html.cat-link #cat { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) {
   #crates > #btn-insert.btn--insert:not(:disabled) { animation: none; box-shadow: 0 3px 0 #a8791c, 0 0 14px 2px rgba(255, 196, 64, .5); }
   .reader-spine { transition: none; }
-  .c64-cart__fast { transition: none; }
   .drive-insert, .drive-insert--disk .drive-disk__body, .drive-insert--tape .drive-disk__body,
   .drive-latch, .drive-led, .drive-cover, .drive-door, .drive-key--play { animation-duration: .45s; }
   #drive-bay .drive1541__latch { animation-duration: 1ms !important; }
@@ -2080,8 +1977,7 @@ html.cat-link #cat { visibility: hidden; }
   box-shadow: none;
 }
 #cat.is-full #deck-top,
-#cat.is-full #c64-cart,
-#cat.is-full #c64-iec { display: none; }
+#cat.is-full #btn-fastload { display: none; }
 /* 🔄 2026-09-25 — THE HUB'S ONE-LINE VOICE STAYS, IN THE STRIP (his change): in
    full screen an error like "could not eject" must not be invisible. It is the
    same #deck-note, not a second message spot, so nothing can say one thing in one

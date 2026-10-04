@@ -115,6 +115,9 @@ const RIG_CHOICE = "zz CAT rig choice", RIG_ONE = "zz CAT rig one", RIG_TRIO = "
 /* the unnamed disk §D, §D2 and §F2 fall back on once his manifest names every one-sided .d64 he has */
 const RIG_PLAIN = "zz CAT rig plain";
 const RIG_MANIFEST = "_library.zz-rig.json";
+/* 🆕 2026-10-04 — the corner's ONE line under the 1541 (his ruling, Phase 1):
+   "Disk 1 of 2" is read here now; the old "Now playing" row is hidden there */
+const DISK_LINE = "(document.querySelector('#detail-title .detail-disk') || { textContent: '' }).textContent";
 function rigFixtures() {
   return [
     [`${RIG_CHOICE}.d64`, rigFileD64("RIG CHOICE", [{ name: "RIG PLAY", text: "RIG PLAY RAN" }, { name: "RIG HELP", text: "RIG HELP RAN" }, { name: "RIG PART", text: "RIG PART RAN" }])],
@@ -461,7 +464,7 @@ async function runRig() {
       frame: document.getElementById("machine-frame").getBoundingClientRect().width,
       list: !document.getElementById("btn-listing").hidden, run: !document.getElementById("btn-run").hidden,
       reset: !document.getElementById("btn-reset").hidden,
-      load: document.getElementById("btn-load").dataset.cmd, slot: document.getElementById("drive-slot").textContent })`));
+      load: document.getElementById("btn-load").dataset.cmd, slot: __cat.inserted() === null ? "empty" : __cat.inserted() })`));
     ok(deck.out === "none" && deck.frame > 300, `the hub's terminal is off the glass and the machine fills it   [out ${deck.out}, frame ${deck.frame}px]`);
     /* 🔄 2026-10-02 — there is no keyboard mode to open in: the keyboard is
        always live AND the stick is in port 2, with the arrows on the stick */
@@ -532,8 +535,9 @@ async function runRig() {
     ok(tAnim >= 0 && !sawCrack, `a disk slides into the drive over the screen, and the crack intro does not play   [${took(tAnim)}, crack ${sawCrack}]`);
     const tIn = await until(`__cat.inserted() === ${JSON.stringify(DISK.id)}`, 60000);
     await idle();
-    const slot = await ev("document.getElementById('drive-slot').textContent");
-    ok(tIn >= 0 && slot === DISK.name.toUpperCase(), `${DISK.name} is in the drive   [${took(tIn)}, slot ${slot}]`);
+    /* 🔄 2026-10-04 — the corner names it in the ONE line under the 1541 (his ruling, Phase 1) */
+    const slot = await ev("document.getElementById('detail-title').firstChild.textContent");
+    ok(tIn >= 0 && slot === DISK.name, `${DISK.name} is in the drive, named under the 1541   [${took(tIn)}, line ${slot}]`);
     ok(/disk inserted/i.test(String(await ev("__cat.note()"))), `the deck says so   [${await ev("__cat.note()")}]`);
     /* 📌 the KERNAL traps a tape needs stay OFF for a disk: always on, they made
        disk loads twice as slow and one in a few runs hung at LOADING */
@@ -670,10 +674,10 @@ async function runRig() {
        "and a cassette drops into a datasette, not a floppy into a disk drive");
     const tTape = await until(`__cat.inserted() === ${JSON.stringify(TAPE.id)}`, 60000);
     await idle();
-    const tapeDeck = JSON.parse(await ev(`JSON.stringify({ label: document.getElementById("drive-label").textContent,
+    const tapeDeck = JSON.parse(await ev(`JSON.stringify({
       cmd: document.getElementById("btn-load").dataset.cmd, text: document.getElementById("btn-load").textContent, medium: __cat.machine().medium })`));
-    ok(tTape >= 0 && tapeDeck.medium === "tape" && tapeDeck.label === "Tape",
-       `${TAPE.name} goes in as a tape   [${took(tTape)}, ${tapeDeck.label}]`);
+    ok(tTape >= 0 && tapeDeck.medium === "tape",
+       `${TAPE.name} goes in as a tape   [${took(tTape)}, ${tapeDeck.medium}]`);
     ok(tapeDeck.cmd === "LOAD" && tapeDeck.text === "Load", `the Load button now types LOAD, and says so   [${tapeDeck.text}]`);
     const trapsTape = await inMachine("EJS_emulator.allSettings.vice_virtual_device_traps");
     ok(trapsTape === "enabled", `with a tape in, the traps a .T64 needs are on   [${trapsTape}]`);
@@ -705,10 +709,10 @@ async function runRig() {
     await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
     await click("#btn-eject");
     await idle();
-    const ej = JSON.parse(await ev(`JSON.stringify({ inserted: __cat.inserted(), slot: document.getElementById("drive-slot").textContent,
-      label: document.getElementById("drive-label").textContent, cmd: document.getElementById("btn-load").dataset.cmd })`));
-    ok(ej.inserted === null && /empty/i.test(ej.slot) && /^Drive/.test(ej.label) && ej.cmd === 'LOAD"*",8,1',
-       `the deck shows an empty drive again   [${ej.slot}, ${ej.label}, ${ej.cmd}]`);
+    const ej = JSON.parse(await ev(`JSON.stringify({ inserted: __cat.inserted(), latch: __cat.corner().latch.down,
+      cmd: document.getElementById("btn-load").dataset.cmd })`));
+    ok(ej.inserted === null && ej.cmd === 'LOAD"*",8,1',
+       `the drive is empty again, and Load is back to LOAD"*",8,1   [${ej.inserted}, ${ej.cmd}]`);
     await type('LOAD"$",8\n');
     ok((await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).includes("?FILE NOT FOUND  ERROR"), 30000)) >= 0,
        "and the machine agrees: LOAD\"$\",8 finds nothing");
@@ -897,7 +901,7 @@ async function runRig() {
     ok(!!PAIR && PAIR.n === 2, `the library pairs the two files as ONE game with two sides   [${PAIR ? PAIR.id + ", " + PAIR.n + " sides" : "not found"}]`);
     if (PAIR) {
       const sides = () => ev(`JSON.stringify({ buttons: Array.prototype.map.call(document.querySelectorAll("#side-swap button"), function (b) { return b.textContent; }),
-        shown: !document.getElementById("side-swap").hidden, now: document.getElementById("drive-side").hidden ? "" : document.getElementById("drive-side").textContent })`).then(JSON.parse);
+        shown: !document.getElementById("side-swap").hidden, now: (document.querySelector("#detail-title .detail-disk") || { textContent: "" }).textContent })`).then(JSON.parse);
       const header = async () => {
         await clearScreen();
         await type('LOAD"$",8\n');
@@ -916,7 +920,7 @@ async function runRig() {
       await until(`__cat.inserted() === ${JSON.stringify(PAIR.id)}`, 60000);
       await idle();
       s0 = await sides();
-      ok(s0.shown && s0.buttons.join("|") === "Swap to Side B" && s0.now === "Now playing: Side A",
+      ok(s0.shown && s0.buttons.join("|") === "Swap to Side B" && s0.now === "Side A",
          `it goes in on Side A: ONE button, "Swap to Side B", and the drive says which side   [${s0.buttons.join("|")} / ${s0.now}]`);
       const hA = await header();
       /* on a miss, say what the machine and the page were doing (it has missed
@@ -925,7 +929,7 @@ async function runRig() {
         }; frames/s ${await (async () => { const a = await frameNow(); await wait(1000); return (await frameNow()) - a; })()}; screen: ${(await screen()).filter(Boolean).slice(-6).join(" / ")}`;
       ok(/^0 "RIG SIDE A/.test(hA), `the machine reads Side A on drive 8   [${hA}${/^0 "RIG SIDE A/.test(hA) ? "" : await why()}]`);
       await click("#side-swap button");
-      const tSwap = await until("document.getElementById('drive-side').textContent === 'Now playing: Side B'", 30000);
+      const tSwap = await until(`${DISK_LINE} === 'Side B'`, 30000);
       await idle();
       const s1 = await sides();
       ok(tSwap >= 0 && s1.buttons.join("|") === "Swap to Side A", `one click: Side B is in, and the button now offers Side A   [${took(tSwap)}, ${s1.buttons.join("|")}]`);
@@ -934,14 +938,17 @@ async function runRig() {
       const hB = await header();
       ok(/^0 "RIG SIDE B/.test(hB), `and the same drive 8 now reads Side B   [${hB}]`);
       await click("#side-swap button");
-      await until("document.getElementById('drive-side').textContent === 'Now playing: Side A'", 30000);
+      await until(`${DISK_LINE} === 'Side A'`, 30000);
       await idle();
       const hA2 = await header();
       ok(/^0 "RIG SIDE A/.test(hA2), `and back: one click, Side A again   [${hA2}]`);
       await click("#btn-eject");
       await idle();
       const s2 = await sides();
-      ok(!s2.shown && s2.now === "", "Eject takes the swap control and the side label away with the disk");
+      /* 🔄 2026-10-04 — the corner's ONE line (his ruling, Phase 1) still names a
+         picked set after Eject: "Side A" is what Insert would put in, and the
+         only place left that says this game is a set. The control does go. */
+      ok(!s2.shown && s2.now === "Side A", `Eject takes the swap control away with the disk, and the line says what Insert puts in   [${s2.now}]`);
     }
 
     /* --- Q. the Load choice, the disk picker, and the input a title starts on --
@@ -1121,7 +1128,7 @@ async function runRig() {
 
     /* three images: one button, and a picker */
     const sidesQ = () => ev(`JSON.stringify({ buttons: Array.prototype.map.call(document.querySelectorAll("#side-swap button"), function (b) { return b.textContent; }),
-      now: document.getElementById("drive-side").hidden ? "" : document.getElementById("drive-side").textContent })`).then(JSON.parse);
+      now: (document.querySelector("#detail-title .detail-disk") || { textContent: "" }).textContent })`).then(JSON.parse);
     /* 🆕 2026-10-03 — THE 1541's LATCH (his table): down once a disk is in,
        still down after a swap (it went up and came down), up after Eject */
     const latchQ = () => ev("JSON.stringify(__cat.corner().latch)").then(JSON.parse);
@@ -1130,13 +1137,13 @@ async function runRig() {
     ok((await latchSettled(true)) >= 0, `the latch drops once the disk is in   [${JSON.stringify(await latchQ())}]`);
 
     let sq = await sidesQ();
-    ok(sq.buttons.join("|") === "Swap disk…" && sq.now === "Now playing: Disk 1", `three disks: ONE button, and the drive says which is in   [${sq.buttons.join("|")} / ${sq.now}]`);
+    ok(sq.buttons.join("|") === "Swap disk…" && sq.now === "Disk 1 of 3", `three disks: ONE button, and the drive says which is in   [${sq.buttons.join("|")} / ${sq.now}]`);
     await click("#side-swap button");
     pk = await pick();
     ok(!!pk && pk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") === "Disk 1*|Disk 2|Disk 3",
        `it opens a picker with only that set, plainly labelled, the one in the drive lit   [${pk ? pk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") : "none"}]`);
     await click("#c64-pick .c64-pick__opt:nth-of-type(3)");
-    const tPick = await until("document.getElementById('drive-side').textContent === 'Now playing: Disk 3'", 30000);
+    const tPick = await until(`${DISK_LINE} === 'Disk 3 of 3'`, 30000);
     await idle();
     ok(tPick >= 0 && (await until("document.activeElement === document.getElementById('machine-frame')", 3000)) >= 0,
        `picking Disk 3 puts it in, and the keyboard goes back to the machine   [${took(tPick)}]`);
@@ -1157,7 +1164,7 @@ async function runRig() {
     const strip = await ev("JSON.stringify(document.getElementById('c64-side').getBoundingClientRect())").then(JSON.parse);
     ok(!!pk && pk.rect.bottom <= strip.top + 1, `in full screen the picker opens above the strip   [prompt bottom ${pk && pk.rect.bottom}, strip top ${Math.round(strip.top)}]`);
     await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
-    const tFull = await until("document.getElementById('drive-side').textContent === 'Now playing: Disk 1'", 30000);
+    const tFull = await until(`${DISK_LINE} === 'Disk 1 of 3'`, 30000);
     await idle();
     ok(tFull >= 0 && (await ev("__cat.note()")) === "disk 1 is in the drive.", `and a pick there works, said on the strip's message line   [${await ev("__cat.note()")}]`);
     const lampsSw = JSON.parse(await ev("JSON.stringify(__cat.corner().lamps)"));
@@ -1260,12 +1267,21 @@ async function runRig() {
     const corner = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
     ok(corner.insertBy === "crates" && corner.ejectBy === "crates",
        `Eject sits with Insert, where the disks are   [insert ${corner.insertBy}, eject ${corner.ejectBy}]`);
-    ok(corner.cartPort && corner.drivePort, "the panel has a cartridge port and a drive port");
-    ok(corner.cartridge === null, `no .CRT game is in the port, as it must be with none in the library   [${corner.cartridge}]`);
-    /* 🆕 2026-09-17 — the fast loader IS a cartridge, so "off" means standing
-       out of the slot and "on" means seated in it. The position is the state. */
-    ok(corner.fastLoad === false && corner.fastSeated === false,
-       "the fast-load cartridge starts out of the port, so the corner runs at the real machine's speed");
+    /* 🔄 2026-10-04 — the empty cartridge port and the serial socket are GONE
+       (his ruling, Phase 1), and Fast Load is a plain toggle that says Off / On */
+    ok(!corner.cartPort && !corner.drivePort, "the empty cartridge port and the drive socket are gone from the panel");
+    const fastPill = () => ev('document.getElementById("btn-fastload-state").textContent');
+    ok(corner.fastLoad === false && corner.fastOn === false && (await fastPill()) === "Off" && !corner.fastBlocked,
+       `Fast Load starts off, so the corner runs at the real machine's speed   [${await fastPill()}]`);
+    await click("#btn-fastload");
+    const tFastOn = await until("__cat.corner().fastLoad === true", 8000);
+    const fOn = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
+    ok(tFastOn >= 0 && fOn.fastOn && (await fastPill()) === "On",
+       `one click: the machine confirms it, and the switch says On   [${took(tFastOn)}, ${await fastPill()}]`);
+    await click("#btn-fastload");
+    const tFastOff = await until("__cat.corner().fastLoad === false", 8000);
+    ok(tFastOff >= 0 && !(await ev("__cat.corner().fastOn")) && (await fastPill()) === "Off",
+       `and again: Off   [${took(tFastOff)}, ${await fastPill()}]`);
     ok(corner.monitor === true, "the screen wears the monitor bezel");
     ok(corner.lamps.power === true && corner.lamps.loading === false && corner.lamps.failed === false,
        `the drive's green light is on and steady, and the red one is dark when idle   [${JSON.stringify(corner.lamps)}]`);
@@ -1414,13 +1430,14 @@ async function runRig() {
        Pages root) */
     const shot = async (name) => { const f = join(tmpdir(), name); await wc.capturePage().then((img) => writeFileSync(f, img.toPNG())); say(`        (shot: ${f})`); };
     await shot("verify-c64-corner.png");
-    /* 🆕 2026-09-25 — the fast loader standing OUT must not sit on the note line */
+    /* 🆕 2026-09-25 — the fast loader must not sit on the note line
+       🔄 2026-10-04 — it is a toggle inside the panel now (Phase 1); same check */
     const over = JSON.parse(await ev(`JSON.stringify((function () {
       var f = document.getElementById("btn-fastload").getBoundingClientRect(), n = document.getElementById("deck-note").getBoundingClientRect();
       return { fast: [Math.round(f.top), Math.round(f.bottom)], note: [Math.round(n.top), Math.round(n.bottom)],
-               seated: document.getElementById("btn-fastload").classList.contains("is-seated") }; })())`));
-    ok(!over.seated && over.fast[1] <= over.note[0],
-       `the fast-load cartridge, standing out, clears the deck's note line   [cart ${over.fast.join("-")}, note ${over.note.join("-")}]`);
+               on: document.getElementById("btn-fastload").classList.contains("is-on") }; })())`));
+    ok(!over.on && over.fast[1] <= over.note[0],
+       `Fast Load clears the deck's note line   [switch ${over.fast.join("-")}, note ${over.note.join("-")}]`);
     await click("#c64-full");
     await until("__cat.machine().full === true", 3000);
     await wait(400);
@@ -1434,7 +1451,8 @@ async function runRig() {
                startIn: document.getElementById("deck-start").parentNode.id,
                runIn: document.getElementById("btn-run").parentNode.id,
                insertIn: document.getElementById("btn-insert").parentNode.id,
-               cart: d("c64-cart"), iec: d("c64-iec"), deckTop: d("deck-top"),
+               gone: !document.getElementById("c64-cart") && !document.getElementById("c64-iec"),
+               fast: d("btn-fastload"), deckTop: d("deck-top"),
                label: document.getElementById("c64-full-label").textContent,
                ids: ["c64-power", "c64-port1", "c64-port2", "c64-arrows", "c64-pause", "c64-full", "c64-help", "btn-eject", "side-swap", "deck-start", "btn-load", "btn-run"]
                  .map(function (id) { return document.querySelectorAll("#" + id).length; }).join("") }; })())`;
@@ -1447,8 +1465,9 @@ async function runRig() {
     /* 🔄 2026-10-02 — Load comes as its START group, so Run comes too */
     ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.startIn === "c64-side" && L.loadIn === "deck-start" && L.runIn === "deck-start" && L.ids === "111111111111",
        `the Start group (Load and Run), Eject and the side swap MOVED into the strip, and nothing was copied   [start ${L.startIn}, eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
-    ok(L.cart === "none" && L.iec === "none" && L.deckTop === "none",
-       `the cartridge port, the drive port and Reset stay out of the strip   [${L.cart}/${L.iec}/${L.deckTop}]`);
+    /* 🔄 2026-10-04 — the two ports are gone (Phase 1); Fast Load stays out of the strip as before */
+    ok(L.gone && L.fast === "none" && L.deckTop === "none",
+       `Fast Load and Reset stay out of the strip, and the removed ports are nowhere   [gone ${L.gone}, ${L.fast}/${L.deckTop}]`);
     ok(L.label === "Exit Full Screen", `the Full Screen part reads Exit Full Screen   [${L.label}]`);
     /* 🆕 2026-09-25 — his change: errors must not be invisible in full screen */
     const noteFull = JSON.parse(await ev(`JSON.stringify((function () {
