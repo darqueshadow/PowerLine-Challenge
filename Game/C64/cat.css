@@ -825,6 +825,17 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-corner:not(.is-full) #screen-shell { grid-column: 1 / -1; }
 #cat.is-corner:not(.is-full) #datasette-bay { display: block; grid-column: 1; grid-row: 2; min-width: 0; }
 #cat.is-corner:not(.is-full) #deck { grid-column: 2; grid-row: 2; }
+/* 🆕 2026-10-04 — THE DECK TIGHTENED FOR THE DATASETTE'S ROOM (his ruling):
+   paddings and gaps ONLY. Every control keeps its size, the side panel stays
+   ONE row (no wrap), and the 1541 is untouched. 📏 Measured (room before → after):
+   1280: 113 → 282 px, 1366: 191 → 366, 1600: 353 → 531, 1920: 671 → 849; the deck
+   also gets shorter, so the screen grows. 282 at the rig's 1280 is accepted
+   (floor ~280). Corner only, out of full screen. */
+#cat.is-corner:not(.is-full) #deck { padding: 8px 10px; gap: 7px; }
+#cat.is-corner:not(.is-full) #deck-top { gap: 6px; }
+#cat.is-corner:not(.is-full) #deck-top.is-grouped .deck-group { gap: 6px; padding: 15px 6px 6px; }
+#cat.is-corner:not(.is-full) #c64-side { gap: 4px; padding: 6px 7px; }
+#cat.is-corner:not(.is-full) #c64-side .c64-part { padding: 4px 5px 3px; }
 @media (max-width: 900px) {
   #cat.is-corner:not(.is-full) #machine { grid-template-columns: minmax(0, 1fr); }
   #cat.is-corner:not(.is-full) #datasette-bay { display: none; }

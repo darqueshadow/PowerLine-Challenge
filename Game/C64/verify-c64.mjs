@@ -1471,8 +1471,14 @@ async function runRig() {
     const fit = JSON.parse(await ev(`JSON.stringify((function () { var d = document.getElementById("deck").getBoundingClientRect(),
       s = document.getElementById("c64-side").getBoundingClientRect(), h = document.getElementById("c64-help").getBoundingClientRect(),
       b = document.getElementById("datasette-bay").getBoundingClientRect();
-      return { deck: Math.round(d.right), side: Math.round(s.right), help: Math.round(h.right), room: Math.round(b.width) }; })())`));
-    ok(fit.side <= fit.deck + 1 && fit.help <= fit.deck && fit.room >= 100,
+      return { deck: Math.round(d.right), side: Math.round(s.right), help: Math.round(h.right), room: Math.round(b.width),
+               spread: (function () { var p = document.getElementById("c64-side").getBoundingClientRect(), c = [];
+        Array.prototype.forEach.call(document.getElementById("c64-side").children, function (k) { var b = k.getBoundingClientRect();
+          if (b.width && b.height && getComputedStyle(k).position !== "absolute") c.push(b.top + b.height / 2); });
+        return Math.round(Math.max.apply(null, c) - Math.min.apply(null, c)); })() }; })())`));
+    /* 🔄 2026-10-04 — the deck tightened for the room (his ruling): ~280 px here, one row */
+    ok(fit.spread <= 30, /* a wrapped row sits ~50 px lower; one row measures ~15 */ `the tightened side panel is still one row   [centres spread ${fit.spread}px]`);
+    ok(fit.side <= fit.deck + 1 && fit.help <= fit.deck && fit.room >= 280,
        `the deck, shifted right for the Datasette's room, still holds its whole panel   [panel to ${fit.side}, Help to ${fit.help}, deck to ${fit.deck}; room ${fit.room}px]`);
     ok(corner.monitor === true, "the screen wears the monitor bezel");
     ok(corner.lamps.power === true && corner.lamps.loading === false && corner.lamps.failed === false,

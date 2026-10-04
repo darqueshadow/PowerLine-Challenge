@@ -1178,7 +1178,10 @@ try {
       var bay = document.getElementById("datasette-bay");
       return { shot: r("detail-shot"), ins: r("btn-insert"), ej: r("btn-eject"), drive: r("drive-1541"), crates: r("crates"),
                bay: r("datasette-bay"), bayShown: bay ? getComputedStyle(bay).display !== "none" : false, bayKids: bay ? bay.childElementCount : -1,
-               deck: r("deck"), side: r("c64-side"),
+               deck: r("deck"), side: r("c64-side"), sideSpread: (function () { var p = document.getElementById("c64-side").getBoundingClientRect(), c = [];
+        Array.prototype.forEach.call(document.getElementById("c64-side").children, function (k) { var b = k.getBoundingClientRect();
+          if (b.width && b.height && getComputedStyle(k).position !== "absolute") c.push(b.top + b.height / 2); });
+        return Math.round(Math.max.apply(null, c) - Math.min.apply(null, c)); })(),
                insIn: document.getElementById("btn-insert").parentNode.id, ejIn: document.getElementById("btn-eject").parentNode.id,
                icons: ["c64-arrows-stick", "c64-arrows-cursor"].map(function (id) { var b = document.getElementById(id);
                  return !!b.querySelector("svg.c64-arrows__icon") + ":" + b.textContent.trim(); }) }; })())`));
@@ -1186,8 +1189,11 @@ try {
        `Insert sits under the art box with Eject BESIDE it, both still in the crates   [shot ends ${LAY.shot.b}; insert ${LAY.ins.l}-${LAY.ins.r} @${LAY.ins.t}, eject ${LAY.ej.l}-${LAY.ej.r} @${LAY.ej.t}]`);
     ok(LAY.drive.l - LAY.crates.l <= 2 && LAY.drive.t >= LAY.ins.b && LAY.crates.b - LAY.drive.b <= 40,
        `the 1541 sits in the bottom-left corner   [1541 ${LAY.drive.l},${LAY.drive.t}-${LAY.drive.b}; column ${LAY.crates.l},…-${LAY.crates.b}]`);
-    ok(LAY.bayShown && LAY.bayKids === 0 && LAY.bay.w >= 100 && LAY.bay.l >= LAY.drive.r - 1 && LAY.deck.l >= LAY.bay.r - 1 && LAY.side.l > LAY.bay.r,
-       `an EMPTY room to its right for the Datasette, and the C64's deck shifted right of it   [room ${LAY.bay.l}-${LAY.bay.r} (${LAY.bayKids} inside), deck from ${LAY.deck.l}]`);
+    /* 🔄 2026-10-04 — the deck tightened for the room (his ruling): at least ~280 px
+       at this 1280 window (was 100), and the side panel still ONE row */
+    ok(LAY.bayShown && LAY.bayKids === 0 && LAY.bay.w >= 280 && LAY.bay.l >= LAY.drive.r - 1 && LAY.deck.l >= LAY.bay.r - 1 && LAY.side.l > LAY.bay.r,
+       `an EMPTY room to its right for the Datasette, at least 280 px wide, and the C64's deck shifted right of it   [room ${LAY.bay.l}-${LAY.bay.r} = ${LAY.bay.w}px (${LAY.bayKids} inside), deck from ${LAY.deck.l}]`);
+    ok(LAY.sideSpread <= 30, /* a wrapped row sits ~50 px lower; one row measures ~15 */ `the tightened side panel is still one row, nothing wrapped   [centres spread ${LAY.sideSpread}px]`);
     const helpR = JSON.parse(await b.ev(`JSON.stringify(Math.round(document.getElementById("c64-help").getBoundingClientRect().right))`));
     ok(LAY.side.r <= LAY.deck.r + 1 && helpR <= LAY.deck.r,
        `and the shifted deck still holds its whole panel: nothing runs off its right edge   [panel to ${LAY.side.r}, Help to ${helpR}, deck to ${LAY.deck.r}]`);
