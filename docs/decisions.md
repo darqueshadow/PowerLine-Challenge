@@ -1158,3 +1158,24 @@ the per-batch commit ranges and Chat's "push only through 625d7b4" (superseded b
 its own commits); the hose's E44/E51 aiming detail; the comic strip mention (E57 replaced it); per-file module notes.
 Kept: every standing rule, the rig traps (now including the `.unlock` class that never leaves), and the locked design.
 
+
+## Built 2026-10-04 — the C64 corner: the stuck drive is reset by itself (the OPEN 2026-10-02 hang)
+
+**Solved:** The hang in the OPEN 2026-10-02 entry is recovered, not prevented. **Measured 2026-10-04** (a scratch probe
+clicking the real hub, ~340 loads): about 1 LOAD in 40 that ends in "file not found" never comes back. That held on an
+empty drive, a blank disk, and a REAL disk with a wrong name, tape or no tape; the traps lead was wrong (load timing
+is identical after a tape and with the traps forced on). The C64 waits on drive 8 forever, RUN/STOP does nothing, a
+reset recovers it. The fault is inside the emulator core's 1541 and cannot be fixed here; the core exposes no drive
+option for it. Andrew's rulings the same day: (1) a stuck drive resets the C64 by itself, the disk stays in, and the
+message line says why; (2) F12 works at all times; (3) Load with no disk says "no disk in the drive." and types nothing.
+**Approach:** `emu.js` `watchDrive()` (machine page only) posts `cat:drivestuck` once when the last screen line starts
+`SEARCHING FOR `, the screen has not changed for 1000 EMULATED frames (20 s), no tape is in and nothing is being typed.
+`cat.js` resets through `machineReset("stuck")` unless a hub-started game is running or the machine is paused.
+`machineReset` no longer waits for `busy`; a reset in flight is its own busy flag (`resetting`, `syncBusy()`), and
+`resetSeq` lets `loadThenRun`/`pressDirectory` see their wait ended in a reset and stay quiet (no RUN, no LIST).
+verify-c64 §F2 replaces its twelve empty-drive presses with: no disk, a real not-found at the 20 s wait, the stuck path
+(`CAT_EMU.rigStuckAfter(10)` makes a real search count as stuck), and F12 mid-load. New rig disk `zz CAT rig gone`
+(its manifest names a file it lacks) serves §F2, §Q's blink and §P3. verify-c64 235/0 twice, verify-cat 227/0.
+**If you touch this again:** the real fault cannot be made on demand. An empty-DIRECTORY disk did NOT hang on
+2026-10-04 (3 of 3 answered), contrary to the 2026-10-03 note. A typed LOAD with no disk still reaches the machine;
+only the button stops. The watch ignores LOADING, FOUND and tapes by design (his ruling): a hang there is F12's.

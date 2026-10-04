@@ -114,6 +114,11 @@ function rigFileD64(header, files) {
 const RIG_CHOICE = "zz CAT rig choice", RIG_ONE = "zz CAT rig one", RIG_TRIO = "zz CAT rig trio";
 /* the unnamed disk §D, §D2 and §F2 fall back on once his manifest names every one-sided .d64 he has */
 const RIG_PLAIN = "zz CAT rig plain";
+/* 🆕 2026-10-04 — a disk whose manifest entry names a file that is NOT on it: the
+   hub's Load types LOAD"RIG GONE",8,1 and gets a quick, real ?FILE NOT FOUND.
+   §F2, §Q's blink and §P3 used the empty drive for that; Load on an empty drive
+   now types nothing (his ruling, the hang pass). */
+const RIG_GONE = "zz CAT rig gone";
 const RIG_MANIFEST = "_library.zz-rig.json";
 /* 🆕 2026-10-04 — the corner's ONE line under the 1541 (his ruling, Phase 1):
    "Disk 1 of 2" is read here now; the old "Now playing" row is hidden there */
@@ -128,10 +133,12 @@ function rigFixtures() {
     [`${RIG_TRIO} - d1.d64`, rigFileD64("RIG TRIO 1", [{ name: "RIG TRIO", text: "RIG TRIO RAN" }])],
     [`${RIG_TRIO} - d2.d64`, rigFileD64("RIG TRIO 2", [])],
     [`${RIG_TRIO} - d3.d64`, rigFileD64("RIG TRIO 3", [])],
+    [`${RIG_GONE}.d64`, rigFileD64("RIG GONE DISK", [{ name: "RIG HERE", text: "RIG HERE RAN" }])],
     [RIG_MANIFEST, Buffer.from(JSON.stringify({
       [RIG_CHOICE]: { port: 1, entries: [{ label: "Play", file: "RIG PLAY" }, { label: "Instructions", file: "RIG HELP" },
                                           { label: "Notes", text: "RIG NOTES: SHOWN, NEVER TYPED" }] },
-      [RIG_ONE]: { entries: [{ label: "Play", file: "RIG ONE" }] }
+      [RIG_ONE]: { entries: [{ label: "Play", file: "RIG ONE" }] },
+      [RIG_GONE]: { entries: [{ label: "Play", file: "RIG GONE" }] }
     }, null, 1))]
   ];
 }
@@ -425,7 +432,7 @@ async function runRig() {
     }
   }
 
-  let DISK = null, TAPE = null;
+  let DISK = null, TAPE = null, GONE = null;   /* GONE: the rig's gone disk's id, found in §F2 */
   try {
     await wc.loadURL(URL_HUB);
     wc.focus();
@@ -754,47 +761,103 @@ async function runRig() {
     ok((await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).includes("?FILE NOT FOUND  ERROR"), 30000)) >= 0,
        "and the machine agrees: LOAD\"$\",8 finds nothing");
 
-    /* --- F2. the button, again and again ------------------------------------
-       🚨 WHY THIS EXISTS. Typed with the symbolic keymap, `*` came out as a
-       SHIFT+* graphic about one press in ten — every other check here passed on
-       the run that showed it, because one press is usually fine. emu.js now
-       types a button on the C64's own key positions; this is what keeps it
-       that way (a 1-in-10 fault misses twelve presses in a row only ~28% of
-       the time). The drive is empty, so each LOAD ends fast. */
-    section("F2. the Load button types LOAD\"*\",8,1 exactly, twelve presses in a row");
-    const typedLines = [];
-    for (let i = 0; i < 12; i++) {
-      await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 30000);
-      await click("#btn-load");
+    /* --- F2. no disk, the stuck drive, and F12 mid-load ------------------------
+       🔄 2026-10-04 — REPLACES twelve Load presses on an empty drive (Andrew's
+       ruling, the hang pass). Those presses were where the core's stuck-drive
+       fault (about 1 load in 40 that ends in "file not found" never comes back)
+       spoiled about one run in four. Now: Load with no disk types nothing; a
+       stuck drive is reset by itself with the disk still in; F12 works while the
+       hub waits on a load.
+       ⚠️ THE REAL FAULT CANNOT BE MADE ON DEMAND, so the recovery check shortens
+       the 20 s wait (CAT_EMU.rigStuckAfter): a real not-found search then counts
+       as stuck, and the notice → reset → disk-still-in path runs for real.
+       ⭐ EVERY PRESS KEEPS THE 60 s CHECK: still busy after 60 s is the real
+       fault NOT being recovered, and it stops the run here, named. */
+    section("F2. no disk: Load types nothing; a stuck drive resets with the disk still in; F12 works mid-load");
+    const pressDone = async (what) => {
       await until("__cat.machine().busy", 3000, 20);
-      /* 🆕 2026-10-04 — THE EMPTY-DRIVE HANG STOPS THE RUN HERE (Andrew's ruling:
-         one hang must never freeze the rig). An empty drive answers in a second
-         or two; 60 s still busy is the known hang (docs/decisions.md, OPEN
-         2026-10-02). The hub stays busy and refuses Reset for two minutes after
-         it, so every section below would only time out one by one. Stop, name it. */
       if ((await idle()) < 0) {
         const stuck = (await screen()).filter(Boolean).slice(-2).join(" | ");
-        throw new Error(`the empty-drive LOAD hang (known, OPEN 2026-10-02) at press ${i + 1} of 12: still busy after 60 s   [${stuck}]`);
+        throw new Error(`the drive hang (known, OPEN 2026-10-02), NOT recovered, at ${what}: still busy after 60 s   [${stuck}]`);
       }
-      await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 30000);
-      const rows = (await screen()).filter(Boolean);
-      const answer = rows.lastIndexOf("READY.");
-      typedLines.push(rows.slice(0, answer).reverse().find((x) => /^LOAD|,8|"\*"/.test(x) && !/^\?/.test(x) && !/^SEARCHING/.test(x)) || "(nothing)");
+    };
+    const BANNER = (r) => r[1].trim() === "**** COMMODORE 64 BASIC V2 ****" && r[5] === "READY.";
+    await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 30000);
+    const beforeNoDisk = text(await screen());
+    await click("#btn-load");
+    await frames(60);
+    const noDisk = { note: String(await ev("__cat.note()")), busy: await ev("__cat.machine().busy"), same: text(await screen()) === beforeNoDisk };
+    ok(/no disk in the drive/i.test(noDisk.note) && !noDisk.busy && noDisk.same,
+       `Load with no disk says "no disk in the drive" and types nothing   [${noDisk.note}; screen unchanged: ${noDisk.same}]`);
+
+    GONE = await ev(`(__cat.disks().find(function (d) { return d.displayName === ${JSON.stringify(RIG_GONE)}; }) || {}).id || null`);
+    ok(!!GONE, `the rig's gone disk is in the library   [${GONE}]`);
+    if (!GONE) throw new Error("no gone disk to test with");
+    await ev(`__cat.select(${JSON.stringify(GONE)})`);
+    await click("#btn-insert");
+    await until(`__cat.inserted() === ${JSON.stringify(GONE)}`, 60000);
+    await idle();
+    const goneCmd = await ev("document.getElementById('btn-load').dataset.cmd");
+
+    /* at the REAL wait: a normal not-found answers, and nothing resets */
+    await clearScreen();
+    await type("PRINT 777\n");
+    await click("#btn-load");
+    await pressDone("the first Load on the gone disk");
+    const nf = { rows: (await screen()).filter(Boolean), note: String(await ev("__cat.note()")), after: await inMachine("CAT_EMU.machine().stuckAfter") };
+    if (/the drive stopped answering/.test(nf.note)) {
+      /* the REAL fault happened here (about 1 in 40) and was recovered: that is a pass */
+      ok(BANNER(await screen()) && (await ev("__cat.inserted()")) === GONE,
+         `the real stuck drive happened on this press, and was reset with the disk still in   [${nf.note}]`);
+    } else {
+      ok(nf.after === 1000 && nf.rows.some((l) => /FILE NOT FOUND/.test(l)) && nf.rows.includes(" 777") && !nf.rows.includes("RUN"),
+         `at the real 20 s wait, a normal not-found answers and nothing resets   [${goneCmd} → ${nf.rows.slice(-2).join(" | ")}; wait ${nf.after} frames]`);
+      ok(/the load failed, so run was not typed/i.test(nf.note), `and the message line says the load failed, so RUN was not typed   [${nf.note}]`);
     }
-    const wrong = typedLines.filter((x) => x !== 'LOAD"*",8,1');
-    ok(wrong.length === 0, `every press typed exactly LOAD"*",8,1   [${12 - wrong.length}/12${wrong.length ? "; got " + wrong.join(" | ") : ""}]`);
-    /* 🆕 2026-09-17 — AND NOT ONE STRAY RUN AMONG THEM. These twelve presses are
-       on an EMPTY drive: every one of them FAILS. A failed LOAD still leaves a
-       READY. prompt on screen, so a naive "type RUN once it is back at READY."
-       would have typed twelve RUNs nobody asked for — which the assertion above
-       would not have noticed, because its finder skips any line that is not a
-       LOAD. That is precisely the kind of quiet wrongness this rig exists to
-       catch, so it is asserted rather than assumed. */
-    const strayRuns = (await screen()).filter((r) => r === "RUN").length;
-    ok(strayRuns === 0, `and no RUN was typed after any of the twelve failed loads   [${strayRuns} on screen]`);
-    /* 🆕 2026-09-25 — his ruling: no silent failures. A load that failed says so. */
-    const failNote = String(await ev("__cat.note()"));
-    ok(/the load failed, so run was not typed/i.test(failNote), `and the message line says the load failed, so RUN was not typed   [${failNote}]`);
+
+    /* the STUCK DRIVE, with the wait shortened so a real search counts as stuck */
+    await inMachine("CAT_EMU.rigStuckAfter(10)");
+    await clearScreen();
+    await type("PRINT 778\n");
+    await click("#btn-load");
+    await pressDone("the stuck-drive recovery");
+    const tRec = await untilScreen(BANNER, 15000);
+    const rec = JSON.parse(await ev(`JSON.stringify({ note: __cat.note(), inserted: __cat.inserted(), gameOn: __cat.machine().gameOn,
+      latch: __cat.corner().latch.down, name: document.getElementById("detail-title").firstChild.textContent })`));
+    const recRows = (await screen()).filter(Boolean);
+    await inMachine("CAT_EMU.rigStuckAfter()");
+    ok(tRec >= 0 && /^the drive stopped answering, so the c64 was reset\. ZZ CAT RIG GONE is still in the drive\.$/.test(rec.note)
+       && !recRows.includes(" 778") && !recRows.includes("RUN"),
+       `a stuck drive resets the C64 by itself, and the message line says why in plain words   [${took(tRec)}; ${rec.note}]`);
+    ok(rec.inserted === GONE && rec.latch === true && rec.name === RIG_GONE && !rec.gameOn,
+       `and the disk is still in: still named under the 1541, latch down   [${rec.inserted}, latch ${rec.latch}, "${rec.name}"]`);
+    await type('LOAD"$",8\n');
+    await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).slice(-1)[0] === "READY.", 30000);
+    await type("LIST\n");
+    await untilScreen((r) => toReady(after(r, /^LIST$/)).slice(-1)[0] === "READY.", 20000);
+    const recDir = toReady(after(await screen(), /^LIST$/)).filter(Boolean);
+    ok(/^0 "RIG GONE DISK/.test(recDir[0] || "") && recDir.some((l) => /"RIG HERE"/.test(l)),
+       `and the machine agrees: the directory after the reset is the gone disk's   [${recDir.slice(0, 2).join(" | ")}]`);
+    ok((await inMachine("CAT_EMU.machine().stuckAfter")) === 1000, "[control] the rig put the 20 s wait back");
+
+    /* F12 WHILE THE HUB WAITS ON A LOAD */
+    await clearScreen();
+    await type("PRINT 779\n");
+    await click("#btn-load");
+    await until("__cat.machine().busy", 3000, 20);
+    await frames(20);
+    const busyAtF12 = await ev("__cat.machine().busy");
+    await press("F12");
+    const tF12 = await untilScreen((r) => BANNER(r) && !r.includes(" 779"), 15000);
+    await idle();
+    const f12 = JSON.parse(await ev(`JSON.stringify({ busy: __cat.machine().busy, note: __cat.note(), inserted: __cat.inserted() })`));
+    await frames(60);
+    const f12Rows = (await screen()).filter(Boolean);
+    ok(busyAtF12 && tF12 >= 0 && !f12.busy && /^reset\. ZZ CAT RIG GONE is still in\.$/.test(f12.note) && f12.inserted === GONE && !f12Rows.includes("RUN"),
+       `F12 works while the hub waits on a load: the boot screen, the disk still in, no RUN typed   [busy at F12: ${busyAtF12}; ${took(tF12)}; ${f12.note}]`);
+    await click("#btn-eject");
+    await idle();
+    ok((await ev("__cat.inserted()")) === null, "and Eject empties the drive again for what follows");
 
     /* --- G. keys that reach the hub first ---------------------------------- */
     section("G. with focus on the hub's side, keys still reach the machine");
@@ -1299,12 +1362,15 @@ async function runRig() {
        answers ?FILE NOT FOUND; the drive sits on LOADING for good (fresh disk or
        after LOAD"$" alike) and every typing check after it cascaded red. So the
        error comes from the EMPTY DRIVE instead, the one §F2 fails twelve times
-       fast, and the reset below keeps one hang from becoming twenty fails. */
+       fast, and the reset below keeps one hang from becoming twenty fails.
+       🔄 2026-10-04 — and now from the rig's GONE disk (Load on an empty drive
+       types nothing since the hang pass): its manifest names a file it lacks. */
+    await insertRig(GONE);
     await clearScreen();
     await click("#btn-load");
     await until("__cat.machine().busy", 3000, 20);
     const tNF = await untilScreen((r) => r.some((l) => /FILE NOT FOUND/.test(l)), 60000);
-    ok(tNF >= 0, `Load on the empty drive answers ?FILE NOT FOUND   [${(await screen()).filter(Boolean).slice(-3).join(" | ")}]`);
+    ok(tNF >= 0, `Load on the gone disk answers ?FILE NOT FOUND   [${(await screen()).filter(Boolean).slice(-3).join(" | ")}]`);
     await idleLoad();
     if (tNF < 0) { await ev("__cat.reset()"); await idle(); }
     const lampsNF = JSON.parse(await ev("JSON.stringify(__cat.corner().lamps)"));
@@ -1726,6 +1792,11 @@ async function runRig() {
        whose banner is long gone — the case the old banner-only hunt could never
        recover from. */
     section("P3. the corner's screen hunt: it finds the screen with the banner gone, cheaply, and auto-RUN says when it cannot");
+    /* 🔄 2026-10-04 — the gone disk in first: Load on an empty drive types nothing now */
+    await ev(`__cat.select(${JSON.stringify(GONE)})`);
+    await click("#btn-insert");
+    await until(`__cat.inserted() === ${JSON.stringify(GONE)}`, 60000);
+    await idle();
     await click("#machine-frame");
     await press("Home", true);
     await frames(10);
@@ -1735,7 +1806,7 @@ async function runRig() {
     await inMachine("CAT_EMU.holdHunt(true)");
     await inMachine("CAT_EMU.rehunt()");
     ok((await inMachine("CAT_EMU.machine().screen")) === null, "[control] the page has forgotten its screen");
-    /* auto-RUN, blind: the Load button on an empty drive, with the hunt held
+    /* auto-RUN, blind: the Load button on the gone disk, with the hunt held
        (the screen was just cleared, so there is no READY. to wait for first) */
     await click("#btn-load");
     await until("__cat.machine().busy", 3000, 20);
@@ -1756,6 +1827,8 @@ async function runRig() {
        `and the C64 keeps its speed while it looks   [${base.toFixed(1)} fps before, ${during.toFixed(1)} while hunting; worst slice ${h.hunt.worstMs} ms]`);
     await type("PRINT 3*3\n");
     ok((await untilScreen((r) => toReady(after(r, /^PRINT 3\*3$/))[0] === " 9", 6000)) >= 0, "and the machine carried on as normal");
+    await click("#btn-eject");
+    await idle();
 
     /* --- L. the book reader ---------------------------------------------------
        His ruling, 2026-09-16/17: the shelf in the room opens a reader, and the

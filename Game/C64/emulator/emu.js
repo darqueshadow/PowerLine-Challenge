@@ -1355,6 +1355,49 @@
     startHunt(1500);
   }
 
+  /* =======================================================================
+     🆕 2026-10-04 — THE STUCK DRIVE (Andrew's ruling, the hang pass).
+     📏 MEASURED that day, ~340 loads: about one LOAD in 40 that ends in "file
+     not found" never comes back, on an empty drive, a blank disk, or a real
+     disk with a wrong name, tape or no tape. The C64 sits on SEARCHING FOR …
+     forever, RUN/STOP does nothing, and only a reset brings the drive back.
+     The fault is inside the emulator core's 1541; nothing here can stop it
+     happening, so this notices it and the hub resets (the disk stays in).
+     ⭐ ALL of these, or it does not fire:
+       · the LAST line on the screen starts "SEARCHING FOR " (never LOADING,
+         FOUND or a game's own picture: those are not searches);
+       · the screen has not changed at all for DRIVE_STUCK_FRAMES EMULATED
+         frames (20 s at 50 a second). Frames, not seconds, so a paused or slow
+         machine never trips it; a normal not-found answers in under 10 s;
+       · no tape is in (a tape's search is the datasette's, and slow);
+       · nothing is being typed.
+     The hub adds its own: not while a game it started is running, not paused.
+     It says so ONCE per stuck screen. */
+  var DRIVE_STUCK_FRAMES = 1000;
+  var stuck = { sig: -2, since: 0, told: false, after: DRIVE_STUCK_FRAMES, timer: 0 };
+  function lastRow() {
+    var H = heap();
+    if (!H || screenAt < 0) return "";
+    for (var row = 24; row >= 0; row--) {
+      var t = rowText(H, screenAt, row);
+      if (t.trim()) return t;
+    }
+    return "";
+  }
+  function watchDrive() {
+    stuck.timer = setTimeout(watchDrive, 250);
+    if (screenAt < 0 || paused || relayBusy() || machine.medium === "tape" || !/^SEARCHING FOR /.test(lastRow())) {
+      stuck.since = 0; stuck.told = false;
+      return;
+    }
+    var sig = screenSig(), f = frameNow();
+    if (!stuck.since || sig !== stuck.sig) { stuck.sig = sig; stuck.since = f; stuck.told = false; return; }
+    if (!stuck.told && f - stuck.since >= stuck.after) {
+      stuck.told = true;
+      toHub({ type: "cat:drivestuck", frames: f - stuck.since });
+    }
+  }
+
   /* a cheap signature of the screen, to notice when it has stopped changing */
   function screenSig() {
     var H = heap();
@@ -1853,6 +1896,7 @@
       /* nothing is typed until keyboard mode has had its settling time */
       machine.started = true;
       locateScreenAtBoot();
+      watchDrive();
       settle();
       startedResolve();
       toHub({ type: "cat:machine", state: "ready" });
@@ -1883,7 +1927,9 @@
                   in the heap), and how its hunt is going. 🚫 read-only */
                screen: screenAt >= 0 ? screenAt : null,
                hunt: { on: hunt.on, held: hunt.held, passes: hunt.passes, slices: hunt.slices,
-                       worstMs: Math.round(hunt.worstMs * 10) / 10 } };
+                       worstMs: Math.round(hunt.worstMs * 10) / 10 },
+               /* 🆕 2026-10-04 — the stuck-drive watch: its wait, in frames */
+               stuckAfter: stuck.after };
     },
     /* 🆕 2026-09-25 — RIG-ONLY. verify-c64 §P3 forgets the screen and holds or
        releases the hunt, to prove it finds the screen again with the banner long
@@ -1896,6 +1942,11 @@
       startHunt(0);
     },
     holdHunt: function (on) { hunt.held = !!on; if (!on) startHunt(0); },
+    /* 🆕 2026-10-04 — RIG-ONLY. The real stuck drive cannot be made on demand
+       (about 1 load in 40), so verify-c64 shortens the wait: a normal not-found
+       search then counts as stuck, and the whole notice → reset → disk-still-in
+       path runs for real. No argument puts the 20 s back. 🚫 Nothing in the hub calls it. */
+    rigStuckAfter: function (n) { stuck.after = Number(n) > 0 ? Number(n) : DRIVE_STUCK_FRAMES; return stuck.after; },
     /* how many live keystrokes are still working their way through the
        translator's queue (see relayKey). 🚫 read-only, and rig-only: it exists
        so verify-c64 can WAIT FOR THE TYPING TO LAND instead of guessing a frame

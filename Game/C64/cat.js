@@ -142,6 +142,11 @@
   var inserted = null;
   var typed    = "";
   var busy     = false;   /* true while the load theatre is playing */
+  /* 🆕 2026-10-04 — a reset is its own kind of busy (F12 works at ALL times, his
+     ruling): `busy` = what setBusy() was last told OR a reset in flight, so a
+     load that ends during a reset cannot hand the deck back early. resetSeq
+     counts resets, so a load's wait can tell its answer came from a reset. */
+  var busyOwn = false, resetting = false, resetSeq = 0;
   var devUnlocked = false;
   var running  = null;    /* the disk currently up in the play overlay */
 
@@ -1094,6 +1099,13 @@
       return true;
     }
     if (m.type === "cat:machine") return true;
+    /* 🆕 2026-10-04 — the drive is stuck on SEARCHING (emu.js watchDrive):
+       reset, the disk stays in. Never while a game the hub started is running,
+       and never while paused (his ruling). */
+    if (m.type === "cat:drivestuck") {
+      if (!gameOn && !paused && !machineOff) machineReset("stuck");
+      return true;
+    }
     /* 🆕 2026-10-01 — the glass was clicked: that is outside the small prompt */
     if (m.type === "cat:pointer") { closePick(); return true; }
     for (var i = 0; i < waiters.length; i++) {
@@ -1287,6 +1299,16 @@
 
   function pressLoad() {
     if (loadMode === "run") { runLoaded(); return; }
+    /* 🆕 2026-10-04 — NO DISK, NOTHING TYPED (his ruling, the hang pass). An
+       empty drive's LOAD can only fail, and about one in 40 of those never
+       comes back (emu.js, THE STUCK DRIVE). A typed LOAD still reaches the
+       machine; only the button stops here. */
+    if (!inserted) {
+      if (busy) return;
+      write("no disk in the drive.", "warn");
+      focusMachine();
+      return;
+    }
     var ch = choicesOf(inserted);
     if (ch.length > 1) {
       if (!pickEl.hidden && pickAnchor === btnLoad) { closePick(true); return; }
@@ -1472,19 +1494,32 @@
       .then(function () { setBusy(false); focusMachine(); });
   }
 
-  function machineReset() {
-    if (busy || !machineStarted) return;
-    setBusy(true);
+  /* 🔄 2026-10-04 — F12 WORKS AT ALL TIMES (his ruling, the hang pass), the
+     hub waiting on a load included: a stuck drive used to hold the deck busy
+     for two minutes with Reset refused. Only a second reset on top of one is
+     refused, and a paused machine (F-keys do nothing there, his 2026-09-25 rule).
+     A load whose wait ends during this sees resetSeq move and stays quiet.
+     `why` "stuck" is the stuck drive (emu.js watchDrive): the same reset, then
+     it waits for READY. and says what happened in plain words. */
+  function machineReset(why) {
+    if (resetting || !machineStarted || paused) return;
+    resetting = true;
+    resetSeq++;
+    syncBusy();
+    var was = inserted ? inserted.displayName.toUpperCase() : "";
     machineCall({ type: "cat:reset" }, ["cat:resetdone", "cat:resetfailed"], 20000)
       .then(function (m) {
         if (m.type !== "cat:resetdone") throw new Error(String(m.reason || "no reason given"));
         learnFor = null; learnWant = null;
         gameOn = false;
         loadMode = "load";
-        write("reset." + (inserted ? " " + inserted.displayName.toUpperCase() + " is still in." : ""), "dim");
+        if (why !== "stuck") { write("reset." + (was ? " " + was + " is still in." : ""), "dim"); return null; }
+        return machineCall({ type: "cat:awaitready", ms: 15000 }, ["cat:atready"], 20000).then(function () {
+          write("the drive stopped answering, so the c64 was reset." + (was ? " " + was + " is still in the drive." : ""), "warn");
+        });
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not reset: " + err.message, "err"); })
-      .then(function () { paintLoad(); setBusy(false); ready(); focusMachine(); });
+      .then(function () { resetting = false; paintDrive(null); paintLoad(); syncBusy(); ready(); focusMachine(); });
   }
 
   /* ---- the sides of a multi-disk game ------------------------------------
@@ -1580,6 +1615,7 @@
     if (busy) return;
     var disk = inserted;
     var notFound = false;
+    var seq = resetSeq;
     learnFor = null; learnWant = null;
     setBusy(true);
     paintDrive("loading");     /* the next Load clears a blink, too */
@@ -1589,6 +1625,10 @@
         return machineCall({ type: "cat:awaitready", ms: 120000 }, ["cat:atready"], 130000);
       })
       .then(function (m) {
+        /* 🆕 2026-10-04 — a reset came in while this waited (F12, or the stuck
+           drive). The READY. it saw is the boot screen's: no RUN, and the
+           reset says its own words. */
+        if (seq !== resetSeq) return false;
         /* 🔄 2026-09-25 — NO SILENT FAILURES (his ruling). The machine now says
            WHY it is not at READY., and every "no" but one is said out loud. Only
            "started" is quiet-ish, because it is the right outcome: the game
@@ -1655,6 +1695,7 @@
     if (busy) return;
     setBusy(true);
     var dir = btnList.dataset.cmd;
+    var seq = resetSeq;
     machineCall({ type: "cat:type", text: dir + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
       .then(function (m) {
         if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
@@ -1662,6 +1703,7 @@
         return machineCall({ type: "cat:awaitready", ms: 60000 }, ["cat:atready"], 70000);
       })
       .then(function (m) {
+        if (seq !== resetSeq) return;   /* 🆕 2026-10-04 — a reset came in: no LIST */
         if (!m.ready) {
           write(m.why === "error" ? "no directory: " + String(m.error || "the drive said no").replace(/^\?/, "").toLowerCase() + "." :
                 "the directory did not finish, so list was not typed.", "warn");
@@ -1998,8 +2040,12 @@
   var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-arrows button, #c64-port1, #c64-port2, #c64-pick button, #btn-load";
 
   function setBusy(on) {
-    busy = on;
-    if (on) closePick();
+    busyOwn = on;
+    syncBusy();
+  }
+  function syncBusy() {
+    busy = busyOwn || resetting;
+    if (busy) closePick();
     paintPause();
   }
 
