@@ -854,10 +854,16 @@ try {
         src: document.getElementById("machine-frame").getAttribute("src"), inserted: __cat.inserted(), note: __cat.note() })`));
       ok(off.pressed === "false" && off.src === "about:blank" && off.inserted === null && /power off/.test(off.note),
          `the rocker switches the C64 off: dark screen, empty drive, light out   [${JSON.stringify(off)}]`);
+      /* 🆕 2026-10-03 — the 1541's green lamp IS its power, so it goes out with the
+         rocker (it used to stay lit with the machine off), and the red is dark too */
+      const lampsOff = String(await b.ev("(function (d) { return d.classList.contains('is-powered') + '/' + d.classList.contains('is-loading') + '/' + d.classList.contains('is-failed'); })(document.getElementById('drive-bay'))"));
+      ok(lampsOff === "false/false/false", `and the drive's lamps go out with it   [power/red/blink ${lampsOff}]`);
       await b.ev("document.getElementById('c64-power').click()");
       const on = JSON.parse(await b.ev(`JSON.stringify({ pressed: document.getElementById("c64-power").getAttribute("aria-pressed"),
-        src: document.getElementById("machine-frame").getAttribute("src") })`));
+        src: document.getElementById("machine-frame").getAttribute("src"),
+        green: document.getElementById("drive-bay").classList.contains("is-powered") })`));
       ok(on.pressed === "true" && /machine=1/.test(on.src), `and on again: a fresh boot   [${JSON.stringify(on)}]`);
+      ok(on.green === true, "and the drive's green lamp comes back on with it");
       await b.shot(fileURLToPath(new URL("./verify-cat-cracked.png", import.meta.url)));
     } finally {
       b.close();

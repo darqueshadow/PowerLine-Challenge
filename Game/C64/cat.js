@@ -1330,7 +1330,8 @@
        cartridge never lights it at all: a cart is read by the CPU on power-up,
        the drive is not touched, and lighting it would be the corner telling a
        lie about the machine. */
-    if (!isCartridge(disk)) paintDrive("loading");
+    /* the next Insert clears a ?FILE NOT FOUND blink (his ruling) */
+    paintDrive(isCartridge(disk) ? null : "loading");
     releaseMachineFocus();
     var files = (disk.files || []).map(function (f) { return new URL(f.url, location.href).href; });
     DRIVE.play(disk, { medium: mediumOfDisk(disk), host: screenShell })
@@ -1343,6 +1344,7 @@
           learnFor = null; learnWant = null;
           medium = m.medium === "tape" ? "tape" : "disk";
           setDrive(disk);
+          if (!isCartridge(disk)) latchFor(disk);
           paintLoad();
           paintCart(disk);
           renderSwap(disk);
@@ -1379,6 +1381,7 @@
         learnFor = null; learnWant = null;
         medium = null;
         setDrive(null);
+        latchTo("up");
         paintLoad();
         renderSwap(null);
         write("removed: " + was, "dim");
@@ -1466,6 +1469,10 @@
     if (busy || !disk || !disk.files || !disk.files[index] || index === (disk.side || 0)) return;
     setBusy(true);
     led.classList.add("on");
+    /* 🆕 2026-10-03 — red SOLID for the swap (it clears a blink, too), and the
+       latch comes up, waits, and goes down again around it, as a hand would */
+    paintDrive("loading");
+    var lever = mediumOfDisk(disk) === "tape" ? Promise.resolve() : latchTo("cycle");
     machineCall({ type: "cat:swap", index: index }, ["cat:swapped", "cat:swapnote"], 60000)
       .then(function (m) {
         if (m.type !== "cat:swapped") throw new Error(String(m.note || "no reason given").replace(/^could not swap: /, ""));
@@ -1473,8 +1480,10 @@
         write(sideLabel(disk, disk.side).toLowerCase() + " is in the drive.", "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not swap sides: " + err.message, "err"); })
+      .then(function () { return lever; })
       .then(function () {
         led.classList.remove("on");
+        paintDrive(null);
         setBusy(false);
         renderSides(inserted);
         focusMachine();
@@ -1495,9 +1504,10 @@
   function loadThenRun(cmd) {
     if (busy) return;
     var disk = inserted;
+    var notFound = false;
     learnFor = null; learnWant = null;
     setBusy(true);
-    paintDrive("loading");
+    paintDrive("loading");     /* the next Load clears a blink, too */
     machineCall({ type: "cat:type", text: String(cmd) + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
       .then(function (m) {
         if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
@@ -1511,7 +1521,12 @@
         if (!m.ready) {
           var why = String(m.why || "");
           if (why === "started") { write("it started on its own.", "dim"); return true; }
-          if (why === "error") write("the load failed, so run was not typed.", "warn");
+          if (why === "error") {
+            write("the load failed, so run was not typed.", "warn");
+            /* 🆕 2026-10-03 — the 1541's DOS error blink, for the one error it
+               signals here (his ruling): ?FILE NOT FOUND. */
+            notFound = /FILE NOT FOUND/.test(String(m.error || ""));
+          }
           else if (why === "noscreen") write("auto-run could not read the c64's screen, so run was not typed. type run yourself.", "warn");
           else if (why === "timeout") write("the load took too long, so run was not typed. type run when it says ready.", "warn");
           else write("run was not typed (" + (why || "no reason given") + "). type run yourself.", "warn");
@@ -1533,7 +1548,7 @@
         if (err.byPowerOff) return;
         write(/^could not type run/.test(err.message) ? err.message + "." : "could not load: " + err.message, "err");
       })
-      .then(function () { paintDrive(null); setBusy(false); focusMachine(); });
+      .then(function () { paintDrive(notFound ? "failed" : null); setBusy(false); focusMachine(); });
   }
 
   /* One entry point for every command button and for the tooling surface. */
@@ -1683,6 +1698,44 @@
      when idle, and the 1 Hz DOS error blink only on a real failure. It used to
      light on an insert and nothing else, so a LOAD — the longest the drive is
      ever busy — left it dark. */
+  /* 🆕 2026-10-03 — THE 1541's LATCH (his rulings, the table approved as
+     written): no disk in = UP; Insert = DOWN; Swap = UP, a pause, DOWN; Load
+     and Reset leave it DOWN; Eject = UP; power off does not move it (a power
+     switch moves no lever); a tape leaves it UP, because a tape is in the
+     datasette, not the drive. 🚫 It only ever SLIDES (cat.css).
+     Every move is queued, so a Swap's lift and drop can never interleave with
+     an Insert's. Timings are DRIVE_ART's (driveinsert.js), never copied here. */
+  var LATCH = (DRIVE.art && DRIVE.art.latch) || { dropMs: 0, liftMs: 0, swapPauseMs: 0 };
+  var latchQueue = Promise.resolve();
+  function latchMove(down) {
+    return new Promise(function (resolve) {
+      if (!driveBay || driveBay.classList.contains("is-latched") === down) { resolve(); return; }
+      driveBay.classList.remove("is-dropping", "is-lifting");
+      void driveBay.offsetWidth;            /* restart the animation, not resume it */
+      driveBay.classList.add(down ? "is-dropping" : "is-lifting");
+      driveBay.classList.toggle("is-latched", down);
+      setTimeout(function () {
+        driveBay.classList.remove(down ? "is-dropping" : "is-lifting");
+        resolve();
+      }, down ? LATCH.dropMs : LATCH.liftMs);
+    });
+  }
+  function latchPause() { return new Promise(function (r) { setTimeout(r, LATCH.swapPauseMs); }); }
+  /* "down" | "up" | "cycle" (up, pause, down) */
+  function latchTo(how) {
+    latchQueue = latchQueue.then(function () {
+      if (how === "up") return latchMove(false);
+      if (how === "down") return latchMove(true);
+      return latchMove(false).then(latchPause).then(function () { return latchMove(true); });
+    });
+    return latchQueue;
+  }
+  function latchFor(disk) {
+    /* a fresh disk into a drive whose latch is already shut has to open it first */
+    if (!disk || mediumOfDisk(disk) === "tape") return latchTo("up");
+    return latchTo(driveBay && driveBay.classList.contains("is-latched") ? "cycle" : "down");
+  }
+
   function paintDrive(state) {
     if (!driveBay) return;
     driveBay.classList.toggle("is-loading", state === "loading");
@@ -1708,6 +1761,10 @@
   }
   function paintPower(on) {
     sidePower.setAttribute("aria-pressed", String(on));
+    /* 🆕 2026-10-03 — the drive's GREEN lamp is its power, so it goes out with
+       the rocker (it used to stay lit with the machine switched off) */
+    if (driveBay) driveBay.classList.toggle("is-powered", on);
+    if (!on) paintDrive(null);
     sidePower.title = IN_SHELL
       ? "Power off: close the Arcade and go back to the Arcade room"
       : (on ? "Switch the C64 off" : "Switch the C64 on");
@@ -2976,6 +3033,9 @@
         lamps: { power: driveBay.classList.contains("is-powered"),
                  loading: driveBay.classList.contains("is-loading"),
                  failed: driveBay.classList.contains("is-failed") },
+        /* 🆕 2026-10-03 — the 1541's latch: true = DOWN, and whether it is mid-move */
+        latch: { down: driveBay.classList.contains("is-latched"),
+                 moving: driveBay.classList.contains("is-dropping") || driveBay.classList.contains("is-lifting") },
         ejectBy: btnEject.parentNode ? btnEject.parentNode.id : null,
         insertBy: btnInsert.parentNode ? btnInsert.parentNode.id : null,
         /* fastLoad is what the MACHINE confirmed; fastSeated is where the

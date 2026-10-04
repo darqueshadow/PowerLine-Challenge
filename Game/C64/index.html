@@ -450,15 +450,24 @@
              something. 🚫 Never blink it on a good load: to anyone who has used
              the machine that says "this disk just died". The old
              @keyframes drive-led did exactly that on every successful insert. -->
+    <!-- 🔄 2026-10-03 — THE 1541 ARTWORK (his rulings): the disk's picture sits
+         ABOVE the drive, and the drive is three layers of one canvas — body,
+         the slot cover the closed latch brings, and the latch, which only ever
+         SLIDES. The lamps sit behind the body and show through its two holes.
+         Same art as the insert animation (driveinsert.js, DRIVE_ART). -->
     <div id="drive-bay" aria-hidden="true">
-      <div id="drive-lamps">
-        <span id="drive-power-led" class="drive-lamp drive-lamp--power" title="Drive power"></span>
-        <span id="drive-act-led" class="drive-lamp drive-lamp--act" title="Drive activity"></span>
-      </div>
       <div id="detail-shot" class="is-empty">
         <div class="sleeve"><div class="label">no art yet</div></div>
       </div>
-      <div id="drive-bay-model">DISK DRIVE</div>
+      <div id="drive-1541" class="drive1541">
+        <div id="drive-lamps">
+          <span id="drive-power-led" class="drive-lamp drive-lamp--power" title="Drive power"></span>
+          <span id="drive-act-led" class="drive-lamp drive-lamp--act" title="Drive activity"></span>
+        </div>
+        <img class="drive1541__body" src="drive/drive-body.png" alt="" width="800" height="367">
+        <img class="drive1541__cover" src="drive/drive-cover.png" alt="" width="800" height="367">
+        <img class="drive1541__latch" src="drive/drive-latch.png" alt="" width="800" height="367">
+      </div>
     </div>
     <div id="detail-title">&mdash;</div>
     <div id="detail-meta"></div>

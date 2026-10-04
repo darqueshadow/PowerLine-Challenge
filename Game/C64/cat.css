@@ -1090,16 +1090,31 @@ html.cat-link #cat { visibility: hidden; }
   68%  { transform: translateY(176px); }
   100% { transform: translateY(176px); }
 }
-/* then the latch turns down across the slot */
-.drive-latch {
-  transform-box: view-box;
-  transform-origin: 321px 166px;
-  animation: latch-close 1.9s ease-in-out forwards;
+/* 🔄 2026-10-03 — THE 1541 ARTWORK (driveinsert.js, DRIVE_ART). The disk is
+   bigger now, so it travels further; the timeline is the same 1.9s beat. */
+.drive-scene--1541 .drive-label { font-size: 26px; }
+.drive-insert--disk .drive-scene--1541 .drive-disk__body { animation-name: disk-slide-1541; }
+@keyframes disk-slide-1541 {
+  0%   { transform: translateY(-46px); opacity: 0; }
+  14%  { transform: translateY(0);     opacity: 1; }
+  38%  { transform: translateY(0); }
+  68%  { transform: translateY(330px); }
+  100% { transform: translateY(330px); }
 }
+/* then the latch SLIDES down across the slot, with a small spring at the end.
+   🚫 No rotation and no tilt: the bar stays horizontal (his ruling, 2026-10-03,
+   replacing the 90-degree turn this scene had). */
+.drive-scene--1541 .drive-latch { animation: latch-close 1.9s ease-in-out forwards; }
 @keyframes latch-close {
-  0%, 70%   { transform: rotate(0deg); }
-  82%, 100% { transform: rotate(90deg); }
+  0%, 70% { transform: translateY(0); }
+  80%     { transform: translateY(calc(var(--drive-travel-u) * (1 + var(--latch-settle)) * 1px)); }
+  88%     { transform: translateY(calc(var(--drive-travel-u) * (1 - var(--latch-settle) * .5) * 1px)); }
+  100%    { transform: translateY(calc(var(--drive-travel-u) * 1px)); }
 }
+/* the dark cover over the slot's middle comes in once the bar is past it */
+.drive-scene--1541 .drive-cover { opacity: 0; animation: cover-in 1.9s steps(1, end) forwards; }
+@keyframes cover-in { 0%, 76% { opacity: 0; } 77%, 100% { opacity: 1; } }
+.drive-scene--1541 .drive-led--power { fill: var(--led-power-on); animation: none; }
 /* and the drive light comes on */
 /* 🔄 2026-09-17 — THIS USED TO FLICKER THE DRIVE'S RED LIGHT ON A GOOD INSERT
    (#4a1a16 → #ff4a3a → #7a241c → #ff4a3a), which is the 1541's DOS ERROR signal.
@@ -1109,10 +1124,10 @@ html.cat-link #cat { visibility: hidden; }
    as "that disk just died" every single time a disk went in correctly.
    ⭐ Now it simply comes on and stays on, which is both truthful and calmer. The
    blink is spent in one place only — #drive-bay.is-failed, further down. */
-.drive-led { fill: #4a1a16; animation: drive-led 1.9s steps(1, end) forwards; }
+.drive-led { fill: var(--led-act-off); animation: drive-led 1.9s steps(1, end) forwards; }
 @keyframes drive-led {
-  0%, 80%   { fill: #4a1a16; }
-  84%, 100% { fill: #ff4a3a; }
+  0%, 80%   { fill: var(--led-act-off); }
+  84%, 100% { fill: var(--led-act-on); }
 }
 
 /* the tape: drops into the datasette, the door shuts, PLAY goes down */
@@ -1668,42 +1683,53 @@ html.cat-link #cat { visibility: hidden; }
 }
 .c64-port.has-stick .c64-port__stick { opacity: 1; transform: translateY(0); }
 
-/* ---- the drive bay around the disk artwork ------------------------------
-   🆕 2026-09-17, his ask. The frame is the DRIVE and the picture inside the
-   aperture is the disk - a 5.25 inch floppy has no lights of its own, so the bay
-   has to read as the machine or the lamps make no sense.
-   🚫 No eject button is drawn on it: a 1541 has none. You turn the lever and
-   pull the disk out. The hub's Eject button is a UI affordance, not this part. */
+/* ---- the drive bay: the disk's picture, and the 1541 under it -------------
+   🆕 2026-09-17, his ask; 🔄 2026-10-03, THE 1541 ARTWORK (his rulings): the
+   bay is no longer a beige box drawn around the picture. The disk's picture sits
+   ABOVE the drive, and the drive is the same three layers of art the insert
+   animation uses (driveinsert.js, DRIVE_ART, which also sets every --drive-*,
+   --latch-* and --led-* property used here).
+   🚫 No eject button is drawn on it: a 1541 has none. You lift the latch and
+   pull the disk out. The hub's Eject button is a UI affordance, not this part.
+   ⚠️ #drive-bay keeps is-powered / is-loading / is-failed, and the lamps keep
+   their ids and classes: both rigs read them. */
 #drive-bay {
-  position: relative;
   display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 6px 8px;
-  padding: 8px 10px 6px;
-  border-radius: 5px;
-  background: linear-gradient(#ded6c0, var(--cat-case) 45%, #c2b895);
-  box-shadow: inset 0 1px 0 #fff7dc, inset 0 -2px 4px rgba(0, 0, 0, .28),
-              0 2px 5px rgba(0, 0, 0, .4);
+  gap: 6px;
+  justify-items: center;
 }
-#drive-lamps { display: grid; gap: 6px; justify-items: center; }
+#drive-bay #detail-shot { margin: 0; width: 100%; }
+.drive1541 {
+  position: relative;
+  width: min(100%, 44vh);
+  aspect-ratio: 800 / 367;
+}
+.drive1541 > img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* the lamps sit BEHIND the body and show through its two holes */
+#drive-lamps { position: absolute; inset: 0; }
 .drive-lamp {
-  width: 8px; height: 8px;
+  position: absolute;
+  aspect-ratio: 1;
   border-radius: 50%;
-  box-shadow: inset 0 -1px 1px rgba(0, 0, 0, .55);
+  transform: translate(-50%, -50%);
 }
-/* GREEN = POWER. Steady the whole time the machine is on. It never flashes, and
-   it has nothing to do with loading. */
-.drive-lamp--power { background: #2b6b3a; }
+/* GREEN = POWER. Steady the whole time the machine is on, out when it is off.
+   It never flashes, and it has nothing to do with loading. */
+.drive-lamp--power {
+  left: var(--drive-led-power-x); top: var(--drive-led-power-y); width: var(--drive-led-power-d);
+  background: var(--led-power-off);
+}
 #drive-bay.is-powered .drive-lamp--power {
-  background: #3fbf5f;
-  box-shadow: 0 0 6px rgba(63, 191, 95, .55), inset 0 -1px 1px rgba(0, 0, 0, .4);
+  background: radial-gradient(circle at 42% 38%, #fff8 0 12%, transparent 40%), var(--led-power-on);
 }
 /* RED = DRIVE ACTIVITY. SOLID for the length of the access, dark when idle. */
-.drive-lamp--act { background: #4a1a16; }
+.drive-lamp--act {
+  left: var(--drive-led-act-x); top: var(--drive-led-act-y); width: var(--drive-led-act-d);
+  background: var(--led-act-off);
+}
 #drive-bay.is-loading .drive-lamp--act {
-  background: #ff4a3a;
-  box-shadow: 0 0 7px rgba(255, 74, 58, .8), inset 0 -1px 1px rgba(0, 0, 0, .4);
+  background: radial-gradient(circle at 42% 38%, #fff8 0 12%, transparent 40%), var(--led-act-on);
 }
 /* 🚨 A BLINKING RED IS THE 1541's DOS ERROR SIGNAL - read error, file not
    found, a failed format. On a real drive it blinks at about 1 Hz until the
@@ -1712,20 +1738,36 @@ html.cat-link #cat { visibility: hidden; }
    machine it says the disk just died. This hub used to do exactly that, on every
    successful insert. */
 #drive-bay.is-failed .drive-lamp--act {
-  animation: drive-error 1s steps(1, end) infinite;
+  animation: drive-error var(--led-blink-ms) steps(1, end) infinite;
 }
 @keyframes drive-error {
-  0%, 49%   { background: #ff4a3a; box-shadow: 0 0 7px rgba(255, 74, 58, .8); }
-  50%, 100% { background: #4a1a16; box-shadow: inset 0 -1px 1px rgba(0, 0, 0, .55); }
+  0%, 49%   { background: var(--led-act-on); }
+  50%, 100% { background: var(--led-act-off); }
 }
-#drive-bay #detail-shot { margin: 0; }
-#drive-bay-model {
-  grid-column: 1 / -1;
-  font: 700 9px var(--mono);
-  letter-spacing: .18em;
-  color: #5c5038;
-  text-align: right;
+
+/* THE LATCH: UP with no disk in, DOWN once one is. It only ever SLIDES —
+   🚫 no rotation, no tilt, the bar stays horizontal (his ruling). cat.js
+   (latchTo) adds is-latched, and is-dropping / is-lifting for the move itself. */
+.drive1541__latch { transform: translateY(0); }
+#drive-bay.is-latched .drive1541__latch { transform: translateY(var(--drive-travel)); }
+#drive-bay.is-dropping .drive1541__latch { animation: bay-latch-drop var(--latch-drop-ms) cubic-bezier(.45, 0, .25, 1) both; }
+#drive-bay.is-lifting .drive1541__latch { animation: bay-latch-lift var(--latch-lift-ms) cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes bay-latch-drop {
+  0%   { transform: translateY(0); }
+  72%  { transform: translateY(calc(var(--drive-travel) * (1 + var(--latch-settle)))); }
+  86%  { transform: translateY(calc(var(--drive-travel) * (1 - var(--latch-settle) * .5))); }
+  100% { transform: translateY(var(--drive-travel)); }
 }
+@keyframes bay-latch-lift {
+  0%   { transform: translateY(var(--drive-travel)); }
+  72%  { transform: translateY(calc(var(--drive-travel) * (0 - var(--latch-settle)))); }
+  86%  { transform: translateY(calc(var(--drive-travel) * var(--latch-settle) * .5)); }
+  100% { transform: translateY(0); }
+}
+/* the closed latch covers the middle of the slot; the cover comes in once the
+   bar is past it, and goes the moment it starts to lift */
+.drive1541__cover { opacity: 0; transition: opacity var(--latch-cover-ms) ease; }
+#drive-bay.is-latched .drive1541__cover { opacity: 1; transition-delay: var(--latch-cover-delay); }
 
 /* ---- the monitor bezel --------------------------------------------------
    🆕 2026-09-17, his ask: a C64-era monitor around the corner's screen.
@@ -1878,15 +1920,17 @@ html.cat-link #cat { visibility: hidden; }
    the drive bay's does, because it is the same drive. Red, SOLID for the length
    of an access; dark when idle; and the 1 Hz DOS error blink only on a failure.
    🚫 Same rule as the bay: never blink it on a good load. */
-#drive-led.is-loading { background: #ff4a3a; box-shadow: 0 0 8px rgba(255, 74, 58, .85); }
-#drive-led.is-failed { animation: drive-error 1s steps(1, end) infinite; }
+#drive-led.is-loading { background: var(--led-act-on); box-shadow: 0 0 8px var(--led-act-on); }
+#drive-led.is-failed { animation: drive-error var(--led-blink-ms) steps(1, end) infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   #crates > #btn-insert.btn--insert:not(:disabled) { animation: none; box-shadow: 0 3px 0 #a8791c, 0 0 14px 2px rgba(255, 196, 64, .5); }
   .reader-spine { transition: none; }
   .c64-cart__fast { transition: none; }
   .drive-insert, .drive-insert--disk .drive-disk__body, .drive-insert--tape .drive-disk__body,
-  .drive-latch, .drive-led, .drive-door, .drive-key--play { animation-duration: .45s; }
+  .drive-latch, .drive-led, .drive-cover, .drive-door, .drive-key--play { animation-duration: .45s; }
+  #drive-bay .drive1541__latch { animation-duration: 1ms !important; }
+  .drive1541__cover { transition: none; }
   .c64-power[aria-pressed="true"] .c64-led,
   .c64-port.is-lit .c64-port__pins i,
   .c64-rocker__paddle { transition: none; }

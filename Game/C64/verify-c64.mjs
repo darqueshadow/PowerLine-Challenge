@@ -1122,7 +1122,13 @@ async function runRig() {
     /* three images: one button, and a picker */
     const sidesQ = () => ev(`JSON.stringify({ buttons: Array.prototype.map.call(document.querySelectorAll("#side-swap button"), function (b) { return b.textContent; }),
       now: document.getElementById("drive-side").hidden ? "" : document.getElementById("drive-side").textContent })`).then(JSON.parse);
+    /* 🆕 2026-10-03 — THE 1541's LATCH (his table): down once a disk is in,
+       still down after a swap (it went up and came down), up after Eject */
+    const latchQ = () => ev("JSON.stringify(__cat.corner().latch)").then(JSON.parse);
+    const latchSettled = (down) => until(`!__cat.corner().latch.moving && __cat.corner().latch.down === ${down}`, 5000);
     await insertRig(rid(RIG_TRIO));
+    ok((await latchSettled(true)) >= 0, `the latch drops once the disk is in   [${JSON.stringify(await latchQ())}]`);
+
     let sq = await sidesQ();
     ok(sq.buttons.join("|") === "Swap disk…" && sq.now === "Now playing: Disk 1", `three disks: ONE button, and the drive says which is in   [${sq.buttons.join("|")} / ${sq.now}]`);
     await click("#side-swap button");
@@ -1141,6 +1147,7 @@ async function runRig() {
     await untilScreen((r) => toReady(after(r, /^LIST$/)).slice(-1)[0] === "READY.", 20000);
     const hT = (toReady(after(await screen(), /^LIST$/)).filter(Boolean)[0] || "").replace(/\s+/g, " ");
     ok(/^0 "RIG TRIO 3/.test(hT), `drive 8 now reads Disk 3   [${hT}]`);
+    ok((await latchSettled(true)) >= 0, `and after the swap the latch is down again   [${JSON.stringify(await latchQ())}]`);
 
     /* full screen: the picker opens above the strip */
     await ev("__cat.full(true)");
@@ -1153,7 +1160,35 @@ async function runRig() {
     const tFull = await until("document.getElementById('drive-side').textContent === 'Now playing: Disk 1'", 30000);
     await idle();
     ok(tFull >= 0 && (await ev("__cat.note()")) === "disk 1 is in the drive.", `and a pick there works, said on the strip's message line   [${await ev("__cat.note()")}]`);
+    const lampsSw = JSON.parse(await ev("JSON.stringify(__cat.corner().lamps)"));
+    ok(lampsSw.failed === false && lampsSw.loading === false, `after a swap the red is dark   [${JSON.stringify(lampsSw)}]`);
     await ev("__cat.full(false)");
+    await click("#btn-eject");
+    await idle();
+    ok((await latchSettled(false)) >= 0, `Eject lifts the latch   [${JSON.stringify(await latchQ())}]`);
+
+    /* 🆕 2026-10-03 — THE DOS ERROR BLINK (his ruling): a Load that ends in
+       ?FILE NOT FOUND leaves the red lamp blinking, until the next Load, Insert
+       or Swap.
+       🔄 2026-10-04 — measured twice: Load "*" on the trio's EMPTY disks never
+       answers ?FILE NOT FOUND; the drive sits on LOADING for good (fresh disk or
+       after LOAD"$" alike) and every typing check after it cascaded red. So the
+       error comes from the EMPTY DRIVE instead, the one §F2 fails twelve times
+       fast, and the reset below keeps one hang from becoming twenty fails. */
+    await clearScreen();
+    await click("#btn-load");
+    await until("__cat.machine().busy", 3000, 20);
+    const tNF = await untilScreen((r) => r.some((l) => /FILE NOT FOUND/.test(l)), 60000);
+    ok(tNF >= 0, `Load on the empty drive answers ?FILE NOT FOUND   [${(await screen()).filter(Boolean).slice(-3).join(" | ")}]`);
+    await idleLoad();
+    if (tNF < 0) { await ev("__cat.reset()"); await idle(); }
+    const lampsNF = JSON.parse(await ev("JSON.stringify(__cat.corner().lamps)"));
+    ok(lampsNF.failed === true && lampsNF.loading === false, `?FILE NOT FOUND leaves the red lamp blinking   [${JSON.stringify(lampsNF)}]`);
+    await wait(1500);
+    ok((await ev("__cat.corner().lamps.failed")) === true, "and it keeps blinking, with nothing else done");
+    await insertRig(rid(RIG_ONE));
+    const lampsIn = JSON.parse(await ev("JSON.stringify(__cat.corner().lamps)"));
+    ok(lampsIn.failed === false && lampsIn.loading === false, `the next Insert clears the blink, and the red is dark again   [${JSON.stringify(lampsIn)}]`);
     await click("#btn-eject");
     await idle();
 

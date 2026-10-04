@@ -1269,6 +1269,7 @@
      sat out its full backstop instead — which accidentally gave the drive all the
      time in the world. Fixing the screen hunt is what exposed this. */
   var BUSY_WORDS = /^(SEARCHING|LOADING|FOUND |PRESS PLAY|SAVING|VERIFYING)/;
+  var lastError = "";   /* the ?... ERROR line readState last saw above READY. */
   function rowText(H, base, row) {
     var out = "", start = base + row * 40, v, c;
     for (c = 0; c < 40; c++) {
@@ -1294,7 +1295,10 @@
         seen = 1;
         continue;             /* now look at the line the prompt answered */
       }
-      return (H[start] & 127) === 63 ? "error" : "ready";
+      /* 🆕 2026-10-03 — the error's own words are kept, so the hub can tell a
+         ?FILE NOT FOUND (the one the drive's light blinks for) from the rest */
+      if ((H[start] & 127) === 63) { lastError = rowText(H, base, row).trim(); return "error"; }
+      return "ready";
     }
     return "other";
   }
@@ -1586,7 +1590,7 @@
          disk started itself, which is the case that must not be typed into. */
       case "cat:awaitready":
         waitReady(Number(m.ms) || 90000)
-          .then(function (why) { toHub({ type: "cat:atready", ready: why === "ready", why: why }); });
+          .then(function (why) { toHub({ type: "cat:atready", ready: why === "ready", why: why, error: why === "error" ? lastError : "" }); });
         break;
       /* 🆕 2026-09-17 — the fast loader. Reports what the core actually took,
          never what it was asked for. */
