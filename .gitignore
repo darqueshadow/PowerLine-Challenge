@@ -87,3 +87,13 @@ Game/C64/emulator/data/
 # these two patterns before reaching for `git add -f`.
 *-TR.csv
 *.bak
+
+# 🔒 2026-10-05 (Andrew) — working notes and raw art never go to this PUBLIC repo.
+# C64 design briefs sit under Game/, which deploys to the public Pages site.
+Game/C64/Brief_*.md
+# the root PLC track's handoffs and memory store
+/MEMORY.md
+/memory/
+# raw art and its build scripts. ⚠️ 7 files under Disk/ and Datasette/ were committed
+# before this line (2026-10-04/05) and stay tracked until Andrew rules on them.
+Documents/Asset Packs/
