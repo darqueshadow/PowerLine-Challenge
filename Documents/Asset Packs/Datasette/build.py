@@ -92,11 +92,17 @@ alpha_b = np.where(bg | lamp, 0.0, 1.0)
 # 🆕 Step 2 — THE EJECT KEY is its own sprite (it presses down a few pixels on
 # Insert Tape), and BASE gets the key well's black where the key was, so the
 # moved key never shows a doubled edge. Same canvas as BASE.
+# 🆕 Step 3 — the PLAY key the same way (the art already has it: the second keycap,
+# ▶ on it, "PLAY" printed on the silver ABOVE it, which stays on BASE). It goes down
+# when a load starts and stays down for the whole load.
 EJECT = (1589, 1204, 1802, 1417, 14)
-key = rounded_rect(B.shape[:2], *EJECT)
-save_scaled(rgba(B, np.where(key, 1.0, 0.0)), (W_OUT, H_OUT), "datasette-eject.png")
+PLAY = (648, 1204, 861, 1417, 14)
 well = B[1425:1440, 1600:1790].reshape(-1, 3).mean(axis=0)     # the black bar under the keys
-B_base = np.where(key[..., None], well, B)
+B_base = B.copy()
+for box_, name_ in ((EJECT, "datasette-eject.png"), (PLAY, "datasette-play.png")):
+    key = rounded_rect(B.shape[:2], *box_)
+    save_scaled(rgba(B, np.where(key, 1.0, 0.0)), (W_OUT, H_OUT), name_)
+    B_base = np.where(key[..., None], well, B_base)
 save_scaled(rgba(B_base, alpha_b), (W_OUT, H_OUT), "datasette-base.png")
 # 🆕 Step 2 — the BLACK SPINDLE, a round sprite that turns while a tape loads
 # (seen through the cassette's hub holes). Cut from the left one.

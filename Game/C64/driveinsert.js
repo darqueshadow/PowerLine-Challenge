@@ -183,7 +183,8 @@
          the bay, the lid closes, the key comes back up.
        Eject (ends game): the lid lifts, the tape leaves DOWNWARD, the lid closes.
          A disk inserted over a tape plays this first (his rulings, 2026-10-04).
-       While a tape LOAD runs (emu.js says so: cat:tapemotor), the hubs turn
+       While a tape LOAD runs (emu.js says so: cat:tapemotor), PLAY goes down
+         (playLeadMs before anything turns) and stays down; the hubs turn
          (the cassette's white toothed hubs, and the black spindles seen through
          them) and the counter's three wheels count up. It is TIME-BASED: the
          core tells JS nothing about the tape itself (measured 2026-10-04). It
@@ -205,7 +206,9 @@
       reset: [0.79865, 0.49414, 0.82564, 0.55078],
       hingeY: 0.09505
     },
-    timing: { keyMs: 140, lidOpenMs: 420, riseMs: 460, lowerMs: 400, lidCloseMs: 360, gapMs: 90, resetPressMs: 140 },
+    timing: { keyMs: 140, lidOpenMs: 420, riseMs: 460, lowerMs: 400, lidCloseMs: 360, gapMs: 90, resetPressMs: 140,
+              /* 🆕 PLAY goes down this long BEFORE the counter and the hubs start */
+              playLeadMs: 240 },
     keyTravel: 0.014,          /* the EJECT key goes down this much of the box's height */
     lidDeg: 45,
     hubTurnMs: 1600,           /* one turn of the hubs while a load runs */
@@ -247,7 +250,8 @@
     var box = el("datasette"), cass = el("datasette-tape"), label = el("datasette-label");
     var wheels = box ? box.querySelectorAll(".datasette__wheel-strip") : [];
     var LABEL_PX = { max: 13, min: 5 };
-    var st = { busy: false, motor: false, count: 0, trace: [], lid: "closed", key: false, skip: null };
+    var st = { busy: false, motor: false, play: false, count: 0, trace: [], lid: "closed", key: false, skip: null };
+    var playTimer = 0;
     var T = DATASETTE.timing;
     var wait = function (msv) {
       return new Promise(function (res) {
@@ -374,13 +378,24 @@
       paintCounter();
       raf = requestAnimationFrame(tick);
     }
+    /* 🆕 PLAY: down first, then (playLeadMs later) the hubs and the counter; up
+       again the moment the load stops, or when Eject lifts the lid */
+    function playKey(on) { st.play = on; box.classList.toggle("is-play", on); }
     function motor(on) {
       on = !!on && !!box && !cass.hidden;
       if (on === st.motor) return;
       st.motor = on;
-      box.classList.toggle("is-spinning", on);
-      if (on) { last = 0; if (!raf) raf = requestAnimationFrame(tick); }
-      else {
+      clearTimeout(playTimer);
+      if (on) {
+        playKey(true);
+        playTimer = setTimeout(function () {
+          if (!st.motor) return;
+          box.classList.add("is-spinning");
+          last = 0; if (!raf) raf = requestAnimationFrame(tick);
+        }, REDUCED ? 0 : T.playLeadMs);
+      } else {
+        box.classList.remove("is-spinning");
+        playKey(false);
         /* the wheels come to rest on a whole number, as real ones do */
         st.count = Math.floor(st.count) % 1000;
         paintCounter();
@@ -408,8 +423,8 @@
          🚫 Nothing in the hub calls it. */
       rigCount: function (n) { st.count = (Number(n) || 0) % 1000; paintCounter(); },
       state: function () {
-        return { tape: !!(cass && !cass.hidden), name: label ? label.textContent : "", lid: st.lid, key: st.key, busy: st.busy,
-                 spinning: st.motor, count: Math.floor(st.count) % 1000, shown: box ? box.dataset.count : "", trace: st.trace.slice() };
+        return { tape: !!(cass && !cass.hidden), name: label ? label.textContent : "", lid: st.lid, key: st.key, play: st.play, busy: st.busy,
+                 spinning: st.motor && box.classList.contains("is-spinning"), count: Math.floor(st.count) % 1000, shown: box ? box.dataset.count : "", trace: st.trace.slice() };
       }
     };
   })();

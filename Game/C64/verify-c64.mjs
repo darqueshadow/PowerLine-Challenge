@@ -745,13 +745,20 @@ async function runRig() {
     const trapsTape = await inMachine("EJS_emulator.allSettings.vice_virtual_device_traps");
     ok(trapsTape === "enabled", `with a tape in, the traps a .T64 needs are on   [${trapsTape}]`);
     const count0 = await ev("__cat.corner().tape.count");
+    const playBefore = await ev("__cat.corner().tape.play");
     await click("#btn-load");
+    /* 🆕 2026-10-04 — PLAY goes down when the load starts, BEFORE anything turns */
+    const tPlay = await until("__cat.corner().tape.play", 20000, 20);
+    const playFirst = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
     /* 🆕 2026-10-04 — while the tape LOAD runs, the hubs turn and the counter counts */
     const tSpin = await until("__cat.corner().tape.spinning", 20000, 50);
     const spinNow = JSON.parse(await ev(`JSON.stringify({ hub: getComputedStyle(document.querySelector(".datasette__hub")).animationPlayState,
       spindle: getComputedStyle(document.querySelector(".datasette__spindle")).animationPlayState })`));
     ok(tSpin >= 0 && spinNow.hub === "running" && spinNow.spindle === "running",
        `while the tape loads, the white hubs and the black spindles turn   [${took(tSpin)}; ${JSON.stringify(spinNow)}]`);
+    const playDuring = await ev("__cat.corner().tape.play");
+    ok(playBefore === false && tPlay >= 0 && playFirst.play && !playFirst.spinning && playDuring === true,
+       `the PLAY key is up before the load, goes down as it starts (before the hubs turn), and stays down   [before ${playBefore}; at press spinning ${playFirst.spinning}; during ${playDuring}]`);
     /* 🔄 2026-09-17 — WATCH THE LOAD, THEN WAIT FOR THE HUB, not the other way
        round. idle() used to come back while the tape was still going, so the two
        sweeps below saw the whole sequence unfold. Now that the hub correctly holds
@@ -766,6 +773,7 @@ async function runRig() {
     const cEnd = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
     await wait(1200);
     const cLater = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    ok(!cEnd.play && !cLater.play, `and the PLAY key comes back up when the load ends   [${cEnd.play}]`);
     ok(!cEnd.spinning && cEnd.count > count0 && cLater.count === cEnd.count && cLater.shown === String(cEnd.count).padStart(3, "0"),
        `the counter counted up during the load, stopped at its end, and keeps its value   [${count0} -> ${cEnd.count}, then ${cLater.shown}]`);
     /* and 999 wraps to 000 (the rig sets it near the top, then runs the motor) */
@@ -791,6 +799,11 @@ async function runRig() {
     /* 🆕 2026-10-04 — something on the screen first, so a reset can be seen */
     await type("PRINT 4321\n");
     await untilScreen((r) => r.includes(" 4321"), 6000);
+    /* the motor is set running by hand here (as a load would), to see Eject pop PLAY up */
+    await ev("CAT_DRIVE.tape.motor(true)");
+    const playPreEject = (await until("__cat.corner().tape.play", 2000, 20)) >= 0;
+    await wait(400);
+    await ev("CAT_DRIVE.tape.rigCount(25)");   /* a known, non-zero value to carry through the eject */
     const cPreEject = await ev("__cat.corner().tape.count");
     await click("#btn-eject");
     const tLidOut = await until("__cat.corner().tape.lid === 'open'", 3000, 30);
@@ -810,6 +823,7 @@ async function runRig() {
     ok(tLidOut >= 0 && seqOut.trace.join(",") === "open,out,close" && seqOut.lid === "closed" && !seqOut.tape && !seqOut.spinning,
        `Eject plays the Datasette: lid open, the tape leaves (downward), lid shut   [${seqOut.trace.join(" > ")}]`);
     ok(seqOut.count === cPreEject && cPreEject > 0, `and the counter keeps its value through the eject   [${cPreEject} -> ${seqOut.count}]`);
+    ok(playPreEject && !seqOut.play, `and Eject pops the PLAY key up as it lifts the lid   [down before: ${playPreEject}; after: ${seqOut.play}]`);
     await click("#datasette-reset");
     const cReset = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
     ok(cReset.count === 0 && cReset.shown === "000" && (await ev("document.activeElement !== document.getElementById('datasette-reset')")),

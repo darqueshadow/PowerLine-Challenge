@@ -857,9 +857,11 @@ html.cat-link #cat { visibility: hidden; }
   background: radial-gradient(circle at 40% 35%, #6b2a22, #3a120d 60%, #220806);
 }
 .datasette__base { z-index: 1; }
-/* the EJECT key goes down a few pixels on Insert Tape */
+/* the EJECT key goes down a few pixels on Insert Tape; PLAY, the same press,
+   stays down for the whole of a tape load */
 .datasette__key { z-index: 2; transition: transform var(--ds-key-ms) ease; }
-.datasette.is-key .datasette__key { transform: translateY(var(--ds-key-travel)); }
+.datasette.is-key .datasette__key--eject,
+.datasette.is-play .datasette__key--play { transform: translateY(var(--ds-key-travel)); }
 /* the black spindles, seen through the cassette's hub holes */
 .datasette__spindle {
   z-index: 2;
