@@ -17,6 +17,7 @@ The root PLC track (resume word **`Continue_PLC`**) keeps its one-shot handoffs 
   are on a NO_SIDES list (each file its own disk). Wording "Disk 1, Side A" / "Disk 3" on the line, button and picker.
   Same disk, other side = out to the slot, swap sent, flip, back in; a different disk never flips; Side B = plain jacket.
   Left as is until Andrew judges them in the live hub: the latch icon size, a full-screen swap status message.
+  Closed (accepted as is, 2026-10-05): the moving disk briefly covers the line under the 1541. Push: NOT yet, hold local.
   ⏸ NEXT: Phase 5 (the dot-matrix game list). Starts ONLY on Andrew's confirm.
 - Adding a game to the C64 corner (Andrew): (1) copy the file(s) into `Game/C64/roms/`, sets named
   `Title - d1.D64`, `Title - d2.D64` … (marker at the END; tapes .t64/.tap group the same way); (2) reload the hub
