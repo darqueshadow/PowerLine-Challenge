@@ -1156,20 +1156,48 @@ try {
     } else {
       console.log("  skip  corner no-art word — every Cracked disk has art in the folder");
     }
-    /* 🔄 2026-10-04 — a two-sided game says "Side A" (matching its "Swap to Side B"
-       button), a numbered set "Disk 1 of n" (his ruling). One of each, if the library has it. */
+    /* 🔄 2026-10-05 — DOUBLE-SIDED DISKS (his rulings): the line says the file's
+       own label, "Disk 1, Side A" for a sided set, "Disk 1" for a set with no
+       sides; the same words as the swap button. One of each, if the library has it. */
     const sets = JSON.parse(await b.ev(`JSON.stringify(__cat.disks().filter(function (d) {
       return d.runner === "emulator" && d.files && d.files.length > 1; })
-      .map(function (d) { return { id: d.id, name: d.displayName, n: d.files.length, first: d.files[0].label || "" }; }))`));
-    for (const [kind, setC] of [["two-sided game", sets.find((d) => /^Side /.test(d.first))],
-                                ["numbered set", sets.find((d) => !/^Side /.test(d.first))]]) {
+      .map(function (d) { return { id: d.id, name: d.displayName, n: d.files.length, first: d.files[0].label || "", face: d.files[0].face || null }; }))`));
+    for (const [kind, setC] of [["sided set", sets.find((d) => d.face)], ["set with no sides", sets.find((d) => !d.face)]]) {
       if (!setC) { console.log(`  skip  corner line for a ${kind} — none in the library`); continue; }
-      const want = /^Side /.test(setC.first) ? setC.first : `Disk 1 of ${setC.n}`;
+      const want = setC.first;
       await b.ev(`__cat.select(${JSON.stringify(setC.id)})`);
       await wait(300);
       const e = JSON.parse(await b.ev(LOOK));
-      ok(e.title === `${setC.name} · ${want}` && e.disk === want,
+      ok(e.title === `${setC.name} · ${want}` && e.disk === want && (setC.face ? /^Disk 1, Side A$/.test(want) : /^Disk \d+$/.test(want)),
          `a ${kind}'s line is its name and "${want}", on ONE line   ["${e.title}"]`);
+    }
+
+    /* 🆕 2026-10-05 — THE MAPPING, on fixture names (pure: library.js's own build,
+       no server, no disk): every rule of his, one line each. */
+    const MAP = JSON.parse(await b.ev(`JSON.stringify((function () {
+      var names = ["Two - d1.D64", "Two - d2.D64", "Odd - d1.D64", "Odd - d2.D64", "Odd - d3.D64",
+        "Zero - d0.D64", "Zero - d1.D64", "Zero - d2.D64", "Zero - d3.D64",
+        "Test Drive II (The Duel) - d1.D64", "Test Drive II (The Duel) - d2.D64",
+        "Ultima II (Revenge of the Enchantress!) - d1.D64", "Ultima II (Revenge of the Enchantress!) - d2.D64",
+        "Ultima III (Exodus) - d1.D64", "Ultima III (Exodus) - d3.D64",
+        "Flip - Side A.d64", "Flip - Side B.d64", "Flip - Side C.d64", "Paren (Disk 1).d64", "Paren (Disk 2).d64", "Single.d64"];
+      var out = {};
+      CAT_LIBRARY._parse.build(names, {}).forEach(function (d) {
+        out[d.displayName] = d.files.map(function (f) { return f.label + (f.face ? ":" + f.face + f.disk : ""); }).join("|"); });
+      return out; })())`));
+    const MAP_WANT = {
+      "Two": "Disk 1, Side A:A1|Disk 1, Side B:B1",
+      "Odd": "Disk 1, Side A:A1|Disk 1, Side B:B1|Disk 2, Side A:A2",
+      "Zero": "Disk 1, Side A:A1|Disk 2, Side A:A2|Disk 2, Side B:B2|Disk 3, Side A:A3",
+      "Test Drive II (The Duel)": "Disk 1|Disk 2",
+      "Ultima II (Revenge of the Enchantress!)": "Disk 1|Disk 2",
+      "Ultima III (Exodus)": "Disk 1|Disk 3",
+      "Flip": "Disk 1, Side A:A1|Disk 1, Side B:B1|Disk 2, Side A:A2",
+      "Paren": "Disk 1|Disk 2",
+      "Single": "Disk 1"
+    };
+    for (const [t, w] of Object.entries(MAP_WANT)) {
+      ok(MAP[t] === w, `the mapping: "${t}" reads ${w}   [${MAP[t]}]`);
     }
 
     /* 🆕 2026-10-04 — PHASE 3, THE LAYOUT (his rulings, corner only): Insert under

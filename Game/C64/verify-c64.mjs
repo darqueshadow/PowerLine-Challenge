@@ -397,7 +397,7 @@ async function runRig() {
      slowing it down. recStart() before the click, recStop() after. */
   const recStart = () => ev(`(function () { clearInterval(window.__recId); window.__rec = [];
     window.__recId = setInterval(function () { var c = __cat.corner(), d = c.disk || {};
-      window.__rec.push({ t: Date.now(), s: !!d.shown, p: d.phase, tr: (d.trace || []).join(","), turn: d.turn, n: d.name, sd: d.side,
+      window.__rec.push({ t: Date.now(), s: !!d.shown, p: d.phase, tr: (d.trace || []).join(","), turn: d.turn, n: d.name, sd: d.side, f: d.face,
         l: c.latch.down, tl: c.tape.lid, tt: c.tape.tape }); }, 15); })()`);
   const recStop = () => ev("clearInterval(window.__recId), JSON.stringify(window.__rec)").then(JSON.parse);
   /* 🆕 2026-10-05 — THE EJECT BUTTON as it is drawn (Phase 4b items 1-3): which
@@ -609,11 +609,24 @@ async function runRig() {
       im.onerror = function () { res(null); }; im.src = "disk/disk.png"; })`);
     ok(flAlpha && flAlpha.hub === 0 && flAlpha.corner === 0 && flAlpha.jacket === 255 && flAlpha.label === 255,
        `the disk's art is true alpha: hub hole and the corner outside clear, jacket and label solid   [${JSON.stringify(flAlpha)}]`);
+    /* 🆕 2026-10-05 — SIDE B's face (his rulings): the same art, the label painted
+       out in jacket. Same cut (hub hole and corner clear), and where the label was
+       is solid, dark jacket now, not cream */
+    const flBack = await ev(`new Promise(function (res) { var im = new Image(); im.onload = function () {
+        var c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+        var g = c.getContext("2d"); g.drawImage(im, 0, 0);
+        var px = function (fx, fy) { return Array.prototype.slice.call(g.getImageData(Math.round(fx * (c.width - 1)), Math.round(fy * (c.height - 1)), 1, 1).data); };
+        var lab = [[0.4, 0.08], [0.6, 0.15], [0.9, 0.27]].map(function (p) { var d = px(p[0], p[1]); return Math.round((d[0] + d[1] + d[2]) / 3) + "/" + d[3]; });
+        res({ w: c.width, h: c.height, hub: px(0.49995, 0.49986)[3], corner: px(0.995, 0.995)[3], label: lab }); };
+      im.onerror = function () { res(null); }; im.src = "disk/disk-back.png"; })`);
+    ok(flBack && flBack.w === 480 && flBack.h === 509 && flBack.hub === 0 && flBack.corner === 0
+       && flBack.label.every((v) => Number(v.split("/")[0]) < 60 && v.split("/")[1] === "255"),
+       `Side B's face is the same art with the label painted out in jacket: same cut, no cream left   [${JSON.stringify(flBack)}]`);
     /* the library's longest name today (42 characters), as a set: readable */
-    const flLong = JSON.parse(await ev(`JSON.stringify(CAT_DRIVE.disk.rigLabel("Beach-Head II - The Dictator Strikes Back!", "Disk 1 of 2"))`));
+    const flLong = JSON.parse(await ev(`JSON.stringify(CAT_DRIVE.disk.rigLabel("Beach-Head II - The Dictator Strikes Back!", "Disk 1, Side A"))`));
     ok(!flLong.clipped && flLong.px >= 5, `the library's longest name with a side line wraps on the label at a readable size, unclipped   [${flLong.px}px]`);
     /* twice that: smaller, but still never clipped */
-    const flHuge = JSON.parse(await ev(`JSON.stringify(CAT_DRIVE.disk.rigLabel("The Very Long Name Of A Game That Goes On - Part Two: The Return Of The Long Name", "Disk 1 of 2"))`));
+    const flHuge = JSON.parse(await ev(`JSON.stringify(CAT_DRIVE.disk.rigLabel("The Very Long Name Of A Game That Goes On - Part Two: The Return Of The Long Name", "Disk 1, Side A"))`));
     ok(!flHuge.clipped && flHuge.shown === true && !(await ev("__cat.corner().disk.shown")),
        `a name twice as long shrinks further and still never clips (and the measuring leaves no disk drawn)   [${flHuge.px}px]`);
     say(`        (the room below the slot: ${flLong.room.below} px for a ${flLong.room.disk} px disk, ${flLong.room.short} px short of showing it whole)`);
@@ -1210,7 +1223,10 @@ async function runRig() {
        His multi-disk addendum. The library has no two-sided game today, so this
        uses the rig's own pair (SWAP_FIXTURES, above): two blank disks whose
        directory headers say RIG SIDE A and RIG SIDE B, built byte by byte. */
-    section("I. a two-sided game: Side A in, one click to Side B, on drive 8, in the running machine");
+    /* 🔄 2026-10-05 — DOUBLE-SIDED DISKS (his rulings): "Side A / Side B" is
+       Disk 1, Side A / B, ONE disk: the swap turns it over (out to the slot, a
+       flip on the vertical axis, back in), never out and down. */
+    section("I. a double-sided disk: Side A in, one click turns it over to Side B, on drive 8, in the running machine");
     const PAIR = (await ev("__cat.disks().map(function (d) { return { id: d.id, name: d.displayName, n: (d.files || []).length }; })"))
       .find((d) => d.name === SWAP_TITLE);
     ok(!!PAIR && PAIR.n === 2, `the library pairs the two files as ONE game with two sides   [${PAIR ? PAIR.id + ", " + PAIR.n + " sides" : "not found"}]`);
@@ -1235,8 +1251,8 @@ async function runRig() {
       await until(`__cat.inserted() === ${JSON.stringify(PAIR.id)}`, 60000);
       await idle();
       s0 = await sides();
-      ok(s0.shown && s0.buttons.join("|") === "Swap to Side B" && s0.now === "Side A",
-         `it goes in on Side A: ONE button, "Swap to Side B", and the drive says which side   [${s0.buttons.join("|")} / ${s0.now}]`);
+      ok(s0.shown && s0.buttons.join("|") === "Swap to Disk 1, Side B" && s0.now === "Disk 1, Side A",
+         `it goes in on Side A: ONE button, "Swap to Disk 1, Side B", and the drive says which side   [${s0.buttons.join("|")} / ${s0.now}]`);
       const hA = await header();
       /* on a miss, say what the machine and the page were doing (it has missed
          intermittently; the screen and focus are the evidence) */
@@ -1245,32 +1261,40 @@ async function runRig() {
       ok(/^0 "RIG SIDE A/.test(hA), `the machine reads Side A on drive 8   [${hA}${/^0 "RIG SIDE A/.test(hA) ? "" : await why()}]`);
       await recStart();
       await click("#side-swap button");
-      const tSwap = await until(`${DISK_LINE} === 'Side B'`, 30000);
+      const tSwap = await until(`${DISK_LINE} === 'Disk 1, Side B'`, 30000);
       await idle();
       await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
-      /* 🆕 2026-10-05 — THE SWAP IS ANIMATED (his ruling, Phase 4b item 4): Side A
-         comes out (latch up, out downward), Side B goes in (rises, slides in),
-         the latch drops; and the machine's swap is sent while the drive is EMPTY,
-         after A has gone and as B starts to rise */
+      /* 🔄 2026-10-05 — THE SAME DISK TURNED OVER (his rulings): latch up, OUT to
+         the slot (never down and away), FLIPPED there with the label face going
+         and the plain face coming, back IN, the latch drops. The machine's swap is
+         sent at the slot, when the drive is empty: after the pull, BEFORE the flip. */
       const recSw = await recStop();
       const sentAt = await ev("__cat.corner().swapSentAt");
-      const swA = recSw.filter((x) => x.s && x.sd === "Side A"), swB = recSw.filter((x) => x.s && x.sd === "Side B");
+      const shownSw = recSw.filter((x) => x.s);
+      const swA = shownSw.filter((x) => x.f === "A"), swB = shownSw.filter((x) => x.f === "B");
       const swLast = recSw.length - 1 - [...recSw].reverse().findIndex((x) => x.s);
       const swDrop = recSw.findIndex((x, i) => i > swLast && x.l);
-      ok(swA.length > 0 && swB.length > 0 && swA.every((x) => !x.l) && swA.some((x) => x.tr === "out,down") && swB.some((x) => x.tr === "rise,in")
-         && recSw.indexOf(swA[swA.length - 1]) < recSw.indexOf(swB[0]) && swB.every((x) => x.turn === "180deg") && swDrop > swLast,
-         `a swap plays OUT then IN: latch up, Side A slides out and down, Side B rises and slides in, then the latch drops   [${[...new Set(recSw.map((x) => (x.s ? x.sd + ":" + x.p : "-") + (x.l ? "/L" : "")))].join(" > ")}]`);
-      ok(sentAt >= swA[swA.length - 1].t - 20 && sentAt <= swB[0].t + 40,
-         `and the machine swaps while the drive is empty: after Side A is out, as Side B starts in   [A last seen ${sentAt - swA[swA.length - 1].t} ms before the swap; B first seen ${swB[0].t - sentAt} ms after]`);
+      ok(swA.length > 0 && swB.length > 0 && shownSw.every((x) => !x.l && x.p !== "below") && shownSw.some((x) => x.tr === "out,flip,in")
+         && recSw.indexOf(swA[swA.length - 1]) < recSw.indexOf(swB[0]) && shownSw.every((x) => x.turn === "180deg") && swDrop > swLast,
+         `a turn-over plays OUT to the slot, FLIP, back IN, never down and away; then the latch drops   [${[...new Set(recSw.map((x) => (x.s ? x.f + ":" + x.p + ":" + x.tr : "-") + (x.l ? "/L" : "")))].join(" > ")}]`);
+      ok(swA.length > 0 && swB.length > 0 && sentAt >= swA[0].t + 150 && sentAt <= swB[0].t + 20,
+         `and the machine swaps at the slot, the drive empty: after the pull, before the flip   [${swA.length && sentAt - swA[0].t} ms after the pull began; the flip ${swB.length && swB[0].t - sentAt} ms after the swap]`);
+      const dkB = JSON.parse(await ev("JSON.stringify(__cat.corner().disk)"));
+      ok(dkB.face === "B" && dkB.side === "Disk 1, Side B", `it went back in plain side up, Side B   [${dkB.face}, "${dkB.side}"]`);
       const s1 = await sides();
-      ok(tSwap >= 0 && s1.buttons.join("|") === "Swap to Side A", `one click: Side B is in, and the button now offers Side A   [${took(tSwap)}, ${s1.buttons.join("|")}]`);
+      ok(tSwap >= 0 && s1.buttons.join("|") === "Swap to Disk 1, Side A", `one click: Side B is in, and the button now offers Side A   [${took(tSwap)}, ${s1.buttons.join("|")}]`);
       ok((await screen()).some((r) => /^0 "RIG SIDE A/.test(r)),
          "the machine was NOT reset by the swap: Side A's listing is still on its screen");
       const hB = await header();
       ok(/^0 "RIG SIDE B/.test(hB), `and the same drive 8 now reads Side B   [${hB}]`);
       await click("#side-swap button");
-      await until(`${DISK_LINE} === 'Side A'`, 30000);
+      await recStart();
+      await until(`${DISK_LINE} === 'Disk 1, Side A'`, 30000);
       await idle();
+      await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+      const recBack = (await recStop()).filter((x) => x.s);
+      ok(recBack.length > 0 && recBack.some((x) => x.tr === "out,flip,in") && recBack[0].f === "B" && recBack[recBack.length - 1].f === "A" && recBack.every((x) => x.p !== "below"),
+         `and back: turned over again, the label face up   [${[...new Set(recBack.map((x) => x.f + ":" + x.p))].join(" > ")}]`);
       const hA2 = await header();
       ok(/^0 "RIG SIDE A/.test(hA2), `and back: one click, Side A again   [${hA2}]`);
       await click("#btn-eject");
@@ -1279,7 +1303,7 @@ async function runRig() {
       /* 🔄 2026-10-04 — the corner's ONE line (his ruling, Phase 1) still names a
          picked set after Eject: "Side A" is what Insert would put in, and the
          only place left that says this game is a set. The control does go. */
-      ok(!s2.shown && s2.now === "Side A", `Eject takes the swap control away with the disk, and the line says what Insert puts in   [${s2.now}]`);
+      ok(!s2.shown && s2.now === "Disk 1, Side A", `Eject takes the swap control away with the disk, and the line says what Insert puts in   [${s2.now}]`);
     }
 
     /* --- Q. the Load choice, the disk picker, and the input a title starts on --
@@ -1539,14 +1563,21 @@ async function runRig() {
     ok((await loadText()) === "Run", `[control] Disk 1's program loaded, and the button says Run   [${await loadText()}]`);
 
     let sq = await sidesQ();
-    ok(sq.buttons.join("|") === "Swap disk…" && sq.now === "Disk 1 of 3", `three disks: ONE button, and the drive says which is in   [${sq.buttons.join("|")} / ${sq.now}]`);
+    ok(sq.buttons.join("|") === "Swap disk…" && sq.now === "Disk 1, Side A", `three files (d1-d3 = Disk 1 A/B, Disk 2 A): ONE button, and the drive says which is in   [${sq.buttons.join("|")} / ${sq.now}]`);
     await click("#side-swap button");
     pk = await pick();
-    ok(!!pk && pk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") === "Disk 1*|Disk 2|Disk 3",
+    ok(!!pk && pk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") === "Disk 1, Side A*|Disk 1, Side B|Disk 2, Side A",
        `it opens a picker with only that set, plainly labelled, the one in the drive lit   [${pk ? pk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") : "none"}]`);
+    await recStart();
     await click("#c64-pick .c64-pick__opt:nth-of-type(3)");
-    const tPick = await until(`${DISK_LINE} === 'Disk 3 of 3'`, 30000);
+    const tPick = await until(`${DISK_LINE} === 'Disk 2, Side A'`, 30000);
     await idle();
+    await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    /* 🆕 2026-10-05 — a DIFFERENT disk is never turned over (his ruling): out and
+       down, the next one up and in, label face up (it is a Side A) */
+    const recD2 = (await recStop()).filter((x) => x.s);
+    ok(recD2.some((x) => x.tr === "out,down") && recD2.some((x) => x.tr === "rise,in") && !recD2.some((x) => /flip/.test(x.tr)) && recD2.every((x) => x.f === "A"),
+       `a different disk is not flipped: out and down, then Disk 2 up and in, label up   [${[...new Set(recD2.map((x) => x.f + ":" + x.tr))].join(" > ")}]`);
     ok(tPick >= 0 && (await until("document.activeElement === document.getElementById('machine-frame')", 3000)) >= 0,
        `picking Disk 3 puts it in, and the keyboard goes back to the machine   [${took(tPick)}]`);
     ok((await ev("document.getElementById('btn-load').dataset.cmd")) === 'LOAD"*",8,1',
@@ -1557,8 +1588,22 @@ async function runRig() {
     await type("LIST\n");
     await untilScreen((r) => toReady(after(r, /^LIST$/)).slice(-1)[0] === "READY.", 20000);
     const hT = (toReady(after(await screen(), /^LIST$/)).filter(Boolean)[0] || "").replace(/\s+/g, " ");
-    ok(/^0 "RIG TRIO 3/.test(hT), `drive 8 now reads Disk 3   [${hT}]`);
+    ok(/^0 "RIG TRIO 3/.test(hT), `drive 8 now reads d3 (Disk 2, Side A)   [${hT}]`);
     ok((await latchSettled(true)) >= 0, `and after the swap the latch is down again   [${JSON.stringify(await latchQ())}]`);
+    /* 🆕 2026-10-05 — a DIRECT PICK OF A SIDE B (his ruling): a different disk, so
+       no flip, and it goes in plain side up, no label */
+    await click("#side-swap button");
+    pk = await pick();
+    await recStart();
+    await click("#c64-pick .c64-pick__opt:nth-of-type(2)");
+    const tPickB = await until(`${DISK_LINE} === 'Disk 1, Side B'`, 30000);
+    await idle();
+    await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    const recPB = (await recStop()).filter((x) => x.s);
+    const inPB = recPB.filter((x) => x.tr === "rise,in" || x.tr === "rise");
+    ok(tPickB >= 0 && !recPB.some((x) => /flip/.test(x.tr)) && inPB.length > 0 && inPB.every((x) => x.f === "B")
+       && recPB.filter((x) => /^out/.test(x.tr)).every((x) => x.f === "A"),
+       `picking Disk 1, Side B straight from Disk 2: no flip, and it goes in plain side up   [${[...new Set(recPB.map((x) => x.f + ":" + x.tr))].join(" > ")}]`);
 
     /* full screen: the picker opens above the strip */
     await ev("__cat.full(true)");
@@ -1568,9 +1613,9 @@ async function runRig() {
     const strip = await ev("JSON.stringify(document.getElementById('c64-side').getBoundingClientRect())").then(JSON.parse);
     ok(!!pk && pk.rect.bottom <= strip.top + 1, `in full screen the picker opens above the strip   [prompt bottom ${pk && pk.rect.bottom}, strip top ${Math.round(strip.top)}]`);
     await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
-    const tFull = await until(`${DISK_LINE} === 'Disk 1 of 3'`, 30000);
+    const tFull = await until(`${DISK_LINE} === 'Disk 1, Side A'`, 30000);
     await idle();
-    ok(tFull >= 0 && (await ev("__cat.note()")) === "disk 1 is in the drive.", `and a pick there works, said on the strip's message line   [${await ev("__cat.note()")}]`);
+    ok(tFull >= 0 && (await ev("__cat.note()")) === "disk 1, side a is in the drive.", `and a pick there works, said on the strip's message line   [${await ev("__cat.note()")}]`);
     const lampsSw = JSON.parse(await ev("JSON.stringify(__cat.corner().lamps)"));
     ok(lampsSw.failed === false && lampsSw.loading === false, `after a swap the red is dark   [${JSON.stringify(lampsSw)}]`);
     await ev("__cat.full(false)");

@@ -485,9 +485,14 @@
              sequences. driveinsert.js CAT_DRIVE.disk; art Documents/Asset Packs/Disk/. -->
         <div class="drive1541__diskwin" id="drive-diskwin" hidden>
           <div class="drive1541__disk" id="drive-disk">
-            <div class="disk-sprite">
-              <img class="disk-sprite__art" src="disk/disk.png" alt="" width="480" height="509">
-              <span class="disk-sprite__label" id="disk-label"><span class="disk-sprite__name" id="disk-name"></span><span class="disk-sprite__side" id="disk-side"></span></span>
+            <!-- 🆕 2026-10-05 — a CARD with two faces: Side A (the label) in front,
+                 Side B (plain jacket) behind. Turned over on its vertical axis. -->
+            <div class="disk-card" id="disk-card">
+              <div class="disk-sprite">
+                <img class="disk-sprite__art" src="disk/disk.png" alt="" width="480" height="509">
+                <span class="disk-sprite__label" id="disk-label"><span class="disk-sprite__name" id="disk-name"></span><span class="disk-sprite__side" id="disk-side"></span></span>
+              </div>
+              <div class="disk-back"><img class="disk-back__art" src="disk/disk-back.png" alt="" width="480" height="509"></div>
             </div>
           </div>
         </div>

@@ -1854,6 +1854,22 @@ html.cat-link #cat { visibility: hidden; }
 .drive1541__disk.is-pulling { transition-duration: var(--dk-pull-ms); transition-timing-function: cubic-bezier(.2, .7, .3, 1); }
 .drive1541__disk.is-lowering { transition-duration: var(--dk-lower-ms); transition-timing-function: cubic-bezier(.55, 0, .9, .5); }
 .drive1541__disk.is-snap { transition: none; }
+/* 🆕 2026-10-05 — TWO FACES (his rulings, double-sided disks). The card turns on
+   its VERTICAL axis; each face hides when it faces away. Side B is the plain
+   jacket (disk-back.png: the same art, label painted out) flipped VERTICALLY:
+   the front is the art turned 180°, so this is the front mirrored, and the notch
+   and index hole land on the other side, as on a real disk's back. Oval on top. */
+.drive1541__disk { perspective: 900px; }
+.disk-card {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+  transition: transform var(--dk-flip-ms, 520ms) cubic-bezier(.45, 0, .35, 1);
+}
+.disk-card.is-back { transform: rotateY(180deg); }
+.drive1541__disk.is-snap .disk-card { transition: none; }
+.disk-sprite, .disk-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.disk-back { position: absolute; inset: 0; transform: rotateY(180deg); }
+.disk-back__art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transform: scaleY(-1); }
 .disk-sprite { position: absolute; inset: 0; rotate: 180deg; }
 .disk-sprite__art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .disk-sprite__label {

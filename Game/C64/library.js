@@ -89,13 +89,13 @@
      file itself carries, so "- d0" says "Disk 0" rather than being renumbered
      into something the disk's own prompts would not match. */
   var SIDE_PATTERNS = [
-    { re: /^(.*?)[\s._-]*[-–]\s*d(\d{1,2})$/i,
+    { re: /^(.*?)[\s._-]*[-–]\s*d(\d{1,2})$/i, kind: "d",
       num: function (m) { return parseInt(m[2], 10); },
       label: function (m) { return "Disk " + parseInt(m[2], 10); } },
-    { re: /^(.*?)[\s._-]*[([]?\s*disk\s*(\d{1,2})\s*[)\]]?$/i,
+    { re: /^(.*?)[\s._-]*[([]?\s*disk\s*(\d{1,2})\s*[)\]]?$/i, kind: "disk",
       num: function (m) { return parseInt(m[2], 10); },
       label: function (m) { return "Disk " + parseInt(m[2], 10); } },
-    { re: /^(.*?)[\s._-]*[([]?\s*side\s*([a-h])\s*[)\]]?$/i,
+    { re: /^(.*?)[\s._-]*[([]?\s*side\s*([a-h])\s*[)\]]?$/i, kind: "side",
       num: function (m) { return m[2].toUpperCase().charCodeAt(0) - 64; },
       label: function (m) { return "Side " + m[2].toUpperCase(); } }
   ];
@@ -104,10 +104,50 @@
     for (var i = 0; i < SIDE_PATTERNS.length; i++) {
       var m = base.match(SIDE_PATTERNS[i].re);
       if (m && m[1] && m[1].trim()) {
-        return { title: m[1].trim(), side: SIDE_PATTERNS[i].num(m), label: SIDE_PATTERNS[i].label(m) };
+        return { title: m[1].trim(), side: SIDE_PATTERNS[i].num(m), label: SIDE_PATTERNS[i].label(m), kind: SIDE_PATTERNS[i].kind };
       }
     }
     return null;
+  }
+
+  /* -----------------------------------------------------------------------
+     🆕 2026-10-05 — DOUBLE-SIDED DISKS (Andrew's rulings on Change 2).
+       - "- dN" is read as SIDE N: d1/d2 = Disk 1, Side A/B; d3/d4 = Disk 2,
+         Side A/B; and on. "Side A..H" likewise (A/B = Disk 1, C/D = Disk 2).
+       - d0 is a disk of its own, Side A. The disks are numbered in ORDER, so a
+         set that starts at d0 reads d0 = Disk 1, Side A; d1/d2 = Disk 2, Side
+         A/B; d3 = Disk 3, Side A. The button and the line under the 1541 both
+         read this label, so they can no longer disagree (the old d0 mismatch).
+       - An odd count leaves the last disk with no Side B. Fine (his ruling).
+       - NO_SIDES: titles whose files are each a disk of their own, no sides,
+         label on all (separate products on separate disks, not two sides).
+       - "(Disk N)" and hand-made groups stay one disk per file, no sides.
+     Each file gets {disk, face, label}: face "A" / "B", or null for no sides.
+     🚫 No file is renamed; roms/ is never touched. Only the reading changes.
+     --------------------------------------------------------------------- */
+  var NO_SIDES = {
+    "test drive ii (the duel)": 1,
+    "ultima ii (revenge of the enchantress!)": 1,
+    "ultima iii (exodus)": 1
+  };
+  function mapSides(key, files) {
+    var noSides = !!NO_SIDES[key];
+    var disks = {}, count = 0;
+    files.forEach(function (f, i) {
+      var sided = !noSides && (f.kind === "d" || f.kind === "side");
+      if (!sided) {
+        f.disk = f.kind === "disk" || f.kind === "d" ? f.side : i + 1;
+        f.face = null;
+        f.label = "Disk " + f.disk;
+        return;
+      }
+      /* d0 pairs with nothing; sN pairs with its neighbour: 1+2, 3+4, ... */
+      var pair = f.side === 0 ? "z" : String(Math.ceil(f.side / 2));
+      if (!disks[pair]) disks[pair] = ++count;
+      f.disk = disks[pair];
+      f.face = f.side === 0 || f.side % 2 === 1 ? "A" : "B";
+      f.label = "Disk " + f.disk + ", Side " + f.face;
+    });
   }
 
   function baseName(file) { return String(file).replace(EXT, ""); }
@@ -216,7 +256,8 @@
         name: file,
         url: DIR + encodeURIComponent(file),
         side: hand ? hand[1] : split ? split.side : 1,
-        label: split ? split.label : null
+        label: split ? split.label : null,
+        kind: split ? split.kind : null
       });
     });
 
@@ -224,8 +265,8 @@
     return order.map(function (key) {
       var g = groups[key];
       g.files.sort(function (a, b) { return a.side - b.side || a.name.localeCompare(b.name); });
-      /* a file with no marker of its own (a hand-made group) is named by place */
-      g.files.forEach(function (f, i) { if (!f.label) f.label = "Disk " + (i + 1); });
+      /* 🔄 2026-10-05 — every file's disk, side and label (mapSides, above) */
+      mapSides(key, g.files);
 
       var filename = dedupe(names, c64Name(g.title));
       var multi = g.files.length > 1;

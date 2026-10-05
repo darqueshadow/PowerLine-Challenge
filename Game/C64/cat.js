@@ -543,15 +543,30 @@
      in) when it is only picked. The ordinary hub keeps the bare name. */
   /* 🔄 2026-10-04 — a TWO-SIDED game says "Side A" / "Side B" here, to match
      its "Swap to Side B" button (his ruling); a numbered set says "Disk 1 of 3". */
+  /* 🔄 2026-10-05 — DOUBLE-SIDED DISKS (his rulings): the words are the file's
+     own label from library.js, "Disk 1, Side A" ("Disk 3" for a set with no
+     sides), the SAME words as the swap button, so the two cannot disagree. */
   function detailDisk(disk) {
     return diskWords(disk, disk === inserted ? (disk.side || 0) : 0);
   }
-  /* the words for side `k` of a set ("Disk 2 of 3", "Side B"), "" for one disk */
+  /* the words for side `k` of a set ("Disk 1, Side B", "Disk 3"), "" for one disk */
   function diskWords(disk, k) {
     var n = disk && disk.runner === "emulator" && disk.files ? disk.files.length : 0;
     if (n < 2) return "";
-    var lab = sideLabel(disk, k);
-    return /^Side /.test(lab) ? lab : "Disk " + (k + 1) + " of " + n;
+    return sideLabel(disk, k);
+  }
+  /* is side `k` a Side B (the plain jacket, no label)? */
+  function isSideB(disk, k) {
+    var f = disk && disk.files && disk.files[k];
+    return !!(f && f.face === "B");
+  }
+  function detailBack(disk) {
+    return isSideB(disk, disk === inserted ? (disk.side || 0) : 0);
+  }
+  /* the same disk, its other side: a turn-over, not a swap of disks */
+  function sameDisk(disk, a, b) {
+    var fa = disk && disk.files && disk.files[a], fb = disk && disk.files && disk.files[b];
+    return !!(fa && fb && fa.face && fb.face && fa.disk === fb.disk);
   }
   function paintDetailLine(disk) {
     dTitle.textContent = disk.displayName;
@@ -1461,7 +1476,7 @@
         if (MACHINE && medium === "tape" && inserted && DRIVE.tape && !toTape) out = DRIVE.tape.eject();
         else if (MACHINE && medium === "disk" && inserted && !isCartridge(inserted) && D) {
           var was = inserted;
-          out = latchTo("up").then(function () { return D.eject(was.displayName, detailDisk(was)); });
+          out = latchTo("up").then(function () { return D.eject(was.displayName, detailDisk(was), detailBack(was)); });
         }
         return out.then(function () {
           if (toTape) return DRIVE.tape ? DRIVE.tape.insert(disk.displayName) : null;
@@ -1469,7 +1484,7 @@
           if (!MACHINE || isCartridge(disk) || !D) return null;
           diskIn = true;
           return latchTo("up")
-            .then(function () { return D.insert(disk.displayName, detailDisk(disk)); })
+            .then(function () { return D.insert(disk.displayName, detailDisk(disk), detailBack(disk)); })
             .then(function () { return latchTo("down"); });
         });
       })
@@ -1545,11 +1560,11 @@
            latch lifts, then the disk slides out downward and is gone. Its label
            says the side that was in. */
         var out = medium === "disk" && inserted && !isCartridge(inserted) && DRIVE.disk
-          ? { name: inserted.displayName, side: detailDisk(inserted) } : null;
+          ? { name: inserted.displayName, side: detailDisk(inserted), back: detailBack(inserted) } : null;
         medium = null;
         setDrive(null);
         var lift = latchTo("up");
-        if (out) lift.then(function () { return DRIVE.disk.eject(out.name, out.side); });
+        if (out) lift.then(function () { return DRIVE.disk.eject(out.name, out.side, out.back); });
         renderSwap(null);
         return resetToReady().catch(function (err) { throw new Error("the disk is out, but the reset failed: " + err.message); });
       })
@@ -1669,14 +1684,32 @@
     var D = DRIVE.disk;
     var animate = mediumOfDisk(disk) !== "tape" && !isCartridge(disk) && !!D;
     var lever, sent;
-    if (animate) {
-      var outWords = diskWords(disk, disk.side || 0), inWords = diskWords(disk, index);
-      var emptied = latchTo("up").then(function () { return D.eject(disk.displayName, outWords); });
-      sent = emptied.then(function () {
-        swapSentAt = Date.now();
-        return machineCall({ type: "cat:swap", index: index }, ["cat:swapped", "cat:swapnote"], 60000);
+    var from = disk.side || 0;
+    var send = function () {
+      swapSentAt = Date.now();
+      return machineCall({ type: "cat:swap", index: index }, ["cat:swapped", "cat:swapnote"], 60000);
+    };
+    if (animate && sameDisk(disk, from, index)) {
+      /* 🆕 2026-10-05 — THE SAME DISK, ITS OTHER SIDE (his rulings): out to the
+         slot, TURNED OVER there on its vertical axis, back in. ⭐ cat:swap goes
+         the moment it is out of the slot (the drive is empty), BEFORE the flip:
+         the flip and the slide back in play while the core swaps the image. */
+      var empty;
+      var emptyNow = new Promise(function (res) { empty = res; });
+      var turned = latchTo("up").then(function () {
+        return D.turnOver(disk.displayName, diskWords(disk, from), isSideB(disk, from),
+                          diskWords(disk, index), isSideB(disk, index), empty);
       });
-      var goneIn = emptied.then(function () { return D.insert(disk.displayName, inWords); });
+      turned.then(empty, empty);   /* never left waiting, whatever the animation did */
+      sent = emptyNow.then(send);
+      lever = Promise.all([turned, sent.catch(function () {})]).then(function () { return latchTo("down"); });
+    } else if (animate) {
+      /* a DIFFERENT disk: no flip. The new one goes in the face it is (a Side B
+         plain side up, no label). */
+      var outWords = diskWords(disk, from), inWords = diskWords(disk, index);
+      var emptied = latchTo("up").then(function () { return D.eject(disk.displayName, outWords, isSideB(disk, from)); });
+      sent = emptied.then(send);
+      var goneIn = emptied.then(function () { return D.insert(disk.displayName, inWords, isSideB(disk, index)); });
       lever = Promise.all([goneIn, sent.catch(function () {})]).then(function () { return latchTo("down"); });
     } else {
       lever = mediumOfDisk(disk) === "tape" ? Promise.resolve() : latchTo("cycle");

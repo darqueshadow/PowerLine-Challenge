@@ -442,6 +442,16 @@
        Eject (ends game): cat.js lifts the latch, then it SLIDES OUT downward
          and is gone.
        A swap plays the outgoing item's eject first (cat.js orders it).
+     🆕 2026-10-05 — TWO FACES (his rulings, double-sided disks). The sprite is a
+     CARD: Side A in front (the label), Side B behind it (disk/disk-back.png, the
+     same art with the label painted out in jacket, no new art). A Side B goes in
+     already turned. turnOver() is the same disk's other side: out to the slot,
+     a flip on the VERTICAL axis there, back in. A different disk never flips.
+       ⭐ THE NOTCH AND THE INDEX HOLE: the back face is the plain art flipped
+       VERTICALLY (cat.css .disk-back). The front shows the art turned 180°, so
+       that is the front mirrored left-to-right: after the flip the notch is on
+       the other edge and the index hole on the other side of the hub, as on the
+       back of a real disk, and the oval read/write slot stays on top.
      ⭐ The sprite is the art turned 180° (cat.css .disk-sprite) with the label's
      printed name and "Disk 1 of 2" / "Side A" INSIDE it, so they turn together:
      the label sits bottom-left, upside down. The name is printed in code and
@@ -465,7 +475,8 @@
       gapMs: DATASETTE.timing.gapMs,       /* the pause at the slot, both ways */
       lowerMs: DATASETTE.timing.lowerMs,   /* out of sight downward: the cassette's leaving */
       slideMs: 360,                        /* 🆕 into the slot, pushed */
-      pullMs: 320                          /* 🆕 out of the slot, pulled */
+      pullMs: 320,                         /* 🆕 out of the slot, pulled */
+      flipMs: 520                          /* 🆕 turned over at the slot, Side A <-> Side B */
     }
   };
   (function applyDisk() {
@@ -483,12 +494,14 @@
     r.setProperty("--dk-slide-ms", ms(T.slideMs));
     r.setProperty("--dk-pull-ms", ms(T.pullMs));
     r.setProperty("--dk-lower-ms", ms(T.lowerMs));
+    r.setProperty("--dk-flip-ms", ms(T.flipMs));
   })();
 
   var disk = (function () {
     var el = function (id) { return document.getElementById(id); };
     var win = el("drive-diskwin"), sprite = el("drive-disk"), label = el("disk-label"),
-        nameEl = el("disk-name"), sideEl = el("disk-side"), drive = el("drive-1541");
+        nameEl = el("disk-name"), sideEl = el("disk-side"), drive = el("drive-1541"),
+        card = el("disk-card");
     var T = DISK.timing;
     var st = { busy: false, phase: "gone", trace: [], skip: null, onSkip: null, room: null };
     var mark = function (what) { st.trace.push(what); };
@@ -517,6 +530,8 @@
       nameEl.textContent = String(name || "");
       sideEl.textContent = String(side || "");
     }
+    /* which face is toward the player: false = Side A (the label), true = Side B */
+    function face(back) { card.classList.toggle("is-back", !!back); }
     /* 📏 THE ROOM: from the slot's line down to the bottom of the left column
        (or of the window, if that is higher). Measured on every sequence. */
     function measure() {
@@ -536,9 +551,10 @@
       if (phase === "below") sprite.classList.add("is-below");
       st.phase = phase;
     }
-    function snapTo(phase) {
+    function snapTo(phase, back) {
       sprite.classList.add("is-snap");
       at(phase);
+      face(back);
       void sprite.offsetWidth;
       sprite.classList.remove("is-snap");
       void sprite.offsetWidth;
@@ -561,15 +577,16 @@
       return function () { win.hidden = true; at("gone"); done(); st.busy = false; return "played"; };
     }
 
-    /* below -> ready (rises) -> in (slides up into the slot) -> gone */
-    function insert(name, side) {
+    /* below -> ready (rises) -> in (slides up into the slot) -> gone.
+       `back`: a Side B goes in plain side up, no label. */
+    function insert(name, side, back) {
       if (!win || !shown() || st.busy) return Promise.resolve("skipped");
       st.busy = true; st.trace = [];
       setLabel(name, side);
       measure();
       win.hidden = false;
       fit();
-      snapTo("below");
+      snapTo("below", back);
       var done = skippable();
       mark("rise"); at("ready", "is-rising");
       return wait(T.riseMs)
@@ -578,14 +595,14 @@
         .then(finish(done), finish(done));
     }
     /* in -> ready (slides out of the slot) -> below (leaves downward) -> gone */
-    function eject(name, side) {
+    function eject(name, side, back) {
       if (!win || !shown() || st.busy) return Promise.resolve("skipped");
       st.busy = true; st.trace = [];
       setLabel(name, side);
       measure();
       win.hidden = false;
       fit();
-      snapTo("in");
+      snapTo("in", back);
       var done = skippable();
       mark("out"); at("ready", "is-pulling");
       return wait(T.pullMs)
@@ -594,16 +611,45 @@
         .then(finish(done), finish(done));
     }
 
+    /* 🆕 2026-10-05 — THE SAME DISK, TURNED OVER: in -> ready (pulled out to the
+       slot) -> FLIP on the vertical axis -> in (pushed back). `onEmpty` is called
+       at the slot, BEFORE the flip: the drive is empty from there, which is when
+       cat.js sends the machine its swap, so the flip plays while the core swaps.
+       The label is reprinted at the flip's halfway point (edge-on, unseen). */
+    function turnOver(name, fromSide, fromBack, toSide, toBack, onEmpty) {
+      var empty = function () { if (onEmpty) { var f = onEmpty; onEmpty = null; f(); } };
+      if (!win || !shown() || st.busy) { empty(); return Promise.resolve("skipped"); }
+      st.busy = true; st.trace = [];
+      setLabel(name, fromSide);
+      measure();
+      win.hidden = false;
+      fit();
+      snapTo("in", fromBack);
+      var done = skippable();
+      mark("out"); at("ready", "is-pulling");
+      return wait(T.pullMs)
+        .then(function () { empty(); return wait(T.gapMs); })
+        .then(function () {
+          mark("flip"); face(toBack);
+          return wait(T.flipMs / 2).then(function () { setLabel(name, toSide); fit(); return wait(T.flipMs / 2); });
+        })
+        .then(function () { return wait(T.gapMs); })
+        .then(function () { mark("in"); at("in"); return wait(T.slideMs); })
+        .then(finish(function () { empty(); done(); }), finish(function () { empty(); done(); }));
+    }
+
     function state() {
-      var turn = sprite && sprite.firstElementChild ? getComputedStyle(sprite.firstElementChild).rotate : "";
+      var front = sprite && sprite.querySelector(".disk-sprite");
+      var turn = front ? getComputedStyle(front).rotate : "";
       return { shown: !!(win && !win.hidden), phase: st.phase, busy: st.busy, trace: st.trace.slice(),
                name: nameEl ? nameEl.textContent : "", side: sideEl ? sideEl.textContent : "",
+               face: card && card.classList.contains("is-back") ? "B" : "A",
                px: label ? parseFloat(label.style.fontSize) || 0 : 0, turn: turn,
                clipped: !!(label && label.clientWidth && (label.scrollHeight > label.clientHeight + 1 || label.scrollWidth > label.clientWidth + 1)),
                room: st.room };
     }
     return {
-      insert: insert, eject: eject, fit: fit, state: state,
+      insert: insert, eject: eject, turnOver: turnOver, fit: fit, state: state,
       busy: function () { return st.busy; },
       /* RIG-ONLY: print a label without a sequence, to measure its fitting; the
          sprite is shown only for the measuring. 🚫 Nothing in the hub calls it. */
