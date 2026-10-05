@@ -1257,89 +1257,6 @@ html.cat-link #cat { visibility: hidden; }
   color: #2c2418;
 }
 
-/* ---- the drive animation (driveinsert.js), over the C64's screen ---------- */
-.drive-insert {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  display: grid;
-  place-items: center;
-  background: radial-gradient(90% 90% at 50% 45%, rgba(38, 30, 58, .96), rgba(8, 6, 14, .97));
-  border-radius: 10px;
-  animation: drive-in 160ms ease-out;
-  transition: opacity 220ms ease-in;
-  cursor: pointer;
-}
-.drive-insert.out { opacity: 0; }
-@keyframes drive-in { from { opacity: 0; } to { opacity: 1; } }
-.drive-scene { width: min(72%, 560px); height: auto; overflow: visible; }
-.drive-label { font: 700 13px var(--mono); fill: #2b2517; letter-spacing: .04em; }
-.drive-model { font: 700 11px var(--mono); fill: #5c5038; letter-spacing: .18em; }
-.drive-keylabel { font: 700 8px var(--mono); fill: #d8cfa8; letter-spacing: .04em; }
-
-/* the disk: arrives above the slot, holds, slides in and is gone */
-.drive-insert--disk .drive-disk__body { animation: disk-slide 1.9s cubic-bezier(.5, 0, .3, 1) forwards; }
-@keyframes disk-slide {
-  0%   { transform: translateY(-46px); opacity: 0; }
-  14%  { transform: translateY(0);     opacity: 1; }
-  38%  { transform: translateY(0); }
-  68%  { transform: translateY(176px); }
-  100% { transform: translateY(176px); }
-}
-/* 🔄 2026-10-03 — THE 1541 ARTWORK (driveinsert.js, DRIVE_ART). The disk is
-   bigger now, so it travels further; the timeline is the same 1.9s beat. */
-.drive-scene--1541 .drive-label { font-size: 26px; }
-.drive-insert--disk .drive-scene--1541 .drive-disk__body { animation-name: disk-slide-1541; }
-@keyframes disk-slide-1541 {
-  0%   { transform: translateY(-46px); opacity: 0; }
-  14%  { transform: translateY(0);     opacity: 1; }
-  38%  { transform: translateY(0); }
-  68%  { transform: translateY(330px); }
-  100% { transform: translateY(330px); }
-}
-/* then the latch SLIDES down across the slot, with a small spring at the end.
-   🚫 No rotation and no tilt: the bar stays horizontal (his ruling, 2026-10-03,
-   replacing the 90-degree turn this scene had). */
-.drive-scene--1541 .drive-latch { animation: latch-close 1.9s ease-in-out forwards; }
-@keyframes latch-close {
-  0%, 70% { transform: translateY(0); }
-  80%     { transform: translateY(calc(var(--drive-travel-u) * (1 + var(--latch-settle)) * 1px)); }
-  88%     { transform: translateY(calc(var(--drive-travel-u) * (1 - var(--latch-settle) * .5) * 1px)); }
-  100%    { transform: translateY(calc(var(--drive-travel-u) * 1px)); }
-}
-/* the dark cover over the slot's middle comes in once the bar is past it */
-.drive-scene--1541 .drive-cover { opacity: 0; animation: cover-in 1.9s steps(1, end) forwards; }
-@keyframes cover-in { 0%, 76% { opacity: 0; } 77%, 100% { opacity: 1; } }
-.drive-scene--1541 .drive-led--power { fill: var(--led-power-on); animation: none; }
-/* and the drive light comes on */
-/* 🔄 2026-09-17 — THIS USED TO FLICKER THE DRIVE'S RED LIGHT ON A GOOD INSERT
-   (#4a1a16 → #ff4a3a → #7a241c → #ff4a3a), which is the 1541's DOS ERROR signal.
-   On a real drive the red light comes on SOLID the moment the head engages and
-   stays on for the access; a blink means the job FAILED and keeps blinking until
-   the error channel is read. Anyone who has used the machine read this animation
-   as "that disk just died" every single time a disk went in correctly.
-   ⭐ Now it simply comes on and stays on, which is both truthful and calmer. The
-   blink is spent in one place only — #drive-bay.is-failed, further down. */
-.drive-led { fill: var(--led-act-off); animation: drive-led 1.9s steps(1, end) forwards; }
-@keyframes drive-led {
-  0%, 80%   { fill: var(--led-act-off); }
-  84%, 100% { fill: var(--led-act-on); }
-}
-
-/* the tape: drops into the datasette, the door shuts, PLAY goes down */
-.drive-insert--tape .drive-disk__body { animation: tape-drop 1.9s cubic-bezier(.5, 0, .3, 1) forwards; }
-@keyframes tape-drop {
-  0%   { transform: translateY(-80px); opacity: 0; }
-  14%  { transform: translateY(-60px); opacity: 1; }
-  34%  { transform: translateY(-60px); }
-  64%  { transform: translateY(30px); }
-  100% { transform: translateY(30px); }
-}
-.drive-door { fill: #2b2433; opacity: 0; animation: door-shut 1.9s ease-in forwards; }
-@keyframes door-shut { 0%, 66% { opacity: 0; } 78%, 100% { opacity: .62; } }
-.drive-key--play { animation: play-down 1.9s steps(1, end) forwards; }
-@keyframes play-down { 0%, 84% { transform: translateY(0); } 86%, 100% { transform: translateY(4px); } }
-
 /* ---- the side panel ---------------------------------------------------------
    His ask: below the screen, instead of labels, a drawn C64 side panel — the
    power rocker with its red light, the two joystick ports, and a small
@@ -2074,8 +1991,6 @@ html.cat-link #cat { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) {
   #crates > #btn-insert.btn--insert:not(:disabled) { animation: none; box-shadow: 0 3px 0 #a8791c, 0 0 14px 2px rgba(255, 196, 64, .5); }
   .reader-spine { transition: none; }
-  .drive-insert, .drive-insert--disk .drive-disk__body, .drive-insert--tape .drive-disk__body,
-  .drive-latch, .drive-led, .drive-cover, .drive-door, .drive-key--play { animation-duration: .45s; }
   #drive-bay .drive1541__latch { animation-duration: 1ms !important; }
   .drive1541__cover { transition: none; }
   .c64-power[aria-pressed="true"] .c64-led,

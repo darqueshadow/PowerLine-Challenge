@@ -22,33 +22,22 @@
    🔄 2026-10-03 — the drive is now the 1541 artwork, with the C= logo and the
    wordmark PAINTED OUT; the rainbow stripes and "1541" stay "for now" (his ruling).
 
-   Same contract as crackintro.js, deliberately, because cat.js chains the
-   insert off it: play() NEVER rejects, always removes itself, and any key or
-   click skips it (the fiftieth insert must cost one keypress).
+   🧹 2026-10-05 — THE OLD SCENE OVER THE SCREEN IS GONE (play(), diskScene()
+   and their CSS): nothing had called it since the corner's 1541 and Datasette
+   took over (Phase 4 / 4b). What is left here is the drive's art and the two
+   real machines in the corner: CAT_DRIVE.tape (the Datasette) and
+   CAT_DRIVE.disk (the 1541's disk). Both never reject, and any key or click
+   jumps a sequence to its end (the fiftieth insert must cost one keypress).
    ========================================================================= */
 (function () {
   "use strict";
 
   var REDUCED = window.matchMedia &&
                 window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  /* the whole beat: slide in, latch, the drive light comes on */
-  var HOLD_MS = REDUCED ? 450 : 1900;
-  var NS = "http://www.w3.org/2000/svg";
-
-  function svg(tag, attrs, parent) {
-    var n = document.createElementNS(NS, tag);
-    Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
-    if (parent) parent.appendChild(n);
-    return n;
-  }
-  function label(name) {
-    var s = String(name || "").toUpperCase();
-    return s.length > 16 ? s.slice(0, 15) + "…" : s;
-  }
 
   /* 🔄 2026-10-03 — THE 1541 ARTWORK (Chat's brief, his rulings of the same day).
-     ONE set of art for the drive bay in the detail panel AND this scene, so the
-     two can never drift: drive/drive-body.png, drive-latch.png and drive-cover.png,
+     ONE set of art for the drive bay and the Eject button's latch icon, so they
+     can never drift: drive/drive-body.png, drive-latch.png and drive-cover.png,
      three layers on one 800 x 367 canvas, made from the two Gemini images (latch
      up = master, latch down = the latch box only). Built by
      Documents/Asset Packs/1541 drive/build.py, which also paints the logo and the
@@ -88,95 +77,6 @@
     r.setProperty("--led-act-off", C.activityOff);
     r.setProperty("--led-blink-ms", C.blinkMs + "ms");
   })();
-
-  /* The drive, and a 5¼" disk above its slot. The disk is clipped at the slot
-     line, so it vanishes INTO the slot rather than behind the drive; then the
-     latch slides down across it and the red light comes on. */
-  var TOP = 340;                        /* room above the drive for the disk */
-  var SLOT = TOP + 211;                 /* the middle of the slot, in the art */
-  function diskScene(name) {
-    var A = DRIVE_ART.art;
-    var s = svg("svg", { viewBox: "0 0 " + A.width + " " + (TOP + A.height), class: "drive-scene drive-scene--1541", role: "img", "aria-hidden": "true" });
-    var defs = svg("defs", {}, s);
-    var clip = svg("clipPath", { id: "drive-slot-clip" }, defs);
-    svg("rect", { x: "0", y: "-400", width: String(A.width), height: String(SLOT + 400) }, clip);   /* everything above the slot */
-
-    /* the lamps sit BEHIND the body, showing through its two holes */
-    svg("circle", { cx: String(A.leds.power.x), cy: String(TOP + A.leds.power.y), r: String(A.leds.power.r + 1.5), class: "drive-led drive-led--power" }, s);
-    svg("circle", { cx: String(A.leds.activity.x), cy: String(TOP + A.leds.activity.y), r: String(A.leds.activity.r + 1.5), class: "drive-led" }, s);
-    var art = function (file, cls) {
-      return svg("image", { href: "drive/" + file, x: "0", y: String(TOP), width: String(A.width), height: String(A.height), class: cls || "" }, s);
-    };
-    art("drive-body.png");
-
-    var D = SLOT - 330;                 /* the disk hovers 30 above the slot */
-    var disk = svg("g", { class: "drive-disk", "clip-path": "url(#drive-slot-clip)" }, s);
-    var body = svg("g", { class: "drive-disk__body" }, disk);
-    svg("rect", { x: "250", y: String(D), width: "300", height: "300", rx: "10", fill: "#15131d" }, body);
-    svg("rect", { x: "288", y: String(D + 33), width: "224", height: "70", rx: "4", fill: "#f4eedb" }, body);
-    svg("rect", { x: "288", y: String(D + 33), width: "224", height: "12", fill: "#d9534f" }, body);
-    var t = svg("text", { x: "400", y: String(D + 87), "text-anchor": "middle", class: "drive-label" }, body);
-    t.textContent = label(name);
-    svg("circle", { cx: "400", cy: String(D + 170), r: "36", fill: "#3a344c" }, body);
-    svg("circle", { cx: "400", cy: String(D + 170), r: "16", fill: "#0a0910" }, body);
-    svg("rect", { x: "386", y: String(D + 216), width: "28", height: "66", rx: "14", fill: "#0a0910" }, body);
-
-    art("drive-cover.png", "drive-cover");
-    art("drive-latch.png", "drive-latch");
-    return s;
-  }
-
-  /* -----------------------------------------------------------------------
-     🔄 2026-10-05 — NOTHING CALLS play() NOW. A disk plays the real 1541 in the
-     corner (CAT_DRIVE.disk, below) and a tape the real Datasette; this scene
-     over the screen, and its CSS (.drive-insert, .drive-scene), are left for a
-     separate clean-up rather than removed in the redesign's change.
-     play(disk, { medium, host }) — resolves "played" or "skipped", NEVER rejects,
-     and never leaves itself on screen. `host` is where it sits: cat.js puts it
-     over the C64's screen, so the rest of the room stays in view.
-     --------------------------------------------------------------------- */
-  function play(disk, opts) {
-    opts = opts || {};
-    var medium = opts.medium === "tape" ? "tape" : "disk";
-    var host = opts.host || document.body;
-    /* 🔄 2026-10-04 — a TAPE no longer gets a scene over the screen: the real
-       Datasette in the bay plays it (CAT_DRIVE.tape.insert, below). */
-    if (medium === "tape") return Promise.resolve("skipped");
-    return new Promise(function (resolve) {
-      var root = document.createElement("div");
-      root.id = "drive-insert";
-      root.className = "drive-insert drive-insert--" + medium;
-      root.setAttribute("aria-hidden", "true");
-      root.appendChild(diskScene(disk && disk.displayName));
-      host.appendChild(root);
-
-      var done = false, timer = 0;
-      function finish(how) {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        document.removeEventListener("keydown", onKey, true);
-        root.removeEventListener("click", onClick, true);
-        root.classList.add("out");
-        setTimeout(function () {
-          if (root.parentNode) root.parentNode.removeChild(root);
-          resolve(how);
-        }, REDUCED ? 0 : 220);
-      }
-      /* 🚨 Capture phase, for the reason crackintro.js gives: otherwise the
-         skip key also reaches the hub's own handler behind the overlay. */
-      function onKey(e) {
-        if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
-        e.preventDefault();
-        e.stopPropagation();
-        finish("skipped");
-      }
-      function onClick(e) { e.preventDefault(); e.stopPropagation(); finish("skipped"); }
-      document.addEventListener("keydown", onKey, true);
-      root.addEventListener("click", onClick, true);
-      timer = setTimeout(function () { finish("played"); }, HOLD_MS);
-    });
-  }
 
   /* =======================================================================
      🆕 2026-10-04 — THE DATASETTE (his rulings, Phase 4 Step 2). The real one in
@@ -661,5 +561,5 @@
     };
   })();
 
-  window.CAT_DRIVE = { play: play, holdMs: HOLD_MS, art: DRIVE_ART, tape: tape, datasette: DATASETTE, disk: disk, diskArt: DISK };
+  window.CAT_DRIVE = { art: DRIVE_ART, tape: tape, datasette: DATASETTE, disk: disk, diskArt: DISK };
 })();
