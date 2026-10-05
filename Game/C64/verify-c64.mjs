@@ -397,9 +397,24 @@ async function runRig() {
      slowing it down. recStart() before the click, recStop() after. */
   const recStart = () => ev(`(function () { clearInterval(window.__recId); window.__rec = [];
     window.__recId = setInterval(function () { var c = __cat.corner(), d = c.disk || {};
-      window.__rec.push({ s: !!d.shown, p: d.phase, tr: (d.trace || []).join(","), turn: d.turn, n: d.name, sd: d.side,
+      window.__rec.push({ t: Date.now(), s: !!d.shown, p: d.phase, tr: (d.trace || []).join(","), turn: d.turn, n: d.name, sd: d.side,
         l: c.latch.down, tl: c.tape.lid, tt: c.tape.tape }); }, 15); })()`);
   const recStop = () => ev("clearInterval(window.__recId), JSON.stringify(window.__rec)").then(JSON.parse);
+  /* 🆕 2026-10-05 — THE EJECT BUTTON as it is drawn (Phase 4b items 1-3): which
+     icon shows, the latch's and the key's computed transforms, and its two label
+     lines (each unclipped, one under the other, centred on each other) */
+  const EJ = `(function () { var e = document.getElementById("btn-eject"), vis = function (s) { var x = e.querySelector(s); return !!x && x.getBoundingClientRect().width > 0; };
+    var m = function (s) { var t = getComputedStyle(e.querySelector(s)).transform; if (t === "none") return [1, 0, 0, 1, 0, 0]; return t.slice(7, -1).split(",").map(Number); };
+    var ls = [].map.call(e.querySelectorAll(".eject-word > span"), function (x) { var r = x.getBoundingClientRect(); return { t: x.textContent, top: r.top, mid: (r.left + r.right) / 2, cut: x.scrollWidth > x.clientWidth + 1, w: Number(getComputedStyle(x).fontWeight) }; });
+    var b = e.getBoundingClientRect();
+    return JSON.stringify({ where: e.parentNode.id, latchIcon: vis(".eject-icon--latch"), keyIcon: vis(".eject-icon--key"), lever: vis(".eject-lever"),
+      latch: m(".eject-icon__latch"), key: m(".eject-icon__key"), lines: ls, text: e.querySelector(".eject-word").textContent,
+      inside: ls.length === 2 && [].every.call(e.querySelectorAll(".eject-word > span"), function (x) { var r = x.getBoundingClientRect(); return r.left >= b.left && r.right <= b.right && r.top >= b.top && r.bottom <= b.bottom; }) }); })()`;
+  const ejNow = () => ev(EJ).then(JSON.parse);
+  /* 🔄 2026-10-05 — "Eject" BOLD over "End Game" REGULAR, no brackets (his correction) */
+  const twoLines = (j) => j.lines.length === 2 && j.lines[0].t === "Eject" && j.lines[1].t === "End Game" && j.lines[1].top > j.lines[0].top + 4
+    && j.lines[0].w >= 700 && j.lines[1].w <= 400
+    && Math.abs(j.lines[0].mid - j.lines[1].mid) <= 2 && !j.lines[0].cut && !j.lines[1].cut && j.inside;
   /* 🆕 2026-09-17 — the Load button now waits for the LOAD to finish before it
      decides whether to type RUN, so the hub can legitimately stay busy for far
      longer than 60s on a slow disk. Using idle() there made the rig walk on
@@ -521,7 +536,7 @@ async function runRig() {
        that becomes Run when there is something to run, and Eject says it ends the game */
     const dirText = String(await ev("document.getElementById('btn-list').textContent")).replace(/\u00a0/g, " ");
     const ejText = await ev("document.getElementById('btn-eject').querySelector('.eject-word').textContent");
-    ok(!deck.list && !deck.run && deck.reset && dirText === 'Load "$",8 + List' && ejText === "Eject (ends game)",
+    ok(!deck.list && !deck.run && deck.reset && dirText === 'Load "$",8 + List' && ejText === "Eject End Game",
        `the deck has one Directory button, no separate List or Run, and Reset; Eject says it ends the game   [${dirText} / ${ejText}]`);
     ok(await ev("document.getElementById('btn-insert').parentNode.id === 'crates' && document.getElementById('btn-insert').classList.contains('btn--insert')"),
        "Insert Disk sits where the disks are, styled as the primary action (his addendum)");
@@ -583,6 +598,9 @@ async function runRig() {
     ok(!lay.floppy && !/disk/.test(lay.rows) && lay.drive - lay.hint <= 12 && lay.w >= 315,
        `no disk sits above the 1541: the list has its height back, and the 1541 is its own size   [hint to 1541 ${Math.round(lay.drive - lay.hint)} px; 1541 ${Math.round(lay.w)} px]`);
     ok(lay.shown === false, "and before Insert no disk is drawn anywhere");
+    const ej0 = await ejNow();
+    ok(ej0.latchIcon && !ej0.keyIcon && !ej0.lever && ej0.latch[5] === 0,
+       `an empty drive: Eject shows the 1541's latch, UP (no turning lever any more)   [latch ${ej0.latch.join(",")}]`);
     const flAlpha = await ev(`new Promise(function (res) { var im = new Image(); im.onload = function () {
         var c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
         var g = c.getContext("2d"); g.drawImage(im, 0, 0);
@@ -622,6 +640,21 @@ async function runRig() {
     const dkIn = JSON.parse(await ev("JSON.stringify(__cat.corner().disk)"));
     ok(!dkIn.shown && dkIn.phase === "gone" && !(await ev("document.getElementById('drive-diskwin').getBoundingClientRect().height > 0")),
        `once it is in, the disk is not drawn: only the line under the 1541 names it   [${dkIn.phase}]`);
+    /* 🆕 2026-10-05 — Eject's icon: the latch DOWN, slid straight down (a pure
+       translation: no rotation, no tilt), in the left column and in full screen;
+       and its label two centred, unclipped lines in both */
+    const ejD = await ejNow();
+    await ev("__cat.full(true)");
+    await until("__cat.machine().full", 3000);
+    await wait(200);
+    const ejDF = await ejNow();
+    await ev("__cat.full(false)");
+    await until("!__cat.machine().full", 3000);
+    const straight = (m) => m[0] === 1 && m[1] === 0 && m[2] === 0 && m[3] === 1 && m[4] === 0 && m[5] > 2;
+    ok(ejD.where === "crates" && ejD.latchIcon && !ejD.keyIcon && straight(ejD.latch) && ejDF.where === "c64-side" && ejDF.latchIcon && straight(ejDF.latch),
+       `a disk in: Eject's latch is DOWN, slid straight down with the drive's, in the column and in full screen   [${ejD.latch.join(",")} / ${ejDF.latch.join(",")}]`);
+    ok(twoLines(ejD) && twoLines(ejDF) && ejD.text === "Eject End Game",
+       `Eject's label is two centred lines, "Eject" in bold over "End Game" in regular, unclipped in the column and in full screen   [${ejD.lines.map((l) => l.t + " " + l.w).join(" / ")}]`);
     ok(/disk inserted/i.test(String(await ev("__cat.note()"))), `the deck says so   [${await ev("__cat.note()")}]`);
     /* 📌 the KERNAL traps a tape needs stay OFF for a disk: always on, they made
        disk loads twice as slow and one in a few runs hung at LOADING */
@@ -776,6 +809,15 @@ async function runRig() {
     ok(dtSeen.length > 0 && dtSeen.every((x) => !x.l && x.n === DISK.name) && dtSeen.some((x) => x.tr === "out,down") && dtLid > dtLastDisk,
        `a tape over a disk: the disk comes out of the 1541 first (latch up, out downward), THEN the Datasette opens   [${dtSeen.length} disk samples; lid opens at ${dtLid}, disk gone by ${dtLastDisk + 1}]`);
     const seqIn = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    const ejT = await ejNow();
+    await ev("__cat.full(true)");
+    await until("__cat.machine().full", 3000);
+    await wait(200);
+    const ejTF = await ejNow();
+    await ev("__cat.full(false)");
+    await until("!__cat.machine().full", 3000);
+    ok(ejT.keyIcon && !ejT.latchIcon && ejT.key[5] > 0.5 && ejTF.keyIcon && ejTF.key[5] > 0.5 && twoLines(ejT) && twoLines(ejTF),
+       `a tape in: Eject shows the Datasette's EJECT key instead, pressed down, in the column and in full screen   [key ${ejT.key[5].toFixed(2)} px / ${ejTF.key[5].toFixed(2)} px]`);
     ok(tOpen >= 0 && seqIn.trace.join(",") === "key,open,in,close,keyup" && seqIn.lid === "closed" && !seqIn.key && seqIn.tape
        && !(await ev("!!document.querySelector('#drive-insert')")),
        `Insert Tape plays the Datasette: EJECT down, lid open, cassette in, lid shut, key up; no scene over the screen   [${seqIn.trace.join(" > ")}; lid ${seqIn.lid}]`);
@@ -1201,9 +1243,25 @@ async function runRig() {
       const why = async () => `; focus ${await ev("document.activeElement.id || document.activeElement.tagName")}; machine ${JSON.stringify(await inMachine("CAT_EMU.machine()"))
         }; frames/s ${await (async () => { const a = await frameNow(); await wait(1000); return (await frameNow()) - a; })()}; screen: ${(await screen()).filter(Boolean).slice(-6).join(" / ")}`;
       ok(/^0 "RIG SIDE A/.test(hA), `the machine reads Side A on drive 8   [${hA}${/^0 "RIG SIDE A/.test(hA) ? "" : await why()}]`);
+      await recStart();
       await click("#side-swap button");
       const tSwap = await until(`${DISK_LINE} === 'Side B'`, 30000);
       await idle();
+      await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+      /* 🆕 2026-10-05 — THE SWAP IS ANIMATED (his ruling, Phase 4b item 4): Side A
+         comes out (latch up, out downward), Side B goes in (rises, slides in),
+         the latch drops; and the machine's swap is sent while the drive is EMPTY,
+         after A has gone and as B starts to rise */
+      const recSw = await recStop();
+      const sentAt = await ev("__cat.corner().swapSentAt");
+      const swA = recSw.filter((x) => x.s && x.sd === "Side A"), swB = recSw.filter((x) => x.s && x.sd === "Side B");
+      const swLast = recSw.length - 1 - [...recSw].reverse().findIndex((x) => x.s);
+      const swDrop = recSw.findIndex((x, i) => i > swLast && x.l);
+      ok(swA.length > 0 && swB.length > 0 && swA.every((x) => !x.l) && swA.some((x) => x.tr === "out,down") && swB.some((x) => x.tr === "rise,in")
+         && recSw.indexOf(swA[swA.length - 1]) < recSw.indexOf(swB[0]) && swB.every((x) => x.turn === "180deg") && swDrop > swLast,
+         `a swap plays OUT then IN: latch up, Side A slides out and down, Side B rises and slides in, then the latch drops   [${[...new Set(recSw.map((x) => (x.s ? x.sd + ":" + x.p : "-") + (x.l ? "/L" : "")))].join(" > ")}]`);
+      ok(sentAt >= swA[swA.length - 1].t - 20 && sentAt <= swB[0].t + 40,
+         `and the machine swaps while the drive is empty: after Side A is out, as Side B starts in   [A last seen ${sentAt - swA[swA.length - 1].t} ms before the swap; B first seen ${swB[0].t - sentAt} ms after]`);
       const s1 = await sides();
       ok(tSwap >= 0 && s1.buttons.join("|") === "Swap to Side A", `one click: Side B is in, and the button now offers Side A   [${took(tSwap)}, ${s1.buttons.join("|")}]`);
       ok((await screen()).some((r) => /^0 "RIG SIDE A/.test(r)),

@@ -544,9 +544,12 @@
   /* 🔄 2026-10-04 — a TWO-SIDED game says "Side A" / "Side B" here, to match
      its "Swap to Side B" button (his ruling); a numbered set says "Disk 1 of 3". */
   function detailDisk(disk) {
+    return diskWords(disk, disk === inserted ? (disk.side || 0) : 0);
+  }
+  /* the words for side `k` of a set ("Disk 2 of 3", "Side B"), "" for one disk */
+  function diskWords(disk, k) {
     var n = disk && disk.runner === "emulator" && disk.files ? disk.files.length : 0;
     if (n < 2) return "";
-    var k = disk === inserted ? (disk.side || 0) : 0;
     var lab = sideLabel(disk, k);
     return /^Side /.test(lab) ? lab : "Disk " + (k + 1) + " of " + n;
   }
@@ -634,12 +637,25 @@
     if (!keepFocus) focusTerminal();
   }
 
+  /* 🆕 2026-10-05 — THE EJECT BUTTON'S ICON (his rulings, Phase 4b items 1-2),
+     corner only (cat.css): the 1541's latch for a disk, or nothing in; the
+     Datasette's EJECT key for a tape, held down while the tape is in. While a
+     tape is LEAVING it stays the key, down, until the cassette is out
+     (tapeLeaving, machineEject); then the empty drive's latch, up. */
+  var tapeLeaving = false;
+  function paintEjectIcon() {
+    if (!MACHINE) return;
+    var tape = tapeLeaving || !!(inserted && mediumOfDisk(inserted) === "tape");
+    btnEject.dataset.icon = tape ? "tape" : "disk";
+    btnEject.classList.toggle("is-key", tape);
+  }
   function setDrive(disk) {
     inserted = disk;
     slot.textContent = disk ? disk.displayName.toUpperCase() : "–– empty ––";
     slot.classList.toggle("loaded", !!disk);
     btnEject.disabled = !disk;
     btnInsert.disabled = !selected || selected === inserted;
+    paintEjectIcon();
   }
 
   function insertSelected() {
@@ -1521,7 +1537,10 @@
         if (m.type !== "cat:ejected") throw new Error(String(m.reason || "no reason given"));
         learnFor = null; learnWant = null;
         /* 🆕 2026-10-04 — a tape leaves the Datasette: lid open, tape out, lid shut */
-        if (medium === "tape" && DRIVE.tape) DRIVE.tape.eject();
+        if (medium === "tape" && DRIVE.tape) {
+          tapeLeaving = true;
+          DRIVE.tape.eject().then(function () { tapeLeaving = false; paintEjectIcon(); });
+        }
         /* 🆕 2026-10-05 — a disk leaves the 1541 (his redesign, Phase 4b): the
            latch lifts, then the disk slides out downward and is gone. Its label
            says the side that was in. */
@@ -1631,6 +1650,7 @@
     sideSwap.appendChild(b);
   }
 
+  var swapSentAt = 0;   /* RIG: when the last cat:swap left for the machine */
   function machineSwap(index) {
     var disk = inserted;
     if (busy || !disk || !disk.files || !disk.files[index] || index === (disk.side || 0)) return;
@@ -1638,9 +1658,32 @@
     led.classList.add("on");
     /* 🆕 2026-10-03 — red SOLID for the swap (it clears a blink, too), and the
        latch comes up, waits, and goes down again around it, as a hand would */
+    /* 🔄 2026-10-05 — THE SWAP IS ANIMATED (his ruling, Phase 4b item 4): the
+       disk comes OUT (latch up, out downward) and the next one goes IN (rises,
+       slides in, latch down), the same sequences and timings as Eject and
+       Insert. ⭐ THE MACHINE SWAPS WHEN THE DRIVE IS EMPTY: cat:swap is sent the
+       moment the outgoing disk is gone, and the incoming one rises while the
+       core changes the image; the latch drops once both are done. Every swap
+       in the corner comes through here (there is no automatic one: line ~1200). */
     paintDrive("loading");
-    var lever = mediumOfDisk(disk) === "tape" ? Promise.resolve() : latchTo("cycle");
-    machineCall({ type: "cat:swap", index: index }, ["cat:swapped", "cat:swapnote"], 60000)
+    var D = DRIVE.disk;
+    var animate = mediumOfDisk(disk) !== "tape" && !isCartridge(disk) && !!D;
+    var lever, sent;
+    if (animate) {
+      var outWords = diskWords(disk, disk.side || 0), inWords = diskWords(disk, index);
+      var emptied = latchTo("up").then(function () { return D.eject(disk.displayName, outWords); });
+      sent = emptied.then(function () {
+        swapSentAt = Date.now();
+        return machineCall({ type: "cat:swap", index: index }, ["cat:swapped", "cat:swapnote"], 60000);
+      });
+      var goneIn = emptied.then(function () { return D.insert(disk.displayName, inWords); });
+      lever = Promise.all([goneIn, sent.catch(function () {})]).then(function () { return latchTo("down"); });
+    } else {
+      lever = mediumOfDisk(disk) === "tape" ? Promise.resolve() : latchTo("cycle");
+      swapSentAt = Date.now();
+      sent = machineCall({ type: "cat:swap", index: index }, ["cat:swapped", "cat:swapnote"], 60000);
+    }
+    sent
       .then(function (m) {
         if (m.type !== "cat:swapped") throw new Error(String(m.note || "no reason given").replace(/^could not swap: /, ""));
         disk.side = Number(m.index) || 0;
@@ -1924,12 +1967,16 @@
   function latchMove(down) {
     return new Promise(function (resolve) {
       if (!driveBay || driveBay.classList.contains("is-latched") === down) { resolve(); return; }
-      driveBay.classList.remove("is-dropping", "is-lifting");
-      void driveBay.offsetWidth;            /* restart the animation, not resume it */
-      driveBay.classList.add(down ? "is-dropping" : "is-lifting");
-      driveBay.classList.toggle("is-latched", down);
+      /* 🆕 2026-10-05 — and the Eject button's latch icon moves with it (item 1) */
+      [driveBay, btnEject].forEach(function (el) {
+        el.classList.remove("is-dropping", "is-lifting");
+        void el.offsetWidth;                /* restart the animation, not resume it */
+        el.classList.add(down ? "is-dropping" : "is-lifting");
+        el.classList.toggle("is-latched", down);
+      });
       setTimeout(function () {
         driveBay.classList.remove(down ? "is-dropping" : "is-lifting");
+        btnEject.classList.remove(down ? "is-dropping" : "is-lifting");
         resolve();
       }, down ? LATCH.dropMs : LATCH.liftMs);
     });
@@ -2330,8 +2377,18 @@
        markup is shared) but are not shown here. */
     btnListing.hidden = true;
     btnRun.hidden = true;
-    btnEject.querySelector(".eject-word").textContent = "Eject (ends game)";
-    btnEject.title = "Take the disk out and end the game: back to READY.";
+    /* 🔄 2026-10-05 — TWO CENTRED LINES (his rulings, Phase 4b item 3 and its
+       correction): "Eject" in bold, then "End Game" in regular weight, no
+       brackets. The space between the two keeps textContent "Eject End Game". */
+    (function (w) {
+      w.textContent = "";
+      var a = document.createElement("span"), b = document.createElement("span");
+      a.className = "eject-word__1"; a.textContent = "Eject";
+      b.className = "eject-word__2"; b.textContent = "End Game";
+      w.appendChild(a); w.appendChild(document.createTextNode(" ")); w.appendChild(b);
+    })(btnEject.querySelector(".eject-word"));
+    paintEjectIcon();
+    btnEject.title = "Eject, End Game: take the disk out, back to READY.";
     btnReset.hidden = false;
     /* 🆕 2026-09-17 — the fast loader, off until asked for. It PAINTS FROM THE
        MACHINE'S ANSWER, never from the click: changeSettingOption can land in
@@ -3294,6 +3351,12 @@
            side line, the size it fitted at, whether anything is clipped (must be
            false), the sprite's turn ("180deg"), and the room below the slot */
         disk: DRIVE.disk ? DRIVE.disk.state() : null,
+        /* 🆕 2026-10-05 — the Eject button: which icon, latch down, key down, its
+           two label lines, and when the last swap went to the machine */
+        eject: { icon: btnEject.dataset.icon || null, latched: btnEject.classList.contains("is-latched"),
+                 key: btnEject.classList.contains("is-key"),
+                 lines: Array.prototype.map.call(btnEject.querySelectorAll(".eject-word > span"), function (s) { return s.textContent; }) },
+        swapSentAt: swapSentAt,
         ejectBy: btnEject.parentNode ? btnEject.parentNode.id : null,
         insertBy: btnInsert.parentNode ? btnInsert.parentNode.id : null,
         /* fastLoad is what the MACHINE confirmed; fastOn is what the switch

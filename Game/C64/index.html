@@ -165,7 +165,13 @@
       <!-- 🔄 2026-09-25 — in the corner this is drawn as the 1541's door LEVER
            (his ruling: restyle it, no second control). Upright = the door is
            shut on a disk; turned flat = open, and the drive is empty. -->
-      <button class="btn" id="btn-eject" type="button" disabled><span class="eject-lever" aria-hidden="true"><i></i></span><span class="eject-word">Eject</span></button>
+      <button class="btn" id="btn-eject" type="button" disabled><span class="eject-lever" aria-hidden="true"><i></i></span><!--
+        🆕 2026-10-05 — THE CORNER'S EJECT ICONS (his rulings, Phase 4b items 1-2): a
+        close-up of the parts the corner already draws, never new art. A DISK: the
+        1541's latch, from the drive's own three layers, sliding DOWN when a disk is
+        in, with the drive (cat.js mirrors the drive's latch classes onto this
+        button). A TAPE: the Datasette's EJECT key, down while a tape is in or going.
+        cat.js sets data-icon; cat.css shows them in the corner only. --><span class="eject-icon eject-icon--latch" aria-hidden="true"><span class="eject-icon__art"><img class="eject-icon__body" src="drive/drive-body.png" alt=""><img class="eject-icon__cover" src="drive/drive-cover.png" alt=""><img class="eject-icon__latch" src="drive/drive-latch.png" alt=""></span></span><span class="eject-icon eject-icon--key" aria-hidden="true"><span class="eject-icon__art"><img class="eject-icon__base" src="datasette/datasette-base.png" alt=""><img class="eject-icon__key" src="datasette/datasette-eject.png" alt=""></span></span><span class="eject-word">Eject</span></button>
       <!-- the real C64's way back to READY. — his word, Reset. Cracked mode only. -->
       <button class="btn" id="btn-reset" type="button" hidden>Reset<span class="btn__hint" id="btn-reset-hint" aria-hidden="true"></span></button>
 
@@ -327,7 +333,7 @@
             <li>When the game asks for <b>another disk or side</b>, click <b>Swap disk</b>.</li>
             <li><b>Pause</b> freezes the game. Click it again to carry on.</li>
             <li><b>Full Screen</b> fills the window with the game. <b>Exit Full Screen</b> brings the disks back.</li>
-            <li><b>Eject (ends game)</b> takes the disk out and ends the game, back to READY.</li>
+            <li><b>Eject, End Game</b> takes the disk out and ends the game, back to READY.</li>
             <li><b>Reset (F12)</b> goes back to the boot screen. The disk stays in.</li>
             <li><b>Power</b> turns the C64 off and takes you back to the Arcade.</li>
           </ol>

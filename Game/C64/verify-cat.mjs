@@ -1215,7 +1215,7 @@ try {
     ok(LAY.icons.join("|") === "true:Stick|true:Cursor",
        `the Arrows switch has a joystick and a cursor-key icon, and keeps its words   [${LAY.icons.join(" | ")}]`);
     const helpText = String(await b.ev(`document.getElementById("c64-help-panel").textContent.replace(/\\s+/g, " ")`));
-    ok(["Eject (ends game)", "ends the game", 'Load "$",8 + List', "says Run", "Reset (F12)", "boot screen", "If a game is running, it ends first"].every((w) => helpText.includes(w)),
+    ok(["Eject, End Game", "ends the game", 'Load "$",8 + List', "says Run", "Reset (F12)", "boot screen", "If a game is running, it ends first"].every((w) => helpText.includes(w)),
        `Help is reworded for the new buttons, and says Reset (F12) goes back to the boot screen`);
   });
 
