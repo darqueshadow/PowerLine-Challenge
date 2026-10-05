@@ -1179,6 +1179,7 @@ try {
       return { shot: r("detail-shot"), ins: r("btn-insert"), ej: r("btn-eject"), drive: r("drive-1541"), crates: r("crates"),
                bay: r("datasette-bay"), bayShown: bay ? getComputedStyle(bay).display !== "none" : false, bayKids: bay ? bay.childElementCount : -1,
                ds: r("datasette"), dsIn: (document.getElementById("datasette") || {}).parentNode === bay, tapeHidden: document.getElementById("datasette-tape").hidden,
+               dsCount: document.getElementById("datasette").dataset.count, dsReset: r("datasette-reset"), dsLid: document.getElementById("datasette").classList.contains("is-open"),
                dsImgs: Array.prototype.map.call(document.querySelectorAll("#datasette img"), function (i) { return i.complete && i.naturalWidth > 0; }).join(","),
                deck: r("deck"), side: r("c64-side"), sideSpread: (function () { var p = document.getElementById("c64-side").getBoundingClientRect(), c = [];
         Array.prototype.forEach.call(document.getElementById("c64-side").children, function (k) { var b = k.getBoundingClientRect();
@@ -1198,8 +1199,11 @@ try {
     /* 🆕 2026-10-04 — PHASE 4: the Datasette in that room, whole, at least ~280 px wide
        at this window, its art loaded, and no cassette with no tape in */
     ok(LAY.dsIn && LAY.ds.w >= 280 && LAY.ds.l >= LAY.bay.l - 1 && LAY.ds.r <= LAY.bay.r + 1 && LAY.ds.t >= LAY.bay.t - 1 && LAY.ds.b <= LAY.bay.b + 1
-       && LAY.dsImgs === "true,true,true" && LAY.tapeHidden,
-       `the Datasette sits whole in its room, ${LAY.ds.w} px wide, its three pictures loaded, no cassette shown without a tape   [${LAY.ds.l}-${LAY.ds.r} x ${LAY.ds.t}-${LAY.ds.b} in ${LAY.bay.l}-${LAY.bay.r} x ${LAY.bay.t}-${LAY.bay.b}; ${LAY.dsImgs}]`);
+       && /^true(,true)+$/.test(LAY.dsImgs) && LAY.tapeHidden,
+       `the Datasette sits whole in its room, ${LAY.ds.w} px wide, its pictures loaded, no cassette shown without a tape   [${LAY.ds.l}-${LAY.ds.r} x ${LAY.ds.t}-${LAY.ds.b} in ${LAY.bay.l}-${LAY.bay.r} x ${LAY.bay.t}-${LAY.bay.b}; ${LAY.dsImgs}]`);
+    /* 🆕 2026-10-04 — Phase 4 Step 2: lid shut, the counter at 000, its button on the art */
+    ok(!LAY.dsLid && LAY.dsCount === "000" && LAY.dsReset && LAY.dsReset.w >= 4 && LAY.dsReset.l >= LAY.ds.l && LAY.dsReset.r <= LAY.ds.r,
+       `the Datasette's lid is shut, its counter reads 000, and its reset button is on it   [${LAY.dsCount}; button ${LAY.dsReset && LAY.dsReset.w}px wide]`);
     ok(LAY.sideSpread <= 30, /* a wrapped row sits ~50 px lower; one row measures ~15 */ `the tightened side panel is still one row, nothing wrapped   [centres spread ${LAY.sideSpread}px]`);
     const helpR = JSON.parse(await b.ev(`JSON.stringify(Math.round(document.getElementById("c64-help").getBoundingClientRect().right))`));
     ok(LAY.side.r <= LAY.deck.r + 1 && helpR <= LAY.deck.r,

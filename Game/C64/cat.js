@@ -1099,6 +1099,12 @@
       return true;
     }
     if (m.type === "cat:machine") return true;
+    /* 🆕 2026-10-04 — a tape LOAD is running, or has stopped (emu.js, from the
+       machine's own words): the Datasette's hubs turn and its counter counts */
+    if (m.type === "cat:tapemotor") {
+      if (DRIVE.tape) DRIVE.tape.motor(!!m.on && medium === "tape");
+      return true;
+    }
     /* 🆕 2026-10-04 — the drive is stuck on SEARCHING (emu.js watchDrive):
        reset, the disk stays in. Never while a game the hub started is running,
        and never while paused (his ruling). */
@@ -1149,33 +1155,18 @@
   function loadDefault() { loadMode = "load"; paintLoad(); }
 
   /* 🆕 2026-10-04 — THE DATASETTE (his rulings, Phase 4): the cassette shows
-     while a tape is in, and the game's name is printed on its blank label (in
-     code, never in the art). A long name SHRINKS, and wraps to two lines,
-     rather than being clipped. Painted with the Load button, so every insert,
-     swap and eject repaints it. */
-  var dsTape  = document.getElementById("datasette-tape");
-  var dsLabel = document.getElementById("datasette-label");
-  var LABEL_PX = { max: 13, min: 5 };
+     while a tape is in, with the game's name printed on its blank label (in
+     code, never in the art; it shrinks and wraps rather than clips). The
+     Datasette itself, its sequences, hubs and counter, is driveinsert.js's
+     CAT_DRIVE.tape; this only says what should be in it. Painted with the Load
+     button, so every insert, swap, eject and power-off repaints it. While a
+     sequence is playing, the sequence owns the cassette and this waits. */
   function paintDatasette() {
-    if (!dsTape) return;
+    var T = window.CAT_DRIVE && window.CAT_DRIVE.tape;
+    if (!T) return;
     var tape = !!(MACHINE && inserted && medium === "tape");
-    dsTape.hidden = !tape;
-    var name = tape ? inserted.displayName : "";
-    if (dsLabel.textContent !== name) dsLabel.textContent = name;
-    if (tape) fitLabel();
+    T.present(tape, tape ? inserted.displayName : "");
   }
-  /* largest size that fits the label's box, both ways; measured, not guessed */
-  function fitLabel() {
-    var box = dsLabel;
-    if (!box.clientWidth) return;   /* not laid out (full screen, narrow, hidden) */
-    var px = LABEL_PX.max;
-    box.style.fontSize = px + "px";
-    while (px > LABEL_PX.min && (box.scrollHeight > box.clientHeight + 1 || box.scrollWidth > box.clientWidth + 1)) {
-      px -= 0.5;
-      box.style.fontSize = px + "px";
-    }
-  }
-  if (dsLabel && window.ResizeObserver) new ResizeObserver(function () { if (!dsTape.hidden) fitLabel(); }).observe(dsLabel);
 
   /* 🆕 2026-10-04 — RESET AND WAIT FOR READY. (Phase 2's Eject and Insert).
      📏 Measured: cat:resetdone comes back 75 frames after the restart, BEFORE
@@ -1440,7 +1431,14 @@
     (ended ? resetToReady()
       .then(function () { write("game ended: reset for the new disk.", "dim"); },
             function (err) { throw new Error("the game would not stop: " + err.message); }) : Promise.resolve())
-      .then(function () { return DRIVE.play(disk, { medium: mediumOfDisk(disk), host: screenShell }); })
+      /* 🔄 2026-10-04 — a tape plays the real Datasette in the bay (Phase 4) */
+      .then(function () {
+        if (MACHINE && mediumOfDisk(disk) === "tape" && DRIVE.tape) return DRIVE.tape.insert(disk.displayName);
+        /* 🆕 2026-10-04 — a disk over a tape: the tape leaves the Datasette first
+           (his ruling), then the disk goes into the 1541 */
+        var out = MACHINE && medium === "tape" && DRIVE.tape ? DRIVE.tape.eject() : Promise.resolve();
+        return out.then(function () { return DRIVE.play(disk, { medium: mediumOfDisk(disk), host: screenShell }); });
+      })
       .then(function () {
         return machineCall({ type: "cat:insert", files: files }, ["cat:inserted", "cat:insertfailed"], 60000);
       })
@@ -1459,11 +1457,13 @@
              red light is the DOS error signal, so this is the one moment it is
              telling the truth. */
           paintDrive("failed");
+          paintDatasette();   /* the cassette the sequence dropped in goes again */
           write("could not insert " + disk.displayName.toUpperCase() + ": " + String(m.reason || "no reason given"), "err");
         }
       })
       .catch(function (err) {
         paintDrive("failed");
+        paintDatasette();
         if (!err.byPowerOff) write("could not insert " + disk.displayName.toUpperCase() + ": " + err.message, "err");
       })
       .then(function () {
@@ -1499,6 +1499,8 @@
       .then(function (m) {
         if (m.type !== "cat:ejected") throw new Error(String(m.reason || "no reason given"));
         learnFor = null; learnWant = null;
+        /* 🆕 2026-10-04 — a tape leaves the Datasette: lid open, tape out, lid shut */
+        if (medium === "tape" && DRIVE.tape) DRIVE.tape.eject();
         medium = null;
         setDrive(null);
         latchTo("up");
@@ -3257,6 +3259,9 @@
         /* 🆕 2026-10-03 — the 1541's latch: true = DOWN, and whether it is mid-move */
         latch: { down: driveBay.classList.contains("is-latched"),
                  moving: driveBay.classList.contains("is-dropping") || driveBay.classList.contains("is-lifting") },
+        /* 🆕 2026-10-04 — the Datasette: tape in, lid, EJECT key, spinning, the
+           counter (and what its wheels show), and the last sequence's steps */
+        tape: DRIVE.tape ? DRIVE.tape.state() : null,
         ejectBy: btnEject.parentNode ? btnEject.parentNode.id : null,
         insertBy: btnInsert.parentNode ? btnInsert.parentNode.id : null,
         /* fastLoad is what the MACHINE confirmed; fastOn is what the switch

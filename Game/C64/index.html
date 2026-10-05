@@ -347,21 +347,37 @@
 
   </div>
   <!-- 🆕 2026-10-04 — THE DATASETTE'S ROOM (his ruling, Phase 3): beside the
-       1541, with the C64's deck shifted right to make the space. EMPTY until the
-       Datasette art is approved (Phase 4). Corner only; cat.css shows it. -->
-  <div id="datasette-bay" aria-hidden="true">
-    <!-- 🆕 2026-10-04 — THE DATASETTE (his ruling, Phase 4). Layers, bottom up:
+       1541, with the C64's deck shifted right to make the space. It holds the
+       Datasette since Phase 4. Corner only; cat.css shows it. -->
+  <div id="datasette-bay">
+    <!-- 🆕 2026-10-04 — THE DATASETTE (his rulings, Phase 4). Layers, bottom up:
          the unlit SAVE lamp (seen through BASE's cut hole), BASE (lid removed),
-         the cassette (only while a tape is in; the hub prints the game's name on
-         its blank label), and the lid, hinged at its top edge, with a smoked
-         window. Art: Documents/Asset Packs/Datasette/build.py. Corner only. -->
-    <div class="datasette" id="datasette">
+         the EJECT key (it presses down on Insert Tape), the two black spindles,
+         the cassette (only while a tape is in: its white toothed hubs turn with
+         the spindles during a load, and the hub prints the game's name on its
+         blank label), the counter's three wheels and its reset button, and the
+         lid, hinged at its top edge, with a smoked window. Positions, timings and
+         rates: driveinsert.js DATASETTE. Art: Documents/Asset Packs/Datasette/build.py.
+         Corner only. -->
+    <div class="datasette" id="datasette" data-count="000">
       <span class="datasette__lamp" aria-hidden="true"></span>
       <img class="datasette__base" src="datasette/datasette-base.png" alt="">
+      <img class="datasette__key" src="datasette/datasette-eject.png" alt="">
+      <img class="datasette__spindle datasette__spindle--0" src="datasette/datasette-spindle.png" alt="">
+      <img class="datasette__spindle datasette__spindle--1" src="datasette/datasette-spindle.png" alt="">
       <div class="datasette__tape" id="datasette-tape" hidden>
-        <img src="datasette/cassette.png" alt="">
+        <img class="datasette__cassette" src="datasette/cassette.png" alt="">
+        <img class="datasette__hub datasette__hub--0" src="datasette/cassette-hub.png" alt="">
+        <img class="datasette__hub datasette__hub--1" src="datasette/cassette-hub.png" alt="">
         <span class="datasette__label" id="datasette-label"></span>
       </div>
+      <div class="datasette__wheels" aria-hidden="true">
+        <span class="datasette__wheel"><span class="datasette__wheel-strip"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>0</i></span></span>
+        <span class="datasette__wheel"><span class="datasette__wheel-strip"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>0</i></span></span>
+        <span class="datasette__wheel"><span class="datasette__wheel-strip"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>0</i></span></span>
+      </div>
+      <button type="button" class="datasette__reset" id="datasette-reset" tabindex="-1"
+              aria-label="Reset the tape counter to 000" title="Reset the counter to 000"></button>
       <img class="datasette__lid" id="datasette-lid" src="datasette/datasette-lid.png" alt="">
     </div>
   </div>

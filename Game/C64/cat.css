@@ -825,30 +825,73 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-corner:not(.is-full) #screen-shell { grid-column: 1 / -1; }
 #cat.is-corner:not(.is-full) #datasette-bay { display: block; grid-column: 1; grid-row: 2; min-width: 0; }
 #cat.is-corner:not(.is-full) #deck { grid-column: 2; grid-row: 2; }
-/* ---- 🆕 2026-10-04 — THE DATASETTE (his ruling, Phase 4) --------------------
-   One canvas for BASE and the lid (they line up to the pixel), so both fill the
-   box; the cassette and the lamp are placed by the fractions build.py measured
-   (Documents/Asset Packs/Datasette/meta.json). 📏 It takes the bay's height, or
-   its width if that is smaller: 282 x 154 at the rig's 1280 window, 313 x 171
-   at 1920 x 1080. Bottom-left, beside the 1541. */
+/* ---- 🆕 2026-10-04 — THE DATASETTE (his rulings, Phase 4) --------------------
+   One canvas for BASE, the EJECT key and the lid (they line up to the pixel), so
+   all three fill the box; everything else is placed by driveinsert.js DATASETTE
+   (custom properties --ds-*: positions measured by build.py, timings, rates).
+   📏 It takes the bay's height, or its width if that is smaller: 282 x 154 at the
+   rig's 1280 window, 313 x 171 at 1920 x 1080. Bottom-left, beside the 1541.
+   overflow: hidden: the cassette rises in from below the box's bottom edge, and
+   leaves the same way, so the box's edge is where it appears and disappears. */
 #cat.is-corner:not(.is-full) #datasette-bay { position: relative; container-type: size; }
 .datasette {
   position: absolute; left: 0; bottom: 0;
-  width: min(100cqw, 100cqh * 1.83333);
+  width: min(100cqw, 100cqh * var(--ds-aspect, 1.83333));
   aspect-ratio: 2816 / 1536;
-  perspective: 900px;
+  /* 🔄 2026-10-04 — a strong perspective, from about the hinge, so the lifting lid's
+     bottom edge visibly WIDENS as it comes toward the viewer (his correction) */
+  perspective: 380px;
+  perspective-origin: 50% 25%;
+  overflow: hidden;
+  container-type: size;                /* the counter's digits size from this box */
 }
-.datasette > img, .datasette__tape, .datasette__lamp { position: absolute; display: block; }
-.datasette__base, .datasette__lid { inset: 0; width: 100%; height: 100%; }
-.datasette__base { z-index: 1; }
+.datasette > img, .datasette__tape, .datasette__lamp, .datasette__wheels, .datasette__reset { position: absolute; display: block; }
+.datasette__base, .datasette__key, .datasette__lid { inset: 0; width: 100%; height: 100%; }
+/* the pictures take no clicks: the lid's canvas covers the whole box, and was
+   swallowing the counter's reset button underneath it (measured) */
+.datasette img, .datasette__label, .datasette__wheels { pointer-events: none; }
 .datasette__lamp {
-  z-index: 0; left: 74.503%; top: 68.294%; width: 2.947%; height: 5.469%;
+  z-index: 0;
+  left: var(--ds-lamp-l); top: var(--ds-lamp-t); width: var(--ds-lamp-w); height: var(--ds-lamp-h);
   border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, #6b2a22, #3a120d 60%, #220806);
 }
-.datasette__tape { z-index: 2; left: 15.038%; top: 11.433%; width: 48.349%; height: 48.349%; }
+.datasette__base { z-index: 1; }
+/* the EJECT key goes down a few pixels on Insert Tape */
+.datasette__key { z-index: 2; transition: transform var(--ds-key-ms) ease; }
+.datasette.is-key .datasette__key { transform: translateY(var(--ds-key-travel)); }
+/* the black spindles, seen through the cassette's hub holes */
+.datasette__spindle {
+  z-index: 2;
+  width: var(--ds-spin-d); aspect-ratio: 1;
+  translate: -50% -50%;
+}
+.datasette__spindle--0 { left: var(--ds-spin0-x); top: var(--ds-spin0-y); }
+.datasette__spindle--1 { left: var(--ds-spin1-x); top: var(--ds-spin1-y); }
+.datasette__tape {
+  z-index: 3;
+  left: var(--ds-cass-l); top: var(--ds-cass-t); width: var(--ds-cass-w); height: var(--ds-cass-h);
+  transition: transform var(--ds-rise-ms) cubic-bezier(.2, .7, .3, 1);    /* rises in: slows into place */
+}
 .datasette__tape[hidden] { display: none; }
-.datasette__tape > img { width: 100%; height: 100%; display: block; }
+/* BELOW the box: where a rising cassette starts and a leaving one goes (down) */
+.datasette__tape.is-below { transform: translateY(var(--ds-cass-below)); }
+.datasette__tape.is-lowering { transition-duration: var(--ds-lower-ms); transition-timing-function: cubic-bezier(.55, 0, .9, .5); }
+.datasette__cassette { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* the white toothed hubs (their holes clear), over the cassette's own */
+.datasette__hub {
+  position: absolute; display: block;
+  width: var(--ds-hub-d); aspect-ratio: 1;
+  translate: -50% -50%;
+}
+.datasette__hub--0 { left: var(--ds-hub0-x); top: var(--ds-hub0-y); }
+.datasette__hub--1 { left: var(--ds-hub1-x); top: var(--ds-hub1-y); }
+@keyframes ds-turn { to { rotate: 1turn; } }
+.datasette__spindle, .datasette__hub { animation: ds-turn var(--ds-hub-turn-ms) linear infinite; animation-play-state: paused; }
+.datasette.is-spinning .datasette__spindle, .datasette.is-spinning .datasette__hub { animation-play-state: running; }
+@media (prefers-reduced-motion: reduce) {
+  .datasette.is-spinning .datasette__spindle, .datasette.is-spinning .datasette__hub { animation-play-state: paused; }
+}
 /* the blank label's part the closed lid's WINDOW shows: the frame hides its top
    sliver and, where the window's corners are cut, its ends (📏 at label height
    the window spans ~12-88% of the cassette). Text kept inside that, so a closed
@@ -862,9 +905,43 @@ html.cat-link #cat { visibility: hidden; }
   color: #2a2c6e;                     /* a ballpoint's blue on the cream label */
   overflow-wrap: anywhere;
 }
-/* hinged at the lid's top edge (9.5% down the canvas); opens toward the viewer */
-.datasette__lid { z-index: 3; transform-origin: 50% 9.505%; transition: transform 450ms ease; }
-.datasette.is-open .datasette__lid { transform: rotateX(-45deg); }
+/* the counter: three wheels over the art's painted 000, each a strip of 0-9,0
+   that driveinsert.js rolls (an odometer: a wheel turns on as the next goes 9 -> 0) */
+.datasette__wheels {
+  z-index: 4;
+  left: var(--ds-wheels-l); top: var(--ds-wheels-t); width: var(--ds-wheels-w); height: var(--ds-wheels-h);
+  display: flex; gap: 3%;
+  background: #0b0b0c;
+}
+.datasette__wheel {
+  position: relative; flex: 1; overflow: hidden;
+  background: linear-gradient(#1c1c1e, #050506 50%, #1c1c1e);
+}
+.datasette__wheel::after {             /* the glass's sheen across the wheels */
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, .55), rgba(255, 255, 255, .06) 30%, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, .5));
+}
+.datasette__wheel-strip { position: absolute; left: 0; right: 0; top: 0; height: 1100%; display: flex; flex-direction: column; }
+.datasette__wheel-strip > i {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font: 600 normal 1px/1 Arial, Helvetica, sans-serif;
+  font-size: calc(100cqh * 0.046);     /* ~ the painted digits' size: 5.2% wheel, of the Datasette's height */
+  color: #e6e6e6;
+}
+/* the small button that sets the counter to 000 */
+.datasette__reset {
+  z-index: 4;
+  left: var(--ds-reset-l); top: var(--ds-reset-t); width: var(--ds-reset-w); height: var(--ds-reset-h);
+  padding: 0; border: 0; background: transparent; cursor: pointer;
+  border-radius: 18%;
+}
+.datasette__reset:focus-visible { outline: 2px solid #3f329b; outline-offset: 1px; }
+.datasette.is-reset .datasette__reset { box-shadow: inset 0 2px 3px rgba(0, 0, 0, .6); }
+/* hinged at the lid's top edge; the bottom lifts toward the viewer to ~45° */
+.datasette__lid { z-index: 5; transform-origin: 50% var(--ds-hinge-y); transition: transform var(--ds-lid-close-ms) ease-in; }
+.datasette.is-open .datasette__lid { transform: rotateX(var(--ds-lid-deg)); transition-duration: var(--ds-lid-open-ms); transition-timing-function: ease-out; }
+/* a key or a click skips a sequence: everything jumps to its end */
+.datasette.is-snap .datasette__key, .datasette.is-snap .datasette__tape, .datasette.is-snap .datasette__lid { transition: none; }
 
 /* 🆕 2026-10-04 — THE DECK TIGHTENED FOR THE DATASETTE'S ROOM (his ruling):
    paddings and gaps ONLY. Every control keeps its size, the side panel stays

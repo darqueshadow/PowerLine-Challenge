@@ -89,7 +89,24 @@ lamp = flood(B.min(axis=2) > 225, point_seeds(near_white.shape, [SAVE_SEED]))
 ys, xs = np.nonzero(lamp)
 lamp_box = [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())]
 alpha_b = np.where(bg | lamp, 0.0, 1.0)
-save_scaled(rgba(B, alpha_b), (W_OUT, H_OUT), "datasette-base.png")
+# 🆕 Step 2 — THE EJECT KEY is its own sprite (it presses down a few pixels on
+# Insert Tape), and BASE gets the key well's black where the key was, so the
+# moved key never shows a doubled edge. Same canvas as BASE.
+EJECT = (1589, 1204, 1802, 1417, 14)
+key = rounded_rect(B.shape[:2], *EJECT)
+save_scaled(rgba(B, np.where(key, 1.0, 0.0)), (W_OUT, H_OUT), "datasette-eject.png")
+well = B[1425:1440, 1600:1790].reshape(-1, 3).mean(axis=0)     # the black bar under the keys
+B_base = np.where(key[..., None], well, B)
+save_scaled(rgba(B_base, alpha_b), (W_OUT, H_OUT), "datasette-base.png")
+# 🆕 Step 2 — the BLACK SPINDLE, a round sprite that turns while a tape loads
+# (seen through the cassette's hub holes). Cut from the left one.
+SPIN_R = 90
+yy0, xx0 = np.mgrid[0:H, 0:W]
+sp_c = (818, 545)
+disc = (xx0 - sp_c[0]) ** 2 + (yy0 - sp_c[1]) ** 2 <= SPIN_R ** 2
+crop = lambda a: a[sp_c[1] - SPIN_R:sp_c[1] + SPIN_R, sp_c[0] - SPIN_R:sp_c[0] + SPIN_R]
+spin_px = round(2 * SPIN_R * k * 1.5)
+save_scaled(rgba(crop(B), crop(np.where(disc, 1.0, 0.0))), (spin_px, spin_px), "datasette-spindle.png")
 
 # ---- LID --------------------------------------------------------------------
 LID = (345, 146, 1864, 906, 48)                 # measured from |MASTER - BASE|
@@ -117,6 +134,22 @@ HUBS = [(816, 764), (1997, 764)]                # white centroids of the two hub
 HOLES = [(746, 1443), (2070, 1443), (1014, 1408), (1795, 1408), (1400, 1520)]
 holes = flood(C.min(axis=2) > 240, point_seeds(cw.shape, HUBS + HOLES))
 alpha_c = np.where(c_bg | holes, 0.0, 1.0)
+# 🆕 Step 2 (his ruling) — A CLEAR WINDOW between the reels, so BASE's orange
+# sticker shows through when a tape is in. Inside the reels' reach at every row,
+# below the label; faintly tinted, with a thin edge so it reads as plastic.
+CWIN = (1160, 575, 1655, 945, 34)
+cwin = rounded_rect(C.shape[:2], *CWIN)
+cwin_in = rounded_rect(C.shape[:2], CWIN[0] + 7, CWIN[1] + 7, CWIN[2] - 7, CWIN[3] - 7, CWIN[4] - 7)
+alpha_c = np.where(cwin_in, 0.12, np.where(cwin, 0.85, alpha_c))
+C = np.where((cwin & ~cwin_in)[..., None], C * 0.7, C)
+# 🆕 Step 2 — THE WHITE TOOTHED HUB, a round sprite cut from the left hub (its
+# hole stays clear), laid over both hubs and turned while a tape loads.
+HUB_R = 250
+cy_, cx_ = np.mgrid[0:C.shape[0], 0:C.shape[1]]
+hc = HUBS[0]
+hdisc = (cx_ - hc[0]) ** 2 + (cy_ - hc[1]) ** 2 <= HUB_R ** 2
+hcrop = lambda a: a[hc[1] - HUB_R:hc[1] + HUB_R, hc[0] - HUB_R:hc[0] + HUB_R]
+
 SPINDLES = [(818, 545), (1389, 545)]            # BASE's dark discs (bbox centres)
 s = (SPINDLES[1][0] - SPINDLES[0][0]) / (HUBS[1][0] - HUBS[0][0])
 cx0 = SPINDLES[0][0] - HUBS[0][0] * s
@@ -124,6 +157,8 @@ cy0 = SPINDLES[0][1] - HUBS[0][1] * s
 cass_w, cass_h = C.shape[1] * s, C.shape[0] * s
 out_w, out_h = round(cass_w * k * 1.5), round(cass_h * k * 1.5)   # a little extra resolution: it is small
 save_scaled(rgba(C, alpha_c), (out_w, out_h), "cassette.png")
+hub_px = round(2 * HUB_R * s * k * 1.5)
+save_scaled(rgba(hcrop(C), hcrop(np.where(hdisc, alpha_c, 0.0))), (hub_px, hub_px), "cassette-hub.png")
 
 frac = lambda x, y: [round(x / W, 5), round(y / H, 5)]
 meta = {
@@ -136,6 +171,12 @@ meta = {
     "spindles": [frac(*p) for p in SPINDLES], "spindle_d": round(173 / W, 5),
     "save_lamp": [round(lamp_box[0] / W, 5), round(lamp_box[1] / H, 5), round(lamp_box[2] / W, 5), round(lamp_box[3] / H, 5)],
     "counter": [round(1969 / W, 5), round(759 / H, 5), round(2324 / W, 5), round(899 / H, 5)],
+    "counter_wheels": [round(1970 / W, 5), round(762 / H, 5), round(2179 / W, 5), round(842 / H, 5)],
+    "counter_reset": [round(2249 / W, 5), round(759 / H, 5), round(2325 / W, 5), round(846 / H, 5)],
+    "eject_key": [round(EJECT[0] / W, 5), round(EJECT[1] / H, 5), round(EJECT[2] / W, 5), round(EJECT[3] / H, 5)],
+    "spindle_r": round(SPIN_R / W, 5),
+    "hub_r": round(HUB_R / C.shape[1], 5),
+    "cassette_window": [round(v / C.shape[1 - (i % 2)], 4) for i, v in enumerate(CWIN[:4])],
 }
 json.dump(meta, open(os.path.join(OUT, "meta.json"), "w"), indent=1)
 print(json.dumps(meta, indent=1))

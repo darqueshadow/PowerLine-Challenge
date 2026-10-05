@@ -1384,8 +1384,21 @@
     }
     return "";
   }
+  /* 🆕 2026-10-04 — THE TAPE'S MOTOR, for the Datasette's turning hubs and its
+     counter (his ruling, Phase 4). The core tells JS nothing about the tape
+     (measured), so it is read from the machine's own words, as Load already
+     reads them: a tape is in and the last line says the KERNAL is at the tape.
+     Said once per change. Paused: the motor holds where it was. */
+  var TAPE_WORDS = /^(PRESS PLAY|OK$|SEARCHING|FOUND |LOADING)/;
+  var tapeMotor = false;
+  function watchTape() {
+    if (paused) return;
+    var on = machine.medium === "tape" && screenAt >= 0 && TAPE_WORDS.test(lastRow());
+    if (on !== tapeMotor) { tapeMotor = on; toHub({ type: "cat:tapemotor", on: on }); }
+  }
   function watchDrive() {
     stuck.timer = setTimeout(watchDrive, 250);
+    watchTape();
     if (screenAt < 0 || paused || relayBusy() || machine.medium === "tape" || !/^SEARCHING FOR /.test(lastRow())) {
       stuck.since = 0; stuck.told = false;
       return;

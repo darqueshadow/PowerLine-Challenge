@@ -707,10 +707,29 @@ async function runRig() {
     await ev(`__cat.select(${JSON.stringify(TAPE.id)})`);
     ok((await ev("document.getElementById('btn-insert').textContent")) === "Insert Tape", "for a tape the button says Insert Tape");
     await click("#btn-insert");
-    ok((await until("!!document.querySelector('#drive-insert.drive-insert--tape')", 2000, 50)) >= 0,
-       "and a cassette drops into a datasette, not a floppy into a disk drive");
+    /* 🔄 2026-10-04 — PHASE 4 STEP 2: the REAL Datasette in the bay plays the
+       insert (his ruling), not a scene over the screen: the EJECT key goes down,
+       the lid opens, the cassette drops in, the lid closes, the key comes up */
+    const tOpen = await until("__cat.corner().tape.lid === 'open' && __cat.corner().tape.key === true && !document.querySelector('#drive-insert')", 3000, 30);
+    /* 🆕 2026-10-04 (his correction) — the open lid tilts TOWARD the viewer: in its
+       computed 3D matrix the lid's downward axis gains a POSITIVE z (out of the screen) */
+    const LIDZ = `(function () { var m = getComputedStyle(document.getElementById("datasette-lid")).transform;
+      return m.indexOf("matrix3d(") === 0 ? Number(m.slice(9, -1).split(",")[6]) : 0; })()`;
+    const tTilt = await until(`${LIDZ} > 0.5`, 2000, 20);
+    const lidZ = Number(await ev(LIDZ));
     const tTape = await until(`__cat.inserted() === ${JSON.stringify(TAPE.id)}`, 60000);
     await idle();
+    const seqIn = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    ok(tOpen >= 0 && seqIn.trace.join(",") === "key,open,in,close,keyup" && seqIn.lid === "closed" && !seqIn.key && seqIn.tape
+       && !(await ev("!!document.querySelector('#drive-insert')")),
+       `Insert Tape plays the Datasette: EJECT down, lid open, cassette in, lid shut, key up; no scene over the screen   [${seqIn.trace.join(" > ")}; lid ${seqIn.lid}]`);
+    ok(tTilt >= 0 && lidZ > 0.5, `the lid lifts TOWARD the viewer, bottom edge forward and up, about 45°   [z of its downward axis ${lidZ.toFixed(3)}; sin 45° = 0.707]`);
+    /* and the cassette comes in from BELOW the bay (measured in its start position) */
+    const below = JSON.parse(await ev(`JSON.stringify((function () { var d = document.getElementById("datasette"), t = document.getElementById("datasette-tape");
+      d.classList.add("is-snap"); t.classList.add("is-below"); var r = t.getBoundingClientRect(), b = d.getBoundingClientRect();
+      var o = { top: Math.round(r.top), boxBottom: Math.round(b.bottom), h: Math.round(r.height) };
+      t.classList.remove("is-below"); void t.offsetWidth; d.classList.remove("is-snap"); return o; })())`));
+    ok(below.top >= below.boxBottom, `the cassette's start position is below the bay: it rises in from under the box   [its top ${below.top}, box bottom ${below.boxBottom}]`);
     const tapeDeck = JSON.parse(await ev(`JSON.stringify({
       cmd: document.getElementById("btn-load").dataset.cmd, text: document.getElementById("btn-load").textContent, medium: __cat.machine().medium })`));
     ok(tTape >= 0 && tapeDeck.medium === "tape",
@@ -725,7 +744,14 @@ async function runRig() {
        `the cassette shows in the Datasette with "${TAPE.name}" on its label, fitted   [${lbl.text} at ${lbl.px}px, fits ${lbl.fits}, cassette ${lbl.w}px wide]`);
     const trapsTape = await inMachine("EJS_emulator.allSettings.vice_virtual_device_traps");
     ok(trapsTape === "enabled", `with a tape in, the traps a .T64 needs are on   [${trapsTape}]`);
+    const count0 = await ev("__cat.corner().tape.count");
     await click("#btn-load");
+    /* 🆕 2026-10-04 — while the tape LOAD runs, the hubs turn and the counter counts */
+    const tSpin = await until("__cat.corner().tape.spinning", 20000, 50);
+    const spinNow = JSON.parse(await ev(`JSON.stringify({ hub: getComputedStyle(document.querySelector(".datasette__hub")).animationPlayState,
+      spindle: getComputedStyle(document.querySelector(".datasette__spindle")).animationPlayState })`));
+    ok(tSpin >= 0 && spinNow.hub === "running" && spinNow.spindle === "running",
+       `while the tape loads, the white hubs and the black spindles turn   [${took(tSpin)}; ${JSON.stringify(spinNow)}]`);
     /* 🔄 2026-09-17 — WATCH THE LOAD, THEN WAIT FOR THE HUB, not the other way
        round. idle() used to come back while the tape was still going, so the two
        sweeps below saw the whole sequence unfold. Now that the hub correctly holds
@@ -737,6 +763,17 @@ async function runRig() {
     const tTapeReady = await untilScreen((r) => toReady(after(r, /^LOAD$/)).slice(-1)[0] === "READY.", 90000);
     await idle();
     ok(tFound >= 0 && tTapeReady >= 0, `button: the tape is searched, FOUND and loaded   [${after(await screen(), /^LOAD$/).filter(Boolean).join(" | ")}]`);
+    const cEnd = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    await wait(1200);
+    const cLater = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    ok(!cEnd.spinning && cEnd.count > count0 && cLater.count === cEnd.count && cLater.shown === String(cEnd.count).padStart(3, "0"),
+       `the counter counted up during the load, stopped at its end, and keeps its value   [${count0} -> ${cEnd.count}, then ${cLater.shown}]`);
+    /* and 999 wraps to 000 (the rig sets it near the top, then runs the motor) */
+    await ev("CAT_DRIVE.tape.rigCount(999.4); CAT_DRIVE.tape.motor(true)");
+    await wait(900);
+    await ev("CAT_DRIVE.tape.motor(false)");
+    const cWrap = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    ok(cWrap.count <= 3 && cWrap.shown === String(cWrap.count).padStart(3, "0"), `the counter wraps 999 to 000   [999 -> ${cWrap.shown}]`);
     await press("F12");
     await idle();
     await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
@@ -754,8 +791,11 @@ async function runRig() {
     /* 🆕 2026-10-04 — something on the screen first, so a reset can be seen */
     await type("PRINT 4321\n");
     await untilScreen((r) => r.includes(" 4321"), 6000);
+    const cPreEject = await ev("__cat.corner().tape.count");
     await click("#btn-eject");
+    const tLidOut = await until("__cat.corner().tape.lid === 'open'", 3000, 30);
     await idle();
+    await until("!__cat.corner().tape.busy", 5000, 50);
     const tFresh = await untilScreen((r) => r[1].trim() === "**** COMMODORE 64 BASIC V2 ****" && r[5] === "READY." && !r.includes(" 4321"), 20000);
     const ejLamps = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
     ok(tFresh >= 0 && !ejLamps.latch.down && ejLamps.lamps.power === true && !(await ev("__cat.machine().gameOn")),
@@ -764,6 +804,16 @@ async function runRig() {
       cmd: document.getElementById("btn-load").dataset.cmd })`));
     ok(ej.inserted === null && ej.cmd === 'LOAD"*",8,1',
        `the drive is empty again, and Load is back to LOAD"*",8,1   [${ej.inserted}, ${ej.cmd}]`);
+    /* 🆕 2026-10-04 — PHASE 4 STEP 2: the tape leaves the Datasette, and the
+       counter keeps its value until its own small button */
+    const seqOut = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    ok(tLidOut >= 0 && seqOut.trace.join(",") === "open,out,close" && seqOut.lid === "closed" && !seqOut.tape && !seqOut.spinning,
+       `Eject plays the Datasette: lid open, the tape leaves (downward), lid shut   [${seqOut.trace.join(" > ")}]`);
+    ok(seqOut.count === cPreEject && cPreEject > 0, `and the counter keeps its value through the eject   [${cPreEject} -> ${seqOut.count}]`);
+    await click("#datasette-reset");
+    const cReset = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    ok(cReset.count === 0 && cReset.shown === "000" && (await ev("document.activeElement !== document.getElementById('datasette-reset')")),
+       `its small button sets the counter back to 000, and takes no focus   [${cReset.shown}]`);
     const lblOut = JSON.parse(await ev(`JSON.stringify((function () { var t = document.getElementById("datasette-tape"), l = document.getElementById("datasette-label"),
       c = t.getBoundingClientRect(); return { shown: !t.hidden && c.width > 0, text: l.textContent, px: parseFloat(l.style.fontSize) || 0,
       fits: l.scrollWidth <= l.clientWidth + 1 && l.scrollHeight <= l.clientHeight + 1, w: Math.round(c.width) }; })())`));
@@ -771,6 +821,24 @@ async function runRig() {
     await type('LOAD"$",8\n');
     ok((await untilScreen((r) => toReady(after(r, /^LOAD"\$",8$/)).includes("?FILE NOT FOUND  ERROR"), 30000)) >= 0,
        "and the machine agrees: LOAD\"$\",8 finds nothing");
+    /* 🆕 2026-10-04 (his ruling) — a disk inserted over a tape: the tape leaves the
+       Datasette first, downward, then the disk goes in */
+    await ev(`__cat.select(${JSON.stringify(TAPE.id)})`);
+    await click("#btn-insert");
+    await until(`__cat.inserted() === ${JSON.stringify(TAPE.id)}`, 60000);
+    await idle();
+    await until("!__cat.corner().tape.busy", 5000, 50);
+    const swapId = await ev(`(__cat.disks().find(function (d) { return d.displayName === ${JSON.stringify(RIG_GONE)}; }) || {}).id`);
+    await ev(`__cat.select(${JSON.stringify(swapId)})`);
+    await click("#btn-insert");
+    const tSwapLid = await until("__cat.corner().tape.lid === 'open'", 3000, 30);
+    await until(`__cat.inserted() === ${JSON.stringify(swapId)}`, 60000);
+    await idle();
+    const sw = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
+    ok(tSwapLid >= 0 && sw.trace.join(",") === "open,out,close" && !sw.tape && (await ev("__cat.machine().medium")) === "disk",
+       `a disk inserted over a tape: the tape leaves the Datasette first, then the disk goes in   [${sw.trace.join(" > ")}; ${await ev("__cat.machine().medium")}]`);
+    await click("#btn-eject");
+    await idle();
 
     /* --- F2. no disk, the stuck drive, and F12 mid-load ------------------------
        🔄 2026-10-04 — REPLACES twelve Load presses on an empty drive (Andrew's

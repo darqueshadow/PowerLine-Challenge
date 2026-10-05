@@ -14,6 +14,9 @@
    sliding into a disk drive in front of a tape load would be the one lie on a
    screen that is otherwise the real machine. So the same beat plays with a
    cassette dropping into a datasette.
+   🔄 2026-10-04 — and since Phase 4 that is the REAL Datasette in the corner's
+   bay (CAT_DRIVE.tape, at the end of this file), not a drawn scene over the
+   screen: play() no longer draws anything for a tape.
 
    🚫 No literal Commodore branding (core spec): the datasette says DATASETTE.
    🔄 2026-10-03 — the drive is now the 1541 artwork, with the C= logo and the
@@ -123,44 +126,6 @@
     return s;
   }
 
-  /* A datasette from the front: the cassette drops into the open door, the
-     door shuts, and PLAY goes down. */
-  function tapeScene(name) {
-    var s = svg("svg", { viewBox: "0 0 400 250", class: "drive-scene", role: "img", "aria-hidden": "true" });
-    var defs = svg("defs", {}, s);
-    var g = svg("linearGradient", { id: "tape-case", x1: "0", y1: "0", x2: "0", y2: "1" }, defs);
-    svg("stop", { offset: "0", "stop-color": "#efe6c6" }, g);
-    svg("stop", { offset: "1", "stop-color": "#c9bd92" }, g);
-    var clip = svg("clipPath", { id: "tape-door-clip" }, defs);
-    svg("rect", { x: "0", y: "-200", width: "400", height: "374" }, clip);
-
-    svg("rect", { x: "40", y: "96", width: "320", height: "142", rx: "10", fill: "url(#tape-case)" }, s);
-    svg("rect", { x: "92", y: "110", width: "216", height: "72", rx: "5", fill: "#2b2433" }, s);
-
-    var cass = svg("g", { class: "drive-disk", "clip-path": "url(#tape-door-clip)" }, s);
-    var body = svg("g", { class: "drive-disk__body" }, cass);
-    svg("rect", { x: "112", y: "40", width: "176", height: "112", rx: "6", fill: "#1b1924" }, body);
-    svg("rect", { x: "124", y: "50", width: "152", height: "30", rx: "2", fill: "#f4eedb" }, body);
-    var t = svg("text", { x: "200", y: "70", "text-anchor": "middle", class: "drive-label" }, body);
-    t.textContent = label(name);
-    svg("rect", { x: "140", y: "92", width: "120", height: "34", rx: "8", fill: "#0a0910" }, body);
-    svg("circle", { cx: "163", cy: "109", r: "10", fill: "#e8e2cf" }, body);
-    svg("circle", { cx: "237", cy: "109", r: "10", fill: "#e8e2cf" }, body);
-
-    svg("rect", { x: "92", y: "110", width: "216", height: "72", rx: "5", class: "drive-door" }, s);
-
-    var keys = ["REC", "PLAY", "REW", "FF", "STOP"];
-    keys.forEach(function (k, i) {
-      var key = svg("g", { class: "drive-key" + (k === "PLAY" ? " drive-key--play" : "") }, s);
-      svg("rect", { x: String(92 + i * 44), y: "194", width: "40", height: "24", rx: "3", fill: "#3a3226" }, key);
-      var kt = svg("text", { x: String(112 + i * 44), y: "210", "text-anchor": "middle", class: "drive-keylabel" }, key);
-      kt.textContent = k;
-    });
-    var name1 = svg("text", { x: "56", y: "232", class: "drive-model" }, s);
-    name1.textContent = "DATASETTE";
-    return s;
-  }
-
   /* -----------------------------------------------------------------------
      play(disk, { medium, host }) — resolves "played" or "skipped", NEVER rejects,
      and never leaves itself on screen. `host` is where it sits: cat.js puts it
@@ -170,12 +135,15 @@
     opts = opts || {};
     var medium = opts.medium === "tape" ? "tape" : "disk";
     var host = opts.host || document.body;
+    /* 🔄 2026-10-04 — a TAPE no longer gets a scene over the screen: the real
+       Datasette in the bay plays it (CAT_DRIVE.tape.insert, below). */
+    if (medium === "tape") return Promise.resolve("skipped");
     return new Promise(function (resolve) {
       var root = document.createElement("div");
       root.id = "drive-insert";
       root.className = "drive-insert drive-insert--" + medium;
       root.setAttribute("aria-hidden", "true");
-      root.appendChild(medium === "tape" ? tapeScene(disk && disk.displayName) : diskScene(disk && disk.displayName));
+      root.appendChild(diskScene(disk && disk.displayName));
       host.appendChild(root);
 
       var done = false, timer = 0;
@@ -206,5 +174,245 @@
     });
   }
 
-  window.CAT_DRIVE = { play: play, holdMs: HOLD_MS, art: DRIVE_ART };
+  /* =======================================================================
+     🆕 2026-10-04 — THE DATASETTE (his rulings, Phase 4 Step 2). The real one in
+     the corner's bay, not a scene over the screen.
+       Insert Tape: the EJECT key goes down, the lid lifts TOWARD THE VIEWER
+         (hinged along its top edge, the bottom edge coming forward and up to
+         ~45°, BASE's well showing below it), the cassette RISES FROM BELOW into
+         the bay, the lid closes, the key comes back up.
+       Eject (ends game): the lid lifts, the tape leaves DOWNWARD, the lid closes.
+         A disk inserted over a tape plays this first (his rulings, 2026-10-04).
+       While a tape LOAD runs (emu.js says so: cat:tapemotor), the hubs turn
+         (the cassette's white toothed hubs, and the black spindles seen through
+         them) and the counter's three wheels count up. It is TIME-BASED: the
+         core tells JS nothing about the tape itself (measured 2026-10-04). It
+         stops at the end of the load or on eject, keeps its value, wraps 999 to
+         000, and only its small button sets it back to 000.
+     ⭐ Every measured position, timing and rate lives HERE and reaches the CSS
+     as custom properties, like DRIVE_ART. Positions are fractions of the
+     Datasette's box, from Documents/Asset Packs/Datasette/build.py (meta.json). */
+  var DATASETTE = {
+    art: {
+      aspect: 1.83333,
+      cassette: { left: 0.15038, top: 0.11433, width: 0.48349, height: 0.48349 },
+      hubs: [[0.2898, 0.4974], [0.7092, 0.4974]],     /* in the cassette's box */
+      hubD: 0.17756,                                   /* of the cassette's width */
+      spindles: [[0.29048, 0.35482], [0.49325, 0.35482]],
+      spindleD: 0.06392,
+      lamp: [0.74503, 0.68294, 0.7745, 0.73763],
+      wheels: [0.69957, 0.49609, 0.77379, 0.54818],
+      reset: [0.79865, 0.49414, 0.82564, 0.55078],
+      hingeY: 0.09505
+    },
+    timing: { keyMs: 140, lidOpenMs: 420, riseMs: 460, lowerMs: 400, lidCloseMs: 360, gapMs: 90, resetPressMs: 140 },
+    keyTravel: 0.014,          /* the EJECT key goes down this much of the box's height */
+    lidDeg: 45,
+    hubTurnMs: 1600,           /* one turn of the hubs while a load runs */
+    countsPerSec: 2.2          /* the counter while a load runs */
+  };
+  (function applyDatasette() {
+    var A = DATASETTE.art, T = DATASETTE.timing, r = document.documentElement.style;
+    var p = function (v) { return (v * 100) + "%"; };
+    var c = A.cassette;
+    r.setProperty("--ds-aspect", String(A.aspect));
+    r.setProperty("--ds-cass-l", p(c.left)); r.setProperty("--ds-cass-t", p(c.top));
+    r.setProperty("--ds-cass-w", p(c.width)); r.setProperty("--ds-cass-h", p(c.height));
+    /* the cassette starts (and leaves) clear BELOW the box: from its top to the box's bottom */
+    r.setProperty("--ds-cass-below", p((1 - c.top) / c.height + 0.05));
+    r.setProperty("--ds-hub-d", p(A.hubD));
+    A.hubs.forEach(function (h, i) { r.setProperty("--ds-hub" + i + "-x", p(h[0])); r.setProperty("--ds-hub" + i + "-y", p(h[1])); });
+    r.setProperty("--ds-spin-d", p(A.spindleD));
+    A.spindles.forEach(function (s, i) { r.setProperty("--ds-spin" + i + "-x", p(s[0])); r.setProperty("--ds-spin" + i + "-y", p(s[1])); });
+    [["lamp", A.lamp], ["wheels", A.wheels], ["reset", A.reset]].forEach(function (b) {
+      r.setProperty("--ds-" + b[0] + "-l", p(b[1][0])); r.setProperty("--ds-" + b[0] + "-t", p(b[1][1]));
+      r.setProperty("--ds-" + b[0] + "-w", p(b[1][2] - b[1][0])); r.setProperty("--ds-" + b[0] + "-h", p(b[1][3] - b[1][1]));
+    });
+    r.setProperty("--ds-hinge-y", p(A.hingeY));
+    /* 🔄 2026-10-04 — POSITIVE: rotateX(+a) brings the bottom edge TOWARD the
+       viewer (it went away, into the machine, at -45°: his correction) */
+    r.setProperty("--ds-lid-deg", DATASETTE.lidDeg + "deg");
+    r.setProperty("--ds-key-travel", p(DATASETTE.keyTravel));
+    var ms = function (v) { return (REDUCED ? 0 : v) + "ms"; };
+    r.setProperty("--ds-key-ms", ms(T.keyMs));
+    r.setProperty("--ds-lid-open-ms", ms(T.lidOpenMs));
+    r.setProperty("--ds-lid-close-ms", ms(T.lidCloseMs));
+    r.setProperty("--ds-rise-ms", ms(T.riseMs));
+    r.setProperty("--ds-lower-ms", ms(T.lowerMs));
+    r.setProperty("--ds-hub-turn-ms", DATASETTE.hubTurnMs + "ms");
+  })();
+
+  var tape = (function () {
+    var el = function (id) { return document.getElementById(id); };
+    var box = el("datasette"), cass = el("datasette-tape"), label = el("datasette-label");
+    var wheels = box ? box.querySelectorAll(".datasette__wheel-strip") : [];
+    var LABEL_PX = { max: 13, min: 5 };
+    var st = { busy: false, motor: false, count: 0, trace: [], lid: "closed", key: false, skip: null };
+    var T = DATASETTE.timing;
+    var wait = function (msv) {
+      return new Promise(function (res) {
+        if (REDUCED || st.skip) { res(); return; }
+        var t = setTimeout(res, msv);
+        st.onSkip = function () { clearTimeout(t); res(); };
+      });
+    };
+    var mark = function (what) { st.trace.push(what); };
+    var shown = function () { return !!(box && box.getBoundingClientRect().width > 0); };
+
+    /* the largest size that fits the label's box both ways; measured, not guessed */
+    function fitLabel() {
+      if (!label || !label.clientWidth) return;
+      var px = LABEL_PX.max;
+      label.style.fontSize = px + "px";
+      while (px > LABEL_PX.min && (label.scrollHeight > label.clientHeight + 1 || label.scrollWidth > label.clientWidth + 1)) {
+        px -= 0.5;
+        label.style.fontSize = px + "px";
+      }
+    }
+    if (label && window.ResizeObserver) new ResizeObserver(function () { if (!cass.hidden) fitLabel(); }).observe(label);
+
+    function setLabel(name) {
+      if (label.textContent !== name) label.textContent = name;
+      if (!cass.hidden) fitLabel();
+    }
+    function lid(open) { st.lid = open ? "open" : "closed"; box.classList.toggle("is-open", open); }
+    function keyDown(on) { st.key = on; box.classList.toggle("is-key", on); }
+    function below(on) { cass.classList.toggle("is-below", on); }
+
+    /* no animation: the state the hub's paint asks for (insert done, power off …) */
+    function present(on, name) {
+      if (!box || st.busy) return;
+      cass.hidden = !on;
+      below(false);
+      setLabel(on ? String(name || "") : "");
+      if (!on) motor(false);
+    }
+
+    /* a key or a click during a sequence jumps it to its end, as play() always allowed */
+    function skippable() {
+      st.skip = null;
+      var go = function () { st.skip = true; box.classList.add("is-snap"); if (st.onSkip) st.onSkip(); };
+      var onKey = function (e) { if (/^(Shift|Control|Alt|Meta)$/.test(e.key)) return; go(); };
+      document.addEventListener("keydown", onKey, true);
+      box.addEventListener("click", go, true);
+      return function () {
+        document.removeEventListener("keydown", onKey, true);
+        box.removeEventListener("click", go, true);
+        st.skip = null; st.onSkip = null;
+        setTimeout(function () { box.classList.remove("is-snap"); }, 30);
+      };
+    }
+
+    /* the tape goes DOWN, out of the bottom of the box */
+    function leave() {
+      mark("out");
+      cass.classList.add("is-lowering");
+      below(true);
+      return wait(T.lowerMs).then(function () { cass.hidden = true; cass.classList.remove("is-lowering"); below(false); setLabel(""); });
+    }
+
+    function insert(name) {
+      if (!box || !shown() || st.busy) { present(true, name); return Promise.resolve("skipped"); }
+      st.busy = true; st.trace = [];
+      motor(false);
+      var done = skippable();
+      var hadTape = !cass.hidden;
+      mark("key"); keyDown(true);
+      return wait(T.keyMs)
+        .then(function () { mark("open"); lid(true); return wait(T.lidOpenMs); })
+        .then(function () { return hadTape ? leave().then(function () { return wait(T.gapMs); }) : null; })
+        .then(function () {
+          mark("in");
+          /* placed below the box with no transition, then risen into the bay */
+          box.classList.add("is-snap");
+          below(true); cass.hidden = false; setLabel(String(name || ""));
+          void cass.offsetWidth;
+          box.classList.remove("is-snap");
+          void cass.offsetWidth;
+          below(false);
+          return wait(T.riseMs);
+        })
+        .then(function () { return wait(T.gapMs); })
+        .then(function () { mark("close"); lid(false); return wait(T.lidCloseMs); })
+        .then(function () { mark("keyup"); keyDown(false); return wait(T.keyMs); })
+        .then(function () { done(); st.busy = false; return "played"; },
+              function () { done(); st.busy = false; return "played"; });
+    }
+
+    function eject() {
+      if (!box || cass.hidden) { present(false); return Promise.resolve("skipped"); }
+      motor(false);
+      if (!shown() || st.busy) { st.busy = false; present(false); return Promise.resolve("skipped"); }
+      st.busy = true; st.trace = [];
+      var done = skippable();
+      mark("open"); lid(true);
+      return wait(T.lidOpenMs)
+        .then(function () { return leave(); })
+        .then(function () { return wait(T.gapMs); })
+        .then(function () { mark("close"); lid(false); return wait(T.lidCloseMs); })
+        .then(function () { done(); st.busy = false; return "played"; },
+              function () { done(); st.busy = false; return "played"; });
+    }
+
+    /* ---- the hubs and the counter ------------------------------------------ */
+    var raf = 0, last = 0;
+    function paintCounter() {
+      var v = st.count;
+      var u = v % 10, t = Math.floor(v / 10) % 10, h = Math.floor(v / 100) % 10;
+      /* an odometer: a wheel rolls on only while the one to its right goes 9 -> 0 */
+      var carryT = u > 9 ? u - 9 : 0, carryH = (v % 100) > 99 ? (v % 100) - 99 : 0;
+      [h + carryH, t + carryT, u].forEach(function (pos, i) {
+        if (wheels[i]) wheels[i].style.transform = "translateY(" + (-pos * 100 / 11) + "%)";
+      });
+      box.dataset.count = String(Math.floor(v) % 1000).padStart(3, "0");
+    }
+    function tick(now) {
+      if (!st.motor) { raf = 0; return; }
+      var dt = last ? Math.min(0.25, (now - last) / 1000) : 0;
+      last = now;
+      st.count = (st.count + dt * DATASETTE.countsPerSec) % 1000;
+      paintCounter();
+      raf = requestAnimationFrame(tick);
+    }
+    function motor(on) {
+      on = !!on && !!box && !cass.hidden;
+      if (on === st.motor) return;
+      st.motor = on;
+      box.classList.toggle("is-spinning", on);
+      if (on) { last = 0; if (!raf) raf = requestAnimationFrame(tick); }
+      else {
+        /* the wheels come to rest on a whole number, as real ones do */
+        st.count = Math.floor(st.count) % 1000;
+        paintCounter();
+      }
+    }
+    function resetCounter() {
+      if (!box) return;
+      st.count = 0;
+      paintCounter();
+      box.classList.add("is-reset");
+      setTimeout(function () { box.classList.remove("is-reset"); }, T.resetPressMs);
+    }
+    if (box) {
+      var btn = el("datasette-reset");
+      /* the deck's rule: a button must not take focus on mousedown, or Space presses it again */
+      btn.addEventListener("mousedown", function (e) { e.preventDefault(); });
+      btn.addEventListener("click", function () { resetCounter(); });
+      paintCounter();
+    }
+
+    return {
+      present: present, insert: insert, eject: eject, motor: motor, resetCounter: resetCounter,
+      busy: function () { return st.busy; }, fit: fitLabel,
+      /* RIG-ONLY: verify-c64 sets the counter near 999 to see it wrap to 000.
+         🚫 Nothing in the hub calls it. */
+      rigCount: function (n) { st.count = (Number(n) || 0) % 1000; paintCounter(); },
+      state: function () {
+        return { tape: !!(cass && !cass.hidden), name: label ? label.textContent : "", lid: st.lid, key: st.key, busy: st.busy,
+                 spinning: st.motor, count: Math.floor(st.count) % 1000, shown: box ? box.dataset.count : "", trace: st.trace.slice() };
+      }
+    };
+  })();
+
+  window.CAT_DRIVE = { play: play, holdMs: HOLD_MS, art: DRIVE_ART, tape: tape, datasette: DATASETTE };
 })();
