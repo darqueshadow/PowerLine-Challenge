@@ -9,7 +9,20 @@ cartridge's own `CLAUDE.md`.
 
 The root PLC track (resume word **`Continue_PLC`**) keeps its one-shot handoffs in `(PCL)/MEMORY.md`
 → `(PCL)/memory/`. That file is not auto-loaded, so read it when `Continue_PLC` is typed.
-- C64 corner redesign in progress (Phases 0-5).
+- C64 corner redesign: Phases 0-4b DONE, committed locally, approved by Andrew 2026-10-05 (nothing pushed):
+  PLAY key `c25f826`, disk animation `046e8a5`, Eject icons/label + animated Disk 2 swap `63d35dc`,
+  double-sided disks `b9f9f9c`, old over-screen scene removed `5f1febf`.
+  Double-sided rules (`Game/C64/library.js` mapSides): `- dN` is side N (d1/d2 = Disk 1, Side A/B; d3/d4 = Disk 2);
+  d0 is its own disk, Side A, and disks are numbered in order (d0 = Disk 1); Test Drive II, Ultima II, Ultima III
+  are on a NO_SIDES list (each file its own disk). Wording "Disk 1, Side A" / "Disk 3" on the line, button and picker.
+  Same disk, other side = out to the slot, swap sent, flip, back in; a different disk never flips; Side B = plain jacket.
+  Left as is until Andrew judges them in the live hub: the latch icon size, a full-screen swap status message.
+  ⏸ NEXT: Phase 5 (the dot-matrix game list). Starts ONLY on Andrew's confirm.
+- Adding a game to the C64 corner (Andrew): (1) copy the file(s) into `Game/C64/roms/`, sets named
+  `Title - d1.D64`, `Title - d2.D64` … (marker at the END; tapes .t64/.tap group the same way); (2) reload the hub
+  page, no restart or build; (3) optional: add the title to `roms/_library.json` BY HAND for Load choices or a
+  starting port; (4) nothing to commit, roms/ is git-ignored. A title whose files are separate disks, not sides,
+  goes on library.js's NO_SIDES list. Unmarked names = a single game; subfolders of roms/ are not read.
 - Swap loses disk saves (a fresh image each time): parked, not fixed.
 - Load on an empty-directory disk can hang the hub: not reproduced on 2026-10-04 (3 of 3 answered), probably gone.
 - The stuck-drive Load hang (about 1 "file not found" load in 40, inside the emulator core): recovered, not prevented.
