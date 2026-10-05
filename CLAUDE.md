@@ -14,6 +14,9 @@ The root PLC track (resume word **`Continue_PLC`**) keeps its one-shot handoffs 
 - Load on an empty-directory disk can hang the hub: not reproduced on 2026-10-04 (3 of 3 answered), probably gone.
 - The stuck-drive Load hang (about 1 "file not found" load in 40, inside the emulator core): recovered, not prevented.
   The corner resets by itself with the disk in (`1c27d2b`, docs/decisions.md "Built 2026-10-04").
+- verify-c64's Pause check "a key held when Pause was clicked … is not stuck down on resume" is flaky: about 1 run in 3
+  on 2026-10-04 it reads `$CB 64 -> 64`, i.e. the held key never registered (a dropped keystroke, not a stuck key).
+  Parked, not fixed (Andrew, 2026-10-04): re-run once; do not loop.
 
 ## 🚫 Never push `main` without Andrew's explicit OK
 
