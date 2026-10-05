@@ -391,6 +391,15 @@ async function runRig() {
   }
 
   const idle = () => until("!__cat.machine().busy", 60000, 100);
+  /* 🆕 2026-10-05 — THE SEQUENCE RECORDER (Phase 4b): the disk's sprite, the
+     1541's latch and the Datasette, sampled IN THE PAGE every 15 ms, so the order
+     of an insert, an eject or a swap is read without the rig's own polling
+     slowing it down. recStart() before the click, recStop() after. */
+  const recStart = () => ev(`(function () { clearInterval(window.__recId); window.__rec = [];
+    window.__recId = setInterval(function () { var c = __cat.corner(), d = c.disk || {};
+      window.__rec.push({ s: !!d.shown, p: d.phase, tr: (d.trace || []).join(","), turn: d.turn, n: d.name, sd: d.side,
+        l: c.latch.down, tl: c.tape.lid, tt: c.tape.tape }); }, 15); })()`);
+  const recStop = () => ev("clearInterval(window.__recId), JSON.stringify(window.__rec)").then(JSON.parse);
   /* 🆕 2026-09-17 — the Load button now waits for the LOAD to finish before it
      decides whether to type RUN, so the hub can legitimately stay busy for far
      longer than 60s on a slow disk. Using idle() there made the rig walk on
@@ -564,17 +573,55 @@ async function runRig() {
     if (!DISK || !TAPE) throw new Error("no disk or tape to test with");
 
     await ev(`__cat.select(${JSON.stringify(DISK.id)})`);
+    /* 🆕 2026-10-05 — PHASE 4b, HIS REDESIGN: NO DISK RESTS ON THE PAGE. The
+       crate's list has its height back (nothing between the hint and the 1541),
+       and the disk is drawn only while Insert or Eject moves it. Its art is true
+       alpha; its label is printed in code and never clips. */
+    const lay = JSON.parse(await ev(`JSON.stringify((function () { var r = function (s) { var e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
+      return { floppy: !!document.getElementById("floppy"), hint: r("#crates-hint").bottom, drive: r("#drive-1541").top, w: r("#drive-1541").width,
+               rows: getComputedStyle(document.getElementById("crates")).gridTemplateAreas, shown: __cat.corner().disk.shown }; })())`));
+    ok(!lay.floppy && !/disk/.test(lay.rows) && lay.drive - lay.hint <= 12 && lay.w >= 315,
+       `no disk sits above the 1541: the list has its height back, and the 1541 is its own size   [hint to 1541 ${Math.round(lay.drive - lay.hint)} px; 1541 ${Math.round(lay.w)} px]`);
+    ok(lay.shown === false, "and before Insert no disk is drawn anywhere");
+    const flAlpha = await ev(`new Promise(function (res) { var im = new Image(); im.onload = function () {
+        var c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+        var g = c.getContext("2d"); g.drawImage(im, 0, 0);
+        var a = function (fx, fy) { return g.getImageData(Math.round(fx * (c.width - 1)), Math.round(fy * (c.height - 1)), 1, 1).data[3]; };
+        res({ hub: a(0.49995, 0.49986), corner: a(0.995, 0.995), jacket: a(0.15, 0.6), label: a(0.6, 0.15) }); };
+      im.onerror = function () { res(null); }; im.src = "disk/disk.png"; })`);
+    ok(flAlpha && flAlpha.hub === 0 && flAlpha.corner === 0 && flAlpha.jacket === 255 && flAlpha.label === 255,
+       `the disk's art is true alpha: hub hole and the corner outside clear, jacket and label solid   [${JSON.stringify(flAlpha)}]`);
+    /* the library's longest name today (42 characters), as a set: readable */
+    const flLong = JSON.parse(await ev(`JSON.stringify(CAT_DRIVE.disk.rigLabel("Beach-Head II - The Dictator Strikes Back!", "Disk 1 of 2"))`));
+    ok(!flLong.clipped && flLong.px >= 5, `the library's longest name with a side line wraps on the label at a readable size, unclipped   [${flLong.px}px]`);
+    /* twice that: smaller, but still never clipped */
+    const flHuge = JSON.parse(await ev(`JSON.stringify(CAT_DRIVE.disk.rigLabel("The Very Long Name Of A Game That Goes On - Part Two: The Return Of The Long Name", "Disk 1 of 2"))`));
+    ok(!flHuge.clipped && flHuge.shown === true && !(await ev("__cat.corner().disk.shown")),
+       `a name twice as long shrinks further and still never clips (and the measuring leaves no disk drawn)   [${flHuge.px}px]`);
+    say(`        (the room below the slot: ${flLong.room.below} px for a ${flLong.room.disk} px disk, ${flLong.room.short} px short of showing it whole)`);
+    await recStart();
     await click("#btn-insert");
-    /* 🔄 his addendum, 2026-09-16: on this corner the drive animation REPLACES
-       the crack intro (which still plays for a cabinet's launch) */
-    const tAnim = await until("!!document.querySelector('#screen-shell > #drive-insert.drive-insert--disk')", 2000, 50);
-    const sawCrack = await ev("!!document.getElementById('crack')");
-    ok(tAnim >= 0 && !sawCrack, `a disk slides into the drive over the screen, and the crack intro does not play   [${took(tAnim)}, crack ${sawCrack}]`);
+    /* 🔄 2026-10-05 — THE 1541 PLAYS IT (his redesign): no scene over the screen,
+       and still no crack intro */
+    const tAnim = await until("__cat.corner().disk.shown", 3000, 20);
+    const sawCrack = await ev("!!document.getElementById('crack') || !!document.querySelector('#drive-insert')");
+    ok(tAnim >= 0 && !sawCrack, `Insert Disk plays the disk into the real 1541; no scene over the screen, no crack intro   [${took(tAnim)}]`);
     const tIn = await until(`__cat.inserted() === ${JSON.stringify(DISK.id)}`, 60000);
     await idle();
     /* 🔄 2026-10-04 — the corner names it in the ONE line under the 1541 (his ruling, Phase 1) */
     const slot = await ev("document.getElementById('detail-title').firstChild.textContent");
     ok(tIn >= 0 && slot === DISK.name, `${DISK.name} is in the drive, named under the 1541   [${took(tIn)}, line ${slot}]`);
+    const recIn = await recStop();
+    const seen = recIn.filter((x) => x.s);
+    const firstSeen = recIn.findIndex((x) => x.s), lastSeen = recIn.length - 1 - [...recIn].reverse().findIndex((x) => x.s);
+    const dropAt = recIn.findIndex((x, i) => i > firstSeen && x.l);
+    ok(seen.length > 0 && seen[0].p === "ready" && seen.some((x) => x.tr === "rise,in") && !recIn[firstSeen].l && dropAt > lastSeen,
+       `the insert plays in order: latch up, the disk rises from below, slides into the slot, THEN the latch drops   [${[...new Set(recIn.map((x) => (x.s ? x.p : "-") + (x.l ? "/L" : "")))].join(" > ")}]`);
+    ok(seen.length > 0 && seen.every((x) => x.turn === "180deg" && x.n === DISK.name),
+       `all the way in, the sprite is turned 180°, the label's name with it   [${seen.length} samples; ${seen[0] && seen[0].turn}; "${seen[0] && seen[0].n}"]`);
+    const dkIn = JSON.parse(await ev("JSON.stringify(__cat.corner().disk)"));
+    ok(!dkIn.shown && dkIn.phase === "gone" && !(await ev("document.getElementById('drive-diskwin').getBoundingClientRect().height > 0")),
+       `once it is in, the disk is not drawn: only the line under the 1541 names it   [${dkIn.phase}]`);
     ok(/disk inserted/i.test(String(await ev("__cat.note()"))), `the deck says so   [${await ev("__cat.note()")}]`);
     /* 📌 the KERNAL traps a tape needs stay OFF for a disk: always on, they made
        disk loads twice as slow and one in a few runs hung at LOADING */
@@ -706,6 +753,7 @@ async function runRig() {
     await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
     await ev(`__cat.select(${JSON.stringify(TAPE.id)})`);
     ok((await ev("document.getElementById('btn-insert').textContent")) === "Insert Tape", "for a tape the button says Insert Tape");
+    await recStart();
     await click("#btn-insert");
     /* 🔄 2026-10-04 — PHASE 4 STEP 2: the REAL Datasette in the bay plays the
        insert (his ruling), not a scene over the screen: the EJECT key goes down,
@@ -719,6 +767,14 @@ async function runRig() {
     const lidZ = Number(await ev(LIDZ));
     const tTape = await until(`__cat.inserted() === ${JSON.stringify(TAPE.id)}`, 60000);
     await idle();
+    /* 🆕 2026-10-05 — A TAPE OVER A DISK (his redesign): the disk's eject plays
+       first (latch up, out downward, gone), THEN the Datasette opens */
+    const recDT = await recStop();
+    const dtSeen = recDT.filter((x) => x.s);
+    const dtLastDisk = recDT.length - 1 - [...recDT].reverse().findIndex((x) => x.s);
+    const dtLid = recDT.findIndex((x) => x.tl === "open");
+    ok(dtSeen.length > 0 && dtSeen.every((x) => !x.l && x.n === DISK.name) && dtSeen.some((x) => x.tr === "out,down") && dtLid > dtLastDisk,
+       `a tape over a disk: the disk comes out of the 1541 first (latch up, out downward), THEN the Datasette opens   [${dtSeen.length} disk samples; lid opens at ${dtLid}, disk gone by ${dtLastDisk + 1}]`);
     const seqIn = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
     ok(tOpen >= 0 && seqIn.trace.join(",") === "key,open,in,close,keyup" && seqIn.lid === "closed" && !seqIn.key && seqIn.tape
        && !(await ev("!!document.querySelector('#drive-insert')")),
@@ -844,15 +900,31 @@ async function runRig() {
     await until("!__cat.corner().tape.busy", 5000, 50);
     const swapId = await ev(`(__cat.disks().find(function (d) { return d.displayName === ${JSON.stringify(RIG_GONE)}; }) || {}).id`);
     await ev(`__cat.select(${JSON.stringify(swapId)})`);
+    await recStart();
     await click("#btn-insert");
     const tSwapLid = await until("__cat.corner().tape.lid === 'open'", 3000, 30);
     await until(`__cat.inserted() === ${JSON.stringify(swapId)}`, 60000);
     await idle();
+    const recTD = await recStop();
     const sw = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
     ok(tSwapLid >= 0 && sw.trace.join(",") === "open,out,close" && !sw.tape && (await ev("__cat.machine().medium")) === "disk",
        `a disk inserted over a tape: the tape leaves the Datasette first, then the disk goes in   [${sw.trace.join(" > ")}; ${await ev("__cat.machine().medium")}]`);
+    /* 🆕 2026-10-05 — and the disk is not drawn until the cassette has gone */
+    const tdFirst = recTD.findIndex((x) => x.s);
+    ok(tdFirst > 0 && recTD.slice(0, tdFirst).some((x) => x.tt) && !recTD[tdFirst].tt && recTD.some((x) => x.tr === "rise,in"),
+       `the disk rises into the 1541 only once the cassette is out   [disk first drawn at sample ${tdFirst}]`);
+    /* 🆕 2026-10-05 — EJECT (his redesign): latch up, the disk slides out downward, gone */
+    await recStart();
     await click("#btn-eject");
     await idle();
+    await until("!__cat.corner().disk.busy", 5000, 30);
+    const recOut = await recStop();
+    const outSeen = recOut.filter((x) => x.s);
+    const outFirst = recOut.findIndex((x) => x.s);
+    ok(outSeen.length > 0 && outFirst > 0 && !recOut[outFirst].l && recOut.slice(0, outFirst).some((x) => x.l)
+       && outSeen.some((x) => x.tr === "out,down") && outSeen.every((x) => x.turn === "180deg" && x.n === RIG_GONE)
+       && !(await ev("__cat.corner().disk.shown")),
+       `Eject plays the reverse: the latch lifts, then the disk (turned, its label on) slides out downward and is gone   [${[...new Set(recOut.map((x) => (x.s ? x.p : "-") + (x.l ? "/L" : "")))].join(" > ")}]`);
 
     /* --- F2. no disk, the stuck drive, and F12 mid-load ------------------------
        🔄 2026-10-04 — REPLACES twelve Load presses on an empty drive (Andrew's

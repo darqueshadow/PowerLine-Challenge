@@ -946,10 +946,14 @@ try {
     ok(/F12/.test(String(m.reset)), `no token: the deck's Reset is there and names its key   [${m.reset}]`);
     const lib = String(await b.ev("__cat.visible()[0]"));
     await b.ev(`__cat.select(${JSON.stringify(lib)}), __cat.insert()`);
-    /* 🔄 his addendum: here the drive animation replaces the crack intro */
-    const tIntro = await until(async () => !!(await b.ev("!!document.getElementById('drive-insert')")), 2000, 50);
-    ok(tIntro >= 0 && !(await b.ev("!!document.getElementById('crack')")),
-       `Insert Disk plays the disk-into-drive animation, not the crack intro   [${took(tIntro)}]`);
+    /* 🔄 his addendum: here the drive animation replaces the crack intro.
+       🔄 2026-10-05 (his redesign, Phase 4b) — and it plays in the corner's real
+       1541 (the disk rises into its slot), no longer as a scene over the screen.
+       ⚠️ A tape plays the Datasette instead, so the 1541's sprite OR the cassette
+       counts: which one this first visible title is depends on his library. */
+    const tIntro = await until(async () => !!(await b.ev("(__cat.corner().disk && __cat.corner().disk.shown) || (__cat.corner().tape && __cat.corner().tape.busy)")), 3000, 30);
+    ok(tIntro >= 0 && !(await b.ev("!!document.getElementById('crack') || !!document.getElementById('drive-insert')")),
+       `Insert plays the disk into the real 1541 (or the tape into the Datasette), not the crack intro or a scene over the screen   [${took(tIntro)}]`);
     await wait(3500);
     s = JSON.parse(await b.ev(SHELL));
     ok(!s.playing, "a cracked disk does NOT open the play overlay: it goes into the machine on the screen");

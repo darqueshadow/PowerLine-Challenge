@@ -1819,6 +1819,59 @@ html.cat-link #cat { visibility: hidden; }
 }
 .drive1541 > img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
+/* ---- 🆕 2026-10-05 — THE DISK, AS AN ANIMATION ONLY (his redesign, Phase 4b) ----
+   Nothing rests on the page. On Insert the disk rises from BELOW, oval end
+   first, and slides up into the slot; on Eject it slides out downward and goes.
+   · THE WINDOW starts at the slot's line and runs down to the bottom of the
+     left column (driveinsert.js sets its height): whatever is above the line has
+     gone into the drive, whatever is below the column has not come up yet.
+     It sits over the body and under the cover and the latch.
+   · THE SPRITE is the art turned 180°, the label's text with it, so the two can
+     never part: oval end up, the label bottom-left and upside down.
+   · Size and positions: driveinsert.js DISK (--dk-*), from the 1541's art and
+     Documents/Asset Packs/Disk/build.py. Positions are along the window. */
+.drive1541__diskwin {
+  position: absolute; left: 0; right: 0;
+  top: var(--dk-slot-y);
+  height: var(--dk-win-h, 120px);
+  overflow: hidden;
+  pointer-events: none;
+}
+.drive1541__diskwin[hidden] { display: none; }
+.drive1541__disk {
+  position: absolute; top: 0;
+  left: calc(var(--dk-slot-x) - var(--dk-w) / 2);
+  width: var(--dk-w);
+  aspect-ratio: var(--fl-aspect, .94394);
+  /* "in": wholly above the line, i.e. inside the drive */
+  transform: translateY(-100%);
+  transition: transform var(--dk-slide-ms) cubic-bezier(.45, 0, .8, .6);   /* pushed in: speeds up */
+}
+/* "ready": its top at the slot, the rest of it below */
+.drive1541__disk.is-ready { transform: translateY(0); }
+/* "below": wholly under the window's bottom edge, out of sight */
+.drive1541__disk.is-below { transform: translateY(var(--dk-win-h, 120px)); }
+.drive1541__disk.is-rising { transition-duration: var(--dk-rise-ms); transition-timing-function: cubic-bezier(.2, .7, .3, 1); }
+.drive1541__disk.is-pulling { transition-duration: var(--dk-pull-ms); transition-timing-function: cubic-bezier(.2, .7, .3, 1); }
+.drive1541__disk.is-lowering { transition-duration: var(--dk-lower-ms); transition-timing-function: cubic-bezier(.55, 0, .9, .5); }
+.drive1541__disk.is-snap { transition: none; }
+.disk-sprite { position: absolute; inset: 0; rotate: 180deg; }
+.disk-sprite__art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.disk-sprite__label {
+  position: absolute;
+  left: calc(var(--fl-label-l) * 100%); top: calc(var(--fl-label-t) * 100%);
+  width: calc(var(--fl-label-w) * 100%); height: calc(var(--fl-label-h) * 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05em;
+  text-align: center;
+  overflow: hidden;
+  font: 700 10px/1.18 var(--mono);    /* room for the ascenders: 1.05 cut an f's top */
+  letter-spacing: .01em;
+  color: #2a2c6e;                     /* a ballpoint's blue on the cream, as the cassette's */
+  overflow-wrap: anywhere;
+}
+.disk-sprite__side { font-size: .82em; font-weight: 600; color: #8a2a1e; }
+.disk-sprite__side:empty { display: none; }
+
 /* the lamps sit BEHIND the body and show through its two holes */
 #drive-lamps { position: absolute; inset: 0; }
 .drive-lamp {

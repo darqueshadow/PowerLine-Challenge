@@ -469,6 +469,22 @@
           <span id="drive-act-led" class="drive-lamp drive-lamp--act" title="Drive activity"></span>
         </div>
         <img class="drive1541__body" src="drive/drive-body.png" alt="" width="800" height="367">
+        <!-- 🆕 2026-10-05 — THE DISK, AS AN ANIMATION ONLY (his redesign, Phase 4b).
+             No disk rests on the page. Insert: it rises from below, oval end first,
+             and slides into the slot; the latch drops. Eject: the latch lifts, it
+             slides out downward and is gone. The window starts at the slot line, so
+             whatever has gone up into the slot is hidden; it is drawn over the body
+             and under the cover and the latch. The sprite is turned 180° from the
+             art, the label's printed name and "Disk 1 of 2" with it. Hidden between
+             sequences. driveinsert.js CAT_DRIVE.disk; art Documents/Asset Packs/Disk/. -->
+        <div class="drive1541__diskwin" id="drive-diskwin" hidden>
+          <div class="drive1541__disk" id="drive-disk">
+            <div class="disk-sprite">
+              <img class="disk-sprite__art" src="disk/disk.png" alt="" width="480" height="509">
+              <span class="disk-sprite__label" id="disk-label"><span class="disk-sprite__name" id="disk-name"></span><span class="disk-sprite__side" id="disk-side"></span></span>
+            </div>
+          </div>
+        </div>
         <img class="drive1541__cover" src="drive/drive-cover.png" alt="" width="800" height="367">
         <img class="drive1541__latch" src="drive/drive-latch.png" alt="" width="800" height="367">
       </div>

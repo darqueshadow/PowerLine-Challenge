@@ -127,6 +127,10 @@
   }
 
   /* -----------------------------------------------------------------------
+     🔄 2026-10-05 — NOTHING CALLS play() NOW. A disk plays the real 1541 in the
+     corner (CAT_DRIVE.disk, below) and a tape the real Datasette; this scene
+     over the screen, and its CSS (.drive-insert, .drive-scene), are left for a
+     separate clean-up rather than removed in the redesign's change.
      play(disk, { medium, host }) — resolves "played" or "skipped", NEVER rejects,
      and never leaves itself on screen. `host` is where it sits: cat.js puts it
      over the C64's screen, so the rest of the room stays in view.
@@ -429,5 +433,187 @@
     };
   })();
 
-  window.CAT_DRIVE = { play: play, holdMs: HOLD_MS, art: DRIVE_ART, tape: tape, datasette: DATASETTE };
+  /* =======================================================================
+     🆕 2026-10-05 — THE DISK, AS AN ANIMATION ONLY (his redesign, Phase 4b).
+     No disk rests on the page: it is drawn only while it moves, in the corner's
+     real 1541 (index.html #drive-diskwin), never over the screen.
+       Insert Disk: it RISES FROM BELOW the drive, oval read/write end first, to
+         the slot, then SLIDES IN; cat.js then drops the latch.
+       Eject (ends game): cat.js lifts the latch, then it SLIDES OUT downward
+         and is gone.
+       A swap plays the outgoing item's eject first (cat.js orders it).
+     ⭐ The sprite is the art turned 180° (cat.css .disk-sprite) with the label's
+     printed name and "Disk 1 of 2" / "Side A" INSIDE it, so they turn together:
+     the label sits bottom-left, upside down. The name is printed in code and
+     fitted (shrinks, then wraps, never clips), like the cassette's.
+     ⭐ Measured positions, sizes and timings live HERE and reach the CSS as custom
+     properties, like DATASETTE. Where a cassette timing fits, it is reused. */
+  var DISK = {
+    aspect: 0.94394,                                  /* the art's width / height (meta.json) */
+    label: [0.35153, 0.03888, 0.9272, 0.29295],       /* the cream sticker, in the UNturned art */
+    inset: [0.03, 0.026],                             /* in from its rounded corners and edges */
+    /* the name's size range. 📏 The library's longest name (42 characters) with
+       "Disk 1 of 2" fits at ~6 px on the rig's disk; the floor only stops the loop.
+       "Never clip" wins over legible: the line under the 1541 has the name whole. */
+    px: { max: 13, min: 2 },
+    /* on the 1541's 800 x 367 art: the slot's middle row, and its middle column
+       (the slit runs ~16%-84% of the width) */
+    slot: { y: 211 / 367, x: 0.5 },
+    width: 0.6,                /* of the 1541's width: a 5¼" disk just inside the slit */
+    timing: {
+      riseMs: DATASETTE.timing.riseMs,     /* up from below to the slot: the cassette's rise */
+      gapMs: DATASETTE.timing.gapMs,       /* the pause at the slot, both ways */
+      lowerMs: DATASETTE.timing.lowerMs,   /* out of sight downward: the cassette's leaving */
+      slideMs: 360,                        /* 🆕 into the slot, pushed */
+      pullMs: 320                          /* 🆕 out of the slot, pulled */
+    }
+  };
+  (function applyDisk() {
+    var r = document.documentElement.style, L = DISK.label, I = DISK.inset, T = DISK.timing;
+    var ms = function (v) { return (REDUCED ? 0 : v) + "ms"; };
+    r.setProperty("--fl-aspect", String(DISK.aspect));
+    r.setProperty("--fl-label-l", String(L[0] + I[0]));
+    r.setProperty("--fl-label-t", String(L[1] + I[1]));
+    r.setProperty("--fl-label-w", String(L[2] - L[0] - 2 * I[0]));
+    r.setProperty("--fl-label-h", String(L[3] - L[1] - 2 * I[1]));
+    r.setProperty("--dk-slot-y", (DISK.slot.y * 100) + "%");
+    r.setProperty("--dk-slot-x", (DISK.slot.x * 100) + "%");
+    r.setProperty("--dk-w", (DISK.width * 100) + "%");
+    r.setProperty("--dk-rise-ms", ms(T.riseMs));
+    r.setProperty("--dk-slide-ms", ms(T.slideMs));
+    r.setProperty("--dk-pull-ms", ms(T.pullMs));
+    r.setProperty("--dk-lower-ms", ms(T.lowerMs));
+  })();
+
+  var disk = (function () {
+    var el = function (id) { return document.getElementById(id); };
+    var win = el("drive-diskwin"), sprite = el("drive-disk"), label = el("disk-label"),
+        nameEl = el("disk-name"), sideEl = el("disk-side"), drive = el("drive-1541");
+    var T = DISK.timing;
+    var st = { busy: false, phase: "gone", trace: [], skip: null, onSkip: null, room: null };
+    var mark = function (what) { st.trace.push(what); };
+    var wait = function (msv) {
+      return new Promise(function (res) {
+        if (REDUCED || st.skip) { res(); return; }
+        var t = setTimeout(res, msv);
+        st.onSkip = function () { clearTimeout(t); res(); };
+      });
+    };
+    var shown = function () { return !!(drive && drive.getBoundingClientRect().width > 0); };
+
+    /* the largest size at which the name AND the side line fit the sticker both
+       ways; measured, not guessed. A rotation does not change clientWidth, so
+       the turned label measures as the unturned one. */
+    function fit() {
+      if (!label || !label.clientWidth) return;
+      var px = DISK.px.max;
+      label.style.fontSize = px + "px";
+      while (px > DISK.px.min && (label.scrollHeight > label.clientHeight + 1 || label.scrollWidth > label.clientWidth + 1)) {
+        px -= 0.25;
+        label.style.fontSize = px + "px";
+      }
+    }
+    function setLabel(name, side) {
+      nameEl.textContent = String(name || "");
+      sideEl.textContent = String(side || "");
+    }
+    /* 📏 THE ROOM: from the slot's line down to the bottom of the left column
+       (or of the window, if that is higher). Measured on every sequence. */
+    function measure() {
+      var d = drive.getBoundingClientRect();
+      var col = drive.closest("#crates") || document.body;
+      var bottom = Math.min(col.getBoundingClientRect().bottom, document.documentElement.clientHeight);
+      var slotY = d.top + d.height * DISK.slot.y;
+      var h = Math.max(0, Math.round(bottom - slotY));
+      win.style.setProperty("--dk-win-h", h + "px");
+      var diskH = d.width * DISK.width / DISK.aspect;
+      st.room = { below: h, disk: Math.round(diskH), short: Math.max(0, Math.round(diskH - h)) };
+    }
+    function at(phase, how) {
+      sprite.classList.remove("is-ready", "is-below", "is-rising", "is-pulling", "is-lowering");
+      if (how) sprite.classList.add(how);
+      if (phase === "ready") sprite.classList.add("is-ready");
+      if (phase === "below") sprite.classList.add("is-below");
+      st.phase = phase;
+    }
+    function snapTo(phase) {
+      sprite.classList.add("is-snap");
+      at(phase);
+      void sprite.offsetWidth;
+      sprite.classList.remove("is-snap");
+      void sprite.offsetWidth;
+    }
+    /* a key or a click during a sequence jumps it to its end, as play() always allowed */
+    function skippable() {
+      st.skip = null;
+      var go = function () { st.skip = true; sprite.classList.add("is-snap"); if (st.onSkip) st.onSkip(); };
+      var onKey = function (e) { if (/^(Shift|Control|Alt|Meta)$/.test(e.key)) return; go(); };
+      document.addEventListener("keydown", onKey, true);
+      drive.addEventListener("click", go, true);
+      return function () {
+        document.removeEventListener("keydown", onKey, true);
+        drive.removeEventListener("click", go, true);
+        st.skip = null; st.onSkip = null;
+        sprite.classList.remove("is-snap");
+      };
+    }
+    function finish(done) {
+      return function () { win.hidden = true; at("gone"); done(); st.busy = false; return "played"; };
+    }
+
+    /* below -> ready (rises) -> in (slides up into the slot) -> gone */
+    function insert(name, side) {
+      if (!win || !shown() || st.busy) return Promise.resolve("skipped");
+      st.busy = true; st.trace = [];
+      setLabel(name, side);
+      measure();
+      win.hidden = false;
+      fit();
+      snapTo("below");
+      var done = skippable();
+      mark("rise"); at("ready", "is-rising");
+      return wait(T.riseMs)
+        .then(function () { return wait(T.gapMs); })
+        .then(function () { mark("in"); at("in"); return wait(T.slideMs); })
+        .then(finish(done), finish(done));
+    }
+    /* in -> ready (slides out of the slot) -> below (leaves downward) -> gone */
+    function eject(name, side) {
+      if (!win || !shown() || st.busy) return Promise.resolve("skipped");
+      st.busy = true; st.trace = [];
+      setLabel(name, side);
+      measure();
+      win.hidden = false;
+      fit();
+      snapTo("in");
+      var done = skippable();
+      mark("out"); at("ready", "is-pulling");
+      return wait(T.pullMs)
+        .then(function () { return wait(T.gapMs); })
+        .then(function () { mark("down"); at("below", "is-lowering"); return wait(T.lowerMs); })
+        .then(finish(done), finish(done));
+    }
+
+    function state() {
+      var turn = sprite && sprite.firstElementChild ? getComputedStyle(sprite.firstElementChild).rotate : "";
+      return { shown: !!(win && !win.hidden), phase: st.phase, busy: st.busy, trace: st.trace.slice(),
+               name: nameEl ? nameEl.textContent : "", side: sideEl ? sideEl.textContent : "",
+               px: label ? parseFloat(label.style.fontSize) || 0 : 0, turn: turn,
+               clipped: !!(label && label.clientWidth && (label.scrollHeight > label.clientHeight + 1 || label.scrollWidth > label.clientWidth + 1)),
+               room: st.room };
+    }
+    return {
+      insert: insert, eject: eject, fit: fit, state: state,
+      busy: function () { return st.busy; },
+      /* RIG-ONLY: print a label without a sequence, to measure its fitting; the
+         sprite is shown only for the measuring. 🚫 Nothing in the hub calls it. */
+      rigLabel: function (name, side) {
+        if (st.busy) return null;
+        win.hidden = false; measure(); setLabel(name, side); fit();
+        var s = state(); win.hidden = true; return s;
+      }
+    };
+  })();
+
+  window.CAT_DRIVE = { play: play, holdMs: HOLD_MS, art: DRIVE_ART, tape: tape, datasette: DATASETTE, disk: disk, diskArt: DISK };
 })();

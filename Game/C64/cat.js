@@ -1428,16 +1428,34 @@
     /* 🆕 2026-10-04 — INSERT WHILE A GAME IS RUNNING RESETS FIRST (his ruling).
        At a bare READY. it still goes into the running machine, no reset (§C). */
     var ended = gameOn;
+    var diskIn = false;   /* the 1541's animation put this disk in (and shut the latch) */
     (ended ? resetToReady()
       .then(function () { write("game ended: reset for the new disk.", "dim"); },
             function (err) { throw new Error("the game would not stop: " + err.message); }) : Promise.resolve())
       /* 🔄 2026-10-04 — a tape plays the real Datasette in the bay (Phase 4) */
+      /* 🔄 2026-10-05 — AND A DISK PLAYS THE REAL 1541 (his redesign, Phase 4b):
+         no scene over the screen any more. THE OUTGOING ITEM LEAVES FIRST (his
+         ruling): a tape leaves the Datasette, or a disk is pulled out of the 1541
+         (latch up, out downward); then the new one goes in. A tape over a tape is
+         the Datasette's own sequence (it takes the old one out itself). */
       .then(function () {
-        if (MACHINE && mediumOfDisk(disk) === "tape" && DRIVE.tape) return DRIVE.tape.insert(disk.displayName);
-        /* 🆕 2026-10-04 — a disk over a tape: the tape leaves the Datasette first
-           (his ruling), then the disk goes into the 1541 */
-        var out = MACHINE && medium === "tape" && DRIVE.tape ? DRIVE.tape.eject() : Promise.resolve();
-        return out.then(function () { return DRIVE.play(disk, { medium: mediumOfDisk(disk), host: screenShell }); });
+        var toTape = mediumOfDisk(disk) === "tape";
+        var D = DRIVE.disk;
+        var out = Promise.resolve();
+        if (MACHINE && medium === "tape" && inserted && DRIVE.tape && !toTape) out = DRIVE.tape.eject();
+        else if (MACHINE && medium === "disk" && inserted && !isCartridge(inserted) && D) {
+          var was = inserted;
+          out = latchTo("up").then(function () { return D.eject(was.displayName, detailDisk(was)); });
+        }
+        return out.then(function () {
+          if (toTape) return DRIVE.tape ? DRIVE.tape.insert(disk.displayName) : null;
+          /* a .CRT is a cartridge: it never goes near the drive */
+          if (!MACHINE || isCartridge(disk) || !D) return null;
+          diskIn = true;
+          return latchTo("up")
+            .then(function () { return D.insert(disk.displayName, detailDisk(disk)); })
+            .then(function () { return latchTo("down"); });
+        });
       })
       .then(function () {
         return machineCall({ type: "cat:insert", files: files }, ["cat:inserted", "cat:insertfailed"], 60000);
@@ -1448,7 +1466,8 @@
           learnFor = null; learnWant = null;
           medium = m.medium === "tape" ? "tape" : "disk";
           setDrive(disk);
-          if (!isCartridge(disk)) latchFor(disk);
+          /* the animation already shut the latch on a disk it put in */
+          if (!isCartridge(disk) && !diskIn) latchFor(disk);
           paintLoad();
           renderSwap(disk);
           write((medium === "tape" ? "tape inserted: " : "disk inserted: ") + disk.displayName.toUpperCase(), "dim");
@@ -1458,12 +1477,14 @@
              telling the truth. */
           paintDrive("failed");
           paintDatasette();   /* the cassette the sequence dropped in goes again */
+          if (diskIn) latchTo("up");   /* and the drive is empty again */
           write("could not insert " + disk.displayName.toUpperCase() + ": " + String(m.reason || "no reason given"), "err");
         }
       })
       .catch(function (err) {
         paintDrive("failed");
         paintDatasette();
+        if (diskIn) latchTo("up");
         if (!err.byPowerOff) write("could not insert " + disk.displayName.toUpperCase() + ": " + err.message, "err");
       })
       .then(function () {
@@ -1501,9 +1522,15 @@
         learnFor = null; learnWant = null;
         /* 🆕 2026-10-04 — a tape leaves the Datasette: lid open, tape out, lid shut */
         if (medium === "tape" && DRIVE.tape) DRIVE.tape.eject();
+        /* 🆕 2026-10-05 — a disk leaves the 1541 (his redesign, Phase 4b): the
+           latch lifts, then the disk slides out downward and is gone. Its label
+           says the side that was in. */
+        var out = medium === "disk" && inserted && !isCartridge(inserted) && DRIVE.disk
+          ? { name: inserted.displayName, side: detailDisk(inserted) } : null;
         medium = null;
         setDrive(null);
-        latchTo("up");
+        var lift = latchTo("up");
+        if (out) lift.then(function () { return DRIVE.disk.eject(out.name, out.side); });
         renderSwap(null);
         return resetToReady().catch(function (err) { throw new Error("the disk is out, but the reset failed: " + err.message); });
       })
@@ -3262,6 +3289,11 @@
         /* 🆕 2026-10-04 — the Datasette: tape in, lid, EJECT key, spinning, the
            counter (and what its wheels show), and the last sequence's steps */
         tape: DRIVE.tape ? DRIVE.tape.state() : null,
+        /* 🆕 2026-10-05 — the disk's insert/eject sequence in the 1541 (Phase 4b):
+           shown only while it moves, its phase and steps, the label's name and
+           side line, the size it fitted at, whether anything is clipped (must be
+           false), the sprite's turn ("180deg"), and the room below the slot */
+        disk: DRIVE.disk ? DRIVE.disk.state() : null,
         ejectBy: btnEject.parentNode ? btnEject.parentNode.id : null,
         insertBy: btnInsert.parentNode ? btnInsert.parentNode.id : null,
         /* fastLoad is what the MACHINE confirmed; fastOn is what the switch
