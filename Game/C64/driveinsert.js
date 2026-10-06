@@ -47,6 +47,11 @@
   var DRIVE_ART = {
     /* measured off the art, in its own 800 x 367 pixels */
     art: { width: 800, height: 367, travel: 40.79,
+           /* 🆕 2026-10-05 (Phase 5a) — the LEVER's click area, in the art's own
+              pixels: the latch's box (drive-latch.png, x 307-492, y 174-208)
+              where it IS, up or down (+travel), with a little margin. Up, it
+              stops at the slot (y 211), so it never covers a popped-out disk. */
+           lever: { x: [298, 502], up: [164, 211], down: [204, 256] },
            leds: { power: { x: 63.22, y: 275.77, r: 13.25 }, activity: { x: 202.62, y: 274.75, r: 11.24 } } },
     /* 🚫 The latch SLIDES, straight up and down. No rotation, no tilt (his ruling). */
     latch: { dropMs: 340, liftMs: 280, settle: 0.08, swapPauseMs: 380, coverMs: 120, coverInDelayMs: 170 },
@@ -58,6 +63,12 @@
     var pct = function (v, of) { return (v / of * 100) + "%"; };
     r.setProperty("--drive-travel", pct(A.travel, A.height));
     r.setProperty("--drive-travel-u", String(A.travel));
+    r.setProperty("--drive-lever-l", pct(A.lever.x[0], A.width));
+    r.setProperty("--drive-lever-w", pct(A.lever.x[1] - A.lever.x[0], A.width));
+    ["up", "down"].forEach(function (k) {
+      r.setProperty("--drive-lever-" + k + "-t", pct(A.lever[k][0], A.height));
+      r.setProperty("--drive-lever-" + k + "-h", pct(A.lever[k][1] - A.lever[k][0], A.height));
+    });
     [["power", A.leds.power], ["act", A.leds.activity]].forEach(function (p) {
       r.setProperty("--drive-led-" + p[0] + "-x", pct(p[1].x, A.width));
       r.setProperty("--drive-led-" + p[0] + "-y", pct(p[1].y, A.height));
@@ -108,6 +119,11 @@
       lamp: [0.74503, 0.68294, 0.7745, 0.73763],
       wheels: [0.69957, 0.49609, 0.77379, 0.54818],
       reset: [0.79865, 0.49414, 0.82564, 0.55078],
+      /* 🆕 2026-10-05 (Phase 5a) — the PLAY and EJECT keys take clicks: their
+         boxes in datasette-play.png / -eject.png (800 x 436: x 181-248 and
+         449-515, y 339-405) */
+      play: [0.22625, 0.77752, 0.31, 0.92890],
+      eject: [0.56125, 0.77752, 0.64375, 0.92890],
       hingeY: 0.09505
     },
     timing: { keyMs: 140, lidOpenMs: 420, riseMs: 460, lowerMs: 400, lidCloseMs: 360, gapMs: 90, resetPressMs: 140,
@@ -131,7 +147,7 @@
     A.hubs.forEach(function (h, i) { r.setProperty("--ds-hub" + i + "-x", p(h[0])); r.setProperty("--ds-hub" + i + "-y", p(h[1])); });
     r.setProperty("--ds-spin-d", p(A.spindleD));
     A.spindles.forEach(function (s, i) { r.setProperty("--ds-spin" + i + "-x", p(s[0])); r.setProperty("--ds-spin" + i + "-y", p(s[1])); });
-    [["lamp", A.lamp], ["wheels", A.wheels], ["reset", A.reset]].forEach(function (b) {
+    [["lamp", A.lamp], ["wheels", A.wheels], ["reset", A.reset], ["play", A.play], ["eject", A.eject]].forEach(function (b) {
       r.setProperty("--ds-" + b[0] + "-l", p(b[1][0])); r.setProperty("--ds-" + b[0] + "-t", p(b[1][1]));
       r.setProperty("--ds-" + b[0] + "-w", p(b[1][2] - b[1][0])); r.setProperty("--ds-" + b[0] + "-h", p(b[1][3] - b[1][1]));
     });
@@ -370,12 +386,16 @@
        (the slit runs ~16%-84% of the width) */
     slot: { y: 211 / 367, x: 0.5 },
     width: 0.6,                /* of the 1541's width: a 5¼" disk just inside the slit */
+    /* 🆕 2026-10-05 (Phase 5a) — the lever opened: the disk springs out about
+       half an inch, ~10% of a 5¼" disk's height */
+    pop: 0.1,
     timing: {
       riseMs: DATASETTE.timing.riseMs,     /* up from below to the slot: the cassette's rise */
       gapMs: DATASETTE.timing.gapMs,       /* the pause at the slot, both ways */
       lowerMs: DATASETTE.timing.lowerMs,   /* out of sight downward: the cassette's leaving */
       slideMs: 360,                        /* 🆕 into the slot, pushed */
       pullMs: 320,                         /* 🆕 out of the slot, pulled */
+      popMs: 220,                          /* 🆕 (5a) sprung out by the lever */
       flipMs: 520                          /* 🆕 turned over at the slot, Side A <-> Side B */
     }
   };
@@ -390,6 +410,7 @@
     r.setProperty("--dk-slot-y", (DISK.slot.y * 100) + "%");
     r.setProperty("--dk-slot-x", (DISK.slot.x * 100) + "%");
     r.setProperty("--dk-w", (DISK.width * 100) + "%");
+    r.setProperty("--dk-pop", ((1 - DISK.pop) * -100) + "%");
     r.setProperty("--dk-rise-ms", ms(T.riseMs));
     r.setProperty("--dk-slide-ms", ms(T.slideMs));
     r.setProperty("--dk-pull-ms", ms(T.pullMs));
@@ -445,10 +466,12 @@
       st.room = { below: h, disk: Math.round(diskH), short: Math.max(0, Math.round(diskH - h)) };
     }
     function at(phase, how) {
-      sprite.classList.remove("is-ready", "is-below", "is-rising", "is-pulling", "is-lowering");
+      sprite.classList.remove("is-ready", "is-below", "is-rising", "is-pulling", "is-lowering", "is-popped");
       if (how) sprite.classList.add(how);
       if (phase === "ready") sprite.classList.add("is-ready");
       if (phase === "below") sprite.classList.add("is-below");
+      if (phase === "popped") sprite.classList.add("is-popped");
+      win.classList.toggle("is-popped", phase === "popped");
       st.phase = phase;
     }
     function snapTo(phase, back) {
@@ -502,7 +525,7 @@
       measure();
       win.hidden = false;
       fit();
-      snapTo("in", back);
+      snapTo(st.phase === "popped" ? "popped" : "in", back);
       var done = skippable();
       mark("out"); at("ready", "is-pulling");
       return wait(T.pullMs)
@@ -524,7 +547,7 @@
       measure();
       win.hidden = false;
       fit();
-      snapTo("in", fromBack);
+      snapTo(st.phase === "popped" ? "popped" : "in", fromBack);
       var done = skippable();
       mark("out"); at("ready", "is-pulling");
       return wait(T.pullMs)
@@ -538,6 +561,32 @@
         .then(finish(function () { empty(); done(); }), finish(function () { empty(); done(); }));
     }
 
+    /* 🆕 2026-10-05 (Phase 5a) — THE LEVER: in -> popped (out ~half an inch, and
+       it STAYS drawn, clickable, until the lever closes or it leaves) and back.
+       Not skippable: it is short, and a click on it is the player's next move. */
+    function pop(name, side, back) {
+      if (!win || !shown() || st.busy || st.phase === "popped") return Promise.resolve("skipped");
+      st.busy = true; st.trace = [];
+      setLabel(name, side);
+      measure();
+      win.hidden = false;
+      fit();
+      snapTo("in", back);
+      mark("pop"); at("popped", "is-pulling");
+      return wait(T.popMs).then(function () { st.busy = false; return "played"; });
+    }
+    function unpop() {
+      if (!win || st.busy || st.phase !== "popped") return Promise.resolve("skipped");
+      st.busy = true; st.trace = [];
+      mark("in"); at("in");
+      return wait(T.slideMs).then(finish(function () {}));
+    }
+    /* power off, a failed machine: no animation, nothing left drawn */
+    function clear() {
+      if (st.busy) return;
+      win.hidden = true; at("gone");
+    }
+
     function state() {
       var front = sprite && sprite.querySelector(".disk-sprite");
       var turn = front ? getComputedStyle(front).rotate : "";
@@ -549,7 +598,8 @@
                room: st.room };
     }
     return {
-      insert: insert, eject: eject, turnOver: turnOver, fit: fit, state: state,
+      insert: insert, eject: eject, turnOver: turnOver, pop: pop, unpop: unpop, clear: clear, fit: fit, state: state,
+      popped: function () { return st.phase === "popped"; },
       busy: function () { return st.busy; },
       /* RIG-ONLY: print a label without a sequence, to measure its fitting; the
          sprite is shown only for the measuring. 🚫 Nothing in the hub calls it. */

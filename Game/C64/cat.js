@@ -83,6 +83,12 @@
   var btnListing = document.getElementById("btn-listing");
   var btnRun     = document.getElementById("btn-run");
   var btnReset   = document.getElementById("btn-reset");
+  /* 🆕 2026-10-05 (Phase 5a) — Reset's arrow (Hard Reset), the 1541's lever, and
+     the Datasette's PLAY and EJECT keys, all of which now take clicks */
+  var btnResetMore = document.getElementById("btn-reset-more");
+  var leverBtn   = document.getElementById("drive-lever");
+  var dsPlay     = document.getElementById("datasette-play");
+  var dsEject    = document.getElementById("datasette-eject");
   /* 🆕 2026-09-16 — the C64 side panel (his addendum) */
   var screenShell = document.getElementById("screen-shell");
   var sidePanel  = document.getElementById("c64-side");
@@ -1181,9 +1187,12 @@
       btnLoad.dataset.cmd = "RUN";
       btnLoad.textContent = "Run";
     }
+    btnLoad.classList.toggle("is-next", !!(MACHINE && loadMode === "run"));
+    paintDir();
+    paintLever();
     paintDatasette();
   }
-  function loadDefault() { loadMode = "load"; paintLoad(); }
+  function loadDefault() { loadMode = "load"; dirMode = "load"; paintLoad(); }
 
   /* 🆕 2026-10-04 — THE DATASETTE (his rulings, Phase 4): the cassette shows
      while a tape is in, with the game's name printed on its blank label (in
@@ -1210,7 +1219,7 @@
         if (r.type !== "cat:resetdone") throw new Error(String(r.reason || "no reason given"));
         return machineCall({ type: "cat:awaitready", ms: 15000 }, ["cat:atready"], 20000);
       })
-      .then(function () { gameOn = false; loadMode = "load"; });
+      .then(function () { gameOn = false; loadMode = "load"; dirMode = "load"; });
   }
 
   /* =======================================================================
@@ -1287,6 +1296,7 @@
   function closePick(refocus) {
     if (!pickEl || pickEl.hidden) return;
     pickEl.hidden = true;
+    pickEl.classList.remove("is-lever");
     pickBody.textContent = "";
     if (pickAnchor) pickAnchor.setAttribute("aria-expanded", "false");
     pickAnchor = null;
@@ -1310,10 +1320,12 @@
     placePick();
   }
 
-  /* items: [{label, lit, onPick}] */
-  function openPick(anchor, title, items) {
-    if (paused || pauseAsk || busy) return;
+  /* items: [{label, lit, onPick}]. `lever`: the popped-out disk's own menu,
+     which opens while the lever holds the machine paused (5a) */
+  function openPick(anchor, title, items, lever) {
+    if ((paused && !lever) || pauseAsk || busy) return;
     closePick();
+    pickEl.classList.toggle("is-lever", !!lever);
     items.forEach(function (it) {
       var b = document.createElement("button");
       b.type = "button";
@@ -1322,7 +1334,7 @@
       b.disabled = !!it.lit;
       b.setAttribute("aria-pressed", String(!!it.lit));
       b.addEventListener("click", function () {
-        if (paused || busy) return;
+        if ((paused && !lever) || busy) return;
         closePick();
         it.onPick();
       });
@@ -1446,14 +1458,17 @@
   function machineInsert(disk) {
     if (busy) return;
     if (machineOff) { write("the c64 is switched off. power it on first.", "warn"); return; }
+    leverOpen = false; leverPaused = false;   /* 🆕 5a: the outgoing disk leaves from where it is */
     setBusy(true);
-    led.classList.add("on");
+    if (mediumOfDisk(disk) !== "tape") led.classList.add("on");   /* 🔄 5a: the 1541's lamp, not a tape's */
     /* 🆕 2026-09-17 — the drive's red lamp comes on SOLID for the access, and a
        cartridge never lights it at all: a cart is read by the CPU on power-up,
        the drive is not touched, and lighting it would be the corner telling a
        lie about the machine. */
     /* the next Insert clears a ?FILE NOT FOUND blink (his ruling) */
-    paintDrive(isCartridge(disk) ? null : "loading");
+    /* 🔄 2026-10-05 (Phase 5a) — and never for a TAPE: the red light is the
+       1541's, and a tape goes into the Datasette (its counter is the tape's) */
+    paintDrive(isCartridge(disk) || mediumOfDisk(disk) === "tape" ? null : "loading");
     releaseMachineFocus();
     var files = (disk.files || []).map(function (f) { return new URL(f.url, location.href).href; });
     /* 🆕 2026-10-04 — INSERT WHILE A GAME IS RUNNING RESETS FIRST (his ruling).
@@ -1536,6 +1551,7 @@
      prompt. This replaces 2026-09-25's "Eject works without unpausing". */
   function machineEject() {
     if (busy) return;
+    leverOpen = false; leverPaused = false;   /* 🆕 5a: it leaves from where it is; the pause is woken below */
     setBusy(true);
     var was = inserted.displayName.toUpperCase();
     var wake = paused
@@ -1606,6 +1622,7 @@
         learnFor = null; learnWant = null;
         gameOn = false;
         loadMode = "load";
+        dirMode = "load";
         if (why !== "stuck") { write("reset." + (was ? " " + was + " is still in." : ""), "dim"); return null; }
         return machineCall({ type: "cat:awaitready", ms: 15000 }, ["cat:atready"], 20000).then(function () {
           write("the drive stopped answering, so the c64 was reset." + (was ? " " + was + " is still in the drive." : ""), "warn");
@@ -1669,8 +1686,9 @@
   function machineSwap(index) {
     var disk = inserted;
     if (busy || !disk || !disk.files || !disk.files[index] || index === (disk.side || 0)) return;
+    leverOpen = false; leverPaused = false;   /* 🆕 5a: a Change Disk from the lever starts from the popped disk */
     setBusy(true);
-    led.classList.add("on");
+    if (mediumOfDisk(disk) !== "tape") led.classList.add("on");   /* 🔄 5a: the 1541's lamp, not a tape's */
     /* 🆕 2026-10-03 — red SOLID for the swap (it clears a blink, too), and the
        latch comes up, waits, and goes down again around it, as a hand would */
     /* 🔄 2026-10-05 — THE SWAP IS ANIMATED (his ruling, Phase 4b item 4): the
@@ -1680,7 +1698,7 @@
        moment the outgoing disk is gone, and the incoming one rises while the
        core changes the image; the latch drops once both are done. Every swap
        in the corner comes through here (there is no automatic one: line ~1200). */
-    paintDrive("loading");
+    paintDrive(mediumOfDisk(disk) === "tape" ? null : "loading");   /* 🔄 5a: not for a tape */
     var D = DRIVE.disk;
     var animate = mediumOfDisk(disk) !== "tape" && !isCartridge(disk) && !!D;
     var lever, sent;
@@ -1721,6 +1739,7 @@
         if (m.type !== "cat:swapped") throw new Error(String(m.note || "no reason given").replace(/^could not swap: /, ""));
         disk.side = Number(m.index) || 0;
         loadMode = "load";   /* 🆕 2026-10-04 — a waiting Run was for the other disk */
+        dirMode = "load";    /* 🆕 5a: and so was a waiting List */
         write(sideLabel(disk, disk.side).toLowerCase() + " is in the drive.", "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not swap sides: " + err.message, "err"); })
@@ -1733,6 +1752,110 @@
         renderSides(inserted);
         focusMachine();
       });
+  }
+
+
+  /* =======================================================================
+     🆕 2026-10-05 — PHASE 5a: THE LEVER, THE DATASETTE'S KEYS, HARD RESET.
+     Behaviour only (his rulings; layout and art are 5b-5d).
+     THE LEVER (the 1541's latch, a disk in): a click OPENS it, and the disk
+       springs out about half an inch and stays out. The machine PAUSES while it
+       is open, like Help, and only if the lever did the pausing does shutting
+       it resume. Shut again with the disk still in: the disk goes back, the
+       latch drops. With a tape, a cartridge or nothing in, it does nothing (the
+       tape's EJECT key is the tape's way out).
+     THE POPPED-OUT DISK takes a click: Remove (the Eject path: the game ends,
+       back to READY), and for a game with more than one file, Change Disk,
+       listing every disk and side ("Disk 1, Side B", "Disk 3"), the one in lit.
+       ⭐ Change Disk IS machineSwap, the swap button's own path: no second
+       mechanism, and the game keeps going (no reset), as a swap always has.
+     PLAY on the Datasette, with a tape in, presses Load (whatever Load would
+       do: Load, the choice, or Run). EJECT on it takes the tape out (Eject).
+     RESET'S ARROW offers Hard Reset: the disk or tape comes out and the machine
+       restarts (the Eject path). Reset itself is unchanged: soft, media in.
+     ===================================================================== */
+  function leverable() {
+    return !!(MACHINE && machineStarted && !machineOff && inserted && medium === "disk" &&
+              !isCartridge(inserted) && DRIVE.disk && DRIVE.disk.pop);
+  }
+  function paintLever() {
+    if (!leverBtn) return;
+    leverBtn.disabled = !leverable();
+    leverBtn.classList.toggle("is-open", leverOpen);
+    leverBtn.title = !leverable() ? "" : leverOpen ? "Shut the lever: the disk goes back in" : "Open the lever: the disk pops out";
+    if (dsPlay) dsPlay.disabled = !(MACHINE && inserted && medium === "tape");
+    if (dsEject) dsEject.disabled = !(MACHINE && inserted && medium === "tape");
+  }
+  function openLever() {
+    var D = DRIVE.disk;
+    if (leverOpen || busy || !leverable() || D.busy() || driveBay.classList.contains("is-dropping") || driveBay.classList.contains("is-lifting")) return;
+    closePick();
+    leverOpen = true; leverPaused = false;
+    paintLever();
+    var disk = inserted, k = disk.side || 0;
+    latchTo("up").then(function () {
+      if (leverOpen && inserted === disk) return D.pop(disk.displayName, diskWords(disk, k), isSideB(disk, k));
+    });
+    if (paused || pauseAsk) return;            /* already paused by the player: stays theirs */
+    pauseAsk = true;
+    paintPause();
+    machineCall({ type: "cat:pause" }, ["cat:paused", "cat:pausefailed"], 5000)
+      .then(function (m) { if (m.type === "cat:paused") { paused = true; leverPaused = true; } })
+      .catch(function () { /* the lever still opens on a machine that would not stop */ })
+      .then(function () {
+        pauseAsk = false;
+        paintPause();
+        /* shut (or the disk taken) before the pause landed: hand the machine back */
+        if (!leverOpen && leverPaused) { leverPaused = false; pressPause(); }
+      });
+  }
+  function closeLever() {
+    var D = DRIVE.disk;
+    if (!leverOpen || D.busy()) return;
+    leverOpen = false;
+    closePick();
+    paintLever();
+    D.unpop().then(function () { if (!leverOpen && inserted) return latchTo("down"); });
+    if (pauseAsk) return;                      /* openLever's answer will see it shut */
+    var owed = leverPaused && paused;
+    leverPaused = false;
+    if (owed) pressPause(); else focusMachine();
+  }
+  function leverMenu() {
+    if (!leverOpen || !inserted || busy || (DRIVE.disk && DRIVE.disk.busy())) return;
+    if (!pickEl.hidden && pickAnchor === leverBtn) { closePick(); return; }
+    var disk = inserted;
+    var items = [{ label: "Remove", onPick: leverRemove }];
+    if (disk.files && disk.files.length > 1) items.push({ label: "Change Disk…", onPick: function () { leverChange(disk); } });
+    openPick(leverBtn, disk.displayName + ":", items, true);
+  }
+  function leverChange(disk) {
+    if (disk !== inserted || !leverOpen) return;
+    var cur = disk.side || 0;
+    openPick(leverBtn, "Put in the drive:", disk.files.map(function (f, i) {
+      return { label: sideLabel(disk, i), lit: i === cur, onPick: function () { leverSwap(i); } };
+    }), true);
+  }
+  /* Remove = Eject, End Game (it wakes a paused machine itself) */
+  function leverRemove() {
+    if (fullView) setFull(false);
+    ejectDisk();
+  }
+  /* Change Disk = the swap button's machineSwap, on a running machine */
+  function leverSwap(i) {
+    var owed = leverPaused && paused;
+    leverPaused = false;
+    var go = function () { machineSwap(i); };
+    if (!owed) { go(); return; }
+    machineCall({ type: "cat:resume" }, ["cat:resumed", "cat:resumefailed"], 5000)
+      .then(function (m) { if (m.type === "cat:resumed") { paused = false; paintPause(); } })
+      .catch(function () {})
+      .then(go);
+  }
+  function hardReset() {
+    if (busy) return;
+    if (inserted) { if (fullView) setFull(false); ejectDisk(); }
+    else machineReset();
   }
 
   /* 🆕 2026-09-17 — LOAD, AND THEN RUN IF THERE IS ANYTHING TO RUN.
@@ -1753,7 +1876,12 @@
     var seq = resetSeq;
     learnFor = null; learnWant = null;
     setBusy(true);
-    paintDrive("loading");     /* the next Load clears a blink, too */
+    dirMode = "load";          /* 🆕 5a: a LOAD replaces what a List would list */
+    /* 🔄 2026-10-05 (Phase 5a) — THE RED LIGHT IS THE 1541's: a TAPE load never
+       lights it (it lit on every Load, tapes included); the Datasette's counter
+       and hubs are the tape's. The next disk Load clears a blink, too. */
+    var onDisk = medium !== "tape";
+    paintDrive(onDisk ? "loading" : null);
     machineCall({ type: "cat:type", text: String(cmd) + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
       .then(function (m) {
         if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
@@ -1801,7 +1929,7 @@
         if (err.byPowerOff) return;
         write(/^could not type run/.test(err.message) ? err.message + "." : "could not load: " + err.message, "err");
       })
-      .then(function () { paintDrive(notFound ? "failed" : null); paintLoad(); setBusy(false); focusMachine(); });
+      .then(function () { paintDrive(notFound && onDisk ? "failed" : null); paintLoad(); setBusy(false); focusMachine(); });
   }
 
   /* 🆕 2026-10-04 — the Run half of the one Load button: types RUN, and the
@@ -1814,6 +1942,7 @@
       .then(function (m) {
         if (m.type !== "cat:typed") throw new Error(String(m.reason || "no reason given"));
         loadMode = "load";
+        dirMode = "load";
         gameOn = true;
         applyInput(disk);
       })
@@ -1826,10 +1955,17 @@
      failed LOAD"$" (an empty drive) is said, and LIST is not typed after it,
      since LIST would then print whatever program is in memory. Loading "$"
      replaces that program, so a waiting Run goes back to Load too. */
+  /* 🔄 2026-10-05 (Phase 5a, his ruling) — TWO PRESSES, like Load and Run: the
+     button types LOAD"$",8, and once the directory is in it becomes List
+     (bold, lit); List types LIST and it goes back. A tape has no directory, so
+     with a tape in it is off (paintDir). Anything that replaces the program in
+     memory (a load, a reset, an eject, a swap) puts it back to Load "$",8. */
   function pressDirectory() {
     if (busy) return;
+    if (dirMode === "list") { typeList(); return; }
+    if (medium === "tape") return;
     setBusy(true);
-    var dir = btnList.dataset.cmd;
+    var dir = 'LOAD"$",8';
     var seq = resetSeq;
     machineCall({ type: "cat:type", text: dir + "\n" }, ["cat:typed", "cat:typefailed"], 30000)
       .then(function (m) {
@@ -1844,11 +1980,35 @@
                 "the directory did not finish, so list was not typed.", "warn");
           return;
         }
-        return machineCall({ type: "cat:type", text: "LIST\n" }, ["cat:typed", "cat:typefailed"], 30000)
-          .then(function (t) { if (t.type !== "cat:typed") throw new Error("could not type list: " + String(t.reason || "no reason given")); });
+        dirMode = "list";
+        write("directory loaded. press list to see it.", "dim");
       })
       .catch(function (err) { if (!err.byPowerOff) write("could not read the directory: " + err.message, "err"); })
       .then(function () { paintLoad(); setBusy(false); focusMachine(); });
+  }
+  function typeList() {
+    if (busy) return;
+    setBusy(true);
+    machineCall({ type: "cat:type", text: "LIST\n" }, ["cat:typed", "cat:typefailed"], 30000)
+      .then(function (t) {
+        if (t.type !== "cat:typed") throw new Error(String(t.reason || "no reason given"));
+        dirMode = "load";
+      })
+      .catch(function (err) { if (!err.byPowerOff) write("could not type list: " + err.message + ".", "err"); })
+      .then(function () { paintLoad(); setBusy(false); focusMachine(); });
+  }
+  /* the Directory button says what it will type: Load "$",8, or List */
+  function paintDir() {
+    if (!MACHINE) return;
+    var tape = medium === "tape";
+    var list = dirMode === "list" && !tape;
+    btnList.dataset.cmd = list ? "LIST" : 'LOAD"$",8';
+    btnList.textContent = list ? "List" : "Load \"$\",8";
+    btnList.classList.toggle("is-next", list);
+    btnList.disabled = noCore || tape;
+    btnList.title = tape ? "A tape has no directory: this is for a disk in the 1541"
+      : list ? "Types LIST: shows the directory that was just loaded"
+      : 'Types LOAD"$",8: loads the disk\'s directory. Then the button says List.';
   }
 
   /* One entry point for every command button and for the tooling surface. */
@@ -2164,6 +2324,9 @@
      (never on "started"); Reset, Eject, Swap and Directory put it back. */
   var gameOn    = false;
   var loadMode  = "load";
+  var dirMode   = "load";  /* 🆕 5a: "list" once LOAD"$",8 is in and LIST is the next press */
+  var leverOpen = false;   /* 🆕 5a: the 1541's lever is open and the disk sticks out */
+  var leverPaused = false; /* 🆕 5a: the lever paused the machine and owes it a resume */
   var autoRun   = true;    /* rig-only switch (__cat.autoRun), to reach the "run" state on demand */
   var pauseAsk  = false;   /* a pause or resume is on its way */
   var fullView  = false;
@@ -2176,7 +2339,7 @@
   var loadHome  = document.createComment(" the Start group's place on the deck ");
   /* the parts a paused machine does not take; Power, Eject and Full Screen are
      deliberately not in it */
-  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-arrows button, #c64-port1, #c64-port2, #c64-pick button, #btn-load";
+  var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-arrows button, #c64-port1, #c64-port2, #c64-pick button, #btn-load, #datasette-play";
 
   function setBusy(on) {
     busyOwn = on;
@@ -2231,6 +2394,10 @@
   function forgetPause() {
     gameOn = false;          /* the machine went away, and the game with it */
     loadMode = "load";
+    dirMode = "load";
+    /* 🆕 5a: and the lever is shut on nothing (a power switch moves no lever) */
+    leverOpen = false; leverPaused = false;
+    if (DRIVE.disk && DRIVE.disk.clear) DRIVE.disk.clear();
     paused = false;
     pauseAsk = false;
     helpPaused = false;
@@ -2423,6 +2590,25 @@
     paintEjectIcon();
     btnEject.title = "Eject, End Game: take the disk out, back to READY.";
     btnReset.hidden = false;
+    /* 🆕 2026-10-05 (Phase 5a) — the split's arrow, the lever, the Datasette's keys */
+    btnResetMore.hidden = false;
+    btnResetMore.addEventListener("click", function () {
+      if (busy) return;
+      if (!pickEl.hidden && pickAnchor === btnResetMore) { closePick(true); return; }
+      openPick(btnResetMore, "Hard Reset takes the disk or tape out:", [{ label: "Hard Reset", onPick: hardReset }]);
+    });
+    leverBtn.addEventListener("click", function () { if (leverOpen) closeLever(); else openLever(); });
+    document.getElementById("drive-disk").addEventListener("click", leverMenu);
+    dsPlay.addEventListener("click", function () {
+      if (!busy && medium === "tape" && inserted) btnLoad.click();
+    });
+    dsEject.addEventListener("click", function () {
+      if (!busy && medium === "tape" && inserted) btnEject.click();
+    });
+    /* none of them takes the keyboard from the machine (the deck's rule, §G) */
+    [btnResetMore, leverBtn, dsPlay, dsEject, document.getElementById("drive-disk")].forEach(function (el) {
+      el.addEventListener("mousedown", function (e) { if (machineStarted) e.preventDefault(); });
+    });
     /* 🆕 2026-09-17 — the fast loader, off until asked for. It PAINTS FROM THE
        MACHINE'S ANSWER, never from the click: changeSettingOption can land in
        the settings object and reach nothing at all if the core's option table
@@ -2444,8 +2630,7 @@
         .then(function () { focusMachine(); });
     });
     paintFast();
-    btnList.textContent = "Load \"$\",8 + List";
-    btnList.title = 'Types LOAD"$",8, then LIST';
+    paintDir();   /* 🔄 5a: Load "$",8, then List (two presses) */
     btnReset.title = "Reset the C64, back to READY. The disk stays in the drive (" + HOTKEY_EXIT + ")";
     deckNote.hidden = false;
     paintLoad();
@@ -3153,6 +3338,8 @@
     if (!paused || !e.target.closest) return;
     var b = e.target.closest(PAUSE_LOCKED);
     if (!b || b === btnEject || b === btnPower) return;
+    /* 🆕 5a: the popped-out disk's menu works while the lever holds the pause */
+    if (pickEl.classList.contains("is-lever") && b.closest("#c64-pick")) return;
     e.preventDefault();
     e.stopImmediatePropagation();
   }, true);
@@ -3390,6 +3577,9 @@
                  key: btnEject.classList.contains("is-key"),
                  lines: Array.prototype.map.call(btnEject.querySelectorAll(".eject-word > span"), function (s) { return s.textContent; }) },
         swapSentAt: swapSentAt,
+        /* 🆕 5a: the lever, and what the Directory button is waiting to do */
+        lever: { open: leverOpen, paused: leverPaused, enabled: !!leverBtn && !leverBtn.disabled },
+        dirMode: dirMode,
         ejectBy: btnEject.parentNode ? btnEject.parentNode.id : null,
         insertBy: btnInsert.parentNode ? btnInsert.parentNode.id : null,
         /* fastLoad is what the MACHINE confirmed; fastOn is what the switch

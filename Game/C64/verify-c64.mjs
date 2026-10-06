@@ -536,8 +536,9 @@ async function runRig() {
        that becomes Run when there is something to run, and Eject says it ends the game */
     const dirText = String(await ev("document.getElementById('btn-list').textContent")).replace(/\u00a0/g, " ");
     const ejText = await ev("document.getElementById('btn-eject').querySelector('.eject-word').textContent");
-    ok(!deck.list && !deck.run && deck.reset && dirText === 'Load "$",8 + List' && ejText === "Eject End Game",
-       `the deck has one Directory button, no separate List or Run, and Reset; Eject says it ends the game   [${dirText} / ${ejText}]`);
+    const moreShown = await ev("!document.getElementById('btn-reset-more').hidden && document.getElementById('btn-reset-more').parentNode === document.getElementById('btn-reset').parentNode");
+    ok(!deck.list && !deck.run && deck.reset && dirText === 'Load "$",8' && ejText === "Eject End Game" && moreShown,
+       `the deck has one Directory button, no separate List or Run, and Reset with its arrow beside it; Eject says it ends the game   [${dirText} / ${ejText}]`);
     ok(await ev("document.getElementById('btn-insert').parentNode.id === 'crates' && document.getElementById('btn-insert').classList.contains('btn--insert')"),
        "Insert Disk sits where the disks are, styled as the primary action (his addendum)");
     /* his F-key addendum: each hint names the key that emu.js and cat.js actually catch */
@@ -696,7 +697,14 @@ async function runRig() {
       return toReady(after(await screen(), /^LIST$/)).filter(Boolean);
     };
     await clearScreen();
-    await click("#btn-list");               // LOAD "$",8, then LIST, by itself (Phase 2)
+    await click("#btn-list");               // 🔄 5a: LOAD "$",8 ...
+    await idle();
+    const dirNext = JSON.parse(await ev(`JSON.stringify({ t: document.getElementById("btn-list").textContent, next: document.getElementById("btn-list").classList.contains("is-next"),
+      cmd: document.getElementById("btn-list").dataset.cmd, mode: __cat.corner().dirMode })`));
+    const noListYet = !after(await screen(), /^LOAD"\$",8$/).includes("LIST");
+    ok(dirNext.t === "List" && dirNext.next && dirNext.cmd === "LIST" && dirNext.mode === "list" && noListYet,
+       `5a: the Directory button types LOAD "$",8 and then BECOMES List (lit), typing nothing more by itself   [${dirNext.t}, lit ${dirNext.next}]`);
+    await click("#btn-list");               // ... then LIST
     await idle();
     /* 🚨 measured failure: a clicked Load button kept focus, and the next Space
        typed by hand pressed it again */
@@ -704,7 +712,10 @@ async function runRig() {
        `clicking a deck button leaves the keyboard in the machine   [focus: ${await ev("document.activeElement.id || document.activeElement.tagName")}]`);
     const tDirB = await untilScreen((r) => after(r, /^LOAD"\$",8$/).includes("LIST"), 60000);
     const dirButton = await directory();
-    ok(tDirB >= 0 && /^0 "/.test(dirButton[0] || ""), `one Directory button types LOAD "$",8, then LIST by itself: the disk's directory   [${dirButton[0]} … ${dirButton.length} lines${dirButton.length ? "" :
+    const dirBack = String(await ev("document.getElementById('btn-list').textContent")).replace(/\u00a0/g, " ");
+    ok(dirBack === 'Load "$",8' && !(await ev("document.getElementById('btn-list').classList.contains('is-next')")),
+       `and List types LIST, and the button goes back to Load "$",8   [${dirBack}]`);
+    ok(tDirB >= 0 && /^0 "/.test(dirButton[0] || ""), `the two presses give the disk's directory   [${dirButton[0]} … ${dirButton.length} lines${dirButton.length ? "" :
        "; screen: " + (await screen()).filter(Boolean).slice(-6).join(" / ") + "; note: " + (await ev("__cat.note()")) + "; busy " + (await ev("__cat.machine().busy"))}]`);
     await clearScreen();
     await type('LOAD"$",8\n');
@@ -857,7 +868,15 @@ async function runRig() {
     ok(trapsTape === "enabled", `with a tape in, the traps a .T64 needs are on   [${trapsTape}]`);
     const count0 = await ev("__cat.corner().tape.count");
     const playBefore = await ev("__cat.corner().tape.play");
-    await click("#btn-load");
+    /* 🆕 5a: a tape has no directory, and the 1541's lever is not the tape's */
+    const tapeParts = JSON.parse(await ev(`JSON.stringify({ dir: document.getElementById("btn-list").disabled, lever: __cat.corner().lever.enabled,
+      play: !document.getElementById("datasette-play").disabled, ej: !document.getElementById("datasette-eject").disabled })`));
+    ok(tapeParts.dir && !tapeParts.lever && tapeParts.play && tapeParts.ej,
+       `5a: with a tape in, Directory is off (a tape has none), the 1541's lever does nothing, the Datasette's PLAY and EJECT take clicks   [${JSON.stringify(tapeParts)}]`);
+    /* 🆕 5a: the Datasette's PLAY does what Load does; and the 1541's red light stays DARK for a tape */
+    await ev(`(function () { clearInterval(window.__redId); window.__red = 0; window.__redId = setInterval(function () {
+      if (__cat.corner().lamps.loading || __cat.corner().lamps.failed) window.__red++; }, 30); })()`);
+    await click("#datasette-play");
     /* 🆕 2026-10-04 — PLAY goes down when the load starts, BEFORE anything turns */
     const tPlay = await until("__cat.corner().tape.play", 20000, 20);
     const playFirst = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
@@ -885,6 +904,8 @@ async function runRig() {
     await wait(1200);
     const cLater = JSON.parse(await ev("JSON.stringify(__cat.corner().tape)"));
     ok(!cEnd.play && !cLater.play, `and the PLAY key comes back up when the load ends   [${cEnd.play}]`);
+    const redSeen = await ev("clearInterval(window.__redId), window.__red");
+    ok(tPlay >= 0 && redSeen === 0, `5a: the Datasette's PLAY key started that load (as Load does), and the 1541's red light never lit for the tape   [red samples ${redSeen}]`);
     ok(!cEnd.spinning && cEnd.count > count0 && cLater.count === cEnd.count && cLater.shown === String(cEnd.count).padStart(3, "0"),
        `the counter counted up during the load, stopped at its end, and keeps its value   [${count0} -> ${cEnd.count}, then ${cLater.shown}]`);
     /* and 999 wraps to 000 (the rig sets it near the top, then runs the motor) */
@@ -916,14 +937,14 @@ async function runRig() {
     await wait(400);
     await ev("CAT_DRIVE.tape.rigCount(25)");   /* a known, non-zero value to carry through the eject */
     const cPreEject = await ev("__cat.corner().tape.count");
-    await click("#btn-eject");
+    await click("#datasette-eject");        /* 🆕 5a: the Datasette's own EJECT key */
     const tLidOut = await until("__cat.corner().tape.lid === 'open'", 3000, 30);
     await idle();
     await until("!__cat.corner().tape.busy", 5000, 50);
     const tFresh = await untilScreen((r) => r[1].trim() === "**** COMMODORE 64 BASIC V2 ****" && r[5] === "READY." && !r.includes(" 4321"), 20000);
     const ejLamps = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
     ok(tFresh >= 0 && !ejLamps.latch.down && ejLamps.lamps.power === true && !(await ev("__cat.machine().gameOn")),
-       `Eject is a full stop: the boot screen's READY., latch up, green on   [${took(tFresh)}; ${(await screen()).filter(Boolean).slice(0, 3).join(" / ")}]`);
+       `the Datasette's EJECT key is Eject, a full stop: the boot screen's READY., latch up, green on   [${took(tFresh)}; ${(await screen()).filter(Boolean).slice(0, 3).join(" / ")}]`);
     const ej = JSON.parse(await ev(`JSON.stringify({ inserted: __cat.inserted(), latch: __cat.corner().latch.down,
       cmd: document.getElementById("btn-load").dataset.cmd })`));
     ok(ej.inserted === null && ej.cmd === 'LOAD"*",8,1',
@@ -1671,6 +1692,107 @@ async function runRig() {
        .getBoundingClientRect() on null THROWS, which unwinds to this file's one
        catch and silently takes §L, §K and §Z down with it — a whole run lost to
        one deleted element, reported as a single failure. */
+
+    /* --- T. 🆕 2026-10-05 — PHASE 5a: the lever, Change Disk, Remove, Hard Reset ----
+       His rulings (behaviour only). The lever opens: the disk pops out ~half an
+       inch, the machine pauses; shut, it goes back and resumes. The popped disk's
+       menu: Remove (the game ends), and for a set, Change Disk, which is the swap
+       button's own machineSwap (no reset: what is on the screen stays). */
+    section("T. 5a: the 1541's lever pops the disk and pauses; its menu removes or changes the disk; Hard Reset");
+    const tClickAt = async (x, y) => {
+      wc.sendInputEvent({ type: "mouseDown", x, y, button: "left", clickCount: 1 });
+      await wait(40);
+      wc.sendInputEvent({ type: "mouseUp", x, y, button: "left", clickCount: 1 });
+      await wait(120);
+    };
+    /* the popped disk shows only below the slot: click its visible strip */
+    const tClickPopped = async () => {
+      const r = JSON.parse(await ev(`JSON.stringify((function () { var w = document.getElementById("drive-diskwin").getBoundingClientRect(),
+        d = document.getElementById("drive-disk").getBoundingClientRect(); return { x: Math.round(d.left + d.width / 2), y: Math.round(Math.min(d.bottom, w.bottom) - 4), top: w.top }; })())`));
+      await tClickAt(r.x, r.y);
+      return r;
+    };
+    const lv = () => ev("JSON.stringify({ lever: __cat.corner().lever, paused: __cat.machine().paused, disk: __cat.corner().disk, latch: __cat.corner().latch })").then(JSON.parse);
+    const tPair = (await ev("__cat.disks().map(function (d) { return { id: d.id, name: d.displayName, n: (d.files || []).length }; })")).find((d) => d.name === SWAP_TITLE);
+    await insertRig(tPair.id);
+    await clearScreen();
+    await type("PRINT 5150\n");
+    await untilScreen((r) => r.includes(" 5150"), 6000);
+    await click("#drive-lever");
+    await until("__cat.machine().paused && __cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    const tL1 = await lv();
+    const tfA = await frameNow(); await wait(600); const tfB = await frameNow();
+    ok(tL1.lever.open && tL1.lever.paused && tL1.paused && tL1.disk.shown && tL1.disk.phase === "popped" && !tL1.latch.down && tfB === tfA,
+       `the lever opens: latch up, the disk pops out and stays drawn, and the machine PAUSES (the clock stops)   [${tL1.disk.phase}; frames ${tfA} -> ${tfB}]`);
+    await tClickPopped();
+    let tPk = await pick();
+    ok(!!tPk && tPk.options.map((o) => o.label).join("|") === "Remove|Change Disk…",
+       `a click on the popped-out disk offers Remove and Change Disk (a set)   [${tPk ? tPk.options.map((o) => o.label).join("|") : "none"}]`);
+    await click("#c64-pick .c64-pick__opt:nth-of-type(2)");
+    tPk = await pick();
+    ok(!!tPk && tPk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") === "Disk 1, Side A*|Disk 1, Side B",
+       `Change Disk lists the set's disks and sides, the one in lit   [${tPk ? tPk.options.map((o) => o.label + (o.lit ? "*" : "")).join("|") : "none"}]`);
+    await recStart();
+    await click("#c64-pick .c64-pick__opt:nth-of-type(2)");
+    const tChg = await until(`${DISK_LINE} === 'Disk 1, Side B'`, 30000);
+    await idle();
+    await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    const tRecCh = (await recStop()).filter((x) => x.s);
+    const tL2 = await lv();
+    ok(tChg >= 0 && tRecCh.some((x) => /flip/.test(x.tr)) && tRecCh[0].p !== "below" && !tL2.lever.open && !tL2.paused && tL2.latch.down && !tL2.disk.shown,
+       `picking Disk 1, Side B: the swap button's own path (turned over, from where it stuck out), resumed, lever shut, latch down   [${took(tChg)}; ${[...new Set(tRecCh.map((x) => x.p + ":" + x.tr))].join(" > ")}]`);
+    ok((await screen()).some((r) => r === " 5150") && (await frameNow()) > tfB,
+       "and nothing was reset: what was on the screen is still there, and the machine runs (progress kept)");
+    /* shut with the disk still in: back in, resumed */
+    await click("#drive-lever");
+    await until("__cat.machine().paused && __cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy", 5000, 30);
+    await click("#drive-lever");
+    await until("!__cat.machine().paused && !__cat.corner().disk.shown && __cat.corner().latch.down && !__cat.corner().latch.moving", 5000, 30);
+    const tL3 = await lv();
+    const tfC = await frameNow(); await wait(500);
+    ok(!tL3.lever.open && !tL3.paused && tL3.latch.down && !tL3.disk.shown && (await frameNow()) > tfC && (await ev("__cat.inserted()")) === tPair.id,
+       `shutting the lever with the disk still in: it goes back in, the latch drops, and the machine RESUMES   [${JSON.stringify(tL3.lever)}]`);
+    /* Remove: the game ends, back to READY */
+    await click("#drive-lever");
+    await until("__cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy", 5000, 30);
+    await tClickPopped();
+    await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
+    await idle();
+    await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    const tRemove = await untilScreen((r) => r[5] === "READY." && !r.includes(" 5150"), 20000);
+    const tL4 = await lv();
+    ok(tRemove >= 0 && (await ev("__cat.inserted()")) === null && !tL4.paused && !tL4.lever.open && !tL4.latch.down && !tL4.disk.shown,
+       `Remove takes the disk out and ends the game: the boot screen's READY., not paused, latch up   [${took(tRemove)}]`);
+    /* a single disk, single-sided: Remove only */
+    await insertRig(DISK.id);
+    await click("#drive-lever");
+    await until("__cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy", 5000, 30);
+    await tClickPopped();
+    tPk = await pick();
+    ok(!!tPk && tPk.options.map((o) => o.label).join("|") === "Remove", `a single disk offers Remove only   [${tPk ? tPk.options.map((o) => o.label).join("|") : "none"}]`);
+    await click("#c64-pick .c64-pick__cancel");
+    await click("#drive-lever");
+    await until("!__cat.machine().paused && !__cat.corner().disk.shown && __cat.corner().latch.down && !__cat.corner().latch.moving", 5000, 30);
+    /* Reset is soft (the disk stays); its arrow's Hard Reset takes it out */
+    await click("#btn-reset");
+    await idle();
+    ok((await ev("__cat.inserted()")) === DISK.id && (await ev("__cat.corner().latch.down")),
+       "Reset is soft: back to READY with the disk still in, latch down");
+    await clearScreen();
+    await type("PRINT 6502\n");
+    await untilScreen((r) => r.includes(" 6502"), 6000);
+    await click("#btn-reset-more");
+    tPk = await pick();
+    ok(!!tPk && tPk.options.map((o) => o.label).join("|") === "Hard Reset", `Reset's arrow offers Hard Reset   [${tPk ? tPk.title + " " + tPk.options.map((o) => o.label).join("|") : "none"}]`);
+    await click("#c64-pick .c64-pick__opt:nth-of-type(1)");
+    await idle();
+    await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    const tHardR = await untilScreen((r) => r[1].trim() === "**** COMMODORE 64 BASIC V2 ****" && r[5] === "READY." && !r.includes(" 6502"), 20000);
+    ok(tHardR >= 0 && (await ev("__cat.inserted()")) === null && !(await ev("__cat.corner().latch.down")),
+       `Hard Reset takes the disk out and restarts the machine: the boot screen, latch up, drive empty   [${took(tHardR)}]`);
+    ok((await ev("document.activeElement === document.getElementById('machine-frame')")),
+       `and none of these took the keyboard from the machine   [focus: ${await ev("document.activeElement.id || document.activeElement.tagName")}]`);
+
     section("J. the positional keymap: every measured key types its character");
     const card = JSON.parse(await ev(`JSON.stringify(__cat.keycard())`));
     ok(card.length >= 17 && ['"', "*", ":", "@"].every((c) => card.some((r) => r.c64 === c)),
@@ -2052,7 +2174,7 @@ async function runRig() {
     ok(gOf("deck-start").label === "Start" && gOf("deck-start").buttons.join(",") === "btn-load",
        `START holds the one Load / Run button   [${JSON.stringify(gOf("deck-start"))}]`);
     ok(gOf("deck-dir").label === "Directory" && gOf("deck-dir").buttons.join(",") === "btn-list",
-       `DIRECTORY holds the one Load "$",8 + List button   [${JSON.stringify(gOf("deck-dir"))}]`);
+       `DIRECTORY holds the one Load "$",8 / List button   [${JSON.stringify(gOf("deck-dir"))}]`);
     const etch = JSON.parse(await ev(`JSON.stringify(["deck-start", "deck-dir"].map(function (id) {
       var g = document.getElementById(id), s = getComputedStyle(g), l = getComputedStyle(g.querySelector(".deck-group__label"));
       return { border: s.borderTopStyle, w: s.borderTopWidth, label: l.display, shown: g.getBoundingClientRect().width > 0 }; }))`));

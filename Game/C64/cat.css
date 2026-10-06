@@ -1804,6 +1804,42 @@ html.cat-link #cat { visibility: hidden; }
 .disk-sprite__side { font-size: .82em; font-weight: 600; color: #8a2a1e; }
 .disk-sprite__side:empty { display: none; }
 
+/* ---- 🆕 2026-10-05 — PHASE 5a: THE CORNER'S PARTS TAKE CLICKS (behaviour only) ----
+   · THE LEVER: an invisible button over the latch, where the latch IS (up or
+     down; driveinsert.js DRIVE_ART.lever). Open: the disk springs out ~half an
+     inch (DISK.pop) and stays drawn, and only then takes a click (its menu).
+   · THE DATASETTE's PLAY and EJECT keys, invisible buttons over their art.
+   · RESET is split: Reset, and an arrow for Hard Reset.
+   · RUN and LIST, the next thing to press, share one look: the Insert button's amber. */
+.drive1541__lever {
+  position: absolute; z-index: 3;
+  left: var(--drive-lever-l); width: var(--drive-lever-w);
+  top: var(--drive-lever-up-t); height: var(--drive-lever-up-h);
+  padding: 0; border: 0; background: transparent; cursor: pointer;
+}
+#drive-bay.is-latched .drive1541__lever { top: var(--drive-lever-down-t); height: var(--drive-lever-down-h); }
+.drive1541__lever:disabled { cursor: default; }
+.drive1541__disk.is-popped { transform: translateY(var(--dk-pop)); }
+.drive1541__diskwin.is-popped { z-index: 2; }
+.drive1541__diskwin.is-popped .drive1541__disk { pointer-events: auto; cursor: pointer; }
+.datasette__hit {
+  position: absolute; z-index: 4;
+  padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 10%;
+}
+.datasette__hit--play { left: var(--ds-play-l); top: var(--ds-play-t); width: var(--ds-play-w); height: var(--ds-play-h); }
+.datasette__hit--eject { left: var(--ds-eject-l); top: var(--ds-eject-t); width: var(--ds-eject-w); height: var(--ds-eject-h); }
+.datasette__hit:disabled { cursor: default; }
+.reset-split { display: inline-flex; align-items: stretch; }
+.reset-split > #btn-reset:not([hidden]) + .reset-split__more { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; padding-left: .5em; padding-right: .5em; }
+.reset-split > #btn-reset:not([hidden]) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+#btn-load.is-next, #btn-list.is-next {
+  font-weight: 800;
+  color: #2a1c00;
+  background: linear-gradient(#ffe9a6, #f2bd45);
+  border-color: #a8791c;
+  box-shadow: 0 2px 0 #a8791c, inset 0 1px 0 #fff6d8, 0 0 10px 1px rgba(255, 196, 64, .45);
+}
+
 /* the lamps sit BEHIND the body and show through its two holes */
 #drive-lamps { position: absolute; inset: 0; }
 .drive-lamp {

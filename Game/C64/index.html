@@ -173,7 +173,9 @@
         button). A TAPE: the Datasette's EJECT key, down while a tape is in or going.
         cat.js sets data-icon; cat.css shows them in the corner only. --><span class="eject-icon eject-icon--latch" aria-hidden="true"><span class="eject-icon__art"><img class="eject-icon__body" src="drive/drive-body.png" alt=""><img class="eject-icon__cover" src="drive/drive-cover.png" alt=""><img class="eject-icon__latch" src="drive/drive-latch.png" alt=""></span></span><span class="eject-icon eject-icon--key" aria-hidden="true"><span class="eject-icon__art"><img class="eject-icon__base" src="datasette/datasette-base.png" alt=""><img class="eject-icon__key" src="datasette/datasette-eject.png" alt=""></span></span><span class="eject-word">Eject</span></button>
       <!-- the real C64's way back to READY. — his word, Reset. Cracked mode only. -->
-      <button class="btn" id="btn-reset" type="button" hidden>Reset<span class="btn__hint" id="btn-reset-hint" aria-hidden="true"></span></button>
+      <!-- 🆕 2026-10-05 (Phase 5a) — A SPLIT BUTTON: Reset (soft, the medium stays
+           in) and its arrow, which offers Hard Reset (the medium comes out). -->
+      <span class="reset-split" id="reset-split"><button class="btn" id="btn-reset" type="button" hidden>Reset<span class="btn__hint" id="btn-reset-hint" aria-hidden="true"></span></button><button class="btn reset-split__more" id="btn-reset-more" type="button" hidden aria-haspopup="true" aria-expanded="false" aria-label="More resets" title="More resets: Hard Reset">&#9662;</button></span>
 
       <div id="drive">
         <span id="drive-led" aria-hidden="true"></span>
@@ -384,6 +386,9 @@
         <span class="datasette__wheel"><span class="datasette__wheel-strip"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>0</i></span></span>
         <span class="datasette__wheel"><span class="datasette__wheel-strip"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>0</i></span></span>
       </div>
+      <!-- 🆕 2026-10-05 (Phase 5a) — PLAY does what Load does with a tape in; EJECT takes the tape out -->
+      <button type="button" class="datasette__hit datasette__hit--play" id="datasette-play" tabindex="-1" aria-label="Play: load the tape"></button>
+      <button type="button" class="datasette__hit datasette__hit--eject" id="datasette-eject" tabindex="-1" aria-label="Eject the tape"></button>
       <button type="button" class="datasette__reset" id="datasette-reset" tabindex="-1"
               aria-label="Reset the tape counter to 000" title="Reset the counter to 000"></button>
       <img class="datasette__lid" id="datasette-lid" src="datasette/datasette-lid.png" alt="">
@@ -498,6 +503,10 @@
         </div>
         <img class="drive1541__cover" src="drive/drive-cover.png" alt="" width="800" height="367">
         <img class="drive1541__latch" src="drive/drive-latch.png" alt="" width="800" height="367">
+        <!-- 🆕 2026-10-05 (Phase 5a) — THE LEVER TAKES A CLICK: open, the disk pops
+             out half an inch and a running game pauses; shut, it goes back in and
+             the game resumes. Its box follows the latch (driveinsert.js DRIVE_ART). -->
+        <button type="button" class="drive1541__lever" id="drive-lever" tabindex="-1" aria-label="Open or close the 1541's lever"></button>
       </div>
     </div>
     <div id="detail-title">&mdash;</div>
