@@ -1350,6 +1350,16 @@ html.cat-link #cat { visibility: hidden; }
   color: #2b2517;
   box-shadow: inset 0 1px 0 #fffaea, 0 0 8px rgba(255, 212, 121, .6);
 }
+/* 🆕 2026-10-07 (his ruling, style only) — ON, the "Fast Load" label lights the
+   way List and Run do when lit: bold, on the same amber. It hangs off .is-on, so
+   it follows the machine's confirmed setting exactly as the pill does. */
+.c64-fast .c64-part__label { padding: 1px 4px; border-radius: 3px; }
+.c64-fast.is-on .c64-part__label {
+  font-weight: 800;
+  color: #2a1c00;
+  background: linear-gradient(#ffe9a6, #f2bd45);
+  box-shadow: 0 1px 0 #a8791c, 0 0 8px 1px rgba(255, 196, 64, .45);
+}
 .c64-fast:disabled { cursor: not-allowed; filter: brightness(.55) grayscale(.6); }
 
 /* power: a rocker in its housing, and the red light */

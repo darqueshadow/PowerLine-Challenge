@@ -1928,10 +1928,21 @@ async function runRig() {
     const fOn = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
     ok(tFastOn >= 0 && fOn.fastOn && (await fastPill()) === "On",
        `one click: the machine confirms it, and the switch says On   [${took(tFastOn)}, ${await fastPill()}]`);
+    /* 🆕 2026-10-07 (his ruling) — ON, the label is lit like List and Run: bold, amber; OFF, plain again.
+       Checked here and in the full-screen strip, which carries Fast Load too since 5b */
+    const FASTLOOK = `(function () { var l = getComputedStyle(document.querySelector("#btn-fastload .c64-part__label")); return JSON.stringify({ w: Number(l.fontWeight), c: l.color, bg: l.backgroundImage }); })()`;
+    const litLook = (f) => f.w >= 800 && f.c === "rgb(42, 28, 0)" && /255, 233, 166.*242, 189, 69/.test(f.bg);
+    const fLitR = JSON.parse(await ev(FASTLOOK));
+    await ev("__cat.full(true)"); await until("__cat.machine().full", 3000); await wait(300);
+    const fLitF = JSON.parse(await ev(FASTLOOK));
+    await ev("__cat.full(false)"); await until("!__cat.machine().full", 3000);
+    ok(litLook(fLitR) && litLook(fLitF), `Fast Load on: its label is lit, bold and amber, in the deck and in the full-screen strip   [${fLitR.w} ${fLitR.c}]`);
     await click("#btn-fastload");
     const tFastOff = await until("__cat.corner().fastLoad === false", 8000);
     ok(tFastOff >= 0 && !(await ev("__cat.corner().fastOn")) && (await fastPill()) === "Off",
        `and again: Off   [${took(tFastOff)}, ${await fastPill()}]`);
+    const fUnlit = JSON.parse(await ev(FASTLOOK));
+    ok(!litLook(fUnlit) && fUnlit.bg === "none" && fUnlit.w <= 700, `and off, the label is back to its normal look   [${fUnlit.w} ${fUnlit.bg}]`);
     /* 🆕 2026-10-04 — Phase 3 shifted the deck right for the Datasette's room:
        measured at THIS window, Help once ran off the deck's edge */
     const fit = JSON.parse(await ev(`JSON.stringify((function () { var d = document.getElementById("deck").getBoundingClientRect(),
