@@ -802,8 +802,12 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-corner:not(.is-full) #crates {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: minmax(0, 1fr) repeat(6, auto);
-  grid-template-areas: "lib lib" "shot shot" "ins ej" "swap swap" "hint hint" "drive drive" "line line";
+  /* 🔄 2026-10-05 (Phase 5b, his ruling) — the game's name under the 1541 and the
+     "Click a disk, then Insert." hint are GONE from the corner (both stay in the
+     DOM, hidden: the line's words are what the swap button says, and the rigs
+     read them there) */
+  grid-template-rows: minmax(0, 1fr) repeat(4, auto);
+  grid-template-areas: "lib lib" "shot shot" "ins ej" "swap swap" "drive drive";
   gap: clamp(6px, 1vh, 10px) 8px;
 }
 #cat.is-corner:not(.is-full) #detail,
@@ -813,9 +817,9 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-corner:not(.is-full) #crates > #btn-insert { grid-area: ins; }
 #cat.is-corner:not(.is-full) #crates > #btn-eject { grid-area: ej; }
 #cat.is-corner:not(.is-full) #side-swap { grid-area: swap; }
-#cat.is-corner:not(.is-full) #crates-hint { grid-area: hint; }
+#cat.is-corner #crates-hint { display: none; }
 #cat.is-corner:not(.is-full) #drive-1541 { grid-area: drive; justify-self: start; align-self: end; }
-#cat.is-corner:not(.is-full) #detail-title { grid-area: line; color: var(--cat-hi); }
+#cat.is-corner #detail-title { display: none; }
 /* half a column each: the two-word Eject label may wrap, the lever stays */
 #cat.is-corner:not(.is-full) #crates > #btn-eject.btn--lever { gap: .5em; padding: .55em .6em; line-height: 1.2; }
 /* 📏 The deck takes the width its panel needs and the room gets what is left:
@@ -1249,8 +1253,8 @@ html.cat-link #cat { visibility: hidden; }
 /* [F9] for the pair of ports, level with their labels. ⚠️ Scoped by id: the
    generic .c64-part__hint rule comes later in this file and would win a tie. */
 #c64-side .c64-ports__hint {
-  align-self: flex-end;
-  margin: 0 0 5px -6px;
+  align-self: flex-start;          /* 🔄 5b: between the ports; cat.js paintPortLine levels it with their headers */
+  margin: 0;
   font-size: clamp(9px, 1.1vh, 11px);
   font-weight: 700;
   letter-spacing: .08em;
@@ -1273,6 +1277,7 @@ html.cat-link #cat { visibility: hidden; }
   box-shadow: inset 0 2px 0 #cfc2a6, inset 0 -3px 7px rgba(0, 0, 0, .32), 0 1px 0 #fff5d6;
 }
 #c64-side[hidden] { display: none; }
+#c64-side { position: relative; }
 .c64-part {
   appearance: none;
   border: 0;
@@ -2190,6 +2195,23 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-paused #c64-port1,
 #cat.is-paused #c64-port2 { opacity: .4; cursor: not-allowed; animation: none; }
 
+
+/* ---- 🆕 2026-10-05 — PHASE 5b: THE JOYSTICK PORTS (his rulings, layout only) ----
+   Both ports are the same picture: the EMPTY socket (the plug is not drawn). The
+   selected one is at full brightness, crisp, its header bright yellow, the
+   joystick under it; the other is greyed out. No highlight square. The F9 hint
+   sits between them, joined to the selected header by a solid line (cat.js). */
+#cat.is-corner .c64-port .c64-port__plug { display: none; }
+#cat.is-corner .c64-port.c64-part.is-lit { background-color: transparent; box-shadow: none; }
+#cat.is-corner .c64-port:not(.is-lit) { opacity: .4; filter: grayscale(1); }
+#cat.is-corner .c64-port.is-lit .c64-part__label { color: #ffd23a; text-shadow: 0 1px 0 #3a2c08, 0 0 3px rgba(0, 0, 0, .45); }
+.c64-ports__line {
+  position: absolute; height: 2px;
+  background: #ffd23a; box-shadow: 0 1px 0 #3a2c08;
+  pointer-events: none;
+}
+.c64-ports__line[hidden] { display: none; }
+
 /* ---- FULL SCREEN: a layout, not the Fullscreen API (his ruling) ---------------
    The monitor takes the window; the side panel becomes the strip UNDER it — the
    picture scales to what is left above, and nothing sits over the glass. The
@@ -2219,8 +2241,9 @@ html.cat-link #cat { visibility: hidden; }
   background: none;
   box-shadow: none;
 }
-#cat.is-full #deck-top,
-#cat.is-full #btn-fastload { display: none; }
+/* 🔄 2026-10-05 (Phase 5b, his ruling) — FULL SCREEN MATCHES REGULAR: the top
+   row and Fast Load are in the strip too, in the same order */
+#cat.is-full #deck-top { justify-content: center; padding: 6px clamp(8px, 1.4vw, 18px) 0; }
 /* 🔄 2026-09-25 — THE HUB'S ONE-LINE VOICE STAYS, IN THE STRIP (his change): in
    full screen an error like "could not eject" must not be invisible. It is the
    same #deck-note, not a second message spot, so nothing can say one thing in one
@@ -2247,7 +2270,6 @@ html.cat-link #cat { visibility: hidden; }
   padding: 6px clamp(8px, 1.4vw, 18px);
 }
 #cat.is-full #c64-side > #btn-eject { align-self: center; }
-#cat.is-full #c64-side > #deck-start { align-self: center; }
 #cat.is-full #c64-side > #side-swap { align-self: center; }
 #cat.is-full #c64-side > #side-swap[hidden] { display: none; }
 

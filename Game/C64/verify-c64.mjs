@@ -594,10 +594,18 @@ async function runRig() {
        and the disk is drawn only while Insert or Eject moves it. Its art is true
        alpha; its label is printed in code and never clips. */
     const lay = JSON.parse(await ev(`JSON.stringify((function () { var r = function (s) { var e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-      return { floppy: !!document.getElementById("floppy"), hint: r("#crates-hint").bottom, drive: r("#drive-1541").top, w: r("#drive-1541").width,
+      var sw = document.getElementById("side-swap"), above = !sw.hidden && sw.getBoundingClientRect().height ? r("#side-swap") : r("#btn-insert");
+      var gone = function (id) { return getComputedStyle(document.getElementById(id)).display === "none"; };
+      return { floppy: !!document.getElementById("floppy"), above: above.bottom, drive: r("#drive-1541").top, w: r("#drive-1541").width,
+               driveB: r("#drive-1541").bottom, dsB: r("#datasette").bottom, titleGone: gone("detail-title"), hintGone: gone("crates-hint"),
                rows: getComputedStyle(document.getElementById("crates")).gridTemplateAreas, shown: __cat.corner().disk.shown }; })())`));
-    ok(!lay.floppy && !/disk/.test(lay.rows) && lay.drive - lay.hint <= 12 && lay.w >= 315,
-       `no disk sits above the 1541: the list has its height back, and the 1541 is its own size   [hint to 1541 ${Math.round(lay.drive - lay.hint)} px; 1541 ${Math.round(lay.w)} px]`);
+    ok(!lay.floppy && !/disk/.test(lay.rows) && lay.drive - lay.above <= 20 && lay.w >= 315,
+       `no disk sits above the 1541: the list has its height back, and the 1541 is its own size   [buttons to 1541 ${Math.round(lay.drive - lay.above)} px; 1541 ${Math.round(lay.w)} px]`);
+    /* 🆕 2026-10-05 (Phase 5b, his rulings) */
+    ok(lay.titleGone && lay.hintGone && !/line|hint/.test(lay.rows),
+       `5b: under the 1541 the game's name and "Click a disk, then Insert." are gone   [${lay.rows}]`);
+    ok(Math.abs(lay.driveB - lay.dsB) <= 2,
+       `5b: the 1541's base lines up with the Datasette's base   [1541 ends ${Math.round(lay.driveB)}, Datasette ${Math.round(lay.dsB)}]`);
     ok(lay.shown === false, "and before Insert no disk is drawn anywhere");
     const ej0 = await ejNow();
     ok(ej0.latchIcon && !ej0.keyIcon && !ej0.lever && ej0.latch[5] === 0,
@@ -1540,9 +1548,10 @@ async function runRig() {
        prompt opens above the strip, as the disk picker's does */
     await ev("__cat.full(true)");
     await until("__cat.machine().full", 3000);
-    /* 🔄 2026-10-02 — Load goes into the strip inside its START group, with Run */
-    ok((await ev("document.getElementById('deck-start').parentNode.id")) === "c64-side" && (await ev("document.getElementById('btn-load').parentNode.id")) === "deck-start",
-       "in full screen, Load is in the strip, inside its Start group");
+    /* 🔄 2026-10-05 (5b) — the whole deck is the strip: Load stays in its START group on the top row */
+    ok((await ev("document.getElementById('deck-start').parentNode.id")) === "deck-top" && (await ev("document.getElementById('btn-load').parentNode.id")) === "deck-start"
+       && (await ev("document.getElementById('deck-top').getBoundingClientRect().height > 0")),
+       "in full screen, Load is in the strip, inside its Start group on the strip's top row");
     await click("#btn-load");
     pk = await pick();
     const stripQ = await ev("JSON.stringify(document.getElementById('c64-side').getBoundingClientRect())").then(JSON.parse);
@@ -1871,6 +1880,40 @@ async function runRig() {
        the monitor bezel stays out of the ordinary hub. A change nobody checks is
        a change that quietly comes undone. */
     section("J2. the corner: the ports, the cable, the drive's lamps and the bezel");
+    /* 🆕 2026-10-05 — PHASE 5b (his rulings, layout only) */
+    const ROW = JSON.parse(await ev(`JSON.stringify((function () {
+      var ids = ["deck-start", "deck-dir", "reset-split", "c64-pause", "c64-full", "c64-help"];
+      var c = ids.map(function (id) { var e = document.getElementById(id), b = e.getBoundingClientRect(); return { id: id, p: e.parentNode.id, y: b.top + b.height / 2, l: b.left, r: b.right }; });
+      return { c: c, label: document.getElementById("c64-pause-label").textContent.replace(/\u00a0/g, " ") }; })())`));
+    const ys = ROW.c.map((x) => x.y);
+    ok(ROW.c.every((x) => x.p === "deck-top") && Math.max(...ys) - Math.min(...ys) <= 14 && ROW.c.every((x, i) => i === 0 || x.l >= ROW.c[i - 1].r - 1),
+       `5b: ONE control row: Start, Directory, Reset ▾, Pause Game, Full Screen, Help, left to right   [centres ${ys.map(Math.round).join(",")}]`);
+    ok(ROW.label === "Pause Game", `5b: Pause is labelled Pause Game   [${ROW.label}]`);
+    const PORTS = () => ev(`JSON.stringify((function () {
+      var one = function (id) { var e = document.getElementById(id), cs = getComputedStyle(e), lab = getComputedStyle(e.querySelector(".c64-part__label"));
+        return { lit: e.classList.contains("is-lit"), op: Number(cs.opacity), shadow: cs.boxShadow, plug: getComputedStyle(e.querySelector(".c64-port__plug")).display,
+                 color: lab.color, stick: getComputedStyle(e.querySelector(".c64-port__stick")).opacity, r: e.getBoundingClientRect() }; };
+      var h = document.getElementById("c64-port-hint").getBoundingClientRect(), ln = document.getElementById("c64-port-line"), lb = ln.getBoundingClientRect();
+      var labOf = function (id) { return document.getElementById(id).querySelector(".c64-part__label").getBoundingClientRect(); };
+      return { p1: one("c64-port1"), p2: one("c64-port2"), hint: h, line: { shown: !ln.hidden && lb.width > 0, l: lb.left, r: lb.right, y: lb.top + lb.height / 2, port: ln.dataset.port },
+               l1: labOf("c64-port1"), l2: labOf("c64-port2"), port: __cat.machine().port || document.getElementById("c64-side").dataset.port }; })())`).then(JSON.parse);
+    const portsOk = (P) => {
+      const sel = P.port === "1" ? P.p1 : P.p2, oth = P.port === "1" ? P.p2 : P.p1, lab = P.port === "1" ? P.l1 : P.l2;
+      const joins = P.port === "1" ? Math.abs(P.line.l - lab.right) <= 4 && Math.abs(P.line.r - P.hint.left) <= 4
+                                   : Math.abs(P.line.l - P.hint.right) <= 4 && Math.abs(P.line.r - lab.left) <= 4;
+      return sel.lit && !oth.lit && P.p1.plug === "none" && P.p2.plug === "none" && sel.shadow === "none" && sel.op === 1 && oth.op < 0.6
+        && sel.color === "rgb(255, 210, 58)" && Number(sel.stick) === 1 && P.p1.r.right <= P.hint.left && P.hint.right <= P.p2.r.left
+        && P.line.shown && P.line.port === P.port && joins && P.line.y >= lab.top && P.line.y <= lab.bottom;
+    };
+    let PT = await PORTS();
+    ok(portsOk(PT), `5b: both ports are the empty socket; the selected one bright with a yellow header and the stick under it, the other grey, no square; F9 between them, a line to the selected header   [port ${PT.port}; line ${Math.round(PT.line.l)}-${Math.round(PT.line.r)}]`);
+    await press("F9");
+    await until(`(document.getElementById("c64-side").dataset.port || "") !== ${JSON.stringify(PT.port)}`, 5000);
+    await wait(300);
+    const PT2 = await PORTS();
+    ok(portsOk(PT2) && PT2.port !== PT.port, `and the line follows the selection to port ${PT2.port}   [line ${Math.round(PT2.line.l)}-${Math.round(PT2.line.r)}]`);
+    await press("F9");
+    await until(`document.getElementById("c64-side").dataset.port === ${JSON.stringify(PT.port)}`, 5000);
     const corner = JSON.parse(await ev("JSON.stringify(__cat.corner())"));
     ok(corner.insertBy === "crates" && corner.ejectBy === "crates",
        `Eject sits with Insert, where the disks are   [insert ${corner.insertBy}, eject ${corner.ejectBy}]`);
@@ -2084,11 +2127,20 @@ async function runRig() {
        `the strip sits UNDER the screen, not over it   [screen ends ${L.frame.b}, strip ${L.side.t}-${L.side.b}]`);
     /* 🔄 2026-10-01 — Load joins them (his ruling, amending 2026-09-25's) */
     /* 🔄 2026-10-02 — Load comes as its START group, so Run comes too */
-    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.startIn === "c64-side" && L.loadIn === "deck-start" && L.runIn === "deck-start" && L.ids === "111111111111",
-       `the Start group (Load and Run), Eject and the side swap MOVED into the strip, and nothing was copied   [start ${L.startIn}, eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
+    /* 🔄 2026-10-05 (Phase 5b, "full screen matches regular") — the deck itself is the
+       strip, so the Start group stays on its top row; Eject and the swap MOVE in */
+    ok(L.ejectIn === "c64-side" && L.swapIn === "c64-side" && L.startIn === "deck-top" && L.loadIn === "deck-start" && L.runIn === "deck-start" && L.ids === "111111111111",
+       `Eject and the side swap MOVED into the strip's second row, the Start group is on its top row, and nothing was copied   [start ${L.startIn}, eject ${L.ejectIn}, swap ${L.swapIn}, ids ${L.ids}]`);
     /* 🔄 2026-10-04 — the two ports are gone (Phase 1); Fast Load stays out of the strip as before */
-    ok(L.gone && L.fast === "none" && L.deckTop === "none",
-       `Fast Load and Reset stay out of the strip, and the removed ports are nowhere   [gone ${L.gone}, ${L.fast}/${L.deckTop}]`);
+    /* 🔄 2026-10-05 (5b) — EVERY regular control is in the strip, in the same rows and order */
+    const PAR = JSON.parse(await ev(`JSON.stringify((function () {
+      var row = function (id) { return Array.prototype.filter.call(document.getElementById(id).children, function (k) { var b = k.getBoundingClientRect(); return b.width > 1 && b.height > 1 && !k.classList.contains("sr-only"); })
+        .map(function (k) { return k.id || k.className.split(" ")[0]; }).join(","); };
+      return { top: row("deck-top"), side: row("c64-side") }; })())`));
+    ok(L.gone && L.fast !== "none" && L.deckTop !== "none"
+       && PAR.top === "deck-start,deck-dir,reset-split,c64-pause,c64-full,c64-help"
+       && /^c64-power,btn-fastload,c64-port1,c64-port-hint,c64-port-line,c64-port2,c64-arrows,btn-eject(,side-swap)?$/.test(PAR.side),
+       `5b: full screen matches regular: both rows in the strip, in the same order, Fast Load and Reset included   [${PAR.top} / ${PAR.side}]`);
     ok(L.label === "Exit Full Screen", `the Full Screen part reads Exit Full Screen   [${L.label}]`);
     /* 🆕 2026-09-25 — his change: errors must not be invisible in full screen */
     const noteFull = JSON.parse(await ev(`JSON.stringify((function () {
@@ -2190,7 +2242,7 @@ async function runRig() {
     /* and from the full-screen strip */
     await ev("__cat.full(true)");
     await until("__cat.machine().full", 3000);
-    const helpInStrip = await ev("document.getElementById('c64-side').contains(document.getElementById('c64-help')) && document.getElementById('c64-help').getBoundingClientRect().width > 0");
+    const helpInStrip = await ev("document.getElementById('deck').contains(document.getElementById('c64-help')) && document.getElementById('c64-help').getBoundingClientRect().width > 0");
     await click("#c64-help");
     const tHF = await until("__cat.corner().help && __cat.machine().paused === true", 5000);
     await click("#c64-help-close");

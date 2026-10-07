@@ -1124,6 +1124,7 @@
       waiters.splice(0).forEach(function (w) { clearTimeout(w.timer); w.reject(new Error(machineFailed)); });
       catEl.classList.add("is-nocore");
       Array.prototype.forEach.call(document.querySelectorAll(NOCORE_INERT), function (b) { b.disabled = true; });
+      sideFull.disabled = false; sideHelp.disabled = false;   /* 🆕 5b: they sit in #deck-top now, and need no core */
       forgetPause();
       return true;
     }
@@ -1286,7 +1287,8 @@
     var w = pickEl.offsetWidth, h = pickEl.offsetHeight;
     var left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
     /* in full screen, above the whole STRIP, not just the button inside it */
-    var above = fullView && sidePanel.contains(pickAnchor) ? sidePanel.getBoundingClientRect().top : r.top;
+    var deckEl = document.getElementById("deck");
+    var above = fullView && deckEl.contains(pickAnchor) ? deckEl.getBoundingClientRect().top : r.top;
     var top = above - h - 6;
     if (top < 8) top = Math.min(r.bottom + 6, window.innerHeight - h - 8);
     pickEl.style.left = Math.round(left) + "px";
@@ -2107,6 +2109,32 @@
     sideStatus.textContent = side.port === null ? ""
       : "Joystick in port " + side.port + ". Arrow keys " + (side.arrows === "cursor" ? "are cursor keys." : "move the joystick.");
     paintCable(side.port === "1" ? sidePort1 : side.port === "2" ? sidePort2 : null);
+    paintPortLine();
+  }
+
+  /* 🆕 2026-10-05 (Phase 5b, his ruling) — THE F9 LINE: the F9 hint sits between
+     the two ports, level with their headers, and a solid line joins it to the
+     SELECTED port's header, so it moves when the selection does. Measured, so it
+     holds at every window size and in full screen. Hidden with no port live. */
+  function paintPortLine() {
+    var line = document.getElementById("c64-port-line"), hint = document.getElementById("c64-port-hint");
+    if (!line || !hint || !MACHINE) return;
+    var port = side.port === "1" ? sidePort1 : side.port === "2" ? sidePort2 : null;
+    var lab = port && port.querySelector(".c64-part__label");
+    hint.style.transform = "";
+    if (!lab || sidePanel.hidden || !hint.offsetWidth || !lab.offsetWidth) { line.hidden = true; return; }
+    var P = sidePanel.getBoundingClientRect(), h = hint.getBoundingClientRect(), l = lab.getBoundingClientRect();
+    /* the hint level with the headers */
+    var dy = Math.round((l.top + l.height / 2) - (h.top + h.height / 2));
+    hint.style.transform = "translateY(" + dy + "px)";
+    var y = l.top + l.height / 2 - P.top;
+    var left = port === sidePort1 ? l.right : h.right;
+    var right = port === sidePort1 ? h.left : l.left;
+    line.hidden = false;
+    line.style.left = Math.round(left - P.left + 2) + "px";
+    line.style.width = Math.max(0, Math.round(right - left - 4)) + "px";
+    line.style.top = Math.round(y - 1) + "px";
+    line.dataset.port = side.port;
   }
 
   /* 🔄 2026-09-17 — A JOYSTICK, NOT A CABLE. This drew a black cable running
@@ -2334,11 +2362,6 @@
   var fullView  = false;
   var ejectHome = document.createComment(" Eject's place in the crates ");
   var swapHome  = document.createComment(" the side swap's place in the crates ");
-  /* 🆕 2026-10-01 — Load comes into the strip too (his ruling, amending the
-     2026-09-25 one), so the Load choice can be made without leaving full screen.
-     🔄 2026-10-02 — as its GROUP (Chat's item 8: "keep the same grouping in the
-     strip"), so Run comes with it, inside the same etched outline. */
-  var loadHome  = document.createComment(" the Start group's place on the deck ");
   /* the parts a paused machine does not take; Power, Eject and Full Screen are
      deliberately not in it */
   var PAUSE_LOCKED = "#deck-top button, #btn-insert, #side-swap button, #btn-fastload, #c64-arrows button, #c64-port1, #c64-port2, #c64-pick button, #btn-load, #datasette-play";
@@ -2490,13 +2513,13 @@
     if (!MACHINE || on === fullView) return;
     closePick();
     fullView = on;
+    /* 🔄 2026-10-05 (Phase 5b, his ruling: "full screen matches regular") — THE
+       WHOLE DECK IS THE STRIP, both rows in the same order as on the page; only
+       Eject and the swap, which live by the disks, come into its second row. */
     if (on) {
-      if (!loadHome.parentNode) deckStart.parentNode.insertBefore(loadHome, deckStart);
-      sidePanel.insertBefore(deckStart, sidePause);
-      sidePanel.insertBefore(btnEject, sidePause);
-      sidePanel.insertBefore(sideSwap, sidePause);
+      sidePanel.insertBefore(btnEject, sideStatus);
+      sidePanel.insertBefore(sideSwap, sideStatus);
     } else {
-      loadHome.parentNode.insertBefore(deckStart, loadHome);
       ejectHome.parentNode.insertBefore(btnEject, ejectHome);
       swapHome.parentNode.insertBefore(sideSwap, swapHome);
     }
@@ -2504,6 +2527,7 @@
     sideFull.setAttribute("aria-pressed", String(on));
     document.getElementById("c64-full-label").textContent = on ? "Exit Full Screen" : "Full Screen";
     sideFull.title = on ? "Back to the disks and the whole corner" : "Fill the window with the C64's screen";
+    paintPortLine();
     focusMachine();
   }
 
@@ -2544,6 +2568,15 @@
     helpPanel.addEventListener("mousedown", function (e) { if (e.target.closest && e.target.closest("button")) e.preventDefault(); });
     renderHelpKeys();
     deckTop.classList.add("is-grouped");
+    /* 🆕 2026-10-05 (Phase 5b, his ruling) — ONE CONTROL ROW: Pause Game, Full
+       Screen and Help join Directory, Start and Reset on the deck's top row, after
+       the Reset split. The ports, the Arrows switch, Power and Fast Load stay on
+       the side panel under it. */
+    (function () {
+      var after = document.getElementById("reset-split");
+      [sidePause, sideFull, sideHelp].forEach(function (el) { deckTop.insertBefore(el, after.nextSibling); after = el; });
+    })();
+    window.addEventListener("resize", paintPortLine);
     [sidePort1, sidePort2].forEach(function (p) {
       p.addEventListener("click", function () { postMachine({ type: "cat:joystick", port: p.dataset.port }); focusMachine(); });
     });
@@ -3339,7 +3372,7 @@
   document.addEventListener("click", function (e) {
     if (!paused || !e.target.closest) return;
     var b = e.target.closest(PAUSE_LOCKED);
-    if (!b || b === btnEject || b === btnPower) return;
+    if (!b || b === btnEject || b === btnPower || b === sidePause || b === sideFull || b === sideHelp) return;
     /* 🆕 5a: the popped-out disk's menu works while the lever holds the pause */
     if (pickEl.classList.contains("is-lever") && b.closest("#c64-pick")) return;
     e.preventDefault();

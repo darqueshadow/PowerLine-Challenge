@@ -243,6 +243,15 @@
         </span>
         <span class="c64-port__stick" aria-hidden="true">🕹</span>
       </button>
+      <!-- 🆕 his F-key addendum: ONE hint for the pair, since F9 swaps between them
+           🔄 2026-10-05 (Phase 5b, his ruling) — it sits BETWEEN the two ports, and a
+           solid line joins it to the selected port's header (cat.js paintPortLine
+           places the line; it follows the selection).
+           🚨 KEEP THIS ID. verify-c64 §A reads #c64-port-hint by id with no null
+           guard, and a missing id there throws inside the rig's one try/catch and
+           takes EVERY LATER SECTION with it — a whole run lost to one deleted span. -->
+      <span class="c64-part__hint c64-ports__hint" id="c64-port-hint" aria-hidden="true"></span>
+      <span class="c64-ports__line" id="c64-port-line" aria-hidden="true" hidden></span>
       <button type="button" class="c64-part c64-port" id="c64-port2" data-port="2" aria-pressed="false"
               title="Joystick in port 2">
         <span class="c64-part__label c64-part__label--over">Port&nbsp;2</span>
@@ -253,11 +262,6 @@
         <span class="c64-port__stick" aria-hidden="true">&#x1F579;</span>
       </button>
 
-      <!-- 🆕 his F-key addendum: ONE hint for the pair, since F9 swaps between them
-           🚨 KEEP THIS ID. verify-c64 §A reads #c64-port-hint by id with no null
-           guard, and a missing id there throws inside the rig's one try/catch and
-           takes EVERY LATER SECTION with it — a whole run lost to one deleted span. -->
-      <span class="c64-part__hint c64-ports__hint" id="c64-port-hint" aria-hidden="true"></span>
 
       <!-- 🗑 2026-10-04 — THE DRIVE PORT (serial socket) IS GONE (his ruling, Phase 1). -->
 
@@ -288,7 +292,7 @@
       <button type="button" class="c64-part c64-pause" id="c64-pause" aria-pressed="false"
               title="Pause the C64">
         <span class="c64-pause__key" aria-hidden="true"><i></i><i></i></span>
-        <span class="c64-part__label" id="c64-pause-label">Pause</span>
+        <span class="c64-part__label" id="c64-pause-label">Pause&nbsp;Game</span>
       </button>
       <button type="button" class="c64-part c64-full" id="c64-full" aria-pressed="false"
               title="Fill the window with the C64's screen">
