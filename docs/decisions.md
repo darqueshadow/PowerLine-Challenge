@@ -1179,3 +1179,19 @@ verify-c64 §F2 replaces its twelve empty-drive presses with: no disk, a real no
 **If you touch this again:** the real fault cannot be made on demand. An empty-DIRECTORY disk did NOT hang on
 2026-10-04 (3 of 3 answered), contrary to the 2026-10-03 note. A typed LOAD with no disk still reaches the machine;
 only the button stops. The watch ignores LOADING, FOUND and tapes by design (his ruling): a hang there is F12's.
+
+## 2026-10-07 — the C64 corner: root CLAUDE.md prune at park (Phases 4b-5d)
+
+What the root CLAUDE.md "Parked work" section carried, now settled (git log has the commits):
+- Phases 0-4b approved 2026-10-05: PLAY key `c25f826`, disk animation `046e8a5`, Eject icons/label and animated
+  Disk 2 swap `63d35dc`, double-sided disks `b9f9f9c`, old over-screen scene removed `5f1febf`. Same disk, other
+  side = out to the slot, swap sent, flip, back in; a different disk never flips; Side B = plain jacket. Closed as
+  accepted: the moving disk briefly covers the line under the 1541.
+- Phase 5a approved in the live hub 2026-10-06 (`31f6350`, `4ea1b07`): the lever pops the disk and pauses a
+  RUNNING game only; its menu Remove / Change Disk (= machineSwap); Reset split (Hard Reset); Datasette PLAY/EJECT;
+  Directory -> List; no red light for tapes.
+- 5b (`313ee83`): one control row, full screen = regular, ports restyled, bases aligned. Fast Load lit label
+  (`47fcf80`). 5d (`fe5e31f`, `714adb5`): the game list is a dot-matrix printout ("Game List", DotGothic16 OFL,
+  cream / light-blue / blue-black, no letter tabs in the corner, highlight down 6px to centre on capitals).
+- Swap Disk flash (2026-10-07): NOT built. No signal tells the hub a game wants another disk, and there is no
+  automatic swap; flashing would be a guess (his rule: don't). See cat.js "Out of scope, his words".
