@@ -515,12 +515,15 @@
         b.appendChild(t);
       }
 
-      b.addEventListener("click", function () { select(disk); });
+      /* 🔄 2026-10-07 (his ruling) — in the corner a click keeps the keyboard in the
+         LIST (Up/Down/Enter work next); any other key still goes to the C64 */
+      b.addEventListener("click", function () { if (MACHINE) { select(disk, true); focusListRow(disk); } else select(disk); });
       /* ⌨ Arrow keys flip through the pile, which is what a stack of records
          wants. 🚫 Not a global handler: the hub's terminal owns the keyboard
          (blind typing a LOAD command is a first-class surface), so this fires
          only while a record itself has focus. */
       b.addEventListener("keydown", function (e) {
+        if (MACHINE) return;   /* 🔄 5d: the corner's keys are the list's (listKeys) */
         if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
         e.preventDefault();
         var sibs = Array.prototype.slice.call(b.parentNode.querySelectorAll(".disk"));
@@ -1204,7 +1207,10 @@
       forgetPause();
       return true;
     }
-    if (m.type === "cat:machine") return true;
+    if (m.type === "cat:machine") {
+      if (m.state === "ready") firstOpenKeys();
+      return true;
+    }
     /* 🆕 2026-10-04 — a tape LOAD is running, or has stopped (emu.js, from the
        machine's own words): the Datasette's hubs turn and its counter counts */
     if (m.type === "cat:tapemotor") {
@@ -1219,7 +1225,7 @@
       return true;
     }
     /* 🆕 2026-10-01 — the glass was clicked: that is outside the small prompt */
-    if (m.type === "cat:pointer") { closePick(); return true; }
+    if (m.type === "cat:pointer") { playerActed = true; closePick(); return true; }
     for (var i = 0; i < waiters.length; i++) {
       if (waiters[i].replies.indexOf(m.type) !== -1) {
         var w = waiters.splice(i, 1)[0];
@@ -1930,6 +1936,73 @@
     else machineReset();
   }
 
+
+  /* =======================================================================
+     🆕 2026-10-07 — THE GAME LIST TAKES THE KEYBOARD (his ruling). Corner only.
+     WHO HAS THE KEYBOARD IS WHERE FOCUS IS, nothing else:
+       - focus on the list (the list itself or a row): Up / Down move the
+         highlight and keep it in view, Enter inserts it (the Insert Disk
+         button's own click). Every OTHER key goes on to the C64 through the
+         same path as before (the document handler forwards it, and focus
+         follows it into the machine), so typing a command still works.
+       - focus in the C64's screen: every key is the machine's, exactly as before.
+     The list takes the keyboard on FIRST OPEN (the machine says it is ready),
+     unless the player has already clicked or typed; and a click on a row keeps
+     it there. Insert, Load and the rest hand it to the machine as they always
+     have. Moving the highlight scrolls the list, so newly shown rows print. */
+  var playerActed = false;   /* a click or a key since the page opened */
+  var firstOpenDone = false;
+  function focusListRow(disk) {
+    if (!MACHINE || !stackLib) return;
+    var el = disk && stackLib.querySelector('.crate__pile .disk[data-id="' + cssEsc(disk.id) + '"]');
+    try { (el || stackLib).focus({ preventScroll: true }); } catch (e) { (el || stackLib).focus(); }
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+  }
+  function firstOpenKeys() {
+    if (firstOpenDone || !MACHINE || !stackLib) return;
+    firstOpenDone = true;
+    var take = function () {
+      if (playerActed || machineOff) return;
+      var a = document.activeElement;
+      if (a && a !== document.body && a !== machineFrame && !stackLib.contains(a)) return;   /* something else has it */
+      focusListRow(selected);
+    };
+    take();
+    /* the core settles for a moment after it says ready, and may take focus itself */
+    setTimeout(take, 1200);
+    setTimeout(take, 3000);
+  }
+  function listRows() { return stackLib ? stackLib.querySelectorAll(".crate__pile .disk") : []; }
+  function moveHighlight(step) {
+    var rows = listRows();
+    if (!rows.length) return;
+    var cur = -1;
+    for (var i = 0; i < rows.length; i++) if (selected && rows[i].dataset.id === selected.id) { cur = i; break; }
+    var next = cur < 0 ? 0 : Math.max(0, Math.min(rows.length - 1, cur + step));
+    var id = rows[next].dataset.id, d = null;
+    DISKS.forEach(function (x) { if (x.id === id) d = x; });
+    if (!d) return;
+    if (d !== selected) select(d, true);
+    focusListRow(d);
+  }
+  function setupListKeys() {
+    if (!stackLib) return;
+    stackLib.tabIndex = 0;
+    stackLib.setAttribute("aria-label", "Game list: Up and Down to choose, Enter to insert");
+    stackLib.addEventListener("keydown", function (e) {
+      if (!MACHINE || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        moveHighlight(e.key === "ArrowDown" ? 1 : -1);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (!busy && selected && !btnInsert.disabled) btnInsert.click();
+      }
+    });
+    document.addEventListener("mousedown", function () { playerActed = true; }, true);
+    document.addEventListener("keydown", function () { playerActed = true; }, true);
+  }
+
   /* 🆕 2026-09-17 — LOAD, AND THEN RUN IF THERE IS ANYTHING TO RUN.
      His ask, built the only way that is safe. The naive version — type RUN after
      a fixed wait — is wrong on a large slice of this library, because a great
@@ -2637,6 +2710,7 @@
     renderHelpKeys();
     deckTop.classList.add("is-grouped");
     setupPrintout();   /* 🆕 5d: the game list is a printout */
+    setupListKeys();   /* 🆕 5d: Up / Down / Enter on the list */
     /* 🆕 2026-10-05 (Phase 5b, his ruling) — ONE CONTROL ROW: Pause Game, Full
        Screen and Help join Directory, Start and Reset on the deck's top row, after
        the Reset split. The ports, the Arrows switch, Power and Fast Load stay on

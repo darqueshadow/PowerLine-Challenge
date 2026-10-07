@@ -551,6 +551,58 @@ async function runRig() {
     ok(keymap === "positional", `it boots on the POSITIONAL keymap: a key types what sits in that place on a C64   [${keymap}]`);
 
     /* --- B. real typing ---------------------------------------------------- */
+    /* --- A2. 🆕 2026-10-07 — THE GAME LIST'S KEYS ON FIRST OPEN (his ruling) ------
+       Nothing has been clicked or typed yet. Who has the keyboard is where focus
+       is: the list on first open; Up / Down move the highlight (and print what
+       they bring into view), Enter inserts it; any other key goes to the C64. */
+    section("A2. first open: the game list has the keyboard; Up/Down move the highlight, Enter inserts; typing still reaches the C64");
+    const LK = () => ev(`JSON.stringify({ inList: !!document.activeElement.closest && !!document.activeElement.closest("#crate-lib"),
+      focus: document.activeElement.id || String(document.activeElement.className).split(" ")[0],
+      sel: (function () { var r = document.querySelectorAll("#crate-lib .crate__pile .disk"); for (var i = 0; i < r.length; i++) if (r[i].getAttribute("aria-pressed") === "true") return i; return -1; })(),
+      selId: (document.querySelector('#crate-lib .disk[aria-pressed="true"]') || { dataset: {} }).dataset.id || null,
+      inView: (function () { var s = document.querySelector("#crate-lib .crate__stack").getBoundingClientRect(), b = document.querySelector('#crate-lib .disk[aria-pressed="true"]');
+        if (!b) return null; b = b.getBoundingClientRect(); return b.top >= s.top - 1 && b.bottom <= s.bottom + 1; })(),
+      selPrinted: !!document.querySelector('#crate-lib .disk[aria-pressed="true"].is-printed'), printed: __cat.corner().printout.printed })`).then(JSON.parse);
+    await until(`document.activeElement && document.activeElement.closest && !!document.activeElement.closest("#crate-lib")`, 6000, 100);
+    const lk0 = await LK();
+    ok(lk0.inList && lk0.sel === -1, `on first open, with nothing clicked, the game list has the keyboard and nothing is highlighted   [focus ${lk0.focus}]`);
+    await press("Down");
+    const lk1 = await LK();
+    await press("Down"); await press("Up");
+    const lk2 = await LK();
+    ok(lk1.sel === 0 && lk2.sel === 0 && lk2.inList && lk2.inView,
+       `Down highlights the first game; Down, Up: back to it; the keyboard stays in the list   [${lk1.sel} -> ${lk2.sel}]`);
+    /* far down the list: the highlight stays in view, and what it brings into view prints */
+    for (let i = 0; i < 30; i++) await press("Down");
+    const lk3 = await LK();
+    ok(lk3.sel === 30 && lk3.inView && lk3.selPrinted && lk3.printed > lk2.printed,
+       `30 x Down: the highlight walks the list and stays in view, and the rows it scrolls in print   [row ${lk3.sel + 1}; printed ${lk2.printed} -> ${lk3.printed}]`);
+    for (let i = 0; i < 30; i++) await press("Up");
+    const lk4 = await LK();
+    ok(lk4.sel === 0 && lk4.inView && lk4.printed === lk3.printed, `30 x Up: back at the top, nothing printed twice   [row ${lk4.sel + 1}; printed ${lk4.printed}]`);
+    /* Enter: the highlighted game goes in, the same as the Insert Disk button */
+    await press("Enter");
+    const tEnter = await until(`__cat.inserted() === ${JSON.stringify(lk4.selId)}`, 30000);
+    await idle();
+    ok(tEnter >= 0 && (await until("document.activeElement === document.getElementById('machine-frame')", 3000)) >= 0,
+       `Enter inserts the highlighted game, as Insert Disk does, and the keyboard then goes to the C64   [${took(tEnter)}, ${lk4.selId}]`);
+    await click("#btn-eject");
+    await idle();
+    await untilScreen((r) => r[5] === "READY." && r.slice(6).every((x) => x === ""), 20000);
+    /* a click on a game keeps the keyboard in the list; a command typed then still reaches the C64 */
+    await click("#crate-lib .crate__pile .disk:nth-child(3)");
+    const lk5 = await LK();
+    await press("Down");
+    const lk6 = await LK();
+    ok(lk5.inList && lk5.sel === 2 && lk6.sel === 3, `after one click on a game, Up/Down still move the highlight   [row ${lk5.sel + 1} -> ${lk6.sel + 1}]`);
+    await type("PRINT 4242\n");
+    const tTyped4 = await untilScreen((r) => r.includes(" 4242"), 8000);
+    const lk7 = await LK();
+    await press("Down");
+    const lk8 = await LK();
+    ok(tTyped4 >= 0 && !lk7.inList && lk8.sel === lk6.sel,
+       `typing a command at READY with the list focused still reaches the C64, which then has the keyboard (Down is the C64's again)   [${took(tTyped4)}; highlight stays on row ${lk8.sel + 1}]`);
+
     section("B. real typing — arbitrary BASIC, through the real keyboard path");
     await click("#machine-frame");
     await type('NEW\n10 PRINT "ANDREW"\n20 GOTO 10\nLIST\n');
@@ -1848,17 +1900,27 @@ async function runRig() {
       inView: Math.floor((${STK}.clientHeight - 1) / 17) + 1 })`));
     ok(po0.label === "Game List" && face.cls && /DotGothic16/.test(face.fam) && face.loaded && face.head,
        `the header says Game List; the rows are in the self-hosted dot-matrix face, on printout paper, with the printer's head along the bottom   [${po0.label}; ${face.fam.split(",")[0]}; loaded ${face.loaded}]`);
-    ok(po0.rows > face.inView && po0.printed >= face.inView - 1 && po0.printed <= face.inView + 1 && po0.printing === 0,
-       `the rows in view start out printed, and the rest are blank paper until they show   [${po0.printed} printed of ${po0.rows}; ${face.inView} in view]`);
+    /* 🔄 2026-10-07 — §A2 has already walked the list, so this reads what is printed
+       rather than assuming a fresh list: every row in view printed, the rest of the
+       list still blank paper past the last row anything has shown */
+    const inViewPrinted = await ev(`Array.prototype.slice.call(document.querySelectorAll("#crate-lib .crate__pile .disk"), 0, ${face.inView}).every(function (r) { return r.classList.contains("is-printed"); })`);
+    ok(po0.rows > po0.printed && inViewPrinted && po0.printing === 0,
+       `the rows in view are printed, and the rest are blank paper until they show   [${po0.printed} printed of ${po0.rows}; ${face.inView} in view]`);
+    /* scroll so the first row never shown sits just below the view, then scroll down */
+    await ev(`(function () { var r = document.querySelectorAll("#crate-lib .crate__pile .disk"), s = ${STK}, i = 0;
+      while (i < r.length && r[i].classList.contains("is-printed")) i++; s.scrollTop = Math.max(0, i * 17 - s.clientHeight); })()`);
+    await wait(300);
+    const po0b = await PO();
     await ev(`${STK}.scrollTop += 140`);
     const tPr = await until("__cat.corner().printout.printing > 0 && __cat.corner().printout.head", 1500, 15);
     const tPrDone = await until("__cat.corner().printout.printing === 0 && !__cat.corner().printout.head", 3000, 20);
     const po1 = await PO();
-    ok(tPr >= 0 && tPrDone >= 0 && po1.printed > po0.printed,
-       `scrolling down: the new rows print quickly, the head running while they do, then it stops   [${po0.printed} -> ${po1.printed}; done in ${took(tPrDone)}]`);
+    ok(tPr >= 0 && tPrDone >= 0 && po1.printed > po0b.printed,
+       `scrolling down: the new rows print quickly, the head running while they do, then it stops   [${po0b.printed} -> ${po1.printed}; done in ${took(tPrDone)}]`);
+    const backTo = await ev(`${STK}.scrollTop`);
     await ev(`${STK}.scrollTop = 0`);
     await wait(250);
-    await ev(`${STK}.scrollTop = 140`);
+    await ev(`${STK}.scrollTop = ${backTo}`);
     await wait(250);
     const po2 = await PO();
     ok(po2.printed === po1.printed && po2.printing === 0 && !po2.head,

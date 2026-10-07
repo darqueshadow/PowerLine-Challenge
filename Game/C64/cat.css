@@ -687,6 +687,9 @@ html.cat-link #cat { visibility: hidden; }
 /* printing: the row is struck left to right, in steps, like a head's passes */
 #crate-lib.is-printout .crate__pile .disk.is-printing .name { animation: dm-print 120ms steps(12, end) var(--dm-delay, 0ms) both; }
 @keyframes dm-print { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+/* 🆕 2026-10-07 — the list has the keyboard: a thin ring round the paper, so it is plain where Up/Down go */
+#crate-lib.is-printout .crate__stack:focus-within { outline: 2px solid rgba(90, 8, 8, .55); outline-offset: 1px; }
+#crate-lib.is-printout .crate__stack:focus, #crate-lib.is-printout .crate__pile .disk:focus { outline: none; }
 /* the printer's head, along the bottom edge of the paper */
 .printhead { display: none; }
 #crate-lib.is-printout .printhead {
