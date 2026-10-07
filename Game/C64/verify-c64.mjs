@@ -1835,6 +1835,38 @@ async function runRig() {
     ok((await ev("document.activeElement === document.getElementById('machine-frame')")),
        `and none of these took the keyboard from the machine   [focus: ${await ev("document.activeElement.id || document.activeElement.tagName")}]`);
 
+    /* --- U. 🆕 2026-10-07 — PHASE 5d: the game list is a printout (his rulings) ---- */
+    section("U. 5d: the game list is a dot-matrix printout; rows print as they scroll in, and stay printed");
+    const PO = () => ev("JSON.stringify(__cat.corner().printout)").then(JSON.parse);
+    const STK = "document.querySelector('#crate-lib .crate__stack')";
+    await ev(`${STK}.scrollTop = 0`);
+    await wait(300);
+    const po0 = await PO();
+    const face = JSON.parse(await ev(`JSON.stringify({ fam: getComputedStyle(document.querySelector("#crate-lib .crate__pile .disk .name")).fontFamily,
+      loaded: document.fonts.check('12px "DotGothic16"'), cls: document.getElementById("crate-lib").classList.contains("is-printout"),
+      head: !!document.querySelector("#crate-lib .printhead") && document.querySelector("#crate-lib .printhead").getBoundingClientRect().height > 0,
+      inView: Math.floor((${STK}.clientHeight - 1) / 17) + 1 })`));
+    ok(po0.label === "Game List" && face.cls && /DotGothic16/.test(face.fam) && face.loaded && face.head,
+       `the header says Game List; the rows are in the self-hosted dot-matrix face, on printout paper, with the printer's head along the bottom   [${po0.label}; ${face.fam.split(",")[0]}; loaded ${face.loaded}]`);
+    ok(po0.rows > face.inView && po0.printed >= face.inView - 1 && po0.printed <= face.inView + 1 && po0.printing === 0,
+       `the rows in view start out printed, and the rest are blank paper until they show   [${po0.printed} printed of ${po0.rows}; ${face.inView} in view]`);
+    await ev(`${STK}.scrollTop += 140`);
+    const tPr = await until("__cat.corner().printout.printing > 0 && __cat.corner().printout.head", 1500, 15);
+    const tPrDone = await until("__cat.corner().printout.printing === 0 && !__cat.corner().printout.head", 3000, 20);
+    const po1 = await PO();
+    ok(tPr >= 0 && tPrDone >= 0 && po1.printed > po0.printed,
+       `scrolling down: the new rows print quickly, the head running while they do, then it stops   [${po0.printed} -> ${po1.printed}; done in ${took(tPrDone)}]`);
+    await ev(`${STK}.scrollTop = 0`);
+    await wait(250);
+    await ev(`${STK}.scrollTop = 140`);
+    await wait(250);
+    const po2 = await PO();
+    ok(po2.printed === po1.printed && po2.printing === 0 && !po2.head,
+       `scrolling back up and down again: printed rows stay printed, nothing prints twice   [${po2.printed}]`);
+    await ev(`${STK}.scrollTop = 0`);
+    ok(!(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")),
+       "[control] this run is not in reduced motion (that case is checked by a still: everything printed, no head)");
+
     section("J. the positional keymap: every measured key types its character");
     const card = JSON.parse(await ev(`JSON.stringify(__cat.keycard())`));
     ok(card.length >= 17 && ['"', "*", ":", "@"].every((c) => card.some((r) => r.c64 === c)),
@@ -2545,6 +2577,7 @@ async function runRig() {
       const kA2 = await header2();
       ok(/^0 "RIG SIDE A/.test(kA2), `and back on disk 1: Side A again   [${kA2}]`);
     }
+
 
     /* --- Z. the control that must fail -------------------------------------- */
     section("Z. [control] the rig can say NO");

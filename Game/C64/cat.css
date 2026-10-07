@@ -621,6 +621,90 @@ html.cat-link #cat { visibility: hidden; }
   font-weight: 700;
 }
 
+
+/* ---- 🆕 2026-10-07 — PHASE 5d: THE GAME LIST IS A PRINTOUT (his rulings) -------
+   Corner only (#crate-lib.is-printout, added by cat.js). Continuous-feed paper:
+   green bars two rows deep, tractor-feed holes down both margins, dark ribbon ink
+   in a dot-matrix face, and the printer's head running along the bottom edge
+   while new rows print. All of it CSS: no new art, no logo.
+   The font: DotGothic16 (SIL OFL 1.1, fonts/OFL.txt), a Latin subset, served
+   from here (no Google links). */
+@font-face {
+  font-family: "DotGothic16";
+  src: url("fonts/DotGothic16-latin.woff2") format("woff2");
+  font-display: swap;
+}
+#crate-lib.is-printout { --dm-ink: #26262e; --dm-paper: #f1eddf; --dm-bar: rgba(120, 178, 128, .26); --dm-hole: #3b3420; }
+#crate-lib.is-printout .crate__stack {
+  background: var(--dm-paper);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25), inset 0 6px 8px -6px rgba(0, 0, 0, .35);
+  scrollbar-color: #9a9068 transparent;
+}
+#crate-lib.is-printout .crate__pile {
+  min-height: 100%;
+  background: repeating-linear-gradient(to bottom, var(--dm-bar) 0 calc(var(--pitch) * 2), transparent calc(var(--pitch) * 2) calc(var(--pitch) * 4));
+}
+/* the tractor-feed margins, one hole per row */
+#crate-lib.is-printout .crate__pile::before,
+#crate-lib.is-printout .crate__pile::after {
+  content: "";
+  position: absolute; top: 0; bottom: 0; width: 14px;
+  background: radial-gradient(circle at 50% 50%, var(--dm-hole) 0 2.6px, rgba(0, 0, 0, .25) 2.9px, transparent 3.3px) 0 0 / 100% var(--pitch) repeat-y;
+  border-color: rgba(0, 0, 0, .14); border-style: dashed;
+  pointer-events: none;
+}
+#crate-lib.is-printout .crate__pile::before { left: 0; border-width: 0 1px 0 0; }
+#crate-lib.is-printout .crate__pile::after { right: 0; border-width: 0 0 0 1px; }
+#crate-lib.is-printout .crate__pile .disk { left: 16px; right: 16px; }
+#crate-lib.is-printout .crate__pile .disk .sleeve { background: transparent; box-shadow: none; }
+#crate-lib.is-printout .crate__pile .disk .name {
+  left: 6px; right: 34px;
+  font-family: "DotGothic16", var(--mono);
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: var(--dm-ink);
+  text-shadow: 0 0 .4px rgba(38, 38, 46, .7);
+}
+#crate-lib.is-printout .crate__pile .disk:hover .name { color: #000; text-decoration: underline; text-underline-offset: 2px; }
+/* selected: a highlighter stroke across the printed row (inset only: §B1) */
+#crate-lib.is-printout .crate__pile .disk[aria-pressed="true"] .sleeve {
+  background: linear-gradient(rgba(255, 214, 92, .78), rgba(246, 190, 60, .78));
+  box-shadow: inset 0 0 0 1px rgba(168, 121, 28, .7);
+}
+#crate-lib.is-printout .crate__pile .disk[aria-pressed="true"] .name { color: #1b1300; font-weight: 400; }
+/* not printed yet: blank paper (the button is still there, and still works) */
+#crate-lib.is-printout .crate__pile .disk:not(.is-printed) .name,
+#crate-lib.is-printout .crate__pile .disk:not(.is-printed) .badge { visibility: hidden; }
+/* printing: the row is struck left to right, in steps, like a head's passes */
+#crate-lib.is-printout .crate__pile .disk.is-printing .name { animation: dm-print 120ms steps(12, end) var(--dm-delay, 0ms) both; }
+@keyframes dm-print { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+/* the printer's head, along the bottom edge of the paper */
+.printhead { display: none; }
+#crate-lib.is-printout .printhead {
+  display: block; position: relative; flex: 0 0 auto;
+  height: 14px; margin-top: -9px;
+}
+#crate-lib.is-printout .printhead__rail {
+  position: absolute; left: 0; right: 0; top: 5px; height: 5px; border-radius: 2px;
+  background: linear-gradient(#5a5650, #2f2c28);
+  box-shadow: 0 1px 0 rgba(255, 248, 221, .2);
+}
+#crate-lib.is-printout .printhead__head {
+  position: absolute; top: 0; left: 6px; width: 26px; height: 14px; border-radius: 2px;
+  background: linear-gradient(#8d877a, #4a463f 60%, #3a3732);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 1px 2px rgba(0, 0, 0, .5);
+}
+#crate-lib.is-printout .printhead__head::after {      /* the ribbon window */
+  content: ""; position: absolute; left: 4px; right: 4px; top: 3px; height: 3px; background: #18171a; border-radius: 1px;
+}
+#crate-lib.is-printout .printhead.is-printing .printhead__head { animation: dm-head 240ms ease-in-out infinite alternate; }
+@keyframes dm-head { from { left: 6px; } to { left: calc(100% - 32px); } }
+@media (prefers-reduced-motion: reduce) {
+  #crate-lib.is-printout .crate__pile .disk.is-printing .name,
+  #crate-lib.is-printout .printhead.is-printing .printhead__head { animation: none; }
+}
+
 /* ---- the Cracked crate, switched off ------------------------------------
    🆕 2026-09-12. Where the disk list cannot be read — everywhere outside Fang
    Rock, by his ruling — the crate stays PRESENT and reads as deliberately

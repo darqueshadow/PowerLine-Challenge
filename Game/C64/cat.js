@@ -370,6 +370,74 @@
       g.el.appendChild(pile);
       if (g.tabs) renderTabs(g.tabs, g.disks);
     });
+    /* 🆕 5d: the first rows in view start out printed; later ones print as they show */
+    if (MACHINE && stackLib && stackLib.querySelector(".crate__pile .disk")) { printVisible(printStarted); printStarted = true; }
+  }
+
+  /* =======================================================================
+     🆕 2026-10-07 — PHASE 5d: THE GAME LIST IS A PRINTOUT (his rulings).
+     Corner only. Continuous-feed paper (green bars, tractor holes, CSS only,
+     no new art) in a dot-matrix face (DotGothic16, self-hosted, OFL), with
+     the printer's head along the bottom of the list.
+       - The rows in view when the list first appears are ALREADY PRINTED.
+       - A row that scrolls into view for the first time PRINTS QUICKLY (one
+         after another, the head running along the bottom while it does).
+       - A printed row STAYS printed: `printed` is kept by disk id, across
+         scrolling and across every rebuild of the pile.
+       - Reduced motion: everything is printed from the start, and the head
+         never moves.
+     Behaviour is untouched: a row is the same button, selected the same way. */
+  var printed = {};          /* disk id -> printed */
+  var printStarted = false;  /* the list has been shown once */
+  var PRINT = { lineMs: 45, printMs: 120 };   /* one row after another; each row's own sweep */
+  var printHead = null, printHeadOff = 0;
+  function printVisible(animate) {
+    var pile = stackLib && stackLib.querySelector(".crate__pile");
+    if (!MACHINE || !pile) return;
+    var rows = pile.querySelectorAll(".disk");
+    if (!rows.length || !stackLib.clientHeight) return;
+    var pitch = parseFloat(getComputedStyle(pile).getPropertyValue("--pitch")) || 17;
+    var first = Math.max(0, Math.floor(stackLib.scrollTop / pitch));
+    var last = Math.min(rows.length - 1, Math.floor((stackLib.scrollTop + stackLib.clientHeight - 1) / pitch));
+    var n = 0;
+    for (var i = first; i <= last; i++) {
+      var r = rows[i], id = r.dataset.id;
+      if (printed[id]) continue;
+      printed[id] = true;
+      if (animate && !REDUCED) {
+        r.style.setProperty("--dm-delay", (n * PRINT.lineMs) + "ms");
+        r.classList.add("is-printing");
+        n++;
+      }
+      r.classList.add("is-printed");
+    }
+    if (!n || !printHead) return;
+    var ms = (n - 1) * PRINT.lineMs + PRINT.printMs;
+    printHead.classList.add("is-printing");
+    clearTimeout(printHeadOff);
+    printHeadOff = setTimeout(function () {
+      printHead.classList.remove("is-printing");
+      Array.prototype.forEach.call(stackLib.querySelectorAll(".disk.is-printing"), function (x) { x.classList.remove("is-printing"); });
+    }, ms + 60);
+  }
+  function setupPrintout() {
+    var crate = document.getElementById("crate-lib");
+    if (!crate || !stackLib) return;
+    crate.classList.add("is-printout");
+    document.getElementById("crate-lib-label").textContent = "Game List";
+    printHead = document.createElement("div");
+    printHead.className = "printhead";
+    printHead.setAttribute("aria-hidden", "true");
+    printHead.innerHTML = '<span class="printhead__rail"></span><span class="printhead__head"></span>';
+    stackLib.parentNode.insertBefore(printHead, stackLib.nextSibling);
+    var queued = false;
+    var onScroll = function () {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(function () { queued = false; printVisible(true); });
+    };
+    stackLib.addEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
   }
 
   /* The A-Z crate dividers. 🚫 Only letters that HAVE a disk — a dead tab
@@ -412,7 +480,7 @@
   function renderDisk(disk) {
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "disk";
+      b.className = "disk" + (printed[disk.id] || REDUCED ? " is-printed" : "");
       b.setAttribute("aria-pressed", String(selected === disk));
       b.dataset.id = disk.id;
 
@@ -2568,6 +2636,7 @@
     helpPanel.addEventListener("mousedown", function (e) { if (e.target.closest && e.target.closest("button")) e.preventDefault(); });
     renderHelpKeys();
     deckTop.classList.add("is-grouped");
+    setupPrintout();   /* 🆕 5d: the game list is a printout */
     /* 🆕 2026-10-05 (Phase 5b, his ruling) — ONE CONTROL ROW: Pause Game, Full
        Screen and Help join Directory, Start and Reset on the deck's top row, after
        the Reset split. The ports, the Arrows switch, Power and Fast Load stay on
@@ -3615,6 +3684,14 @@
         /* 🆕 5a: the lever, and what the Directory button is waiting to do */
         lever: { open: leverOpen, paused: leverPaused, enabled: !!leverBtn && !leverBtn.disabled },
         dirMode: dirMode,
+        /* 🆕 5d: the printout: rows, how many are printed, which are printing, the head */
+        printout: (function () {
+          var rows = stackLib ? stackLib.querySelectorAll(".crate__pile .disk") : [];
+          var p = 0, now = 0;
+          Array.prototype.forEach.call(rows, function (r) { if (r.classList.contains("is-printed")) p++; if (r.classList.contains("is-printing")) now++; });
+          return { rows: rows.length, printed: p, printing: now, head: !!(printHead && printHead.classList.contains("is-printing")),
+                   label: (document.getElementById("crate-lib-label") || {}).textContent || "" };
+        })(),
         ejectBy: btnEject.parentNode ? btnEject.parentNode.id : null,
         insertBy: btnInsert.parentNode ? btnInsert.parentNode.id : null,
         /* fastLoad is what the MACHINE confirmed; fastOn is what the switch
