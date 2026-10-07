@@ -2309,15 +2309,23 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-corner .c64-port .c64-port__plug { display: none; }
 #cat.is-corner .c64-port.c64-part.is-lit { background-color: transparent; box-shadow: none; }
 #cat.is-corner .c64-port:not(.is-lit) { opacity: .4; filter: grayscale(1); }
-/* 🔄 2026-10-07 (his ruling, style only) — DEEP RED, not yellow: on the panel's
-   beige (rgb 170,156,130 to 160,147,122 behind the header, measured from its
-   gradient at 1920 and 1280, regular and full screen) the yellow was 1.87-2.09:1;
-   #5a0808 is 4.72-5.29:1 (text target 4.5:1). One property, so a swap is one value. */
-:root { --port-hi: #5a0808; }
-#cat.is-corner .c64-port.is-lit .c64-part__label { color: var(--port-hi); text-shadow: 0 1px 0 rgba(255, 246, 219, .35); }
+/* 🔄 2026-10-07 (his ruling, style only; replaces the deep red) — THE SELECTED
+   PORT'S HEADER IS LIT LIKE FAST LOAD: bold, dark text on the same amber fill.
+   Measured: the text on its fill is 9.60-13.81:1; the amber against the bin's
+   beige (rgb 170,156,130 to 160,147,122 behind the header) is only 1.56-2.51:1,
+   so the chip and the F9 line carry a thin dark outline (#3a2c08, 4.50-5.04:1
+   against the bin) to read. */
+#cat.is-corner .c64-port .c64-part__label { padding: 1px 4px; border-radius: 3px; }
+#cat.is-corner .c64-port.is-lit .c64-part__label {
+  font-weight: 800;
+  color: #2a1c00;
+  background: linear-gradient(#ffe9a6, #f2bd45);
+  box-shadow: 0 0 0 1px #3a2c08, 0 0 8px 1px rgba(255, 196, 64, .45);
+  text-shadow: none;
+}
 .c64-ports__line {
   position: absolute; height: 2px;
-  background: var(--port-hi); box-shadow: 0 1px 0 rgba(255, 246, 219, .35);
+  background: #f2bd45; box-shadow: 0 0 0 1px #3a2c08;
   pointer-events: none;
 }
 .c64-ports__line[hidden] { display: none; }
