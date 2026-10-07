@@ -1960,11 +1960,11 @@ async function runRig() {
       const joins = P.port === "1" ? Math.abs(P.line.l - lab.right) <= 4 && Math.abs(P.line.r - P.hint.left) <= 4
                                    : Math.abs(P.line.l - P.hint.right) <= 4 && Math.abs(P.line.r - lab.left) <= 4;
       return sel.lit && !oth.lit && P.p1.plug === "none" && P.p2.plug === "none" && sel.shadow === "none" && sel.op === 1 && oth.op < 0.6
-        && sel.color === "rgb(255, 210, 58)" && Number(sel.stick) === 1 && P.p1.r.right <= P.hint.left && P.hint.right <= P.p2.r.left
+        && sel.color === "rgb(90, 8, 8)" && Number(sel.stick) === 1 && P.p1.r.right <= P.hint.left && P.hint.right <= P.p2.r.left
         && P.line.shown && P.line.port === P.port && joins && P.line.y >= lab.top && P.line.y <= lab.bottom;
     };
     let PT = await PORTS();
-    ok(portsOk(PT), `5b: both ports are the empty socket; the selected one bright with a yellow header and the stick under it, the other grey, no square; F9 between them, a line to the selected header   [port ${PT.port}; line ${Math.round(PT.line.l)}-${Math.round(PT.line.r)}]`);
+    ok(portsOk(PT), `5b: both ports are the empty socket; the selected one bright with a deep-red header and the stick under it, the other grey, no square; F9 between them, a line to the selected header   [port ${PT.port}; line ${Math.round(PT.line.l)}-${Math.round(PT.line.r)}]`);
     await press("F9");
     await until(`(document.getElementById("c64-side").dataset.port || "") !== ${JSON.stringify(PT.port)}`, 5000);
     await wait(300);

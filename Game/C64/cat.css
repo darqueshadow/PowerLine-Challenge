@@ -2306,10 +2306,15 @@ html.cat-link #cat { visibility: hidden; }
 #cat.is-corner .c64-port .c64-port__plug { display: none; }
 #cat.is-corner .c64-port.c64-part.is-lit { background-color: transparent; box-shadow: none; }
 #cat.is-corner .c64-port:not(.is-lit) { opacity: .4; filter: grayscale(1); }
-#cat.is-corner .c64-port.is-lit .c64-part__label { color: #ffd23a; text-shadow: 0 1px 0 #3a2c08, 0 0 3px rgba(0, 0, 0, .45); }
+/* 🔄 2026-10-07 (his ruling, style only) — DEEP RED, not yellow: on the panel's
+   beige (rgb 170,156,130 to 160,147,122 behind the header, measured from its
+   gradient at 1920 and 1280, regular and full screen) the yellow was 1.87-2.09:1;
+   #5a0808 is 4.72-5.29:1 (text target 4.5:1). One property, so a swap is one value. */
+:root { --port-hi: #5a0808; }
+#cat.is-corner .c64-port.is-lit .c64-part__label { color: var(--port-hi); text-shadow: 0 1px 0 rgba(255, 246, 219, .35); }
 .c64-ports__line {
   position: absolute; height: 2px;
-  background: #ffd23a; box-shadow: 0 1px 0 #3a2c08;
+  background: var(--port-hi); box-shadow: 0 1px 0 rgba(255, 246, 219, .35);
   pointer-events: none;
 }
 .c64-ports__line[hidden] { display: none; }
