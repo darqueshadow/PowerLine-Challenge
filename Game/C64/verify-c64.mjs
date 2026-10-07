@@ -1863,6 +1863,32 @@ async function runRig() {
     const po2 = await PO();
     ok(po2.printed === po1.printed && po2.printing === 0 && !po2.head,
        `scrolling back up and down again: printed rows stay printed, nothing prints twice   [${po2.printed}]`);
+    /* 🔄 2026-10-07 (his tweaks) — no letter tabs; cream paper, light-blue bars, blue-black ink;
+       the selected row's highlight centred on its printed text; the arrow keys still walk the list */
+    await ev(`${STK}.scrollTop = 0`);
+    await wait(250);
+    const LOOKP = JSON.parse(await ev(`JSON.stringify((function () {
+      var tabs = document.querySelector("#crate-lib .crate__tabs"), pile = document.querySelector("#crate-lib .crate__pile");
+      return { tabs: getComputedStyle(tabs).display, paper: getComputedStyle(document.querySelector("#crate-lib .crate__stack")).backgroundColor,
+               bars: getComputedStyle(pile).backgroundImage, ink: getComputedStyle(document.querySelector("#crate-lib .crate__pile .disk .name")).color }; })())`));
+    ok(LOOKP.tabs === "none" && LOOKP.paper === "rgb(246, 239, 216)" && /126, 172, 222/.test(LOOKP.bars) && LOOKP.ink === "rgb(26, 34, 52)",
+       `the letter tabs are gone; cream paper, light-blue bars, blue-black ink   [tabs ${LOOKP.tabs}; ${LOOKP.paper}; ink ${LOOKP.ink}]`);
+    await ev(`document.querySelectorAll("#crate-lib .crate__pile .disk")[3].click()`);
+    await wait(400);
+    const HL = () => ev(`(function () { var b = document.querySelector('#crate-lib .crate__pile .disk[aria-pressed="true"]'), n = b.querySelector(".name"), sl = b.querySelector(".sleeve");
+      var probe = document.createElement("span"); probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline"; n.appendChild(probe);
+      var base = probe.getBoundingClientRect().top; probe.remove(); var cs = getComputedStyle(n), c = document.createElement("canvas").getContext("2d");
+      c.font = cs.fontSize + " " + cs.fontFamily; var t = c.measureText(n.textContent.toUpperCase()), r = sl.getBoundingClientRect();
+      return JSON.stringify({ name: n.textContent, off: (base - t.actualBoundingBoxAscent + base + t.actualBoundingBoxDescent) / 2 - (r.top + r.bottom) / 2 }); })()`).then(JSON.parse);
+    const hl1 = await HL();
+    ok(Math.abs(hl1.off) <= 1, `the selected row's highlight is centred on its printed text   [${hl1.name}: ${hl1.off.toFixed(2)} px off]`);
+    /* the arrow keys: focus the selected row, Down, Down, Up */
+    await ev(`document.querySelector('#crate-lib .crate__pile .disk[aria-pressed="true"]').focus()`);
+    await press("Down"); await press("Down"); await press("Up");
+    await wait(300);
+    const hl2 = await HL();
+    const selIdx = await ev(`Array.prototype.indexOf.call(document.querySelectorAll("#crate-lib .crate__pile .disk"), document.querySelector('#crate-lib .crate__pile .disk[aria-pressed="true"]'))`);
+    ok(selIdx === 4 && Math.abs(hl2.off) <= 1, `the arrow keys still walk the list (row 4 -> 6 -> 5), and the highlight follows, centred   [row ${selIdx + 1}: ${hl2.name}]`);
     await ev(`${STK}.scrollTop = 0`);
     ok(!(await ev("matchMedia('(prefers-reduced-motion: reduce)').matches")),
        "[control] this run is not in reduced motion (that case is checked by a still: everything printed, no head)");
