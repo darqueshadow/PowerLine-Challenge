@@ -18,9 +18,10 @@ The root PLC track (resume word **`Continue_PLC`**) keeps its one-shot handoffs 
   Same disk, other side = out to the slot, swap sent, flip, back in; a different disk never flips; Side B = plain jacket.
   Left as is until Andrew judges them in the live hub: the latch icon size, a full-screen swap status message.
   Closed (accepted as is, 2026-10-05): the moving disk briefly covers the line under the 1541. Push: NOT yet, hold local.
-  Phase 5a (behaviour only) built `31f6350`: lever pops the disk + pauses, its menu
-  (Remove / Change Disk = machineSwap), Reset split (Hard Reset), Datasette PLAY/EJECT, Directory -> List, no red
-  light for tapes. ⏸ WAITING for Andrew's live-hub check before 5b (5b-5d = layout, art, full screen).
+  Phase 5a (behaviour only) DONE, approved by Andrew in the live hub 2026-10-06: `31f6350` + `4ea1b07`. Lever pops
+  the disk and pauses a RUNNING game only (never READY); its menu (Remove / Change Disk = machineSwap); Reset split
+  (Hard Reset); Datasette PLAY/EJECT; Directory -> List; no red light for tapes.
+  ⏸ NEXT: 5b (5b-5d = layout, art, full screen). Waiting for its handoff; build nothing until then.
 - Adding a game to the C64 corner (Andrew): (1) copy the file(s) into `Game/C64/roms/`, sets named
   `Title - d1.D64`, `Title - d2.D64` … (marker at the END; tapes .t64/.tap group the same way); (2) reload the hub
   page, no restart or build; (3) optional: add the title to `roms/_library.json` BY HAND for Load choices or a
