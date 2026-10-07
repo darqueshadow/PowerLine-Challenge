@@ -1759,7 +1759,7 @@
      🆕 2026-10-05 — PHASE 5a: THE LEVER, THE DATASETTE'S KEYS, HARD RESET.
      Behaviour only (his rulings; layout and art are 5b-5d).
      THE LEVER (the 1541's latch, a disk in): a click OPENS it, and the disk
-       springs out about half an inch and stays out. The machine PAUSES while it
+       springs out about half an inch and stays out. A RUNNING GAME pauses while it
        is open, like Help, and only if the lever did the pausing does shutting
        it resume. Shut again with the disk still in: the disk goes back, the
        latch drops. With a tape, a cartridge or nothing in, it does nothing (the
@@ -1796,7 +1796,9 @@
     latchTo("up").then(function () {
       if (leverOpen && inserted === disk) return D.pop(disk.displayName, diskWords(disk, k), isSideB(disk, k));
     });
-    if (paused || pauseAsk) return;            /* already paused by the player: stays theirs */
+    /* 🔄 2026-10-05 (his ruling) — it pauses only a RUNNING GAME (the hub's
+       gameOn), never a machine at READY; one the player paused stays theirs */
+    if (!gameOn || paused || pauseAsk) return;
     pauseAsk = true;
     paintPause();
     machineCall({ type: "cat:pause" }, ["cat:paused", "cat:pausefailed"], 5000)

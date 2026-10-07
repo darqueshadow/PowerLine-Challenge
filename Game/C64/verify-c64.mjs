@@ -1698,7 +1698,7 @@ async function runRig() {
        inch, the machine pauses; shut, it goes back and resumes. The popped disk's
        menu: Remove (the game ends), and for a set, Change Disk, which is the swap
        button's own machineSwap (no reset: what is on the screen stays). */
-    section("T. 5a: the 1541's lever pops the disk and pauses; its menu removes or changes the disk; Hard Reset");
+    section("T. 5a: the 1541's lever pops the disk (and pauses a running game); its menu removes or changes the disk; Hard Reset");
     const tClickAt = async (x, y) => {
       wc.sendInputEvent({ type: "mouseDown", x, y, button: "left", clickCount: 1 });
       await wait(40);
@@ -1718,12 +1718,13 @@ async function runRig() {
     await clearScreen();
     await type("PRINT 5150\n");
     await untilScreen((r) => r.includes(" 5150"), 6000);
+    /* 🔄 2026-10-05 (his ruling) — AT READY the lever pauses NOTHING: the disk pops, the clock runs */
     await click("#drive-lever");
-    await until("__cat.machine().paused && __cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    await until("__cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
     const tL1 = await lv();
     const tfA = await frameNow(); await wait(600); const tfB = await frameNow();
-    ok(tL1.lever.open && tL1.lever.paused && tL1.paused && tL1.disk.shown && tL1.disk.phase === "popped" && !tL1.latch.down && tfB === tfA,
-       `the lever opens: latch up, the disk pops out and stays drawn, and the machine PAUSES (the clock stops)   [${tL1.disk.phase}; frames ${tfA} -> ${tfB}]`);
+    ok(tL1.lever.open && !tL1.lever.paused && !tL1.paused && tL1.disk.shown && tL1.disk.phase === "popped" && !tL1.latch.down && tfB > tfA,
+       `at READY the lever opens: latch up, the disk pops out and stays drawn, and NOTHING pauses (no game is running)   [${tL1.disk.phase}; frames ${tfA} -> ${tfB}]`);
     await tClickPopped();
     let tPk = await pick();
     ok(!!tPk && tPk.options.map((o) => o.label).join("|") === "Remove|Change Disk…",
@@ -1740,18 +1741,50 @@ async function runRig() {
     const tRecCh = (await recStop()).filter((x) => x.s);
     const tL2 = await lv();
     ok(tChg >= 0 && tRecCh.some((x) => /flip/.test(x.tr)) && tRecCh[0].p !== "below" && !tL2.lever.open && !tL2.paused && tL2.latch.down && !tL2.disk.shown,
-       `picking Disk 1, Side B: the swap button's own path (turned over, from where it stuck out), resumed, lever shut, latch down   [${took(tChg)}; ${[...new Set(tRecCh.map((x) => x.p + ":" + x.tr))].join(" > ")}]`);
+       `picking Disk 1, Side B: the swap button's own path (turned over, from where it stuck out), lever shut, latch down   [${took(tChg)}; ${[...new Set(tRecCh.map((x) => x.p + ":" + x.tr))].join(" > ")}]`);
     ok((await screen()).some((r) => r === " 5150") && (await frameNow()) > tfB,
        "and nothing was reset: what was on the screen is still there, and the machine runs (progress kept)");
-    /* shut with the disk still in: back in, resumed */
+    /* shut with the disk still in: back in, latch down */
+    await click("#drive-lever");
+    await until("__cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy", 5000, 30);
+    await click("#drive-lever");
+    await until("!__cat.corner().disk.shown && __cat.corner().latch.down && !__cat.corner().latch.moving", 5000, 30);
+    const tL3 = await lv();
+    ok(!tL3.lever.open && !tL3.paused && tL3.latch.down && !tL3.disk.shown && (await ev("__cat.inserted()")) === tPair.id,
+       `shutting the lever with the disk still in: it goes back in and the latch drops   [${JSON.stringify(tL3.lever)}]`);
+    /* A RUNNING GAME: the trio's Disk 1 program, loaded and run by the hub. The
+       lever pauses it; Change Disk (a different disk, so no flip) resumes it */
+    await insertRig(rid(RIG_TRIO));
+    await clearScreen();
+    await click("#btn-load");
+    await ran("RIG TRIO RAN");
+    await idleLoad();
+    ok(await ev("__cat.machine().gameOn"), "[control] the trio's program was loaded and run by the hub: a game is running");
+    await click("#drive-lever");
+    await until("__cat.machine().paused && __cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    const tG1 = await lv();
+    const tgA = await frameNow(); await wait(600); const tgB = await frameNow();
+    ok(tG1.lever.open && tG1.lever.paused && tG1.paused && tgB === tgA,
+       `with a game running, opening the lever PAUSES it (the clock stops)   [frames ${tgA} -> ${tgB}]`);
+    await tClickPopped();
+    await click("#c64-pick .c64-pick__opt:nth-of-type(2)");
+    await recStart();
+    await click("#c64-pick .c64-pick__opt:nth-of-type(3)");
+    const tChg2 = await until(`${DISK_LINE} === 'Disk 2, Side A'`, 30000);
+    await idle();
+    await until("!__cat.corner().disk.busy && !__cat.corner().latch.moving", 5000, 30);
+    const tRecG = (await recStop()).filter((x) => x.s);
+    const tG2 = await lv();
+    ok(tChg2 >= 0 && !tRecG.some((x) => /flip/.test(x.tr)) && tRecG.some((x) => /down/.test(x.tr)) && !tG2.paused && !tG2.lever.open && tG2.latch.down
+       && (await ev("__cat.machine().gameOn")) && (await screen()).some((r) => r === "RIG TRIO RAN"),
+       `Change Disk to Disk 2, Side A in a running game: resumed, no flip (another disk), the game not reset   [${took(tChg2)}; ${[...new Set(tRecG.map((x) => x.p + ":" + x.tr))].join(" > ")}]`);
     await click("#drive-lever");
     await until("__cat.machine().paused && __cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy", 5000, 30);
     await click("#drive-lever");
     await until("!__cat.machine().paused && !__cat.corner().disk.shown && __cat.corner().latch.down && !__cat.corner().latch.moving", 5000, 30);
-    const tL3 = await lv();
-    const tfC = await frameNow(); await wait(500);
-    ok(!tL3.lever.open && !tL3.paused && tL3.latch.down && !tL3.disk.shown && (await frameNow()) > tfC && (await ev("__cat.inserted()")) === tPair.id,
-       `shutting the lever with the disk still in: it goes back in, the latch drops, and the machine RESUMES   [${JSON.stringify(tL3.lever)}]`);
+    const tgC = await frameNow(); await wait(500);
+    ok(!(await ev("__cat.machine().paused")) && (await frameNow()) > tgC,
+       "shutting the lever on a running game, the disk still in: it goes back in and the game RESUMES");
     /* Remove: the game ends, back to READY */
     await click("#drive-lever");
     await until("__cat.corner().disk.phase === 'popped' && !__cat.corner().disk.busy", 5000, 30);
@@ -1772,7 +1805,7 @@ async function runRig() {
     ok(!!tPk && tPk.options.map((o) => o.label).join("|") === "Remove", `a single disk offers Remove only   [${tPk ? tPk.options.map((o) => o.label).join("|") : "none"}]`);
     await click("#c64-pick .c64-pick__cancel");
     await click("#drive-lever");
-    await until("!__cat.machine().paused && !__cat.corner().disk.shown && __cat.corner().latch.down && !__cat.corner().latch.moving", 5000, 30);
+    await until("!__cat.corner().disk.shown && __cat.corner().latch.down && !__cat.corner().latch.moving", 5000, 30);
     /* Reset is soft (the disk stays); its arrow's Hard Reset takes it out */
     await click("#btn-reset");
     await idle();
