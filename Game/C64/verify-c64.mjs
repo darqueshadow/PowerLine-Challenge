@@ -2012,7 +2012,7 @@ async function runRig() {
     const PORTS = () => ev(`JSON.stringify((function () {
       var one = function (id) { var e = document.getElementById(id), cs = getComputedStyle(e), lab = getComputedStyle(e.querySelector(".c64-part__label"));
         return { lit: e.classList.contains("is-lit"), op: Number(cs.opacity), shadow: cs.boxShadow, plug: getComputedStyle(e.querySelector(".c64-port__plug")).display,
-                 color: lab.color, stick: getComputedStyle(e.querySelector(".c64-port__stick")).opacity, r: e.getBoundingClientRect() }; };
+                 color: lab.color, stick: getComputedStyle(e.querySelector(".c64-port__stick")).opacity, stickTs: getComputedStyle(e.querySelector(".c64-port__stick")).textShadow, r: e.getBoundingClientRect() }; };
       var h = document.getElementById("c64-port-hint").getBoundingClientRect(), ln = document.getElementById("c64-port-line"), lb = ln.getBoundingClientRect();
       var labOf = function (id) { return document.getElementById(id).querySelector(".c64-part__label").getBoundingClientRect(); };
       return { p1: one("c64-port1"), p2: one("c64-port2"), hint: h, line: { shown: !ln.hidden && lb.width > 0, l: lb.left, r: lb.right, y: lb.top + lb.height / 2, port: ln.dataset.port },
@@ -2022,11 +2022,11 @@ async function runRig() {
       const joins = P.port === "1" ? Math.abs(P.line.l - lab.right) <= 4 && Math.abs(P.line.r - P.hint.left) <= 4
                                    : Math.abs(P.line.l - P.hint.right) <= 4 && Math.abs(P.line.r - lab.left) <= 4;
       return sel.lit && !oth.lit && P.p1.plug === "none" && P.p2.plug === "none" && sel.shadow === "none" && sel.op === 1 && oth.op < 0.6
-        && sel.color === "rgb(42, 28, 0)" && Number(sel.stick) === 1 && P.p1.r.right <= P.hint.left && P.hint.right <= P.p2.r.left
+        && sel.color === "rgb(42, 28, 0)" && Number(sel.stick) === 1 && sel.stickTs.startsWith("rgb(242, 189, 69) 0px 0px 0px") && P.p1.r.right <= P.hint.left && P.hint.right <= P.p2.r.left
         && P.line.shown && P.line.port === P.port && joins && P.line.y >= lab.top && P.line.y <= lab.bottom;
     };
     let PT = await PORTS();
-    ok(portsOk(PT), `5b: both ports are the empty socket; the selected one bright with an amber header lit like Fast Load and the stick under it, the other grey, no square; F9 between them, a line to the selected header   [port ${PT.port}; line ${Math.round(PT.line.l)}-${Math.round(PT.line.r)}]`);
+    ok(portsOk(PT), `5b: both ports are the empty socket; the selected one bright with an amber header lit like Fast Load and the stick under it in the same amber, the other grey, no square; F9 between them, a line to the selected header   [port ${PT.port}; line ${Math.round(PT.line.l)}-${Math.round(PT.line.r)}]`);
     await press("F9");
     await until(`(document.getElementById("c64-side").dataset.port || "") !== ${JSON.stringify(PT.port)}`, 5000);
     await wait(300);

@@ -2323,6 +2323,16 @@ html.cat-link #cat { visibility: hidden; }
   box-shadow: 0 0 0 1px #3a2c08, 0 0 8px 1px rgba(255, 196, 64, .45);
   text-shadow: none;
 }
+/* 🔄 2026-10-10 (his ruling, style only) — THE SELECTED PORT'S MARKER, the 🕹
+   under it, is the same amber. A colour emoji ignores `color`, so the glyph goes
+   transparent and a zero-offset shadow paints its shape in #f2bd45: a flat amber
+   joystick. The amber is as faint on the bin as the header's (2.33-2.50:1 on the
+   bin's middle tones under the ports), so the same #3a2c08 outline, drawn as four
+   1px shadows under it: amber to outline 7.86:1, outline to the bin 3.14-3.37:1. */
+#cat.is-corner .c64-port.is-lit .c64-port__stick {
+  color: transparent;
+  text-shadow: 0 0 0 #f2bd45, 1px 0 0 #3a2c08, -1px 0 0 #3a2c08, 0 1px 0 #3a2c08, 0 -1px 0 #3a2c08;
+}
 .c64-ports__line {
   position: absolute; height: 2px;
   background: #f2bd45; box-shadow: 0 0 0 1px #3a2c08;
