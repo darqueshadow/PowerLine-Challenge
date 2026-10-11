@@ -157,8 +157,7 @@ Not here: `~/.claude/projects/C--Users-darqu-OneDrive--PCL--Game-cartridges-Egg-
 write Egg Timer memories there.
 
 ## State 2026-10-03 (parked)
-Chat's playtest batches are **built and committed, not pushed** (`5267498`..`477f41e`); the push waits on PLC's
-`28ca78d`, which sits underneath. **Held for Andrew:** the How To Play caption bubble, the types reference's place
+**Held for Andrew:** the How To Play caption bubble, the types reference's place
 (E61: three rows, wording ruled) and Part 4. **Since `06cc26f` live play really places the marks and notes** (before
 it, never): Andrew's next Rec-Bay 4 look should cover them. Owed: the hospital window and spawn-rate playtests (E53,
 E56); hand tests (Mom's visits, the cartoon, nozzle lag, held Enter at Game Over, the aliens, the hose, Q, real F3, the

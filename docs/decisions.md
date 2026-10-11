@@ -1195,3 +1195,9 @@ What the root CLAUDE.md "Parked work" section carried, now settled (git log has 
   cream / light-blue / blue-black, no letter tabs in the corner, highlight down 6px to centre on capitals).
 - Swap Disk flash (2026-10-07): NOT built. No signal tells the hub a game wants another disk, and there is no
   automatic swap; flashing would be a guess (his rule: don't). See cat.js "Out of scope, his words".
+
+## Resolved 2026-10-10 — Egg Timer: Chat's 2026-10-02/03 playtest batches published
+
+**Solved:** Every Egg Timer commit from `5267498` to `4a56ec2` is live on Pages (pushed 2026-10-06, `fabec48..4a56ec2`, deploy green): the bag, hospital reset, Patient Refused bubble, Time Warp red, HUD Mom face, E60 pinball plate, VF switch, AD note, items A-K, D2 slime and the live-placement fix `06cc26f`.
+**Approach:** Andrew picked "through `4a56ec2`" over all of main. The prefix push carried four other-session commits that sat underneath (PLC `28ca78d`, root `67be0a6`, `ccedaba`, `cee0880`) with his OK. The C64 corner's commits above stayed local.
+**If you touch this again:** Still held for Andrew, not part of this: the How To Play caption bubble, E61 Part 3 (where the types reference goes) and Part 4. Owed: the E53/E56 playtests and the hand tests in Egg Timer's CLAUDE.md. Next free ruling number: E62.
