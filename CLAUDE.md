@@ -9,9 +9,9 @@ cartridge's own `CLAUDE.md`.
 
 The root PLC track (resume word **`Continue_PLC`**) keeps its one-shot handoffs in `(PCL)/MEMORY.md`
 → `(PCL)/memory/`. That file is not auto-loaded, so read it when `Continue_PLC` is typed.
-- C64 corner (`Game/C64/`): Phases 0-5d built; live on Pages to `6684a5a` (2026-10-07), including
-  `4ecfa62` (game list keyboard) and `486ed05` (amber port header; `13bb666` deep red is superseded).
-  ⏸ Open: "Cursor" (which element? ask Andrew); the Swap Disk flash report. History in `docs/decisions.md`.
+- C64 corner (`Game/C64/`): Phases 0-5d built; live on Pages to `3f9aa27` (2026-10-11), including
+  `4ecfa62` (game list keyboard), `486ed05` (amber port header; `13bb666` deep red superseded), `3f9aa27` (amber joystick marker).
+  "Cursor" was taken to be the 🕹 under the selected port; Andrew may correct it. Swap Disk flash: not built (reported). History in `docs/decisions.md`.
   Double-sided rules (`library.js` mapSides): `- dN` is side N (d1/d2 = Disk 1, Side A/B); d0 is its own disk,
   numbered in order; Test Drive II, Ultima II, Ultima III are on NO_SIDES. Wording "Disk 1, Side A" / "Disk 3".
   The game list's keys: whoever has DOM focus has the keyboard (the list on first open and after a row click).
