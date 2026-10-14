@@ -23,7 +23,8 @@
 
    WHAT IT DOES PROVE is the whole chain that used to be assumption:
      · `vice_joyport` is a REAL option on this core, read from the core itself;
-     · F9 moves it, in capture phase, in BOTH input modes;
+     · F9 moves it, in capture phase, in BOTH input modes (in keyboard mode
+       its first press puts you on the stick, his 2026-09-17 ruling);
      · the CORE is told (gameManager.setVariable), not merely the settings store
        the label is painted from — those two disagreeing is the failure mode
        this rig exists for, because it looks exactly like success;
@@ -126,12 +127,25 @@ try {
      switch because the stick is dead — and in keyboard mode every keystroke is
      being handed to the C64, so a bubble-phase handler would be racing the
      machine for its own key and losing it strands you. */
+  /* 🔄 2026-10-14 — in line with his 2026-09-17 ruling, F9 PUTS YOU ON THE STICK
+     (emu.js portKey; this rig predates it and went red on the ruling). In keyboard
+     mode the first press hands the keys back to the stick and does NOT move the
+     port; the next press swaps. A bare flip with the keyboard still live is the
+     pre-ruling bug, so "the port changed" alone would pass on it. Fang Rock's
+     corner swaps on every press since 2026-10-02: that is verify-c64 §G's. */
   await c.ev(`window.postMessage({ type: 'cat:input' }, '*')`);
   await wait(600);
   const kbd = await c.ev(`EJS_emulator.getSettingValue('keyboardInput')`);
+  ok("[control] the C64 owns the keyboard before F9", kbd === "enabled", `keyboardInput=${kbd}`);
+  const p0 = await port();
   await tapF9();
-  ok("F9 still switches while the C64 owns the keyboard",
-     (await port()) === "2", `keyboardInput=${kbd}, port=${await port()}`);
+  const kbd1 = await c.ev(`EJS_emulator.getSettingValue('keyboardInput')`);
+  ok("F9 is still heard while the C64 owns the keyboard: it puts you on the stick",
+     kbd1 === "disabled", `keyboardInput ${kbd} -> ${kbd1}`);
+  ok("and that first press does NOT move the port", (await port()) === p0, `${p0} -> ${await port()}`);
+  await tapF9();
+  ok("on the stick, the next F9 swaps the port",
+     (await port()) === (p0 === "1" ? "2" : "1"), `${p0} -> ${await port()}`);
 
   console.log("\n  § CONTROL — this one must be able to fail\n");
   const before = await port();
