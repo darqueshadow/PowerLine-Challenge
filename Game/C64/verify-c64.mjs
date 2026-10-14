@@ -2625,7 +2625,16 @@ async function runRig() {
         while (Date.now() - t0 < 30000) { RAM = await locateRam(); if (RAM >= 0) return Date.now() - t0; await wait(300); } return -1; })();
       ok(tRam2 >= 0, `[control] the overlay's C64 screen memory was found   [${took(tRam2)}, ${RAM}]`);
       if (RAM < 0) throw new Error("no overlay screen to read");
-      await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 60000);
+      /* 🔧 2026-10-14 — wait for the overlay's own autostart LOAD to be ANSWERED, not
+         for any READY. The rig's disks are blank, so that LOAD"*",8,1 ends in ?FILE
+         NOT FOUND after ~8 s of SEARCHING, and the boot banner's READY. passed the old
+         check before it began: keys typed into the search are lost. A 12-17 s RAM hunt
+         hid it; a 7.4 s one failed "it boots with Side A" (2026-10-14, 313/2). With no
+         autostart LOAD on the screen, the old check stands. */
+      const AUTO = /^LOAD"\*",8,1$/;
+      if ((await untilScreen((r) => r.some((x) => AUTO.test(x)), 15000)) >= 0)
+        await untilScreen((r) => toReady(after(r, AUTO)).slice(-1)[0] === "READY.", 60000);
+      else await untilScreen((r) => r.filter(Boolean).slice(-1)[0] === "READY.", 60000);
       await wait(2000);
       say(`        (the overlay after boot: ${(await screen()).filter(Boolean).slice(1).join(" | ")})`);
       await click("#play-frame");
