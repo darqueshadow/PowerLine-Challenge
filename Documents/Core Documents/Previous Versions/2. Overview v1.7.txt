@@ -1,0 +1,133 @@
+Overview v1.7
+Version History
+* v1.0 – Initial draft
+* v1.1 – Added Zone and Player as core objects
+* v1.2 – Added Impact logic and Event Impact
+* v1.3 – Added Projectile logic and Bonus Target rules
+* v1.4 – Introduced dual naming convention for Impact (Initiator vs Receiver)
+* v1.5 – Added Blank Skin concept, Cartridge system, Main Menu concept, renaming Game Theme to Game Skin, Holodeck activation, and dataset logic.
+* v1.6 – Renamed Blank Skin → Empty Cartridge, renamed Shell → Arcade, renamed Arcade submenu → Action Zone, clarified Empty Cartridge structure, reinforced modular development approach, and retained all previous sections.
+* v1.7 – Replaced the difficulty-menu requirement with adaptive difficulty: cartridges set and adjust their own pace from player performance, and no longer offer a difficulty menu. Authorized by Andrew, 2026-11-15. All other sections unchanged.
+
+Purpose
+The PowerLine Challenge is an interactive, typing-based training game aimed at improving dispatchers’ proficiency with PowerLine commands. By offering repeated practice under real-time pressure, the game moves away from passive instruction, providing a hands-on, gamified environment where players can master core CAD functions until they become second nature.
+
+Core Concepts
+Empty Cartridge
+* A master template for creating new games.
+* Includes basic game logic: 
+o HTML structure (canvas, Challenge Box, Command Box).
+o Minimal JS for spawning targets and handling input.
+o Placeholder CSS for layout.
+* Claude can theme and expand this cartridge (colors, fonts, images, music, mechanics).
+Arcade (Main Hub)
+* Houses the Main Menu and submenus.
+* Provides access to all game cartridges.
+* Handles cartridge loading dynamically.
+* Optionally includes “Start Random Game” feature.
+Action Zone (Dynamic Games Submenu)
+* Formerly called Arcade submenu.
+* Contains games with player movement, aiming, jumping, and dynamic mechanics.
+* Differentiates from Speed Drills and Strategy games.
+Cartridges
+* Each game skin is a cartridge with: 
+o Adaptive difficulty: the cartridge sets and adjusts its own pace from how the player is performing — speeding up while the player keeps up, easing off when a Target gets through. Cartridges do not offer a difficulty menu; the player does not choose a difficulty or starting level.
+o Dedicated menus for dataset selection and instructions.
+o Unique theme (background, font, music).
+o Title screen and end-of-game screen.
+* Music: 
+o Separate tracks for menus and gameplay.
+o Gameplay music loops until game ends.
+Holodeck
+* Demo mode with a “Return to Program” button to exit back to normal mode.
+* Activation only in Publish Mode.
+Instructions
+* Each cartridge includes an instruction screen and PowerLine command list.
+
+Main Menu
+The Main Menu provides access to different game categories or modes. Upon selecting a category, the player is directed to a submenu where they can choose a Game Cartridge. The last option in each submenu always returns the player to the Main Menu.
+* Speed Drills: Space, Water, Land
+* Action Zone: Asteroid Command, Zombie!, Bubble Clouds
+* Head-to-Head: NEMS 500, Rally Race, Summer Games
+* Strategy: Christmas Tree, Kobayashi Maru
+
+Gameplay Flow
+* Targets spawn on the playfield, each associated with a Challenge.
+* The player reads the Challenge and types the correct Command.
+* If the player enters the correct Command, the corresponding Target is cleared and, in some skins, the Player may fire a projectile.
+* If the Command is incorrect, the Target remains active and may retaliate by firing at the Zone or Player, depending on the skin.
+* If a Target reaches the Zone, an Impact Zone event occurs.
+* Bonus Targets may occasionally appear, offering opportunities for extra points.
+* Boss encounters occur based on the selected game type.
+
+Impact Logic
+* Impact Types: Target Impact, Zone Impact, Player Impact, Bonus Target Impact, Boss Impact.
+* Dual Naming Convention: 
+o ____ Impact refers to the object initiating the impact.
+o Impact ____ refers to the object receiving the impact.
+* Event Impact: Defines the outcome that occurs at the collision point.
+
+Projectile Logic
+* Projectile Origin: The object that fires the projectile (Player, Zone, Target, or Boss).
+* Projectile Destination: The object being struck by the projectile.
+* Projectiles must travel from their origin to their destination and trigger an Event Impact upon collision.
+
+Color Coding (Blank Version)
+* Targets = Green
+* Challenges = Yellow
+* Command Input = Blue
+* Zone = Brown
+* Player = Gray
+* Bonus Target = Purple
+* Round Boss = Orange
+* Final Boss = Red
+
+Gameplay Examples
+* Asteroid Cartridge: When the player enters a correct command, the Player fires a laser, resulting in a Target Impact and an Impact Target, with an explosion at the collision point. If the command is missed, the Target reaches the Zone, causing an Impact Zone event with a damage animation.
+* Space Invaders Style Cartridge: A Bonus Target (UFO) crosses the screen; if the player successfully clears it, they earn extra points.
+
+Modular Structure
+Recommended folder layout:
+PowerLineChallenge/
+├── arcade.html        (Main hub + loader)
+└── /cartridges
+    ├── asteroid/
+    │   ├── index.html
+    │   ├── style.css
+    │   ├── script.js
+    │   ├── /images
+    │   │   ├── asteroid1.png
+    │   │   └── asteroid2.png
+    │   └── /music
+    │       └── asteroid-theme.mp3
+    └── zombie/
+        ├── index.html
+        ├── style.css
+        ├── script.js
+        ├── /images
+        └── /music
+* For sharing: zip the entire folder.
+* For hosting: modular structure works perfectly.
+* Claude must maintain separate files for CSS, JS, and assets during development.
+
+Dynamic Dataset Logic
+* Universal Formula: 
+o Challenge: [Challenge PL] [Unit] [Verb] [Base Name]
+o Command: [Command PL] [Unit] [Verb] [Base Number]
+* Example: 
+o Challenge: Assign Unit 2101 to Thorold
+o Command: AP 2101 to 72103
+* Randomization Rules: 
+o Select one PowerLine Command from active set.
+o Select one Unit and Base from datasets.
+o Ensure Challenge and Command share the same Unit/Base pairing.
+* Validation: 
+o No duplicate Challenge–Command pairs.
+o All mappings (Base Name → Base Number) must be correct.
+
+Developer Notes
+* Claude must adhere to Laws v1.6 for Holodeck activation and mode engagement.
+* Empty Cartridge integrity must be preserved.
+* Modular structure enforced for Claude edits.
+* Contact logic deferred for future development.
+
