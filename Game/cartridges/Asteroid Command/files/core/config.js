@@ -12,6 +12,9 @@ const CONFIG = {
     hpPerShieldLayer: 3,
     misfireDamage: 1,
     impactDamage: 3,
+    // Target pick weights (spawnAsteroid): live zone 1.0, tower 1.0, a zone already
+    // reduced to rubble this much. Lower = fewer calls aimed at dead zones.
+    deadZoneWeight: 0.5,
     asteroidRadius: 20,
     zoneHeight: 50,
     projectileSpeed: 800,
@@ -171,6 +174,38 @@ const MENU = {
     drillShowCommandMs: 2000,
     drillMostMissedShown: 5,          // rows on the end-of-drill summary card
     drillBannerGapMs: 800             // SHORTHAND drill: pause before the next banner
+};
+
+// ============================================
+// DEBRIS STRIKE IMPACT — a target landing on a zone that is already rubble
+// Visual + feel only; the penalty lives in SCORING.debrisStrikeMult.
+// Everything here runs on elapsed time (seconds), never per-frame counts.
+// ============================================
+
+const DEBRIS_STRIKE = {
+    maxParticles: 160,          // hard cap across every burst on screen
+    dustCount: 34,              // dust puffs per strike
+    dustSpeedMin: 40,           // units/s, outward
+    dustSpeedMax: 170,
+    dustLifeMin: 0.7,           // seconds
+    dustLifeMax: 1.3,
+    dustRadiusMin: 5,
+    dustRadiusMax: 12,
+    dustGrowth: 22,             // radius growth, units/s, as the cloud spreads
+    dustDrag: 1.8,              // velocity lost per second (fraction)
+    chunkCount: 7,              // rubble chunks thrown up
+    chunkSpeedMin: 200,         // units/s, upward
+    chunkSpeedMax: 340,
+    chunkSpread: 140,           // units/s, sideways either way
+    chunkGravity: 760,          // units/s^2, so they fall back down
+    chunkLife: 1.6,             // seconds
+    chunkSizeMin: 3,
+    chunkSizeMax: 7,
+    ringRadius: 95,             // dust shock ring, final radius
+    ringLife: 0.45,             // seconds
+    shakeSec: 0.3,              // screen shake length (none under reduced motion)
+    shakeAmp: 6,                // virtual units at the start, easing to 0
+    sound: 'towerDown'          // reuses the 40 Hz boom: the heaviest thud in the set
 };
 
 // ============================================

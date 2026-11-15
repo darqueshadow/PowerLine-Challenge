@@ -187,6 +187,8 @@ const state = {
     holodeckUnlocked: false,
     holodeckPromptActive: false,
     environmentalParticles: [],
+    debris: [],                      // Debris Strike burst particles (capped)
+    shake: null,                     // Debris Strike screen shake { age, dur }
     skylonBugs: [],
     canalCrew: [],
     beckWorkers: [],
@@ -1575,6 +1577,23 @@ function resolveAsteroidCollisions() {
     }
 }
 
+// Weighted target pick: a live zone and the tower weigh 1.0, a zone already
+// reduced to rubble weighs CONFIG.deadZoneWeight — fewer calls aimed at ruins.
+function targetWeight(d) {
+    if (d.type !== 'tower' && d.hp <= 0) return CONFIG.deadZoneWeight;
+    return 1.0;
+}
+function pickTarget(list) {
+    const total = list.reduce((sum, d) => sum + targetWeight(d), 0);
+    if (!(total > 0)) return list[Math.floor(Math.random() * list.length)];
+    let roll = Math.random() * total;
+    for (const d of list) {
+        roll -= targetWeight(d);
+        if (roll < 0) return d;
+    }
+    return list[list.length - 1];
+}
+
 function spawnAsteroid() {
     if (state.asteroids.length >= state.maxTargets || state.rebuilding || !TIERS[state.tier]) return;
 
@@ -1584,7 +1603,7 @@ function spawnAsteroid() {
         const filtered = state.defenses.filter(d => godMode.targetableZones.has(d.id));
         if (filtered.length > 0) availableTargets = filtered;
     }
-    const target = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+    const target = pickTarget(availableTargets);
     const zone      = getSpawnZone();
     const zoneWidth = COORD_SYSTEM.width / 16;                   // 100 virtual units per zone
     const sx = zone * zoneWidth + Math.random() * zoneWidth;    // random within chosen zone
@@ -4595,6 +4614,9 @@ function drawAftermathVFX(ctx) {
         ctx.fill();
     });
 
+    // Debris Strike: dust, rubble chunks, shock ring
+    drawDebris(ctx);
+
     // Draw Hard-Coded Effects (Electricity & Elevators)
     const time = Date.now();
     state.defenses.forEach(zone => {
@@ -4837,6 +4859,7 @@ function update(dt) {
     try {
         if (state.ambulance) updateAmbulance(dt);
         updateRankClocks(dt);   // Pace + pressure clocks (RANK MOVEMENT)
+        updateDebris(dt);       // Debris Strike burst + screen shake
         maintainAsteroids(dt);  // Pass delta-time for spawn timer
         maintainSatellite(dt);  // Banner bonus flyby
         updateBannerDebris(dt); // Claimed banners burning down — outlives the satellite
@@ -4993,6 +5016,113 @@ function update(dt) {
     }
 }
 
+// ============================================
+// DEBRIS STRIKE IMPACT — dust, rubble and a short shake (DEBRIS_STRIKE in config)
+// Runs on elapsed seconds only. state.debris holds every live particle across
+// all bursts and never exceeds DEBRIS_STRIKE.maxParticles.
+// ============================================
+const rand = (a, b) => a + Math.random() * (b - a);
+
+function prefersReducedMotion() {
+    try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    catch (e) { return false; }
+}
+
+function spawnDebrisBurst(def) {
+    const C = DEBRIS_STRIKE;
+    const x = def.x;
+    const groundY = def.y;                      // ruin's base: chunks land back here
+    const y = def.y - Math.min(def.h || 40, 60) * 0.35;
+    const room = () => state.debris.length < C.maxParticles;
+
+    if (room()) state.debris.push({ kind: 'ring', x, y, age: 0, life: C.ringLife });
+    for (let i = 0; i < C.dustCount && room(); i++) {
+        const a = -Math.PI * Math.random();     // upper half, fanning out
+        const sp = rand(C.dustSpeedMin, C.dustSpeedMax);
+        state.debris.push({
+            kind: 'dust', x: x + rand(-15, 15), y,
+            vx: Math.cos(a) * sp * 1.3, vy: Math.sin(a) * sp * 0.6,
+            r: rand(C.dustRadiusMin, C.dustRadiusMax),
+            age: 0, life: rand(C.dustLifeMin, C.dustLifeMax),
+            shade: Math.floor(rand(110, 160))
+        });
+    }
+    for (let i = 0; i < C.chunkCount && room(); i++) {
+        state.debris.push({
+            kind: 'chunk', x: x + rand(-10, 10), y, groundY,
+            vx: rand(-C.chunkSpread, C.chunkSpread), vy: -rand(C.chunkSpeedMin, C.chunkSpeedMax),
+            size: rand(C.chunkSizeMin, C.chunkSizeMax),
+            rot: rand(0, Math.PI * 2), spin: rand(-8, 8),
+            age: 0, life: C.chunkLife
+        });
+    }
+}
+
+function updateDebris(dt) {
+    const C = DEBRIS_STRIKE;
+    for (let i = state.debris.length - 1; i >= 0; i--) {
+        const p = state.debris[i];
+        p.age += dt;
+        if (p.age >= p.life) { state.debris.splice(i, 1); continue; }
+        if (p.kind === 'dust') {
+            const drag = Math.max(0, 1 - C.dustDrag * dt);
+            p.vx *= drag; p.vy *= drag;
+            p.x += p.vx * dt; p.y += p.vy * dt;
+            p.r += C.dustGrowth * dt;
+        } else if (p.kind === 'chunk') {
+            p.vy += C.chunkGravity * dt;
+            p.x += p.vx * dt; p.y += p.vy * dt;
+            p.rot += p.spin * dt;
+            if (p.y >= p.groundY) {             // landed: settle on the rubble
+                p.y = p.groundY; p.vy = 0; p.vx = 0; p.spin = 0;
+            }
+        }
+    }
+    if (state.shake) {
+        state.shake.age += dt;
+        if (state.shake.age >= state.shake.dur) state.shake = null;
+    }
+}
+
+function drawDebris(ctx) {
+    for (const p of state.debris) {
+        const k = p.age / p.life;               // 0 → 1 over its life
+        if (p.kind === 'ring') {
+            ctx.strokeStyle = `rgba(170, 155, 130, ${0.55 * (1 - k)})`;
+            ctx.lineWidth = 6 * (1 - k) + 1;
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y, DEBRIS_STRIKE.ringRadius * k, DEBRIS_STRIKE.ringRadius * k * 0.45, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        } else if (p.kind === 'dust') {
+            const c = p.shade;
+            ctx.fillStyle = `rgba(${c + 20}, ${c + 8}, ${c - 10}, ${0.55 * (1 - k)})`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
+            ctx.fillStyle = '#5c5246';
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.8);
+            ctx.restore();
+        }
+    }
+}
+
+function startScreenShake() {
+    if (prefersReducedMotion()) return;
+    state.shake = { age: 0, dur: DEBRIS_STRIKE.shakeSec };
+}
+// Current shake offset in virtual units, easing out over the shake's length.
+function shakeOffset() {
+    const sh = state.shake;
+    if (!sh) return null;
+    const amp = DEBRIS_STRIKE.shakeAmp * (1 - sh.age / sh.dur);
+    return { x: (Math.random() * 2 - 1) * amp, y: (Math.random() * 2 - 1) * amp };
+}
+
 function damageDefense(def, initiator, receiver) {
     // Dual Naming: initiator = Target Impact (asteroid), receiver = Impact Zone (defense)
     const initiatorLabel = initiator ? `[${initiator.unitID || 'UNKNOWN'}]` : '';
@@ -5003,13 +5133,14 @@ function damageDefense(def, initiator, receiver) {
     // be cleared. Nothing is left to destroy — the consecutive-destruction
     // counter and the kill streak stay untouched — but the miss costs points.
     if (def.hp <= 0 && def.type !== 'tower') {
-        AudioManager.play('targetImpact');
-        createExplosion(def.x, def.y, '#8a7f6b', 30);   // dust off the ruin, not fire
+        AudioManager.play(DEBRIS_STRIKE.sound);
+        spawnDebrisBurst(def);                      // dust, rubble chunks, shock ring
+        startScreenShake();
         const baseHit = (TIERS[state.tier] || {}).baseHit || 100;
         const penalty = Math.max(SCORING.maxPenalty,
                                  -Math.floor(baseHit * SCORING.debrisStrikeMult));
         applyScore(penalty);
-        showStatus(`DEBRIS STRIKE ${penalty} — ${initiatorLabel} → ${receiverLabel.toUpperCase()}`, "impact");
+        showStatus(`CALL MISSED — ${receiverLabel.toUpperCase()} ${penalty}`, "impact");
         flashScorePenalty();
         recordLanding();
         updateHUD();
@@ -5242,7 +5373,8 @@ function render() {
     // All draw calls below operate in COORD_SYSTEM (1600×900) virtual space
     ctx.save();
     ctx.scale(canvasScaleX, canvasScaleY);
-
+    const shake = shakeOffset();                     // Debris Strike shake (virtual units)
+    if (shake) ctx.translate(shake.x, shake.y);
 
     // ── Niagara Falls — animated waterfall at the gorge ──
     const fallsX = 440;                                // left of Skylon (x=480) so falls are visible
@@ -6816,7 +6948,7 @@ function startGame(holodeck = false, drill = null) {
         cardHelp: null, cardHelpUsed: 0, cardHelpFailed: 0,
         drill: drill,                                // Trainer DRILL (null in the real game)
         beamActive: false, gameOverPending: false,
-        backspaces: 0, cleanHits: 0, environmentalParticles: [],
+        backspaces: 0, cleanHits: 0, environmentalParticles: [], debris: [], shake: null,
         timers: {},                                  // maintainAsteroids() spawns the first target straight away
         spawnHistory: [],                            // Zone spread tracking (16-zone system)
         bridgeStartTime: Date.now(),                 // Bridge starts lowered, raises after 10 s
