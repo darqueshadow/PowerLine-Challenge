@@ -198,52 +198,7 @@ async function loadGameData() {
     DATA_LOCATIONS_SAMPLE = DATA_LOCATIONS_FULL.slice(0, 5);
 
     // --- Progression → rebuild TIERS ---
-    const progRows = parseCSV(progressionText);
-    const tierKeys = [];
-
-    // Clear existing TIERS
-    Object.keys(TIERS).forEach(k => delete TIERS[k]);
-
-    progRows.forEach(r => {
-        const name = r['Rank / Tier'];
-        const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        tierKeys.push(key);
-
-        const points = parseInt(r['Points Required'].replace(/,/g, ''), 10) || 0;
-        const speedMin = parseFloat((r['Speed (Min)'] || r['Speed (Max)']).replace('x', ''));
-        const speedMax = parseFloat(r['Speed (Max)'].replace('x', ''));
-        const spawnMinSec = parseFloat(r['Spawn (Min sec)'] || r['Spawn Time (Min sec)']);
-        const spawnMaxSec = parseFloat(r['Spawn (Max sec)'] || r['Spawn (Min sec)'] || r['Spawn Time (Min sec)']);
-        const maxTargets = parseInt(r['Max Targets'] || r['Max Asteroids on Screen'], 10);
-        const baseHit = parseInt(r['Base Hit (Clear)'], 10) || 100;
-        const impactPenalty = parseInt(r['Target Impact (Penalty)'], 10) || -50;
-        const asteroidRadius = parseInt(r['Asteroid Radius'], 10) || CONFIG.asteroidRadius;
-        const projectileSpeed = parseInt(r['Projectile Speed'], 10) || CONFIG.projectileSpeed;
-
-        TIERS[key] = {
-            label: name.toUpperCase(),
-            // Plain-English skill label shown beside the rank on the DIFFICULTY
-            // screen (Novice → Expert). Falls back to the rank name if the
-            // Difficulty column is missing from progression.csv.
-            difficulty: (r['Difficulty'] || name).toUpperCase(),
-            min: points,
-            max: Infinity,
-            speedMin: speedMin,
-            speedMax: speedMax,
-            spawnMin: spawnMinSec * 1000,
-            spawnMax: spawnMaxSec * 1000,
-            maxTargets: maxTargets,
-            baseHit: baseHit,
-            impactPenalty: impactPenalty,
-            asteroidRadius: asteroidRadius,
-            projectileSpeed: projectileSpeed
-        };
-    });
-
-    // Set max for each tier = next tier's min - 1
-    for (let i = 0; i < tierKeys.length - 1; i++) {
-        TIERS[tierKeys[i]].max = TIERS[tierKeys[i + 1]].min - 1;
-    }
+    buildTiersFromProgression(progressionText);
 
     // --- Scoring → update SCORING multipliers from scoring.csv v2 ---
     const scoreRows = parseScoringCSV(scoringText);
@@ -437,14 +392,14 @@ function loadFallbackData() {
     // Rebuild TIERS from fallback progression data (synced with progression.csv)
     Object.keys(TIERS).forEach(k => delete TIERS[k]);
     Object.assign(TIERS, {
-        trainee:        { label: "TRAINEE",          difficulty: "NOVICE",     min: 0,     max: 2000,     speedMin: 0.6, speedMax: 0.8, spawnMin: 5000, spawnMax: 6500, maxTargets: 6,  baseHit: 100,  impactPenalty: -50,  asteroidRadius: 20, projectileSpeed: 800 },
-        mentoring:      { label: "MENTORING",        difficulty: "BEGINNER",   min: 2001,  max: 5000,     speedMin: 0.8, speedMax: 1.0, spawnMin: 4500, spawnMax: 5500, maxTargets: 8,  baseHit: 125,  impactPenalty: -60,  asteroidRadius: 19, projectileSpeed: 850 },
-        signedoff:      { label: "SIGNED OFF",       difficulty: "APPRENTICE", min: 5001,  max: 10000,    speedMin: 1.0, speedMax: 1.2, spawnMin: 4000, spawnMax: 5000, maxTargets: 10, baseHit: 200,  impactPenalty: -100, asteroidRadius: 18, projectileSpeed: 900 },
-        outofprobation: { label: "OUT OF PROBATION", difficulty: "COMPETENT",  min: 10001, max: 20000,    speedMin: 1.2, speedMax: 1.4, spawnMin: 3500, spawnMax: 4000, maxTargets: 12, baseHit: 300,  impactPenalty: -150, asteroidRadius: 17, projectileSpeed: 1000 },
-        "2yearsin":     { label: "2 YEARS IN",       difficulty: "PROFICIENT", min: 20001, max: 35000,    speedMin: 1.5, speedMax: 1.8, spawnMin: 3000, spawnMax: 3500, maxTargets: 14, baseHit: 450,  impactPenalty: -225, asteroidRadius: 16, projectileSpeed: 1100 },
-        fulltime:       { label: "FULL TIME",        difficulty: "ADVANCED",   min: 35001, max: 55000,    speedMin: 1.8, speedMax: 2.2, spawnMin: 2500, spawnMax: 3000, maxTargets: 16, baseHit: 600,  impactPenalty: -300, asteroidRadius: 15, projectileSpeed: 1200 },
-        veteran:        { label: "VETERAN",          difficulty: "ELITE",      min: 55001, max: 80000,    speedMin: 2.5, speedMax: 3.0, spawnMin: 1500, spawnMax: 2000, maxTargets: 20, baseHit: 850,  impactPenalty: -500, asteroidRadius: 14, projectileSpeed: 1300 },
-        oas:            { label: "O.A.S",            difficulty: "EXPERT",     min: 80001, max: Infinity, speedMin: 3.0, speedMax: 4.0, spawnMin: 800,  spawnMax: 1200, maxTargets: 25, baseHit: 1200, impactPenalty: -600, asteroidRadius: 13, projectileSpeed: 1400 }
+        trainee:        { label: "TRAINEE",          difficulty: "NOVICE", order: 0, fallMin: 30, fallMax: 34, spawnMin: 12500, spawnMax: 14500, maxTargets: 4, satelliteMult: 0.7, baseHit: 100, impactPenalty: -50, asteroidRadius: 20, projectileSpeed: 800 },
+        mentoring:      { label: "MENTORING",        difficulty: "BEGINNER", order: 1, fallMin: 26, fallMax: 30, spawnMin: 9800, spawnMax: 11200, maxTargets: 4, satelliteMult: 0.8, baseHit: 125, impactPenalty: -60, asteroidRadius: 19, projectileSpeed: 850 },
+        signedoff:      { label: "SIGNED OFF",       difficulty: "APPRENTICE", order: 2, fallMin: 22, fallMax: 26, spawnMin: 7800, spawnMax: 8800, maxTargets: 5, satelliteMult: 0.9, baseHit: 200, impactPenalty: -100, asteroidRadius: 18, projectileSpeed: 900 },
+        outofprobation: { label: "OUT OF PROBATION", difficulty: "COMPETENT", order: 3, fallMin: 19, fallMax: 22, spawnMin: 6200, spawnMax: 7000, maxTargets: 5, satelliteMult: 1.0, baseHit: 300, impactPenalty: -150, asteroidRadius: 17, projectileSpeed: 1000 },
+        "2yearsin":     { label: "2 YEARS IN",       difficulty: "PROFICIENT", order: 4, fallMin: 16, fallMax: 18.5, spawnMin: 4900, spawnMax: 5600, maxTargets: 6, satelliteMult: 1.15, baseHit: 450, impactPenalty: -225, asteroidRadius: 16, projectileSpeed: 1100 },
+        fulltime:       { label: "FULL TIME",        difficulty: "ADVANCED", order: 5, fallMin: 13.5, fallMax: 15.5, spawnMin: 3900, spawnMax: 4500, maxTargets: 6, satelliteMult: 1.3, baseHit: 600, impactPenalty: -300, asteroidRadius: 15, projectileSpeed: 1200 },
+        veteran:        { label: "VETERAN",          difficulty: "ELITE", order: 6, fallMin: 11.5, fallMax: 13, spawnMin: 3100, spawnMax: 3600, maxTargets: 7, satelliteMult: 1.45, baseHit: 850, impactPenalty: -500, asteroidRadius: 14, projectileSpeed: 1300 },
+        oas:            { label: "O.A.S",            difficulty: "EXPERT", order: 7, fallMin: 9.5, fallMax: 11, spawnMin: 2500, spawnMax: 2900, maxTargets: 7, satelliteMult: 1.6, baseHit: 1200, impactPenalty: -600, asteroidRadius: 13, projectileSpeed: 1400 }
     });
 }
 
@@ -586,32 +541,7 @@ function applyCSVData(results) {
     DATA_LOCATIONS_SAMPLE = DATA_LOCATIONS_FULL.slice(0, 5);
 
     // --- Re-parse Progression ---
-    const progRows = parseCSV(progressionText);
-    const tierKeys = [];
-    Object.keys(TIERS).forEach(k => delete TIERS[k]);
-    progRows.forEach(r => {
-        const name = r['Rank / Tier'];
-        const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        tierKeys.push(key);
-        const points = parseInt(r['Points Required'].replace(/,/g, ''), 10) || 0;
-        const speedMin = parseFloat((r['Speed (Min)'] || r['Speed (Max)']).replace('x', ''));
-        const speedMax = parseFloat(r['Speed (Max)'].replace('x', ''));
-        const spawnMinSec = parseFloat(r['Spawn (Min sec)'] || r['Spawn Time (Min sec)']);
-        const spawnMaxSec = parseFloat(r['Spawn (Max sec)'] || r['Spawn (Min sec)'] || r['Spawn Time (Min sec)']);
-        const maxTargets = parseInt(r['Max Targets'] || r['Max Asteroids on Screen'], 10);
-        const baseHit = parseInt(r['Base Hit (Clear)'], 10) || 100;
-        const impactPenalty = parseInt(r['Target Impact (Penalty)'], 10) || -50;
-        const asteroidRadius = parseInt(r['Asteroid Radius'], 10) || CONFIG.asteroidRadius;
-        const projectileSpeed = parseInt(r['Projectile Speed'], 10) || CONFIG.projectileSpeed;
-        TIERS[key] = {
-            label: name.toUpperCase(), min: points, max: Infinity,
-            speedMin, speedMax, spawnMin: spawnMinSec * 1000, spawnMax: spawnMaxSec * 1000,
-            maxTargets, baseHit, impactPenalty, asteroidRadius, projectileSpeed
-        };
-    });
-    for (let i = 0; i < tierKeys.length - 1; i++) {
-        TIERS[tierKeys[i]].max = TIERS[tierKeys[i + 1]].min - 1;
-    }
+    buildTiersFromProgression(progressionText);
 
     // --- Re-parse Scoring ---
     const scoreRows = parseScoringCSV(scoringText);
@@ -649,6 +579,46 @@ function applyCSVData(results) {
 }
 
 // ============================================
+// PROGRESSION → TIERS
+// One parser for both loaders (initial load and UPDATE DATASETS), so the two
+// can never drift. Every rank's fall time, spawn interval, target cap and
+// satellite speed comes straight from progression.csv — no defaults for those
+// live in the engine. Ladder order is the CSV's row order (`order`), since
+// ranks no longer carry a points threshold to sort by.
+// ============================================
+function parseMultiplier(v) {
+    return parseFloat(String(v || '').replace(/x/i, ''));
+}
+
+function buildTiersFromProgression(progressionText) {
+    const progRows = parseCSV(progressionText);
+    Object.keys(TIERS).forEach(k => delete TIERS[k]);
+    progRows.forEach((r, order) => {
+        const name = r['Rank / Tier'];
+        if (!name) return;
+        const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        TIERS[key] = {
+            label: name.toUpperCase(),
+            // Plain-English skill label shown beside the rank on the DIFFICULTY
+            // screen (Novice → Expert). Falls back to the rank name if the
+            // Difficulty column is missing from progression.csv.
+            difficulty: (r['Difficulty'] || name).toUpperCase(),
+            order: order,
+            fallMin: parseFloat(r['Fall Time (Min sec)']),
+            fallMax: parseFloat(r['Fall Time (Max sec)']),
+            spawnMin: parseFloat(r['Spawn (Min sec)']) * 1000,
+            spawnMax: parseFloat(r['Spawn (Max sec)']) * 1000,
+            maxTargets: parseInt(r['Max Targets'], 10),
+            satelliteMult: parseMultiplier(r['Satellite Speed']),
+            baseHit: parseInt(r['Base Hit (Clear)'], 10) || 100,
+            impactPenalty: parseInt(r['Target Impact (Penalty)'], 10) || -50,
+            asteroidRadius: parseInt(r['Asteroid Radius'], 10) || CONFIG.asteroidRadius,
+            projectileSpeed: parseInt(r['Projectile Speed'], 10) || CONFIG.projectileSpeed
+        };
+    });
+}
+
+// ============================================
 // WEIGHTED RANDOM SELECTION
 // ============================================
 
@@ -664,8 +634,8 @@ function weightedRandom(items) {
 
 // ============================================
 // TIERED DIFFICULTY — setTier()
-// Dynamically scales fallSpeed, spawnRate, maxTargets
-// based on the 8 dispatcher ranks (Trainee → O.A.S)
+// Applies a rank's target cap, radius and projectile speed. Fall time and
+// spawn interval are read from TIERS[state.tier] at each spawn.
 // ============================================
 
 function setTier(tierKey) {
@@ -675,19 +645,23 @@ function setTier(tierKey) {
         return false;
     }
     state.tier = tierKey;
-    state.speedMult = data.speedMax;
-    state.spawnInterval = data.spawnMin;
     state.maxTargets = data.maxTargets;
     CONFIG.asteroidRadius = data.asteroidRadius;
     CONFIG.projectileSpeed = data.projectileSpeed;
     return true;
 }
 
-function getTierForScore(score) {
-    for (const [key, data] of Object.entries(TIERS)) {
-        if (score >= data.min && score <= data.max) return key;
-    }
-    return 'trainee';
+// Rank keys in ladder order (progression.csv row order), Trainee first.
+function tierKeysInOrder() {
+    return Object.keys(TIERS).sort((a, b) => TIERS[a].order - TIERS[b].order);
+}
+
+// The rank `step` places above (+1) or below (-1) `tierKey`, or null at either end.
+function tierStep(tierKey, step) {
+    const keys = tierKeysInOrder();
+    const i = keys.indexOf(tierKey);
+    if (i === -1) return null;
+    return keys[i + step] || null;
 }
 
 // ============================================

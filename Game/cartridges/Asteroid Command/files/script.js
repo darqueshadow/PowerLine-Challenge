@@ -148,11 +148,14 @@ const state = {
     comebackCounter: 0,             // Asteroids killed since last base loss
     comebackAwarded: false,          // Whether comeback bonus was given for current base loss
     firstBloodAwarded: false,        // Whether First Blood was given this session
-    rankScoreAccum: 0,               // Points earned within current rank for Calibration
-    lastCalibrationAt: 0,            // Score at last calibration bonus
+    lastCalibrationAt: 0,            // Highest calibrationInterval multiple already paid this run
     tier: 'trainee',
-    speedMult: 0.6,
-    spawnInterval: 6000,
+    highestTier: 'trainee',          // Highest rank reached this run (leaderboard)
+    ranksReached: [],                // Ranks already paid a Rank-Up Bonus this run
+    paceClears: [],                  // rankClock stamps of the last RANKING.paceWindow clears
+    clearsAtRank: 0,                 // Clears since the last rank change
+    rankClock: 0,                    // Seconds of play at which the player could fire
+    pressureTimer: 0,                // Seconds at this rank with no target landing
     maxTargets: 2,
     asteroids: [],
     projectiles: [],
@@ -512,7 +515,9 @@ function init() {
             if (statusEl) { statusEl.textContent = 'NO PLAYER LOGGED IN'; statusEl.className = 'dataset-status error'; }
             return;
         }
-        const tierLabel = TIERS[state.tier] ? TIERS[state.tier].label : state.tier.toUpperCase();
+        // The leaderboard records the highest rank reached this run, not the rank at game over.
+        const best = state.highestTier || state.tier;
+        const tierLabel = TIERS[best] ? TIERS[best].label : String(best).toUpperCase();
         saveScore(player.name, player.oasis, state.score, tierLabel);
         if (statusEl) {
             statusEl.textContent = '✓ SCORE SUBMITTED: ' + state.score.toLocaleString();
@@ -535,9 +540,29 @@ function init() {
         startMenuMusic();
     });
 
+    // CAREER PROGRESSION panel on the SCORING & PROGRESSION page. Ranks have no
+    // points thresholds any more, so this lists each rank's pay and penalty from
+    // progression.csv and the promote/demote rules from RANKING (core/config.js).
+    function renderCareerProgression() {
+        const el = document.getElementById('tier-rows');
+        if (!el) return;
+        const row = (k, v) => `<div class="tier-row"><span>${k}</span><span>${v}</span></div>`;
+        const ranks = tierKeysInOrder().map(key => {
+            const t = TIERS[key];
+            return row(t.label + ':', `${t.baseHit.toLocaleString()} / ${t.impactPenalty.toLocaleString()}`);
+        });
+        el.innerHTML = row('RANK:', 'CLEAN KILL / IMPACT')
+            + ranks.join('')
+            + row('PROMOTE:', `Clear as fast as the next rank spawns (last ${RANKING.paceWindow} clears, min ${RANKING.paceMinClears} at rank)`)
+            + row('PROMOTE:', `${RANKING.pressureSeconds}s at a rank with no target landing`)
+            + row('DEMOTE:', 'Every target that lands (zone, debris, tower)')
+            + row('START:', 'Chosen on DIFFICULTY &mdash; a start, not a floor');
+    }
+
     // Main menu ↔ Scoring submenu navigation
     const scoringBgLayer = document.getElementById('scoring-bg-layer');
     document.getElementById('scoring-btn').addEventListener('click', () => {
+        renderCareerProgression();
         document.getElementById('start-content').classList.add('hidden');
         document.getElementById('scoring-page').classList.remove('hidden');
         DOM.startOverlay.classList.remove('main-menu-bg');
@@ -666,11 +691,8 @@ function init() {
     const diffList     = document.getElementById('difficulty-list');
     const diffReadout  = document.getElementById('difficulty-readout');
 
-    // Tier keys in ladder order — TIERS is rebuilt from progression.csv, so read
-    // the order off the data rather than hard-coding it.
-    function tierKeysInOrder() {
-        return Object.keys(TIERS).sort((a, b) => TIERS[a].min - TIERS[b].min);
-    }
+    // Tier keys in ladder order come from tierKeysInOrder() in core/data.js
+    // (progression.csv row order).
 
     function renderDifficultyList() {
         if (!diffList) return;
@@ -691,8 +713,8 @@ function init() {
         const spawn = (t.spawnMin / 1000).toFixed(1) + '–' + (t.spawnMax / 1000).toFixed(1) + 's';
         const rows = [
             ['RANK',          t.label],
-            ['TARGET SPEED',  t.speedMin.toFixed(1) + '× – ' + t.speedMax.toFixed(1) + '×'],
-            ['SPAWN EVERY',   spawn],
+            ['FALL TIME',     t.fallMin + '–' + t.fallMax + 's'],
+            ['NEW TARGET',    'every ' + spawn],
             ['MAX ON SCREEN', t.maxTargets],
             ['CLEAN KILL',    '+' + t.baseHit],
             ['IMPACT',        t.impactPenalty],
@@ -1021,6 +1043,7 @@ function init() {
             if (hit && godMode.clickToDestroy) {
                 const bh = (TIERS[state.tier] || {}).baseHit || 100;
                 if (fireProjectile(hit)) {
+                    recordClear();
                     state.streak++;
                     state.consecutiveBasesDestroyed = 0;
                     applyScore(bh);
@@ -1032,6 +1055,7 @@ function init() {
                     createExplosion(hit.x, hit.y, '#00ffcc', hit.radius * 2);
                     const idx = state.asteroids.indexOf(hit);
                     if (idx !== -1) state.asteroids.splice(idx, 1);
+                    recordClear();
                     state.streak++;
                     state.consecutiveBasesDestroyed = 0;
                     applyScore(bh);
@@ -1754,7 +1778,7 @@ function resolveAsteroidCollisions() {
 }
 
 function spawnAsteroid() {
-    if (state.asteroids.length >= state.maxTargets || state.rebuilding) return;
+    if (state.asteroids.length >= state.maxTargets || state.rebuilding || !TIERS[state.tier]) return;
 
     // In holodeck, filter by targetable zones (if configured)
     let availableTargets = state.defenses;
@@ -1775,16 +1799,15 @@ function spawnAsteroid() {
     
     const dist = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx);
-    // Speed variance: randomize between tier's speedMin and speedMax
+    // Fall time in plain seconds: a random time inside the rank's Fall Time
+    // Min/Max (progression.csv) for this target to reach its impact point.
+    // The impact test fires when the rock's leading edge (y + radius) meets
+    // the roof, so the speed is set to cover that shorter vertical run in
+    // exactly `fallSec`. The target keeps this speed even if the rank changes.
     const tierData = TIERS[state.tier];
-    const effectiveSpeed = tierData
-        ? tierData.speedMin + Math.random() * (tierData.speedMax - tierData.speedMin)
-        : state.speedMult;
-    const time = Math.max(2500, 25000 / effectiveSpeed);
-    const baseSpeed = (dist / (time / 1000)) * effectiveSpeed * 2;
-    // Introduce mechanical friction: +/- 15% random variance per target
-    const variance = 0.85 + (Math.random() * 0.30);
-    const speed = baseSpeed * variance;
+    const fallSec = tierData.fallMin + Math.random() * (tierData.fallMax - tierData.fallMin);
+    const runY = Math.max(1, dy - CONFIG.asteroidRadius);
+    const speed = (dist * (runY / dy)) / fallSec;
 
     const specs = getTargetSpecs();
     const spriteIndex = Math.floor(Math.random() * ASTEROID_SPRITES.length);
@@ -1819,30 +1842,34 @@ function spawnAsteroid() {
 
 function maintainAsteroids(dt) {
     if (state.rebuilding) return;
+    const tierData = TIERS[state.tier];
+    if (!tierData) return;
 
-    // Initialize spawn timer if it doesn't exist
-    if (state.timers.spawnTimer === undefined) {
-        state.timers.spawnTimer = state.spawnInterval; // Start ready to spawn
+    // Each spawn draws its own interval inside the rank's Spawn Min/Max
+    // (progression.csv). The very first target of a run comes straight away.
+    if (state.timers.nextSpawnMs === undefined) {
+        state.timers.spawnTimer = 0;
+        state.timers.emptySkyTimer = 0;
+        state.timers.nextSpawnMs = 0;
     }
-
-    // Accumulate time
     state.timers.spawnTimer += dt * 1000;
 
-    // Randomize spawn interval between tier's min and max each cycle
-    const tierData = TIERS[state.tier];
-    const spawnMin = tierData ? tierData.spawnMin : state.spawnInterval;
-    const spawnMax = tierData ? tierData.spawnMax : state.spawnInterval;
-    const baseInterval = spawnMin + Math.random() * (spawnMax - spawnMin);
+    // Empty sky: with nothing live on screen (claimed rocks are already
+    // settled), the next target comes after the Empty Sky Delay or the
+    // rank's interval, whichever is shorter. The delay is counted from the
+    // moment the sky emptied.
+    const liveTargets = state.asteroids.filter(a => !a.claimed).length;
+    if (liveTargets === 0) state.timers.emptySkyTimer += dt * 1000;
+    else state.timers.emptySkyTimer = 0;
 
-    // Effective interval: -0.5 s when the screen is fully cleared
-    const effectiveInterval = state.asteroids.length === 0
-        ? baseInterval - 500
-        : baseInterval;
+    const due = state.timers.spawnTimer >= state.timers.nextSpawnMs
+        || (liveTargets === 0 && state.timers.emptySkyTimer >= RANKING.emptySkyDelaySec * 1000);
 
-    // Only spawn when timer exceeds interval AND we're under max targets
-    if (state.asteroids.length < state.maxTargets && state.timers.spawnTimer >= effectiveInterval) {
+    if (due && state.asteroids.length < state.maxTargets) {
         spawnAsteroid();
         state.timers.spawnTimer = 0;
+        state.timers.emptySkyTimer = 0;
+        state.timers.nextSpawnMs = tierData.spawnMin + Math.random() * (tierData.spawnMax - tierData.spawnMin);
     }
 }
 
@@ -1989,6 +2016,7 @@ function handleCommand(value) {
         const oldest = state.asteroids[0];
         if (fireProjectile(oldest)) {
             const bh = (TIERS[state.tier] || {}).baseHit || 100;
+            recordClear();
             state.streak++;
             state.consecutiveBasesDestroyed = 0;  // any kill resets base counter
             applyScore(bh);
@@ -2021,6 +2049,7 @@ function handleCommand(value) {
             // the same instant — otherwise the flight time is a window in which it can be
             // scored twice, or destroy a defence the player has already been paid for killing.
             match.claimed = true;
+            recordClear();
             state.streak++;
             state.streakSinceShieldHit++;
             state.consecutiveBasesDestroyed = 0;  // any asteroid kill resets base counter
@@ -2214,15 +2243,17 @@ function applyScore(delta) {
     state.score = Math.max(0, state.score + delta);
 }
 
-// Check Calibration Bonus: every 500 pts within a rank
+// Check Calibration Bonus. Ranks no longer have a points floor to count from,
+// so it is anchored to the run's own score: +calibrationFlat each time the
+// score reaches a multiple of calibrationInterval it has never reached before
+// this run (a high-water mark, so losing points and re-earning them, or
+// bouncing between ranks, never pays twice).
 function checkCalibration() {
-    const tierData = TIERS[state.tier];
-    if (!tierData) return;
-    const scoreInRank = state.score - tierData.min;
-    const calibrationsSoFar = Math.floor(scoreInRank / SCORING.calibrationInterval);
-    const lastCount = Math.floor((state.lastCalibrationAt - tierData.min) / SCORING.calibrationInterval);
-    if (calibrationsSoFar > lastCount && state.score > state.lastCalibrationAt) {
-        state.lastCalibrationAt = state.score;
+    const step = SCORING.calibrationInterval;
+    if (!(step > 0)) return;
+    const reached = Math.floor(state.score / step) * step;
+    if (reached > state.lastCalibrationAt) {
+        state.lastCalibrationAt = reached;
         applyScore(SCORING.calibrationFlat);
         showStatus(`DISPATCH HANDS +${SCORING.calibrationFlat}`, "bonus");
     }
@@ -2443,20 +2474,93 @@ function checkRegen() {
     // Shield never regenerates — only the tower can be repaired (by ambulance)
 }
 
-// A run never drops below the difficulty the player chose. Starting at EXPERT
-// with a score of 0 would otherwise be demoted straight back to TRAINEE on the
-// first checkTier(), silently undoing the selection.
-function clampTierToFloor(tierKey) {
-    const floorKey = state.selectedDifficulty;
-    if (!tierKey || !floorKey || floorKey === 'trainee') return tierKey;
-    const floor = TIERS[floorKey];
-    const candidate = TIERS[tierKey];
-    if (!floor || !candidate) return tierKey;
-    return candidate.min < floor.min ? floorKey : tierKey;
+// ============================================
+// RANK MOVEMENT — rank follows performance, not score
+// Rules and the four tunables: RANKING in core/config.js. The DIFFICULTY
+// selection is only the starting rank. Holodeck's rank override still locks
+// the rank and suspends all of this.
+// ============================================
+
+// Can the player fire right now? The pace and pressure clocks only run while
+// this is true (and the game loop only runs while unpaused).
+function rankClocksRunning() {
+    return !state.towerDisabled && !state.rebuilding;
 }
 
+// Advance the rank clocks; called once per frame from update().
+function updateRankClocks(dt) {
+    if (godMode.overrideTier && TIERS[godMode.overrideTier]) return;
+    if (!rankClocksRunning()) return;
+    state.rankClock += dt;
+    state.pressureTimer += dt;
+    if (state.pressureTimer >= RANKING.pressureSeconds) {
+        const up = tierStep(state.tier, +1);
+        if (up) changeRank(up, 'pressure');
+        else state.pressureTimer = 0;    // top rank: nothing to promote to
+    }
+}
+
+// A target was cleared (scored). Stamps it on the rank clock for the pace check.
+function recordClear() {
+    state.paceClears.push(state.rankClock);
+    if (state.paceClears.length > RANKING.paceWindow) state.paceClears.shift();
+    state.clearsAtRank++;
+}
+
+// A target landed (zone destroyed, debris strike, tower/shield hit).
+function recordLanding() {
+    state.pressureTimer = 0;
+    if (godMode.overrideTier && TIERS[godMode.overrideTier]) return;
+    const down = tierStep(state.tier, -1);
+    if (down) changeRank(down, 'impact');
+}
+
+// Pace check: promote if the player is clearing faster than the next rank spawns.
+function checkPacePromotion() {
+    if (state.clearsAtRank < RANKING.paceMinClears || state.paceClears.length < 2) return;
+    const up = tierStep(state.tier, +1);
+    if (!up) return;
+    const c = state.paceClears;
+    const avgGapMs = ((c[c.length - 1] - c[0]) / (c.length - 1)) * 1000;
+    const next = TIERS[up];
+    const nextAvgSpawnMs = (next.spawnMin + next.spawnMax) / 2;
+    if (avgGapMs <= nextAvgSpawnMs) changeRank(up, 'pace');
+}
+
+function changeRank(newTierKey, reason) {
+    const data = TIERS[newTierKey];
+    if (!data || newTierKey === state.tier) return;
+    const oldData = TIERS[state.tier];
+
+    setTier(newTierKey);
+    state.paceClears = [];
+    state.clearsAtRank = 0;
+    state.pressureTimer = 0;
+    // The spawn already queued keeps its interval; the next one draws from the
+    // new rank. Rocks already falling keep the speed they spawned with.
+
+    if (!TIERS[state.highestTier] || data.order > TIERS[state.highestTier].order) {
+        state.highestTier = newTierKey;
+    }
+
+    if (oldData && data.order < oldData.order) {
+        showStatus(`DEMOTED: ${data.label || newTierKey.toUpperCase()}`, "impact");
+    } else if (!state.ranksReached.includes(newTierKey)) {
+        // Rank-Up Bonus: 2x the new rank's Base Hit, first time each rank is reached this run
+        state.ranksReached.push(newTierKey);
+        const rankUpBonus = data.baseHit * SCORING.rankUpMult;
+        applyScore(rankUpBonus);
+        showStatus(`RANK UP! +${rankUpBonus} — ${data.label || newTierKey.toUpperCase()}`, "bonus");
+        checkCalibration();
+    } else {
+        showStatus(`RANK UP — ${data.label || newTierKey.toUpperCase()}`, "bonus");
+    }
+    updateHUD();
+}
+
+// Called after every scoring event. Enforces a Holodeck rank override, then
+// runs the pace check. Score no longer decides rank.
 function checkTier() {
-    // If holodeck tier override is active, lock to that tier
     if (godMode.overrideTier && TIERS[godMode.overrideTier]) {
         if (state.tier !== godMode.overrideTier) {
             setTier(godMode.overrideTier);
@@ -2464,29 +2568,7 @@ function checkTier() {
         }
         return;
     }
-    const newTierKey = clampTierToFloor(getTierForScore(state.score));
-    if (!newTierKey || newTierKey === state.tier) return;
-
-    const oldTier = state.tier;
-    const data = TIERS[newTierKey];
-
-    // Apply tier settings via setTier() (bridges config.js ↔ progression.csv)
-    setTier(newTierKey);
-
-    // Reset calibration accumulator for new rank
-    state.lastCalibrationAt = state.score;
-
-    // Determine if promotion or demotion
-    const oldData = TIERS[oldTier];
-    if (oldData && data.min < oldData.min) {
-        showStatus(`DEMOTED: ${data.label || newTierKey.toUpperCase()}`, "impact");
-    } else {
-        // Rank-Up Bonus: 2× new rank's Base Hit (promotion only)
-        const rankUpBonus = data.baseHit * SCORING.rankUpMult;
-        applyScore(rankUpBonus);
-        showStatus(`RANK UP! +${rankUpBonus} — ${data.label || newTierKey.toUpperCase()}`, "bonus");
-    }
-    updateHUD();
+    checkPacePromotion();
 }
 
 // ============================================
@@ -2520,12 +2602,10 @@ function spawnSatellite() {
     const tail = SATELLITE.towLineLength + bannerLength(pick.banner);
     const y = SATELLITE.altitudeMin + Math.random() * (SATELLITE.altitudeMax - SATELLITE.altitudeMin);
 
-    // Ride the rank's speed multiplier, same source the asteroids use, so the
-    // flyby tightens as the game speeds up. Randomised within the rank's band.
+    // The rank's own Satellite Speed column (progression.csv), so the flyby
+    // tightens as the player ranks up.
     const tierData = TIERS[state.tier];
-    const rankMult = tierData
-        ? tierData.speedMin + Math.random() * (tierData.speedMax - tierData.speedMin)
-        : state.speedMult;
+    const rankMult = tierData && !isNaN(tierData.satelliteMult) ? tierData.satelliteMult : 1;
     const scaled = 1 + (rankMult - 1) * SATELLITE.speedScaling;
     const speed = Math.min(SATELLITE.speed * scaled, SATELLITE.maxSpeed);
 
@@ -4895,6 +4975,7 @@ function update(dt) {
 
     try {
         if (state.ambulance) updateAmbulance(dt);
+        updateRankClocks(dt);   // Pace + pressure clocks (RANK MOVEMENT)
         maintainAsteroids(dt);  // Pass delta-time for spawn timer
         maintainSatellite(dt);  // Banner bonus flyby
         updateBannerDebris(dt); // Claimed banners burning down — outlives the satellite
@@ -5062,6 +5143,7 @@ function damageDefense(def, initiator, receiver) {
         applyScore(penalty);
         showStatus(`DEBRIS STRIKE ${penalty} — ${initiatorLabel} → ${receiverLabel.toUpperCase()}`, "impact");
         flashScorePenalty();
+        recordLanding();
         updateHUD();
         return;
     }
@@ -5069,6 +5151,7 @@ function damageDefense(def, initiator, receiver) {
     if (def.type === 'tower') {
         AudioManager.play('targetImpact');
         applyDamage(CONFIG.impactDamage, 'impact');
+        recordLanding();
         return;
     }
 
@@ -5096,6 +5179,7 @@ function damageDefense(def, initiator, receiver) {
     const penaltyText = penalty < 0 ? ` ${penalty}` : '';
     showStatus(`${label}${penaltyText} — ${initiatorLabel} → ${receiverLabel.toUpperCase()}`, "impact");
     if (penalty < 0) flashScorePenalty();
+    recordLanding();
     updateHUD();
 
     if (state.defenses.filter(d => d.type === 'zone' && d.hp > 0).length === 0) scheduleGameOver();
@@ -6629,8 +6713,8 @@ function startGame(holodeck = false) {
     clearTimeout(state.timers.gameOverDelay);
     clearCardHelp();
 
-    // Opening rank comes from the DIFFICULTY screen. Everything below that used
-    // to read TIERS.trainee directly — it now reads the chosen tier.
+    // Opening rank comes from the DIFFICULTY screen. It is only the starting
+    // rank: the run then promotes and demotes from there (RANK MOVEMENT).
     const startKey = TIERS[state.selectedDifficulty] ? state.selectedDifficulty : 'trainee';
     const startTier = TIERS[startKey];
 
@@ -6642,11 +6726,11 @@ function startGame(holodeck = false) {
         consecutiveBasesDestroyed: 0,
         comebackCounter: 0, comebackAwarded: false,
         firstBloodAwarded: false,
-        rankScoreAccum: 0, lastCalibrationAt: 0,
+        lastCalibrationAt: 0,
         // ── End new scoring state ──
-        tier: startKey,
-        speedMult: startTier ? startTier.speedMax : 0.8,
-        spawnInterval: startTier ? startTier.spawnMin : 5000,
+        // ── Rank movement (RANKING in config.js) ──
+        tier: startKey, highestTier: startKey, ranksReached: [startKey],
+        paceClears: [], clearsAtRank: 0, rankClock: 0, pressureTimer: 0,
         maxTargets: startTier ? startTier.maxTargets : 6,
         asteroids: [], projectiles: [], brokenProjectiles: [], explosions: [],
         towerDisabled: false, rebuilding: false, ambulance: null, ambulanceDestroyCount: 0,
@@ -6654,7 +6738,7 @@ function startGame(holodeck = false) {
         cardHelp: null, cardHelpUsed: 0, cardHelpFailed: 0,
         beamActive: false, gameOverPending: false,
         backspaces: 0, cleanHits: 0, environmentalParticles: [],
-        timers: { spawnTimer: startTier ? startTier.spawnMin : 5000 }, // Start ready to spawn first asteroid
+        timers: {},                                  // maintainAsteroids() spawns the first target straight away
         spawnHistory: [],                            // Zone spread tracking (16-zone system)
         bridgeStartTime: Date.now(),                 // Bridge starts lowered, raises after 10 s
         holodeckSelectedAsteroid: null,              // Right-click redirect selection
@@ -6741,7 +6825,7 @@ function gameOver() {
     const stats = document.getElementById('final-stats');
     if (stats) {
         stats.innerHTML = `
-            <div>TIER: ${state.tier.toUpperCase()}</div>
+            <div>HIGHEST RANK: ${(TIERS[state.highestTier] || {}).label || String(state.highestTier || state.tier).toUpperCase()}</div>
             <div>PERFECT SHOTS: ${state.cleanHits}</div>
             <div>REPAIRS: ${state.repairCount}</div>
             ${CONFIG.isHolodeck ? '<div>MODE: HOLODECK</div>' : ''}

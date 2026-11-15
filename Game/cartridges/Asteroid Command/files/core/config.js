@@ -95,12 +95,12 @@ const SCORING = {
     ],
 
     // ── Micro-Rewards ──
-    calibrationInterval: 500,  // Calibration Bonus every 500 pts within a rank
+    calibrationInterval: 500,  // Calibration Bonus each time the run's score first reaches a new multiple of 500
     calibrationFlat: 50,       // Flat +50 on calibration
     comebackTarget: 3,         // Destroy 3 asteroids after base loss for Comeback
     comebackFlat: 25,          // Flat +25 Comeback Bonus
     firstBloodFlat: 25,        // First asteroid destroyed in session
-    rankUpMult: 2,             // Rank-Up Bonus: 2x new rank's Base Hit
+    rankUpMult: 2,             // Rank-Up Bonus: 2x new rank's Base Hit, first time each rank is reached in a run
     nearMissFlat: 15,          // Near-Miss Save: target in bottom 10% of screen
     nearMissThreshold: 0.90,   // Bottom 10% = y > 90% of screen height
 
@@ -113,6 +113,28 @@ const SCORING = {
     // ── Penalty Caps ──
     maxPenalty: -300,           // No single event deducts more than -300
     penaltyCap: -300            // Consecutive base destruction cap
+};
+
+// ============================================
+// RANK MOVEMENT
+// Rank follows performance, not score. The per-rank numbers (fall time, spawn
+// interval, target cap, satellite speed) live in datasets/progression.csv;
+// these four decide when the player moves between those rows.
+//   Promote one rank when EITHER
+//     PACE     — the average gap between the last `paceWindow` clears is at or
+//                under the NEXT rank's average spawn interval, with at least
+//                `paceMinClears` clears since the last rank change; or
+//     PRESSURE — `pressureSeconds` at the current rank with no target landing.
+//   Demote one rank every time a target lands (never below the first rank).
+//   A rank change resets the pace history and the pressure timer. Neither
+//   clock runs while the game is paused or the tower cannot fire.
+// ============================================
+
+const RANKING = {
+    paceWindow: 6,              // clears averaged for the pace check
+    paceMinClears: 4,           // clears needed at a rank before pace can promote
+    pressureSeconds: 60,        // seconds without a landing that promotes
+    emptySkyDelaySec: 1.0       // empty sky: next target after this, or the rank's interval if shorter
 };
 
 // ============================================
@@ -134,13 +156,14 @@ const SATELLITE = {
     firstSpawnMaxMs: 18000,
 
     // ── Flight ──
-    // Crosses the top of the sky, entering off-screen from the right. Speed
-    // rides the same per-rank multiplier as the asteroids (progression.csv), so
-    // the flyby tightens as the game gets faster. Rough screen times, tail in:
-    //   TRAINEE ~16-24 s   SIGNED OFF ~11-16 s   FULL TIME ~6-8 s   O.A.S ~3-5 s
+    // Crosses the top of the sky, entering off-screen from the right. Speed is
+    // `speed` x the rank's own Satellite Speed column in progression.csv
+    // (0.70x at Trainee up to 1.60x at O.A.S), so the flyby tightens as the
+    // player ranks up. It no longer shares a multiplier with the asteroids,
+    // whose fall time is set in plain seconds per rank.
     entrySide: 'right',         // 'right' | 'left' | 'random' — edge it flies in from
-    speed: 170,                 // virtual units/sec at 1.0x rank speed
-    speedScaling: 1.0,          // 0 = ignore rank entirely, 1 = full rank multiplier
+    speed: 170,                 // virtual units/sec at a 1.00x Satellite Speed
+    speedScaling: 1.0,          // 0 = ignore the rank's Satellite Speed, 1 = apply it in full
     maxSpeed: 700,              // safety rail only — lower it to ease off the top ranks
     altitudeMin: 100,           // top band of the sky, well clear of the defense zones
     altitudeMax: 200,
@@ -297,7 +320,7 @@ const godMode = {
     activeUnits: null,      // Set of unit IDs
     activeBases: null,      // Set of base codes
     targetableZones: null,  // Set of defense zone IDs that asteroids can target
-    overrideTier: null      // When set, locks the rank — bypasses score-based promotion
+    overrideTier: null      // When set, locks the rank — bypasses pace/pressure promotion and impact demotion
 };
 
 const LAYOUT = {
@@ -312,14 +335,14 @@ const COORD_SYSTEM = { width: 1600, height: 900 };
 let canvasScaleX = 1, canvasScaleY = 1;
 
 const TIERS = {
-    trainee:        { label: "TRAINEE",          min: 0,     max: 2000,     speedMin: 0.6, speedMax: 0.8, spawnMin: 5000, spawnMax: 6500, maxTargets: 6,  baseHit: 100,  impactPenalty: -50,  asteroidRadius: 20, projectileSpeed: 800 },
-    mentoring:      { label: "MENTORING",        min: 2001,  max: 5000,     speedMin: 0.8, speedMax: 1.0, spawnMin: 4500, spawnMax: 5500, maxTargets: 8,  baseHit: 125,  impactPenalty: -60,  asteroidRadius: 19, projectileSpeed: 850 },
-    signedoff:      { label: "SIGNED OFF",       min: 5001,  max: 10000,    speedMin: 1.0, speedMax: 1.2, spawnMin: 4000, spawnMax: 5000, maxTargets: 10, baseHit: 200,  impactPenalty: -100, asteroidRadius: 18, projectileSpeed: 900 },
-    outofprobation: { label: "OUT OF PROBATION", min: 10001, max: 20000,    speedMin: 1.2, speedMax: 1.4, spawnMin: 3500, spawnMax: 4000, maxTargets: 12, baseHit: 300,  impactPenalty: -150, asteroidRadius: 17, projectileSpeed: 1000 },
-    "2yearsin":     { label: "2 YEARS IN",       min: 20001, max: 35000,    speedMin: 1.5, speedMax: 1.8, spawnMin: 3000, spawnMax: 3500, maxTargets: 14, baseHit: 450,  impactPenalty: -225, asteroidRadius: 16, projectileSpeed: 1100 },
-    fulltime:       { label: "FULL TIME",        min: 35001, max: 55000,    speedMin: 1.8, speedMax: 2.2, spawnMin: 2500, spawnMax: 3000, maxTargets: 16, baseHit: 600,  impactPenalty: -300, asteroidRadius: 15, projectileSpeed: 1200 },
-    veteran:        { label: "VETERAN",          min: 55001, max: 80000,    speedMin: 2.5, speedMax: 3.0, spawnMin: 1500, spawnMax: 2000, maxTargets: 20, baseHit: 850,  impactPenalty: -500, asteroidRadius: 14, projectileSpeed: 1300 },
-    oas:            { label: "O.A.S",            min: 80001, max: Infinity, speedMin: 3.0, speedMax: 4.0, spawnMin: 800,  spawnMax: 1200, maxTargets: 25, baseHit: 1200, impactPenalty: -600, asteroidRadius: 13, projectileSpeed: 1400 }
+    trainee:        { label: "TRAINEE",          order: 0, fallMin: 30, fallMax: 34, spawnMin: 12500, spawnMax: 14500, maxTargets: 4, satelliteMult: 0.7, baseHit: 100, impactPenalty: -50, asteroidRadius: 20, projectileSpeed: 800 },
+    mentoring:      { label: "MENTORING",        order: 1, fallMin: 26, fallMax: 30, spawnMin: 9800, spawnMax: 11200, maxTargets: 4, satelliteMult: 0.8, baseHit: 125, impactPenalty: -60, asteroidRadius: 19, projectileSpeed: 850 },
+    signedoff:      { label: "SIGNED OFF",       order: 2, fallMin: 22, fallMax: 26, spawnMin: 7800, spawnMax: 8800, maxTargets: 5, satelliteMult: 0.9, baseHit: 200, impactPenalty: -100, asteroidRadius: 18, projectileSpeed: 900 },
+    outofprobation: { label: "OUT OF PROBATION", order: 3, fallMin: 19, fallMax: 22, spawnMin: 6200, spawnMax: 7000, maxTargets: 5, satelliteMult: 1.0, baseHit: 300, impactPenalty: -150, asteroidRadius: 17, projectileSpeed: 1000 },
+    "2yearsin":     { label: "2 YEARS IN",       order: 4, fallMin: 16, fallMax: 18.5, spawnMin: 4900, spawnMax: 5600, maxTargets: 6, satelliteMult: 1.15, baseHit: 450, impactPenalty: -225, asteroidRadius: 16, projectileSpeed: 1100 },
+    fulltime:       { label: "FULL TIME",        order: 5, fallMin: 13.5, fallMax: 15.5, spawnMin: 3900, spawnMax: 4500, maxTargets: 6, satelliteMult: 1.3, baseHit: 600, impactPenalty: -300, asteroidRadius: 15, projectileSpeed: 1200 },
+    veteran:        { label: "VETERAN",          order: 6, fallMin: 11.5, fallMax: 13, spawnMin: 3100, spawnMax: 3600, maxTargets: 7, satelliteMult: 1.45, baseHit: 850, impactPenalty: -500, asteroidRadius: 14, projectileSpeed: 1300 },
+    oas:            { label: "O.A.S",            order: 7, fallMin: 9.5, fallMax: 11, spawnMin: 2500, spawnMax: 2900, maxTargets: 7, satelliteMult: 1.6, baseHit: 1200, impactPenalty: -600, asteroidRadius: 13, projectileSpeed: 1400 }
 };
 
 // ============================================

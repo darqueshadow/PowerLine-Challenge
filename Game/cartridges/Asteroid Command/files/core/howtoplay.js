@@ -62,7 +62,7 @@ const HowToPlay = (function () {
     // Rank ladder, in progression order.
     function tiers() {
         return Object.keys(TIERS)
-            .sort((a, b) => TIERS[a].min - TIERS[b].min)
+            .sort((a, b) => TIERS[a].order - TIERS[b].order)
             .map(k => TIERS[k]);
     }
     function firstTier() { return tiers()[0] || {}; }
@@ -320,9 +320,9 @@ const HowToPlay = (function () {
                 [`<strong>BACK ONLINE</strong> +${SCORING.comebackFlat}`,
                  `${SCORING.comebackTarget} kills in a row after losing a zone`],
                 [`<strong>SYSTEMS CALIBRATED</strong> +${SCORING.calibrationFlat}`,
-                 `Every ${num(SCORING.calibrationInterval)} points earned within a rank`],
+                 `Every time your score reaches a new ${num(SCORING.calibrationInterval)}`],
                 [`<strong>RANK UP!</strong>`,
-                 `${SCORING.rankUpMult === 2 ? 'Two' : SCORING.rankUpMult} full base hits, paid on every promotion`]
+                 `${SCORING.rankUpMult === 2 ? 'Two' : SCORING.rankUpMult} full base hits, paid the first time you reach each rank`]
               ], 'htp-tbl-flat')
             + `<h4 class="htp-sub">PENALTIES</h4>`
             + table(null, [
@@ -361,12 +361,12 @@ const HowToPlay = (function () {
         const sample = DATA_SHORTHAND.find(s => s.code === '/PDN') || DATA_SHORTHAND[0]
                     || { code: '/PDN', banner: 'Police have been notified' };
 
-        // Flyby window, in seconds, for a given rank. The satellite rides the
-        // rank's speed multiplier (spawnSatellite()), so the answer window
-        // tightens as the game speeds up. Distance is the sky plus the tail the
-        // banner still has to drag clear — a rough average across the dataset.
+        // Flyby window, in seconds, for a given rank. The satellite flies at the
+        // rank's Satellite Speed (progression.csv, spawnSatellite()), so the
+        // answer window tightens as you rank up. Distance is the sky plus the
+        // tail the banner still has to drag clear — a rough average across the dataset.
         const win = t => {
-            if (!t || !t.speedMin) return '';
+            if (!t || !(t.satelliteMult > 0)) return '';
             const chars = DATA_SHORTHAND.length
                 ? DATA_SHORTHAND.reduce((n, s) => n + s.banner.length, 0) / DATA_SHORTHAND.length
                 : 24;
@@ -375,7 +375,7 @@ const HowToPlay = (function () {
             const travel = COORD_SYSTEM.width + SATELLITE.spriteW + tail;
             const at = mult => travel / Math.min(SATELLITE.speed *
                         (1 + (mult - 1) * SATELLITE.speedScaling), SATELLITE.maxSpeed);
-            return `${Math.round(at(t.speedMax))}&ndash;${Math.round(at(t.speedMin))}`;
+            return String(Math.round(at(t.satelliteMult)));
         };
 
         return kicker(`<strong>Somebody is still running ads during the apocalypse.</strong>`)
@@ -457,13 +457,13 @@ const HowToPlay = (function () {
 
     // ── PANEL 7 — DIFFICULTY & RANK ──────────────────────────────────────
     function panelRanks() {
+        const sec = v => (Math.round(v * 10) / 10).toString();
         const rows = tiers().map((t, i, all) => {
             const cells = [
                 `<strong>${esc(t.label)}</strong>`,
                 esc(t.difficulty || t.label),
-                num(t.min),
-                `${t.speedMin.toFixed(1)}&ndash;${t.speedMax.toFixed(1)}&times;`,
-                `${(t.spawnMin / 1000).toFixed(1)}&ndash;${(t.spawnMax / 1000).toFixed(1)}s`,
+                `${sec(t.fallMin)}&ndash;${sec(t.fallMax)}s`,
+                `${sec(t.spawnMin / 1000)}&ndash;${sec(t.spawnMax / 1000)}s`,
                 String(t.maxTargets)
             ];
             return i === all.length - 1 ? { tone: 'key', cells } : cells;
@@ -472,10 +472,20 @@ const HowToPlay = (function () {
 
         return kicker(`<strong>${tiers().length} ranks. They are the real career ladder, and they
                        behave like it.</strong>`)
-            + table(['RANK', 'DIFFICULTY', 'POINTS TO REACH', 'SPEED', 'SPAWN', 'MAX ON SCREEN'],
+            + table(['RANK', 'DIFFICULTY', 'FALL TIME', 'NEW TARGET EVERY', 'MAX ON SCREEN'],
                     rows, 'htp-tbl-ranks')
             + para(`Ranking up raises your base hit <strong>and</strong> your penalties. High rank is
                     not a victory lap &mdash; it is a harder shift that pays better.`)
+            + `<h4 class="htp-sub">RANK FOLLOWS HOW YOU DISPATCH, NOT YOUR SCORE</h4>`
+            + `<ol class="htp-ol">
+                 <li><strong>Keep pace, move up.</strong> Clear calls as fast as the next rank sends
+                     them (averaged over your last ${RANKING.paceWindow} clears, at least
+                     ${RANKING.paceMinClears} at this rank) and you are promoted.</li>
+                 <li><strong>Hold the line, move up.</strong> ${RANKING.pressureSeconds} seconds at a
+                     rank without a single target landing also promotes you.</li>
+                 <li><strong>Let one land, move down.</strong> Every target that lands &mdash; zone,
+                     debris or tower &mdash; drops you one rank.</li>
+               </ol>`
             + `<h4 class="htp-sub">YOU DON'T HAVE TO START AT THE BOTTOM</h4>`
             + para(`<strong>MAIN MENU &rarr; DIFFICULTY</strong> lets you open at any of the
                     ${tiers().length}. Pick your level and the run starts at that rank's speed, spawn
@@ -483,15 +493,14 @@ const HowToPlay = (function () {
                     the ${esc(titleCase(firstTier().label || 'Trainee'))} ramp to find a challenge.`)
             + para(`Two things worth knowing:`)
             + `<ol class="htp-ol">
-                 <li><strong>Your pick is your floor.</strong> You can be promoted upward, but never
-                     demoted below the difficulty you chose.</li>
+                 <li><strong>It is a starting point, not a floor.</strong> Let targets land and you
+                     will be demoted below it.</li>
                  <li><strong>It sticks.</strong> Your choice is remembered between sessions.</li>
                </ol>`
-            + para(`Every target also carries a <strong>&plusmn;15% speed variance</strong>, so no two
-                    rocks fall at quite the same rate even inside a single rank.`)
-            + callout('danger', '', `<strong>${esc(top.label || 'O.A.S')}:</strong> sub-second spawns,
-                    ${top.speedMax ? top.speedMax.toFixed(0) : 'four'}-times speed,
-                    ${top.maxTargets || 25} targets in the air at once. This is the endgame. Nobody
+            + callout('danger', '', `<strong>${esc(top.label || 'O.A.S')}:</strong> a new target every
+                    ${top.spawnMin ? sec(top.spawnMin / 1000) : '2.5'}&ndash;${top.spawnMax ? sec(top.spawnMax / 1000) : '2.9'}
+                    seconds, ${top.fallMin ? sec(top.fallMin) : '9.5'} seconds to land,
+                    ${top.maxTargets || 7} in the air at once. This is the endgame. Nobody
                     expects you to enjoy it.`);
     }
 
