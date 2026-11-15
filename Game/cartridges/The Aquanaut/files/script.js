@@ -2752,11 +2752,18 @@ function maintainCreatures(dt) {
     state.timers.spawnTimer += dt * 1000;
 
     // Spawn cadence is the PACE STEP's "new target every" range (pace_steps.csv).
+    // The interval is rolled ONCE per spawn and held until a creature actually spawns
+    // (or the pace step changes). Re-rolling it every frame — as this used to — makes each
+    // frame a fresh chance to draw a short one, which drags the real gap toward spawnMin
+    // (found in the Asteroid Command rebuild, 2026-11-14).
     const paceRow = getPaceRow(getPaceStep());
     if (paceRow) state.maxTargets = paceRow.maxOnScreen;   // the step's on-screen cap
-    const baseInterval = paceRow
-        ? paceRow.spawnMin + Math.random() * (paceRow.spawnMax - paceRow.spawnMin)
-        : state.spawnInterval;
+    if (state.timers.nextSpawnMs == null) {
+        state.timers.nextSpawnMs = paceRow
+            ? paceRow.spawnMin + Math.random() * (paceRow.spawnMax - paceRow.spawnMin)
+            : state.spawnInterval;
+    }
+    const baseInterval = state.timers.nextSpawnMs;
 
     // TOC units don't count against the normal cross-screen cap.
     // Fleeing creatures (struck their target, bolting off-screen) no longer count
@@ -2771,7 +2778,10 @@ function maintainCreatures(dt) {
     if (nonTocCount < state.maxTargets && state.timers.spawnTimer >= effectiveInterval) {
         // Reset the interval only on a real spawn — if every lane is blocked, hold the
         // timer hot so the next frame retries and a freed lane fills promptly.
-        if (spawnCreature()) state.timers.spawnTimer = 0;
+        if (spawnCreature()) {
+            state.timers.spawnTimer = 0;
+            state.timers.nextSpawnMs = null;   // roll the next gap on the next frame
+        }
     }
 }
 
@@ -3646,6 +3656,7 @@ function applyPaceStep(step) {
     state.pace.step = step;
     const row = getPaceRow(getPaceStep());
     if (row) state.maxTargets = row.maxOnScreen;
+    if (state.timers) state.timers.nextSpawnMs = null;   // the held gap was rolled for the old step
     resetPaceHistory();
     raiseDepthHighWater();
 }
