@@ -1841,7 +1841,8 @@ function pickLaneTarget(row, pool) {
 // fallSec = the creature's cross time in plain seconds, already rolled from its pace
 // step × its zone's Fall Mult (rollFallSeconds). The creature speedMult keeps its meaning
 // (1.2 = 20% quicker), so the time to target is fallSec ÷ speedMult. No hidden baseline,
-// no squaring, no extra wobble (2026-11-14 pace/depth rebuild).
+// no squaring, no extra wobble (2026-11-14 pace/depth rebuild). fallSec = null builds the
+// archetype state with zero velocity — for TOC units, which set their own motion.
 // The lunge archetype (moray) creeps, then bursts. Its cycle shape, named once so the
 // cross-time maths below and updateCreatureMovement agree.
 const LUNGE_MOTION = { approachMult: 0.3, burstMult: 2.5, burstSec: 0.4, approachMinSec: 2.5, approachRangeSec: 1.5 };
@@ -1861,7 +1862,7 @@ function getCreatureMovement(creatureType, sx, sy, target, fallSec) {
     // A lunger only averages ~0.54 of its nominal speed over a creep/burst cycle; scale it
     // up so it still arrives in its fall time (otherwise a moray took ~1.85× as long).
     const archetypeFactor = creatureType.archetype === 'lunge' ? lungeAverageFactor() : 1;
-    const speed = dist / timeSec / archetypeFactor;
+    const speed = (fallSec == null) ? 0 : dist / timeSec / archetypeFactor;
 
     return {
         vx: Math.cos(angle) * speed,
@@ -2377,8 +2378,9 @@ function spawnTocCreature() {
     const sx = enterFromLeft ? -offMargin : COORD_SYSTEM.width + offMargin;
     const sy = band.top + Math.random() * (band.bottom - band.top);
 
-    // TOC units fall at the zone's FLOOR step × the zone's Fall Mult (Andrew 2026-11-14).
-    const movement = getCreatureMovement(creatureType, sx, sy, aq, rollFallSeconds(state.tier, tierData.paceFloor));
+    // No fall time: TOC units never travel on the cross-screen velocity — they roam at
+    // TOC_ROAM speed and, once live, charge at TOC_DRIFT (Andrew 2026-11-14: keep that).
+    const movement = getCreatureMovement(creatureType, sx, sy, aq, null);
     movement.archetype = 'tocRoam';
     movement.roamSpeed = (typeof TOC_ROAM !== 'undefined')
         ? TOC_ROAM.speedMin + Math.random() * Math.max(0, TOC_ROAM.speedMax - TOC_ROAM.speedMin)
@@ -2572,14 +2574,21 @@ function maintainTocUnits(dt) {
     if (tocCount < activeMin) {                  // below the floor → spawn immediately
         spawnTocCreature();
         state.timers.tocSpawnTimer = 0;
+        state.timers.nextTocSpawnMs = null;
         return;
     }
     if (tocCount >= activeMax) return;
-    const interval = (tierData.tocSpawnMin || 8000) +
-        Math.random() * ((tierData.tocSpawnMax || 12000) - (tierData.tocSpawnMin || 8000));
-    if (state.timers.tocSpawnTimer >= interval) {
+    // Rolled ONCE per spawn and held until a unit spawns — re-rolling every frame dragged
+    // the real gap toward tocSpawnMin (same fix as maintainCreatures, 2026-11-14). Cleared
+    // on a zone change too (applyPaceStep), so the new zone's TOC range applies at once.
+    if (state.timers.nextTocSpawnMs == null) {
+        state.timers.nextTocSpawnMs = (tierData.tocSpawnMin || 8000) +
+            Math.random() * ((tierData.tocSpawnMax || 12000) - (tierData.tocSpawnMin || 8000));
+    }
+    if (state.timers.tocSpawnTimer >= state.timers.nextTocSpawnMs) {
         spawnTocCreature();
         state.timers.tocSpawnTimer = 0;
+        state.timers.nextTocSpawnMs = null;
     }
 }
 
@@ -3656,7 +3665,10 @@ function applyPaceStep(step) {
     state.pace.step = step;
     const row = getPaceRow(getPaceStep());
     if (row) state.maxTargets = row.maxOnScreen;
-    if (state.timers) state.timers.nextSpawnMs = null;   // the held gap was rolled for the old step
+    if (state.timers) {
+        state.timers.nextSpawnMs = null;      // the held gap was rolled for the old step
+        state.timers.nextTocSpawnMs = null;   // ...and the TOC gap for the old zone
+    }
     resetPaceHistory();
     raiseDepthHighWater();
 }
@@ -4583,6 +4595,8 @@ function isInLightCone(x, y) {
 //     appear/fade/clear rules (after the first crossing inside reach). Beyond it they stay
 //     dark. Infinity = the whole screen.
 //   • Lock-On Radius — inside it sprite and text are fully visible and never fade.
+//   • Text Mode — "hold" (Bubble Hopper): after the first crossing the text stays lit;
+//     "cycle" (zones 2–4): the per-rotation appear/fade/clear above.
 // The old fall-progress blur/fade and the merged L3/L4 "visibility tier" are gone.
 // ============================================
 function getCreatureZone(creature) {
@@ -10222,7 +10236,9 @@ function getUnitRevealAlpha(creature) {
 function getUnitTextAlpha(creature) {
     if (inLockOn(creature)) return 1;
     if (!creature._unitSweepDetected) return 0;
-    if (!withinReach(getCreatureZone(creature).textReach, creature.x, creature.y)) return 0;
+    const zone = getCreatureZone(creature);
+    if (!withinReach(zone.textReach, creature.x, creature.y)) return 0;
+    if (zone.textHold) return 1;   // "hold" zone (Bubble Hopper): lit for good after the first crossing
     return getUnitRevealAlpha(creature);
 }
 
@@ -10682,6 +10698,14 @@ function drawBubble(ctx, creature) {
         const chalPhase = creature._chalAnchor
             ? getSweepPhaseAt(creature._chalAnchor.x, creature._chalAnchor.y)
             : getCreatureSweepPhase(creature);
+        // "Hold" zone (Text Mode = hold, Bubble Hopper — Andrew 2026-11-14): the first
+        // crossing writes the text in as usual; once the tracer has finished writing it, the
+        // text stays lit for good — no per-rotation fade. Other zones keep the cycle.
+        if (getCreatureZone(creature).textHold && chalSwept && !creature._chalHeld
+            && chalPhase >= sweepCfg.chalWipeEnd) {
+            creature._chalHeld = true;
+        }
+        const chalFull = chalLocked || (creature._chalHeld === true && chalInReach);
 
         // Left→right reveal head: 0 at 12 o'clock, 1 at chalWipeEnd, then held at 1.
         const wipeSpan = Math.max(1, sweepCfg.chalWipeEnd - sweepCfg.unitAppear);
@@ -10714,7 +10738,7 @@ function drawBubble(ctx, creature) {
                 if (sliverLeft > leftEdge) { leftEdge = sliverLeft; feather = true; }   // soft trailing edge behind the moving window
             }
 
-            if (chalLocked) {
+            if (chalFull) {
                 textContent.style.mask = 'none';
             } else if (!chalSwept || revealPos <= leftEdge) {
                 // Not yet swept (or fully cleared) → text fully masked: the empty box frame
@@ -10741,8 +10765,8 @@ function drawBubble(ctx, creature) {
 
         // The challenge tracer (vertical scan line) rides the active head — shown only
         // while it's actually writing (wiping in) or erasing (fading out).
-        const writing = !chalLocked && chalSwept && chalPhase >= sweepCfg.unitAppear && chalPhase < sweepCfg.chalWipeEnd;
-        const erasing = !chalLocked && chalSwept && chalPhase >= sweepCfg.chalFade && chalPhase < sweepCfg.chalClear;
+        const writing = !chalFull && chalSwept && chalPhase >= sweepCfg.unitAppear && chalPhase < sweepCfg.chalWipeEnd;
+        const erasing = !chalFull && chalSwept && chalPhase >= sweepCfg.chalFade && chalPhase < sweepCfg.chalClear;
         if (writing) {
             creature._chalSweepArm.style.left = `${(revealPos * 100).toFixed(1)}%`;
             creature._chalSweepArm.style.opacity = '1';

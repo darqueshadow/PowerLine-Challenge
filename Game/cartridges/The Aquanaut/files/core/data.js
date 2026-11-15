@@ -339,6 +339,12 @@ async function loadGameData() {
         const spriteReach = parseReachValue(r['Sprite Reach']);
         const textReach = parseReachValue(r['Text Reach']);
         const lockOnRadius = parseReachValue(r['Lock-On Radius']);
+        // Text Mode: "hold" = text stays lit after the first sweep crossing (Bubble Hopper);
+        // "cycle" = the per-rotation appear/fade/clear columns. Required, like the rest.
+        const textMode = (r['Text Mode'] || '').trim().toLowerCase();
+        if (textMode !== 'hold' && textMode !== 'cycle') {
+            throw new Error('zone row "' + name + '" has Text Mode "' + (r['Text Mode'] || '') + '" (expected hold or cycle)');
+        }
         if (![paceFloor, paceCeiling, fallMult, spriteReach, textReach, lockOnRadius].every(v => !isNaN(v)) || paceFloor > paceCeiling) {
             throw new Error('zone row "' + name + '" has a missing or bad Pace Floor / Pace Ceiling / Fall Mult / Sprite Reach / Text Reach / Lock-On Radius');
         }
@@ -397,6 +403,7 @@ async function loadGameData() {
             spriteReach: spriteReach,       // virtual units from the sweep origin; Infinity = "full"
             textReach: textReach,
             lockOnRadius: lockOnRadius,
+            textHold: textMode === 'hold',
             baseHit: baseHit,
             impactPenalty: impactPenalty,
             creatureRadius: creatureRadius,
@@ -706,10 +713,10 @@ function loadFallbackData() {
     // depth/depthMin/depthMax/coneAngle repeat TIER_DEPTH_BY_KEY in loadGameData)
     Object.keys(TIERS).forEach(k => delete TIERS[k]);
     Object.assign(TIERS, {
-        bubblehopper:         { label: "BUBBLE HOPPER",         paceFloor: 1, paceCeiling: 4,  fallMult: 1.00, spriteReach: Infinity, textReach: Infinity, lockOnRadius: 0,   baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55, tocSpawnMin: 8000, tocSpawnMax: 12000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 15000, tocDespawnMax: 25000, bedAssignChance: 0.40, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
-        rigwalker:            { label: "RIG WALKER",             paceFloor: 3, paceCeiling: 6,  fallMult: 1.15, spriteReach: 520,      textReach: 600,      lockOnRadius: 150, baseHit: 250,  impactPenalty: -125, creatureRadius: 20, sonarSpeed: 850,  depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42, tocSpawnMin: 6000, tocSpawnMax: 9000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 12000, tocDespawnMax: 18000, bedAssignChance: 0.45, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
-        crushdepthoperator:   { label: "CRUSH DEPTH OPERATOR",   paceFloor: 5, paceCeiling: 8,  fallMult: 1.30, spriteReach: 350,      textReach: 430,      lockOnRadius: 150, baseHit: 500,  impactPenalty: -275, creatureRadius: 17, sonarSpeed: 1000, depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30, tocSpawnMin: 4000, tocSpawnMax: 6000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 8000, tocDespawnMax: 12000, bedAssignChance: 0.50, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
-        theaquanaut:          { label: "THE AQUANAUT",            paceFloor: 7, paceCeiling: 10, fallMult: 1.45, spriteReach: 250,      textReach: 310,      lockOnRadius: 150, baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20, tocSpawnMin: 2500, tocSpawnMax: 4000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 5000, tocDespawnMax: 8000, bedAssignChance: 0.60, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 }
+        bubblehopper:         { label: "BUBBLE HOPPER",         paceFloor: 1, paceCeiling: 4,  fallMult: 1.00, spriteReach: Infinity, textReach: Infinity, lockOnRadius: 0, textHold: true,   baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55, tocSpawnMin: 8000, tocSpawnMax: 12000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 15000, tocDespawnMax: 25000, bedAssignChance: 0.40, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
+        rigwalker:            { label: "RIG WALKER",             paceFloor: 3, paceCeiling: 6,  fallMult: 1.15, spriteReach: 520,      textReach: 600,      lockOnRadius: 150, textHold: false, baseHit: 250,  impactPenalty: -125, creatureRadius: 20, sonarSpeed: 850,  depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42, tocSpawnMin: 6000, tocSpawnMax: 9000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 12000, tocDespawnMax: 18000, bedAssignChance: 0.45, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
+        crushdepthoperator:   { label: "CRUSH DEPTH OPERATOR",   paceFloor: 5, paceCeiling: 8,  fallMult: 1.30, spriteReach: 350,      textReach: 430,      lockOnRadius: 150, textHold: false, baseHit: 500,  impactPenalty: -275, creatureRadius: 17, sonarSpeed: 1000, depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30, tocSpawnMin: 4000, tocSpawnMax: 6000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 8000, tocDespawnMax: 12000, bedAssignChance: 0.50, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
+        theaquanaut:          { label: "THE AQUANAUT",            paceFloor: 7, paceCeiling: 10, fallMult: 1.45, spriteReach: 250,      textReach: 310,      lockOnRadius: 150, textHold: false, baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20, tocSpawnMin: 2500, tocSpawnMax: 4000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 5000, tocDespawnMax: 8000, bedAssignChance: 0.60, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 }
     });
 
     // Sweep-reveal block. Mirrors the degree columns of

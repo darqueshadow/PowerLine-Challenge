@@ -301,10 +301,10 @@ let canvasScaleX = 1, canvasScaleY = 1;
 // stale subset of the live shape (no toc*/sweep keys).
 
 const TIERS = {
-    bubblehopper:         { label: "BUBBLE HOPPER",         paceFloor: 1, paceCeiling: 4,  fallMult: 1.00, spriteReach: Infinity, textReach: Infinity, lockOnRadius: 0,   baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55 },
-    rigwalker:            { label: "RIG WALKER",             paceFloor: 3, paceCeiling: 6,  fallMult: 1.15, spriteReach: 520,      textReach: 600,      lockOnRadius: 150, baseHit: 250,  impactPenalty: -125, creatureRadius: 20, sonarSpeed: 850,  depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42 },
-    crushdepthoperator:   { label: "CRUSH DEPTH OPERATOR",   paceFloor: 5, paceCeiling: 8,  fallMult: 1.30, spriteReach: 350,      textReach: 430,      lockOnRadius: 150, baseHit: 500,  impactPenalty: -275, creatureRadius: 17, sonarSpeed: 1000, depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30 },
-    theaquanaut:          { label: "THE AQUANAUT",            paceFloor: 7, paceCeiling: 10, fallMult: 1.45, spriteReach: 250,      textReach: 310,      lockOnRadius: 150, baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20 }
+    bubblehopper:         { label: "BUBBLE HOPPER",         paceFloor: 1, paceCeiling: 4,  fallMult: 1.00, spriteReach: Infinity, textReach: Infinity, lockOnRadius: 0, textHold: true,   baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55 },
+    rigwalker:            { label: "RIG WALKER",             paceFloor: 3, paceCeiling: 6,  fallMult: 1.15, spriteReach: 520,      textReach: 600,      lockOnRadius: 150, textHold: false, baseHit: 250,  impactPenalty: -125, creatureRadius: 20, sonarSpeed: 850,  depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42 },
+    crushdepthoperator:   { label: "CRUSH DEPTH OPERATOR",   paceFloor: 5, paceCeiling: 8,  fallMult: 1.30, spriteReach: 350,      textReach: 430,      lockOnRadius: 150, textHold: false, baseHit: 500,  impactPenalty: -275, creatureRadius: 17, sonarSpeed: 1000, depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30 },
+    theaquanaut:          { label: "THE AQUANAUT",            paceFloor: 7, paceCeiling: 10, fallMult: 1.45, spriteReach: 250,      textReach: 310,      lockOnRadius: 150, textHold: false, baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20 }
 };
 
 // ============================================

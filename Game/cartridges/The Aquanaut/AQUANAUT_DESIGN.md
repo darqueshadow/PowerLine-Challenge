@@ -1279,8 +1279,12 @@ dive** — cap/decay/reset and the punishment-vs-relief framing remain open ques
 
 ## Pace, depth and sonar-reach rebuild (2026-11-14)
 Handoff from Claude Chat, approved by Andrew; rulings 2026-11-14: the fall-progress blur/fade
-is replaced by the reach rules; TOC units fall at the zone's Floor step; Calibration counts
-from the score at zone entry.
+is replaced by the reach rules; Calibration counts from the score at zone entry; TOC units
+keep their own roam/charge motion (no fall time — they never used the cross velocity);
+speedMult divides the fall time; unit numbers follow the Text Reach rules; Bubble Hopper's
+text stays lit after the first crossing (`Text Mode` column: `hold` there, `cycle` in zones
+2–4). Both spawn cadences (cross-screen and TOC monitor) roll their interval once per spawn —
+re-rolling every frame had pulled the real gap toward the minimum.
 - **Two dials replace score-driven ranks.** `pace_steps.csv` (10 steps: Fall Min/Max s, new
   target every Min/Max s, Max On Screen) and the depth zones (the four
   `game_difficulty_progression.csv` rows, now with Pace Floor/Ceiling, Fall Mult, Sprite
