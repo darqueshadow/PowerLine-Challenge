@@ -971,7 +971,10 @@ function init() {
             if (statusEl) { statusEl.textContent = 'NO DIVER LOGGED IN'; statusEl.className = 'dataset-status error'; }
             return;
         }
-        const tierLabel = TIERS[state.tier] ? TIERS[state.tier].label : state.tier.toUpperCase();
+        // Dive Log records the DEEPEST zone reached this dive (depth never decreases, but
+        // the holodeck override can move you around, so it is tracked explicitly).
+        const deepKey = (state.deepestZone && TIERS[state.deepestZone]) ? state.deepestZone : state.tier;
+        const tierLabel = TIERS[deepKey] ? TIERS[deepKey].label : deepKey.toUpperCase();
         saveScore(player.name, player.oasis, state.score, tierLabel);
         if (statusEl) {
             statusEl.textContent = 'DIVE RECORDED: ' + state.score.toLocaleString();
@@ -1835,15 +1838,30 @@ function pickLaneTarget(row, pool) {
 // CREATURE MOVEMENT ARCHETYPES
 // ============================================
 
-function getCreatureMovement(creatureType, sx, sy, target, effectiveSpeed) {
+// fallSec = the creature's cross time in plain seconds, already rolled from its pace
+// step × its zone's Fall Mult (rollFallSeconds). The creature speedMult keeps its meaning
+// (1.2 = 20% quicker), so the time to target is fallSec ÷ speedMult. No hidden baseline,
+// no squaring, no extra wobble (2026-11-14 pace/depth rebuild).
+// The lunge archetype (moray) creeps, then bursts. Its cycle shape, named once so the
+// cross-time maths below and updateCreatureMovement agree.
+const LUNGE_MOTION = { approachMult: 0.3, burstMult: 2.5, burstSec: 0.4, approachMinSec: 2.5, approachRangeSec: 1.5 };
+// Average along-path speed of a lunge cycle as a fraction of its nominal speed (~0.54).
+function lungeAverageFactor() {
+    const m = LUNGE_MOTION;
+    const approach = m.approachMinSec + m.approachRangeSec / 2;
+    return (m.approachMult * approach + m.burstMult * m.burstSec) / (approach + m.burstSec);
+}
+
+function getCreatureMovement(creatureType, sx, sy, target, fallSec) {
     const dx = target.x - sx;
     const dy = getImpactAltitude(target) - sy;
     const dist = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx);
-    const time = Math.max(2500, 25000 / effectiveSpeed);
-    const baseSpeed = (dist / (time / 1000)) * effectiveSpeed * 2;
-    const variance = 0.85 + (Math.random() * 0.30);
-    const speed = baseSpeed * variance * (creatureType.speedMult || 1);
+    const timeSec = fallSec / (creatureType.speedMult || 1);
+    // A lunger only averages ~0.54 of its nominal speed over a creep/burst cycle; scale it
+    // up so it still arrives in its fall time (otherwise a moray took ~1.85× as long).
+    const archetypeFactor = creatureType.archetype === 'lunge' ? lungeAverageFactor() : 1;
+    const speed = dist / timeSec / archetypeFactor;
 
     return {
         vx: Math.cos(angle) * speed,
@@ -1860,7 +1878,7 @@ function getCreatureMovement(creatureType, sx, sy, target, effectiveSpeed) {
         zigzagThreshold: 0.5 + Math.random() * 0.3,  // Roll once, not every frame
         lungeTimer: 0,
         lungePhase: 'approach',
-        lungeThreshold: 2.5 + Math.random() * 1.5,   // Roll once, not every frame
+        lungeThreshold: LUNGE_MOTION.approachMinSec + Math.random() * LUNGE_MOTION.approachRangeSec,   // Roll once, not every frame
         sweepDir: sx < COORD_SYSTEM.width / 2 ? 1 : -1,
         sweepPhase: 0,
         prevSweep: 0
@@ -1921,21 +1939,21 @@ function updateCreatureMovement(creature, dt) {
         case 'lunge':
             // Slow approach then sudden fast burst toward target
             if (mv.lungePhase === 'approach') {
-                creature.x += mv.vx * 0.3 * dt;
-                creature.y += mv.vy * 0.3 * dt;
+                creature.x += mv.vx * LUNGE_MOTION.approachMult * dt;
+                creature.y += mv.vy * LUNGE_MOTION.approachMult * dt;
                 mv.lungeTimer += dt;
                 if (mv.lungeTimer > mv.lungeThreshold) {
                     mv.lungePhase = 'lunge';
                     mv.lungeTimer = 0;
                 }
             } else {
-                creature.x += mv.vx * 2.5 * dt;
-                creature.y += mv.vy * 2.5 * dt;
+                creature.x += mv.vx * LUNGE_MOTION.burstMult * dt;
+                creature.y += mv.vy * LUNGE_MOTION.burstMult * dt;
                 mv.lungeTimer += dt;
-                if (mv.lungeTimer > 0.4) {
+                if (mv.lungeTimer > LUNGE_MOTION.burstSec) {
                     mv.lungePhase = 'approach';
                     mv.lungeTimer = 0;
-                    mv.lungeThreshold = 2.5 + Math.random() * 1.5; // Roll new threshold on reset
+                    mv.lungeThreshold = LUNGE_MOTION.approachMinSec + Math.random() * LUNGE_MOTION.approachRangeSec; // Roll new threshold on reset
                 }
             }
             break;
@@ -2184,12 +2202,7 @@ function spawnCreature() {
     // ignoring the filter (see getCreatureType).
     if (!creatureType) return;
 
-    const tierData = TIERS[state.tier];
-    const effectiveSpeed = tierData
-        ? tierData.speedMin + Math.random() * (tierData.speedMax - tierData.speedMin)
-        : state.speedMult;
-
-    const movement = getCreatureMovement(creatureType, sx, sy, target, effectiveSpeed);
+    const movement = getCreatureMovement(creatureType, sx, sy, target, rollFallSeconds(state.tier, getPaceStep()));
     // Cross-screen creatures never carry the TOC challenge — TOC units spawn only via
     // the circle-beneath-the-Aquanaut monitor (spawnTocCreature). Re-roll past any TOC.
     let specs = getTargetSpecs();
@@ -2203,6 +2216,7 @@ function spawnCreature() {
         vx: movement.vx,
         vy: movement.vy,
         fromLeft: fromLeft,  // spawn side — used for sprite facing
+        zoneKey: state.tier, // the zone it spawned in — it keeps that zone's sonar rules
         lane: lane,          // { side:'L'|'R', row:1..3 } — drives one-per-lane + adjacency spacing
         radius: CONFIG.creatureRadius,
         target,
@@ -2363,7 +2377,8 @@ function spawnTocCreature() {
     const sx = enterFromLeft ? -offMargin : COORD_SYSTEM.width + offMargin;
     const sy = band.top + Math.random() * (band.bottom - band.top);
 
-    const movement = getCreatureMovement(creatureType, sx, sy, aq, tierData.speedMin || 1);
+    // TOC units fall at the zone's FLOOR step × the zone's Fall Mult (Andrew 2026-11-14).
+    const movement = getCreatureMovement(creatureType, sx, sy, aq, rollFallSeconds(state.tier, tierData.paceFloor));
     movement.archetype = 'tocRoam';
     movement.roamSpeed = (typeof TOC_ROAM !== 'undefined')
         ? TOC_ROAM.speedMin + Math.random() * Math.max(0, TOC_ROAM.speedMax - TOC_ROAM.speedMin)
@@ -2736,17 +2751,21 @@ function maintainCreatures(dt) {
 
     state.timers.spawnTimer += dt * 1000;
 
-    const tierData = TIERS[state.tier];
-    const spawnMin = tierData ? tierData.spawnMin : state.spawnInterval;
-    const spawnMax = tierData ? tierData.spawnMax : state.spawnInterval;
-    const baseInterval = spawnMin + Math.random() * (spawnMax - spawnMin);
+    // Spawn cadence is the PACE STEP's "new target every" range (pace_steps.csv).
+    const paceRow = getPaceRow(getPaceStep());
+    if (paceRow) state.maxTargets = paceRow.maxOnScreen;   // the step's on-screen cap
+    const baseInterval = paceRow
+        ? paceRow.spawnMin + Math.random() * (paceRow.spawnMax - paceRow.spawnMin)
+        : state.spawnInterval;
 
     // TOC units don't count against the normal cross-screen cap.
     // Fleeing creatures (struck their target, bolting off-screen) no longer count
     // as live targets — they must not block or throttle new spawns.
+    // Empty sky: the next creature comes after PACE_RULES.emptySkySec or the normal
+    // interval, whichever is shorter.
     const nonTocCount = state.creatures.filter(c => !c.isToc && !c._attacked).length;
     const effectiveInterval = nonTocCount === 0
-        ? baseInterval - 500
+        ? Math.min(PACE_RULES.emptySkySec * 1000, baseInterval)
         : baseInterval;
 
     if (nonTocCount < state.maxTargets && state.timers.spawnTimer >= effectiveInterval) {
@@ -3553,11 +3572,12 @@ function applyScore(delta) {
 }
 
 function checkCalibration() {
-    const tierData = TIERS[state.tier];
-    if (!tierData) return;
-    const scoreInRank = state.score - tierData.min;
-    const calibrationsSoFar = Math.floor(scoreInRank / SCORING.calibrationInterval);
-    const lastCount = Math.floor((state.lastCalibrationAt - tierData.min) / SCORING.calibrationInterval);
+    // Calibration ("STEADY HANDS") — every SCORING.calibrationInterval points earned since
+    // you entered the current zone (Andrew 2026-11-14: the anchor is the score at zone
+    // entry, now that depth is no longer bought with Points Required).
+    const anchor = state.zoneEntryScore || 0;
+    const calibrationsSoFar = Math.floor((state.score - anchor) / SCORING.calibrationInterval);
+    const lastCount = Math.floor((state.lastCalibrationAt - anchor) / SCORING.calibrationInterval);
     if (calibrationsSoFar > lastCount && state.score > state.lastCalibrationAt) {
         state.lastCalibrationAt = state.score;
         applyScore(SCORING.calibrationFlat);
@@ -3569,39 +3589,179 @@ function checkRegen() {
     // Hull doesn't self-regen — only ROV repairs
 }
 
-function checkTier() {
-    // If holodeck tier override is active, lock to that tier
-    if (godMode.overrideTier && TIERS[godMode.overrideTier]) {
-        if (state.tier !== godMode.overrideTier) {
-            setTier(godMode.overrideTier);
-            state.coneAngle = TIERS[godMode.overrideTier].coneAngle || CONFIG.baseConeAngle;
-            updateHUD();
-        }
-        return;
+// ============================================
+// PACE & DEPTH ZONES (2026-11-14 pace/depth rebuild)
+// --------------------------------------------
+// Two dials. PACE STEP (pace_steps.csv, 1..N) sets fall time, spawn cadence and the
+// on-screen cap. DEPTH ZONE (game_difficulty_progression.csv rows) spans a range of
+// steps (Pace Floor..Pace Ceiling) and sets Fall Mult, sonar reach and the per-zone
+// values (base hit, penalty, radius, TOC, sweep angles, cone, depth band, zone card).
+//   • Pace up one step on EITHER the pace test (avg gap between the last paceWindow
+//     clears ≤ the next step's avg spawn interval, with ≥ minClears since the last change)
+//     OR the pressure timer (pressureSec at one step with nothing reaching a hose/diver).
+//     Neither raises pace above the zone Ceiling.
+//   • Passing the pace test AT the Ceiling goes one zone deeper; pace resets to the new
+//     zone's Floor and the zone-entry beat plays.
+//   • Anything reaching a hose or the diver: pace down one step, never below the Floor.
+//     Depth never decreases.
+//   • Any step/zone change resets the pace history and the pressure timer. Creatures
+//     already in the water keep the fall time and sonar rules they spawned with.
+//   • The clocks only run while the game is running and the player can fire.
+// Tunables: PACE_RULES (config.js). Holodeck: godMode.overrideTier / overridePace lock them.
+// ============================================
+
+function getPaceStep() {
+    if (godMode.overridePace && getPaceRow(godMode.overridePace)) return godMode.overridePace;
+    return (state.pace && state.pace.step) || 1;
+}
+
+function getPaceRow(step) {
+    if (typeof PACE_STEPS === 'undefined') return null;
+    return PACE_STEPS.find(r => r.step === step) || null;
+}
+
+// A creature's time to target, in seconds, before its own speedMult:
+// rand(step Fall Min..Max) × the zone's Fall Mult.
+function rollFallSeconds(zoneKey, step) {
+    const row = getPaceRow(step) || PACE_STEPS[0];
+    const zone = TIERS[zoneKey] || {};
+    const fall = row.fallMin + Math.random() * (row.fallMax - row.fallMin);
+    return fall * (zone.fallMult || 1);
+}
+
+function resetPaceHistory() {
+    state.pace.clearTimes = [];
+    state.pace.clearsSinceChange = 0;
+    state.pace.pressureSec = 0;
+}
+
+// The pace clock stands still whenever the player cannot fire (hull repair, a
+// breached DSV, the kill cam / abyss cinematic). Pause already stops update().
+function paceClockRunning() {
+    return state.running && !state.rebuilding && !state.dsvBreached
+        && !state.killCamActive && !state.abyssDeathActive;
+}
+
+function applyPaceStep(step) {
+    state.pace.step = step;
+    const row = getPaceRow(getPaceStep());
+    if (row) state.maxTargets = row.maxOnScreen;
+    resetPaceHistory();
+    raiseDepthHighWater();
+}
+
+function setPaceStep(step) {
+    if (godMode.overridePace) return;   // holodeck lock
+    if (step === state.pace.step || !getPaceRow(step)) return;
+    applyPaceStep(step);
+}
+
+function updatePace(dt) {
+    if (!state.pace || !paceClockRunning()) return;
+    state.pace.clock += dt;
+    state.pace.pressureSec += dt;
+    if (state.pace.pressureSec >= PACE_RULES.pressureSec) {
+        const zone = TIERS[state.tier];
+        if (zone && state.pace.step < zone.paceCeiling && !godMode.overridePace) setPaceStep(state.pace.step + 1);
+        else state.pace.pressureSec = 0;   // at the Ceiling the timer can't raise pace — start over
     }
-    const newTierKey = getTierForScore(state.score);
-    if (!newTierKey || newTierKey === state.tier) return;
+}
 
-    const oldTier = state.tier;
-    const data = TIERS[newTierKey];
+function paceOnClear() {
+    if (!state.pace || godMode.overridePace) return;
+    const p = state.pace;
+    p.clearTimes.push(p.clock);
+    if (p.clearTimes.length > PACE_RULES.paceWindow) p.clearTimes.shift();
+    p.clearsSinceChange++;
+    if (p.clearsSinceChange < PACE_RULES.minClears || p.clearTimes.length < 2) return;
 
-    setTier(newTierKey);
-    state.lastCalibrationAt = state.score;
+    const zone = TIERS[state.tier];
+    const next = getPaceRow(p.step + 1);
+    if (!zone || !next) return;   // already at the last step there is
+    const avgGap = (p.clearTimes[p.clearTimes.length - 1] - p.clearTimes[0]) / (p.clearTimes.length - 1);
+    const nextAvgInterval = (next.spawnMin + next.spawnMax) / 2 / 1000;
+    if (avgGap > nextAvgInterval) return;
 
-    // Update cone angle for new depth
+    if (p.step < zone.paceCeiling) {
+        setPaceStep(p.step + 1);
+    } else if (!godMode.overrideTier) {
+        const deeper = ZONE_ORDER[ZONE_ORDER.indexOf(state.tier) + 1];
+        if (deeper) enterZone(deeper);
+    }
+}
+
+function paceOnImpact() {
+    if (!state.pace) return;
+    state.pace.pressureSec = 0;
+    const zone = TIERS[state.tier];
+    if (zone && state.pace.step > zone.paceFloor) setPaceStep(state.pace.step - 1);
+}
+
+// Arrive in a deeper zone: pace resets to its Floor, the "DEEPER!" bonus pays once per
+// zone per dive, and the existing §10 zone-entry beat plays.
+function enterZone(zoneKey) {
+    const data = TIERS[zoneKey];
+    if (!data) return;
+    setTier(zoneKey);
     state.coneAngle = data.coneAngle || CONFIG.baseConeAngle;
+    state.zoneEntryScore = state.score;
+    state.lastCalibrationAt = state.score;
+    noteDeepestZone(zoneKey);
+    applyPaceStep(data.paceFloor);
 
-    const oldData = TIERS[oldTier];
-    if (oldData && data.min < oldData.min) {
-        showStatus(`ASCENDING: ${data.label || newTierKey.toUpperCase()}`, "impact");
-    } else {
+    if (!state.zonesRewarded.has(zoneKey)) {
+        state.zonesRewarded.add(zoneKey);
         const rankUpBonus = data.baseHit * SCORING.rankUpMult;
         applyScore(rankUpBonus);
-        showStatus(`DEEPER! +${rankUpBonus} — ${data.label || newTierKey.toUpperCase()}`, "bonus");
-        startZoneTransition(newTierKey);   // §10 zone-entry beat
-        Helmet.arm('zone', (typeof HELMET !== 'undefined') ? HELMET.zoneMs : 3000);
+        showStatus(`DEEPER! +${rankUpBonus} — ${data.label || zoneKey.toUpperCase()}`, "bonus");
     }
+    startZoneTransition(zoneKey);   // §10 zone-entry beat
+    Helmet.arm('zone', (typeof HELMET !== 'undefined') ? HELMET.zoneMs : 3000);
     updateHUD();
+}
+
+function noteDeepestZone(zoneKey) {
+    const cur = TIERS[state.deepestZone];
+    const nxt = TIERS[zoneKey];
+    if (nxt && (!cur || nxt.zoneIndex > cur.zoneIndex)) state.deepestZone = zoneKey;
+}
+
+// The zone + pace step as a 0..1 position down the zone ladder: each zone owns the band
+// [anchor(zone), anchor(next zone)) and the step climbs it from Floor to Ceiling.
+function zonePaceDepthFraction() {
+    const zone = TIERS[state.tier];
+    if (!zone) return { zone: null, t: 0 };
+    const span = Math.max(1, zone.paceCeiling - zone.paceFloor);
+    const t = Math.max(0, Math.min(1, (getPaceStep() - zone.paceFloor) / span));
+    return { zone: zone, t: t };
+}
+
+// The descent visuals and the depth gauge never go back up within a dive, even when a
+// hit knocks the pace down a step — they follow the high-water mark.
+function raiseDepthHighWater() {
+    if (!state.pace) return;
+    const raw = computeDepthRatio();
+    if (raw > (state.pace.depthRatioHigh || 0)) state.pace.depthRatioHigh = raw;
+    const { zone, t } = zonePaceDepthFraction();
+    if (zone) {
+        const dMin = zone.depthMin !== undefined ? zone.depthMin : (zone.depth || 30);
+        const dMax = zone.depthMax !== undefined ? zone.depthMax : dMin + 50;
+        const m = dMin + (dMax - dMin) * t;
+        if (!isNaN(m) && m > (state.pace.depthMetersHigh || 0)) state.pace.depthMetersHigh = m;
+    }
+}
+
+// Holodeck locks only — depth itself moves through paceOnClear / enterZone.
+function checkTier() {
+    if (godMode.overrideTier && TIERS[godMode.overrideTier] && state.tier !== godMode.overrideTier) {
+        setTier(godMode.overrideTier);
+        state.coneAngle = TIERS[godMode.overrideTier].coneAngle || CONFIG.baseConeAngle;
+        state.zoneEntryScore = state.score;
+        state.lastCalibrationAt = state.score;
+        noteDeepestZone(godMode.overrideTier);
+        applyPaceStep(TIERS[godMode.overrideTier].paceFloor);
+        updateHUD();
+    }
 }
 
 // ============================================
@@ -4401,22 +4561,37 @@ function isInLightCone(x, y) {
     return Math.abs(angleToCreature) <= halfAngle;
 }
 
-// Returns 1 (Surface), 2 (Mid-depth), or 3 (Abyss) for tiered visibility
-function getVisibilityTier() {
-    const tierKeys = Object.keys(TIERS);
-    const idx = tierKeys.indexOf(state.tier);
-    if (idx <= 0) return 1;  // bubbleHopper
-    if (idx <= 1) return 2;  // rigWalker
-    return 3;                // crushDepthOp, theAquanaut
+// ============================================
+// SONAR REACH (2026-11-14 pace/depth rebuild) — the ONLY visibility system.
+// Distances are virtual units (1600×900) from the sweep origin (the helmet). Each
+// creature keeps the reach rules of the zone it SPAWNED in (creature.zoneKey).
+//   • Sprite Reach — a sweep crossing inside it reveals the sprite (and the reveal is
+//     kept if the creature drifts back out). Beyond it: only a blip; a crossing out
+//     there reveals nothing. Infinity ("full") = sprite visible from spawn (L1).
+//   • Text Reach — inside it the unit number and challenge text follow the per-rotation
+//     appear/fade/clear rules (after the first crossing inside reach). Beyond it they stay
+//     dark. Infinity = the whole screen.
+//   • Lock-On Radius — inside it sprite and text are fully visible and never fade.
+// The old fall-progress blur/fade and the merged L3/L4 "visibility tier" are gone.
+// ============================================
+function getCreatureZone(creature) {
+    return TIERS[(creature && creature.zoneKey) || state.tier] || TIERS[state.tier] || {};
 }
 
-// Returns 0..1 representing how far a creature has traveled toward its target zone
-function getCreatureProgress(creature) {
-    if (!creature.target) return 0;
-    const spawnY = 0; // creatures spawn near top
-    const targetY = creature.target.y;
-    const totalDist = Math.max(targetY - spawnY, 1);
-    return Math.min(1, Math.max(0, (creature.y - spawnY) / totalDist));
+function distFromSweepOrigin(x, y, origin) {
+    const o = origin || getSweepOrigin();
+    return Math.hypot(x - o.x, y - o.y);
+}
+
+function withinReach(reach, x, y, origin) {
+    if (reach === Infinity) return true;
+    if (!(reach > 0)) return false;
+    return distFromSweepOrigin(x, y, origin) <= reach;
+}
+
+function inLockOn(creature, origin) {
+    const r = getCreatureZone(creature).lockOnRadius;
+    return r > 0 && distFromSweepOrigin(creature.x, creature.y, origin) <= r;
 }
 
 // Horizontal proximity to center Y-axis (where hoses/aquanaut are).
@@ -4434,11 +4609,10 @@ function shouldMorphCreature(creature) {
     return creature && creature._sweepDetected === true;
 }
 
-// Level 1 (bubbleHopper): the target SPRITE is fully visible from spawn — the screen
-// sweep only gates the box TEXT (unit number + challenge), never the creature itself.
-// Deeper tiers stay sonar-gated (a bare blip until the arm crosses them).
-function spriteVisibleBeforeSweep() {
-    return getVisibilityTier() === 1;
+// A zone with unlimited Sprite Reach (Bubble Hopper, "full"): the SPRITE is visible from
+// spawn — the sweep only gates the box TEXT. Every other zone is sonar-gated by reach.
+function spriteVisibleBeforeSweep(creature) {
+    return getCreatureZone(creature).spriteReach === Infinity;
 }
 
 function drawVisibilityCone(ctx) {
@@ -4634,30 +4808,33 @@ function drawMarineSnow(ctx) {
 // (§1): a parallax water column streams upward past the fixed viewport, canyon
 // walls scroll past in the gutters, the light dies overhead, the colour cools,
 // the vignette tightens, and the depth gauge keeps ticking deeper. All driven
-// off score → depthRatio; nothing here touches scoring or spawn logic.
+// off zone + pace step → depthRatio; nothing here touches scoring or spawn logic.
 // ============================================
 
-// §1 — normalized descent driver [0..1]: 0 = surface, 1 = abyss. Per-tier anchors,
-// eased within each tier so descent reads continuous rather than stepping at rank-up.
-function getDepthRatio() {
+// §1 — normalized descent driver [0..1]: 0 = surface, 1 = abyss. Driven by ZONE + PACE
+// STEP (2026-11-14): each zone runs from its own anchor toward the next zone's as the pace
+// climbs Floor → Ceiling (the deepest zone ramps to 1.0 at its Ceiling), eased so the
+// descent reads continuous. getDepthRatio() returns the dive's high-water mark — it never
+// decreases, even when an impact drops the pace a step.
+function computeDepthRatio() {
     if (!state || !state.tier) return 0;
-    const order = ['bubblehopper', 'rigwalker', 'crushdepthoperator', 'theaquanaut'];
+    const order = (typeof ZONE_ORDER !== 'undefined' && ZONE_ORDER.length) ? ZONE_ORDER : Object.keys(TIERS);
     const idx = order.indexOf(state.tier);
     if (idx < 0) return 0;
-    const tierData = TIERS[state.tier];
-    const a0 = (DESCENT.anchors[state.tier] !== undefined) ? DESCENT.anchors[state.tier] : (idx / (order.length - 1));
-    let a1, start, end;
-    if (idx < order.length - 1) {
-        const nextKey = order[idx + 1];
-        a1 = (DESCENT.anchors[nextKey] !== undefined) ? DESCENT.anchors[nextKey] : 1;
-        start = tierData.min; end = TIERS[nextKey].min;
-    } else {
-        a1 = 1.0;                       // top tier ramps to the abyss by the soft ceiling
-        start = tierData.min; end = DESCENT.topCeilingScore;
-    }
-    const tp = clamp01((state.score - start) / Math.max(1, end - start));
+    const a0 = (DESCENT.anchors[state.tier] !== undefined) ? DESCENT.anchors[state.tier] : (idx / Math.max(1, order.length - 1));
+    const nextKey = order[idx + 1];
+    const a1 = nextKey
+        ? ((DESCENT.anchors[nextKey] !== undefined) ? DESCENT.anchors[nextKey] : (idx + 1) / Math.max(1, order.length - 1))
+        : 1.0;
+    const tp = zonePaceDepthFraction().t;
     const eased = tp * tp * (3 - 2 * tp);   // smoothstep — ease-in/out within the band
     return clamp01(a0 + (a1 - a0) * eased);
+}
+
+function getDepthRatio() {
+    const raw = computeDepthRatio();
+    const high = (state && state.pace && state.pace.depthRatioHigh) || 0;
+    return Math.max(raw, high);
 }
 
 // Apparent upward scroll of the water column (virtual px/s): faster as we sink,
@@ -5058,11 +5235,11 @@ function getCurrentDepth() {
     // Use depthMin/depthMax if available, otherwise fall back to depth
     const dMin = tierData.depthMin !== undefined ? tierData.depthMin : (tierData.depth || 30);
     const dMax = tierData.depthMax !== undefined ? tierData.depthMax : dMin + 50;
-    // Interpolate depth within the tier based on score progress
-    const range = (tierData.max === Infinity || !isFinite(tierData.max)) ? 50000 : Math.max(1, tierData.max - tierData.min);
-    const tierProgress = Math.min(1, Math.max(0, (state.score - tierData.min) / range));
-    const result = dMin + (dMax - dMin) * tierProgress;
-    return isNaN(result) ? (tierData.depth || 30) : result;
+    // Interpolate within the zone's depth band by the pace step (Floor → Ceiling), and
+    // never report shallower than the dive's high-water mark (the gauge never rises).
+    const result = dMin + (dMax - dMin) * zonePaceDepthFraction().t;
+    const high = (state.pace && state.pace.depthMetersHigh) || 0;
+    return isNaN(result) ? (tierData.depth || 30) : Math.max(result, high);
 }
 
 function updateAmbientFish(dt) {
@@ -5412,7 +5589,7 @@ function drawCreatureBody(ctx, creature, time) {
     // The full-screen radar sweep gates visibility: until the arm has crossed
     // this creature's bearing at least once, it stays a bare sonar contact (blip).
     // After the sweep passes, the sprite fades in over SCREEN_SWEEP.morphFadeMs.
-    const spriteEarly = spriteVisibleBeforeSweep();
+    const spriteEarly = spriteVisibleBeforeSweep(creature);
     if (!shouldMorphCreature(creature) && !spriteEarly) {
         creature._morphAlpha = 0;
         drawSonarContactBlip(ctx, creature);
@@ -5432,25 +5609,12 @@ function drawCreatureBody(ctx, creature, time) {
     }
     creature._morphAlpha = morphProgress;
 
-    // --- Tiered Visibility ---
-    const visTier = getVisibilityTier();
-    const progress = getCreatureProgress(creature);
-    const age = (Date.now() - creature.spawnTime) / 1000; // seconds since spawn
-
+    // No distance/fall-progress blur or fade any more — sonar reach (above) is the only
+    // visibility system. The sprite fades in over morphFadeMs once revealed.
     let creatureAlpha = 1;
     let creatureBlur = 0;
 
-    if (visTier === 2) {
-        // Mid-depth: heavy blur that resolves as creature falls
-        // Starts at ~8px blur, fully resolved by 70% progress
-        creatureBlur = Math.max(0, 8 * (1 - progress / 0.7));
-    } else if (visTier === 3) {
-        // Abyss: invisible at spawn, fades in as it approaches the zone
-        // Fully invisible until 20% progress, fully visible by 80%
-        creatureAlpha = Math.min(1, Math.max(0, (progress - 0.2) / 0.6));
-    }
-
-    // Combine morph fade-in with tier visibility
+    // Morph fade-in
     creatureAlpha *= morphProgress;
 
     // Apply tier visibility filters
@@ -8277,7 +8441,7 @@ function buildGodModeMenu() {
     tierText.appendChild(tierLabel);
     const tierHint = document.createElement('div');
     tierHint.className = 'gm-hint';
-    tierHint.textContent = 'Lock rank — bypasses score progression';
+    tierHint.textContent = 'Lock depth zone — bypasses the pace/zone rules';
     tierText.appendChild(tierHint);
     tierRow.appendChild(tierText);
 
@@ -8298,14 +8462,46 @@ function buildGodModeMenu() {
     });
     tierSelect.addEventListener('change', () => {
         godMode.overrideTier = tierSelect.value || null;
-        if (state.running && godMode.overrideTier) {
-            setTier(godMode.overrideTier);
-            state.tier = godMode.overrideTier;
-            updateHUD();
-        }
+        if (state.running && godMode.overrideTier) checkTier();   // switches zone, pace → its Floor
     });
     tierRow.appendChild(tierSelect);
     colToggles.appendChild(tierRow);
+
+    // ── Pace-step override (2026-11-14) — sits beside the zone override ──
+    const paceRow = document.createElement('div');
+    paceRow.className = 'gm-row';
+    const paceText = document.createElement('div');
+    paceText.className = 'gm-text';
+    const paceLabel = document.createElement('div');
+    paceLabel.className = 'gm-label';
+    paceLabel.textContent = 'PACE STEP OVERRIDE';
+    paceText.appendChild(paceLabel);
+    const paceHint = document.createElement('div');
+    paceHint.className = 'gm-hint';
+    paceHint.textContent = 'Lock pace step — bypasses pace up/down';
+    paceText.appendChild(paceHint);
+    paceRow.appendChild(paceText);
+
+    const paceSelect = document.createElement('select');
+    paceSelect.className = 'gm-select';
+    const paceAuto = document.createElement('option');
+    paceAuto.value = '';
+    paceAuto.textContent = 'AUTO';
+    if (!godMode.overridePace) paceAuto.selected = true;
+    paceSelect.appendChild(paceAuto);
+    (typeof PACE_STEPS !== 'undefined' ? PACE_STEPS : []).forEach(row => {
+        const opt = document.createElement('option');
+        opt.value = String(row.step);
+        opt.textContent = `STEP ${row.step} (fall ${row.fallMin}–${row.fallMax}s · max ${row.maxOnScreen})`;
+        if (godMode.overridePace === row.step) opt.selected = true;
+        paceSelect.appendChild(opt);
+    });
+    paceSelect.addEventListener('change', () => {
+        godMode.overridePace = paceSelect.value ? parseInt(paceSelect.value, 10) : null;
+        if (state.running && state.pace) applyPaceStep(state.pace.step);   // re-apply cap/history for the new step
+    });
+    paceRow.appendChild(paceSelect);
+    colToggles.appendChild(paceRow);
 
     // ═══════════════════════════════════════
     // COLUMN 2: Target & Challenge Filters
@@ -8564,6 +8760,7 @@ function update(dt) {
     try {
         updateGameSonarSweep(dt);
         if (state.rov) updateROV(dt);
+        updatePace(dt);
         maintainCreatures(dt);
         maintainHailingBuoy(dt);   // hailing-buoy bonus target
         updateLatchedCreatures(dt);
@@ -8594,7 +8791,7 @@ function update(dt) {
             // Unit tag spring — the ID rides on the fish but isn't stapled
             // to it: a soft spring lets it fall toward the tail when the
             // creature darts, then float back into place.
-            if (c._sweepDetected || spriteVisibleBeforeSweep()) {
+            if (c._sweepDetected || spriteVisibleBeforeSweep(c)) {
                 if (!c._tag) c._tag = { x: c.x, y: c.y, vx: 0, vy: 0 };
                 // Tag rests right on the body (sprite center); the spring below
                 // still lets it drift toward the tail on darts, then float back.
@@ -8627,7 +8824,8 @@ function update(dt) {
             // through without damage (they're cleared only by being typed).
             const tocCanAttack = c.isToc && c.tocIsLive;
             if ((!c.isToc || tocCanAttack) && !c._attacked && distToTarget <= impactDist) {
-                // Creature reached target
+                // Creature reached target → pace down one step (never below the zone Floor)
+                paceOnImpact();
                 if (c.target.type === 'aquanaut') {
                     // All creatures latch to the aquanaut (suit drain mechanic)
                     damageHose(c.target, c);
@@ -8738,6 +8936,7 @@ function update(dt) {
                         const targetIdx = state.creatures.findIndex(c => c && c.id === target.id);
                         if (targetIdx >= 0) removeCreatureAt(targetIdx);
                         else state.creatures = state.creatures.filter(c => c && c.id !== target.id);
+                        paceOnClear();   // a pulse destroyed a target → pace test
                     }
                     state.timers.spawnTimer = 0;
                     state.projectiles.splice(i, 1);
@@ -9754,7 +9953,7 @@ function drawUnitTag(ctx, creature) {
     // ...but the unit NUMBER stays blank until swept, then fades with the sweep arm's
     // angle past this target. Coloured fills show the number at full opacity; only the
     // black fallback keeps the 0.92 haze.
-    ctx.globalAlpha = (solidFill ? 1 : 0.92) * (creature._sweepDetected ? getUnitRevealAlpha(creature) : 0);
+    ctx.globalAlpha = (solidFill ? 1 : 0.92) * getUnitTextAlpha(creature);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const tx = creature._tag.x, ty = creature._tag.y + 1;
@@ -9928,21 +10127,22 @@ const SONAR = {
 // ============================================
 
 const SCREEN_SWEEP = {
-    // NOTE: no periodSec here on purpose. The rotation period is PER-RANK and comes from
-    // game_difficulty_progression.csv, column "Sweep Period (sec)" (6/5/4/3), reached via
-    // getSweepConfig(). A hardcoded 3.0 used to live here and silently disagreed with the
-    // CSV — DEFAULT_SWEEP_CFG.periodSec is now the single fallback.
+    // NOTE: no periodSec here on purpose. The rotation period is ONE value for every zone,
+    // PACE_RULES.sweepPeriodSec in core/config.js (the per-rank Sweep Period column was
+    // retired 2026-11-14).
     morphFadeMs: 350       // sprite fade-in duration after detection
 };
 
-// Sweep-reveal config for the current tier (from game_difficulty_progression.csv).
-// Falls back to a level-1-ish default so the file:// embedded-data path still works.
+// Sweep-reveal angles (from game_difficulty_progression.csv) for the zone a creature
+// spawned in — or the current zone when no creature is given. The fallback is only a
+// guard for a TIERS entry without a sweep block.
 const DEFAULT_SWEEP_CFG = {
-    periodSec: 6, unitAppear: 0, unitFade: 180, unitClear: 270,
+    unitAppear: 0, unitFade: 180, unitClear: 270,
     chalWipeEnd: 180, chalFade: 180, chalClear: 270, chalMode: 'cumulative', chalFrac: 1
 };
-function getSweepConfig() {
-    const t = (typeof TIERS !== 'undefined' && state && state.tier) ? TIERS[state.tier] : null;
+function getSweepConfig(creature) {
+    const t = creature ? getCreatureZone(creature)
+        : ((typeof TIERS !== 'undefined' && state && state.tier) ? TIERS[state.tier] : null);
     return (t && t.sweep) ? t.sweep : DEFAULT_SWEEP_CFG;
 }
 
@@ -9990,8 +10190,8 @@ function sweepCrossed(bearing, prev, curr) {
 // the arm comes back around. Box fill + outline stay steady — only the number obeys
 // this. Shared by the DOM probe (pre-morph) and the on-fish canvas tag (post-morph),
 // so both fade identically wherever the unit number is shown.
-function revealAlphaFromPhase(phase) {
-    const cfg = getSweepConfig();
+function revealAlphaFromPhase(phase, cfg) {
+    cfg = cfg || getSweepConfig();
     if (phase < cfg.unitAppear) return 0;
     if (phase < cfg.unitFade) return 1;
     if (phase < cfg.unitClear) {
@@ -10002,7 +10202,17 @@ function revealAlphaFromPhase(phase) {
 }
 
 function getUnitRevealAlpha(creature) {
-    return revealAlphaFromPhase(getCreatureSweepPhase(creature));
+    return revealAlphaFromPhase(getCreatureSweepPhase(creature), getSweepConfig(creature));
+}
+
+// Unit-number (and TOC status) opacity under the reach rules: steady inside Lock-On;
+// dark beyond Text Reach; otherwise the per-rotation clock, once the arm has crossed this
+// target INSIDE Text Reach (_unitSweepDetected).
+function getUnitTextAlpha(creature) {
+    if (inLockOn(creature)) return 1;
+    if (!creature._unitSweepDetected) return 0;
+    if (!withinReach(getCreatureZone(creature).textReach, creature.x, creature.y)) return 0;
+    return getUnitRevealAlpha(creature);
 }
 
 function getSweepOrigin() {
@@ -10042,7 +10252,7 @@ function updateGameSonarSweep(dt) {
 
     // Advance angle (degrees CW from 12 o'clock)
     state._lastSweepAngle = state.sweepAngle || 0;
-    const degPerSec = 360 / (getSweepConfig().periodSec || DEFAULT_SWEEP_CFG.periodSec);
+    const degPerSec = 360 / PACE_RULES.sweepPeriodSec;
     state.sweepAngle = (state._lastSweepAngle + degPerSec * dt) % 360;
 
     // Position arm at aquanaut origin (in % of wrapper) and apply rotation.
@@ -10052,6 +10262,16 @@ function updateGameSonarSweep(dt) {
         arm.style.top = (origin.y / COORD_SYSTEM.height * 100).toFixed(2) + '%';
         arm.style.left = (origin.x / COORD_SYSTEM.width * 100).toFixed(2) + '%';
         arm.style.setProperty('--sweep-angle', state.sweepAngle.toFixed(1) + 'deg');
+        // The visible arm is as long as the CURRENT zone's Text Reach, so the player can see
+        // the sonar weaken with depth. "full" keeps the original oversize arm.
+        const reach = (TIERS[state.tier] || {}).textReach;
+        const limited = reach !== undefined && reach !== Infinity && reach > 0;
+        if (arm._reach !== reach) {
+            arm._reach = reach;
+            arm.classList.toggle('reach-limited', limited);
+            arm.style.width = limited ? ((reach * 2) / COORD_SYSTEM.width * 100).toFixed(2) + '%' : '';
+            arm.style.height = limited ? ((reach * 2) / COORD_SYSTEM.height * 100).toFixed(2) + '%' : '';
+        }
     }
 
     // Detect creatures whose bearing the arm just crossed this frame. The unit box (on the
@@ -10063,17 +10283,29 @@ function updateGameSonarSweep(dt) {
     for (let i = 0; i < creatures.length; i++) {
         const c = creatures[i];
         if (!c) continue;
-        // Unit box: latch on the creature's own bearing (the on-fish tag rides there).
-        if (!c._sweepDetected
-            && c.x >= 0 && c.x <= COORD_SYSTEM.width
-            && c.y >= 0 && c.y <= COORD_SYSTEM.height
-            && sweepCrossed(getBearingAt(c.x, c.y, origin), prev, curr)) {
+        const zone = getCreatureZone(c);
+        const onScreen = c.x >= 0 && c.x <= COORD_SYSTEM.width && c.y >= 0 && c.y <= COORD_SYSTEM.height;
+        // Lock-On: inside the radius sprite + text are revealed outright, sweep or no sweep.
+        if (onScreen && inLockOn(c, origin)) {
+            if (!c._sweepDetected) { c._sweepDetected = true; c._detectionTime = Date.now(); }
+            c._unitSweepDetected = true;
+            c._chalSweepDetected = true;
+        }
+        const crossedCreature = onScreen && sweepCrossed(getBearingAt(c.x, c.y, origin), prev, curr);
+        // Sprite: latch on the creature's own bearing — only if the crossing happens INSIDE
+        // Sprite Reach. Out beyond it the creature stays a blip.
+        if (!c._sweepDetected && crossedCreature && withinReach(zone.spriteReach, c.x, c.y, origin)) {
             c._sweepDetected = true;
             c._detectionTime = Date.now();
         }
+        // Unit number: same bearing, but gated by Text Reach.
+        if (!c._unitSweepDetected && crossedCreature && withinReach(zone.textReach, c.x, c.y, origin)) {
+            c._unitSweepDetected = true;
+        }
         // Challenge box: latch on its OWN rendered position (cached by drawBubble in
-        // _chalAnchor). Until that anchor exists (first frame / off-screen) it can't latch.
+        // _chalAnchor), inside Text Reach. Until that anchor exists it can't latch.
         if (!c._chalSweepDetected && c._chalAnchor
+            && withinReach(zone.textReach, c._chalAnchor.x, c._chalAnchor.y, origin)
             && sweepCrossed(getBearingAt(c._chalAnchor.x, c._chalAnchor.y, origin), prev, curr)) {
             c._chalSweepDetected = true;
         }
@@ -10387,8 +10619,9 @@ function drawBubble(ctx, creature) {
     // target (phase = unitAppear / its own 12 o'clock), holds, then fades between
     // unitFade and unitClear, and stays dark until the arm comes back around. The
     // box fill + outline are steady; only the NUMBER cycles. Per-level angles live
-    // in game_difficulty_progression.csv (Unit Appear/Fade/Clear deg).
-    const sweepCfg = getSweepConfig();
+    // in game_difficulty_progression.csv (Unit Appear/Fade/Clear deg) — the zone the
+    // creature spawned in. Reach / Lock-On gate it on top (getUnitTextAlpha).
+    const sweepCfg = getSweepConfig(creature);
 
     // Morph state (probe → sprite) — consumed by the probe-scale block further down.
     const morphAlpha = creature._morphAlpha !== undefined ? creature._morphAlpha : 1;
@@ -10397,7 +10630,7 @@ function drawBubble(ctx, creature) {
     // pre-morph probe ID and post-morph tag ID fade identically. Blank until the sweep
     // arm has crossed this target since it spawned (geometric phase alone isn't enough —
     // a fresh target can sit at a "past 12 o'clock" angle without having been swept yet).
-    const unitAlpha = swept ? getUnitRevealAlpha(creature) : 0;
+    const unitAlpha = getUnitTextAlpha(creature);
 
     if (creature._sonarUnitIdEl) {
         creature._sonarUnitIdEl.style.opacity = unitAlpha.toFixed(2);
@@ -10428,7 +10661,13 @@ function drawBubble(ctx, creature) {
         // rendered position (_chalSweepDetected) and timed off the box's own bearing
         // (_chalAnchor), independent of the unit box above. So the arm can write the command
         // in while the unit number is still dark (or vice versa), each on its own 12 o'clock.
-        const chalSwept = creature._chalSweepDetected === true;
+        // Reach rules (2026-11-14): beyond Text Reach the box stays dark; inside Lock-On the
+        // text is fully shown and never fades.
+        const chalLocked = inLockOn(creature);
+        const chalInReach = creature._chalAnchor
+            ? withinReach(getCreatureZone(creature).textReach, creature._chalAnchor.x, creature._chalAnchor.y)
+            : withinReach(getCreatureZone(creature).textReach, creature.x, creature.y);
+        const chalSwept = creature._chalSweepDetected === true && chalInReach;
         const chalPhase = creature._chalAnchor
             ? getSweepPhaseAt(creature._chalAnchor.x, creature._chalAnchor.y)
             : getCreatureSweepPhase(creature);
@@ -10464,7 +10703,9 @@ function drawBubble(ctx, creature) {
                 if (sliverLeft > leftEdge) { leftEdge = sliverLeft; feather = true; }   // soft trailing edge behind the moving window
             }
 
-            if (!chalSwept || revealPos <= leftEdge) {
+            if (chalLocked) {
+                textContent.style.mask = 'none';
+            } else if (!chalSwept || revealPos <= leftEdge) {
                 // Not yet swept (or fully cleared) → text fully masked: the empty box frame
                 // is all that shows until the tracer writes the command in.
                 textContent.style.mask = 'linear-gradient(90deg, transparent 0%, transparent 100%)';
@@ -10489,8 +10730,8 @@ function drawBubble(ctx, creature) {
 
         // The challenge tracer (vertical scan line) rides the active head — shown only
         // while it's actually writing (wiping in) or erasing (fading out).
-        const writing = chalSwept && chalPhase >= sweepCfg.unitAppear && chalPhase < sweepCfg.chalWipeEnd;
-        const erasing = chalSwept && chalPhase >= sweepCfg.chalFade && chalPhase < sweepCfg.chalClear;
+        const writing = !chalLocked && chalSwept && chalPhase >= sweepCfg.unitAppear && chalPhase < sweepCfg.chalWipeEnd;
+        const erasing = !chalLocked && chalSwept && chalPhase >= sweepCfg.chalFade && chalPhase < sweepCfg.chalClear;
         if (writing) {
             creature._chalSweepArm.style.left = `${(revealPos * 100).toFixed(1)}%`;
             creature._chalSweepArm.style.opacity = '1';
@@ -10620,7 +10861,7 @@ function drawBubble(ctx, creature) {
         // unit the panel shows the blank frame (black fill + green trim). As the arm passes
         // (its 12 o'clock) the offload colour appears — white (not active) / blue (active) —
         // holds, then fades back to the blank frame between 180° and 270° (getUnitRevealAlpha).
-        const tocReveal = swept ? getUnitRevealAlpha(creature) : 0;
+        const tocReveal = getUnitTextAlpha(creature);
         // Offload tint reads off the colour axis (gateState). "Available" = a hittable
         // state (Blue): fill the box with the solid CSV colour (#4F9BE0) + black CSV text
         // so it's visually distinct from the dim White/Pink waiting states.
@@ -11382,9 +11623,13 @@ function startGame(holodeck = false) {
         firstBloodAwarded: false,
         rankScoreAccum: 0, lastCalibrationAt: 0,
         tier: firstTierKey,
-        speedMult: firstTier ? firstTier.speedMax : 0.7,
-        spawnInterval: firstTier ? firstTier.spawnMin : 5500,
-        maxTargets: firstTier ? firstTier.maxTargets : 5,
+        // Pace/depth (2026-11-14): step + rolling clear history + pressure timer, on the
+        // pace clock (which only runs while the player can fire). See "PACE & DEPTH ZONES".
+        pace: { step: firstTier ? firstTier.paceFloor : 1, clock: 0, clearTimes: [], clearsSinceChange: 0,
+                pressureSec: 0, depthRatioHigh: 0, depthMetersHigh: 0 },
+        zoneEntryScore: 0,
+        zonesRewarded: new Set([firstTierKey]),   // the start zone pays no DEEPER! bonus
+        deepestZone: firstTierKey,
         creatures: [], projectiles: [], brokenProjectiles: [], explosions: [], statusFlashes: [],
         rov: null, rovDestroyCount: 0,
         beamActive: false, gameOverPending: false, _gameEnded: false,
@@ -11392,7 +11637,7 @@ function startGame(holodeck = false) {
         environmentalParticles: [], marineSnow: [], ambientFish: [],
         descent: { phase: 0, displayDepth: 0, motes: [], bubbles: [], wallScroll: 0 },
         hailingBuoy: null, buoyInterval: 0, buoyWreck: null, buoyStreak: 0,
-        timers: { spawnTimer: firstTier ? firstTier.spawnMin : 5500 },
+        timers: { spawnTimer: 0 },
         latchedCreatures: [], isGrappling: false,
         gasSevered: false, liquidSevered: false, electricalSevered: false,
         suffocationTimer: 0,
@@ -11415,14 +11660,18 @@ function startGame(holodeck = false) {
     if (wrapperEl) wrapperEl.classList.remove('grapple-shake');
 
     setTier(firstTierKey);
+    applyPaceStep(state.pace.step);
 
-    // Holodeck: start at selected depth if overrideTier is set
+    // Holodeck: start in the selected zone if overrideTier is set (score stays 0 — depth
+    // is no longer bought with points). The pace starts at that zone's Floor, unless the
+    // pace-step override pins it.
     if (holodeck && godMode.overrideTier && TIERS[godMode.overrideTier]) {
         const overrideTierData = TIERS[godMode.overrideTier];
-        state.score = overrideTierData.min;
-        state.tier = godMode.overrideTier;
         state.coneAngle = overrideTierData.coneAngle || CONFIG.baseConeAngle;
         setTier(godMode.overrideTier);
+        state.zonesRewarded.add(godMode.overrideTier);
+        noteDeepestZone(godMode.overrideTier);
+        applyPaceStep(overrideTierData.paceFloor);
     }
 
     CONFIG.isHolodeck = holodeck;
@@ -11529,9 +11778,10 @@ function gameOver(reason) {
 
     const stats = document.getElementById('final-stats');
     if (stats) {
-        const tierData = TIERS[state.tier];
+        const deepKey = (state.deepestZone && TIERS[state.deepestZone]) ? state.deepestZone : state.tier;
+        const tierData = TIERS[deepKey];
         stats.innerHTML = `
-            <div>DEPTH: ${tierData ? tierData.label : state.tier.toUpperCase()}</div>
+            <div>DEPTH: ${tierData ? tierData.label : deepKey.toUpperCase()}</div>
             <div>DEPTH REACHED: ${tierData ? tierData.depth + 'm' : 'UNKNOWN'}</div>
             <div>CLEAN PULSES: ${state.cleanHits}</div>
             <div>REPAIRS: ${state.repairCount}</div>

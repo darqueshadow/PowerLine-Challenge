@@ -245,7 +245,21 @@ const godMode = {
     activeCommands: null,
     activeUnits: null,
     targetableZones: null,
-    overrideTier: null      // When set, locks the rank/depth — bypasses score-based promotion
+    overrideTier: null,     // When set, locks the depth zone — bypasses the pace/zone rules
+    overridePace: null      // When set (1..N), locks the pace step — bypasses pace up/down
+};
+
+// ============================================
+// PACE & DEPTH RULES (2026-11-14 pace/depth rebuild) — the tunables. The per-step and
+// per-zone VALUES live in pace_steps.csv and game_difficulty_progression.csv; these are
+// the rules that move between them (script.js "PACE & DEPTH ZONES").
+// ============================================
+const PACE_RULES = {
+    paceWindow: 6,          // pace test averages the gaps between the last N clears
+    minClears: 4,           // ...and needs at least this many clears since the last step/zone change
+    pressureSec: 60,        // this long at one step with nothing reaching a hose/diver → pace up one
+    emptySkySec: 1.0,       // empty sky: next creature after this, or the normal interval if shorter
+    sweepPeriodSec: 5       // ONE sonar sweep rotation period for every zone
 };
 
 const LAYOUT = {
@@ -273,9 +287,12 @@ let canvasScaleX = 1, canvasScaleY = 1;
 // (see CLAUDE.md). This is documentation of the shape, not data.
 //
 // To retune a rank:
-//   • speed / spawn / maxTargets / baseHit / impactPenalty / creatureRadius / sonarSpeed /
-//     every TOC * / every Sweep * column  ->  edit game_difficulty_progression.csv, AND
-//     mirror it into the embedded fallback literal in core/data.js.
+//   • pace floor/ceiling / fall mult / sprite+text reach / lock-on radius / baseHit /
+//     impactPenalty / creatureRadius / sonarSpeed / every TOC * / every Unit|Chal * column
+//     ->  edit game_difficulty_progression.csv, AND mirror it into the embedded fallback
+//     literal in core/data.js.
+//   • fall time / spawn cadence / max on screen  ->  per PACE STEP, pace_steps.csv (and its
+//     embedded mirror in loadFallbackData). The sweep period is PACE_RULES.sweepPeriodSec.
 //   • depth / depthMin / depthMax / coneAngle  ->  NOT CSV columns. They live in
 //     TIER_DEPTH_BY_KEY in core/data.js (keyed by tier slug), and are repeated in that
 //     same fallback literal. Edit those, not this file.
@@ -284,10 +301,10 @@ let canvasScaleX = 1, canvasScaleY = 1;
 // stale subset of the live shape (no toc*/sweep keys).
 
 const TIERS = {
-    bubblehopper:         { label: "BUBBLE HOPPER",         min: 0,     max: 5000,     speedMin: 0.5, speedMax: 0.8, spawnMin: 7500, spawnMax: 10500, maxTargets: 3,  baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55 },
-    rigwalker:            { label: "RIG WALKER",             min: 5001,  max: 20000,    speedMin: 0.9, speedMax: 1.3, spawnMin: 5400, spawnMax: 7500, maxTargets: 4,  baseHit: 250,  impactPenalty: -125, creatureRadius: 20, sonarSpeed: 850,  depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42 },
-    crushdepthoperator:   { label: "CRUSH DEPTH OPERATOR",   min: 20001, max: 50000,    speedMin: 1.4, speedMax: 2.0, spawnMin: 3750, spawnMax: 5250, maxTargets: 3,  baseHit: 500,  impactPenalty: -275, creatureRadius: 17, sonarSpeed: 1000, depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30 },
-    theaquanaut:          { label: "THE AQUANAUT",            min: 50001, max: Infinity, speedMin: 2.2, speedMax: 3.5, spawnMin: 1200, spawnMax: 2700, maxTargets: 4,  baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20 }
+    bubblehopper:         { label: "BUBBLE HOPPER",         paceFloor: 1, paceCeiling: 4,  fallMult: 1.00, spriteReach: Infinity, textReach: Infinity, lockOnRadius: 0,   baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55 },
+    rigwalker:            { label: "RIG WALKER",             paceFloor: 3, paceCeiling: 6,  fallMult: 1.15, spriteReach: 520,      textReach: 600,      lockOnRadius: 150, baseHit: 250,  impactPenalty: -125, creatureRadius: 20, sonarSpeed: 850,  depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42 },
+    crushdepthoperator:   { label: "CRUSH DEPTH OPERATOR",   paceFloor: 5, paceCeiling: 8,  fallMult: 1.30, spriteReach: 350,      textReach: 430,      lockOnRadius: 150, baseHit: 500,  impactPenalty: -275, creatureRadius: 17, sonarSpeed: 1000, depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30 },
+    theaquanaut:          { label: "THE AQUANAUT",            paceFloor: 7, paceCeiling: 10, fallMult: 1.45, spriteReach: 250,      textReach: 310,      lockOnRadius: 150, baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20 }
 };
 
 // ============================================
@@ -514,16 +531,16 @@ const DEPTH_COLORS = {
 
 // ============================================
 // CONSTANT-DESCENT ILLUSION (theme layer — see Aquanaut_Depth_Descent_Spec.md)
-// Everything keys off a normalized depthRatio ∈ [0,1] derived from score/tier.
+// Everything keys off a normalized depthRatio ∈ [0,1] derived from zone + pace step.
 // Purely visual: nothing here touches scoring, spawning, or core logic.
 // ============================================
 
 const DESCENT = {
-    // §1 depthRatio anchors = value at the START of each tier. Each tier eases
-    // toward the next tier's anchor; the top tier ramps to 1.0 by topCeilingScore,
-    // so the full abyss / wall-out is the deep-Aquanaut payoff (§4, §10).
+    // §1 depthRatio anchors = value at the START of each zone. Each zone eases toward
+    // the next zone's anchor as the pace step climbs from its Floor to its Ceiling; the
+    // deepest zone ramps to 1.0 at its Ceiling step, so the full abyss / wall-out is the
+    // deep-Aquanaut payoff (§4, §10). The ratio never decreases within a dive.
     anchors: { bubblehopper: 0.00, rigwalker: 0.30, crushdepthoperator: 0.60, theaquanaut: 0.90 },
-    topCeilingScore: 80000,
 
     // §3 parallax water column (upward scroll, speed scales with depth)
     baseSpeed: 90,            // virtual px/s the near layer scrolls up at the surface (master "descent speed" knob)

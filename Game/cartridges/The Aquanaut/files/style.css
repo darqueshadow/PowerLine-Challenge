@@ -1051,6 +1051,14 @@ body { background: var(--color-bg); color: var(--color-text); font-family: var(-
     pointer-events: none;
 }
 
+/* Zone with a finite Text Reach: JS sizes the arm to that radius (inline width/height),
+   and the outer edge feathers off so the sonar reads as weakening, not as a hard disc.
+   Simple on purpose — open for a restyle. */
+.game-sweep-arm.reach-limited {
+    -webkit-mask: radial-gradient(closest-side, #000 82%, transparent 100%);
+    mask: radial-gradient(closest-side, #000 82%, transparent 100%);
+}
+
 #pause-overlay {
     position: absolute;
     inset: 0;

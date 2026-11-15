@@ -1277,6 +1277,34 @@ dive** — cap/decay/reset and the punishment-vs-relief framing remain open ques
   refresh rate. Now `Math.pow(0.92, dt * 60)`, reproducing the 60 Hz curve at any rate; measured
   within 5% across 30/60/144 Hz.
 
+## Pace, depth and sonar-reach rebuild (2026-11-14)
+Handoff from Claude Chat, approved by Andrew; rulings 2026-11-14: the fall-progress blur/fade
+is replaced by the reach rules; TOC units fall at the zone's Floor step; Calibration counts
+from the score at zone entry.
+- **Two dials replace score-driven ranks.** `pace_steps.csv` (10 steps: Fall Min/Max s, new
+  target every Min/Max s, Max On Screen) and the depth zones (the four
+  `game_difficulty_progression.csv` rows, now with Pace Floor/Ceiling, Fall Mult, Sprite
+  Reach, Text Reach, Lock-On Radius). Points Required, Speed, Spawn, Max Targets and Sweep
+  Period columns are retired. Rules live in `PACE_RULES` (config.js) and the
+  "PACE & DEPTH ZONES" section of script.js.
+- **Cross time in plain seconds:** rand(step Fall) × zone Fall Mult ÷ creature speedMult. The
+  old `25000/speed` baseline (≈12.5/speed² s), its 2.5 s floor and the ±15% wobble are gone.
+  The moray's lunge cycle averages ~0.54 of its nominal speed, so its speed is scaled by
+  that factor to still arrive on time (`LUNGE_MOTION`).
+- **Movement:** pace up on the pace test (avg gap of the last 6 clears ≤ next step's avg
+  spawn interval, ≥4 clears since the last change) or 60 s with nothing reaching a hose/the
+  diver, capped at the zone Ceiling. Passing the pace test at the Ceiling goes a zone deeper
+  (pace → new Floor, zone-entry beat). An impact drops one step, never below the Floor; depth
+  never decreases. A "clear" is a pulse destroying a swimming target (latch rescues don't
+  count). Clocks run only while the player can fire. Empty sky: 1.0 s or the interval.
+- **Sonar reach** (virtual units from the helmet, rules frozen per creature at spawn): sprite
+  reveals only on a crossing inside Sprite Reach (and keeps it); unit number + challenge text
+  follow the per-rotation clock only inside Text Reach; inside Lock-On both are steady. One
+  5 s sweep period for every zone. The visible arm is sized to the zone's Text Reach.
+- **Knock-ons:** depth ratio / gauge follow zone + pace step with a high-water mark; DEEPER!
+  pays once per zone per dive; Dive Log + game-over screen show the deepest zone; Holodeck has
+  a PACE STEP OVERRIDE beside the zone override; the `file://` fallback mirrors both CSVs.
+
 ## Project Overview
 Deep-sea saturation diver typing defense game. Forked from "Asteroid Command" (EMS dispatcher training game). Same engine: plain HTML/CSS/JS, Canvas, SVG, Web Audio API. No build system.
 

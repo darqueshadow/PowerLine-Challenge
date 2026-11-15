@@ -187,6 +187,54 @@ function parsePipeColor(raw) {
 }
 
 // ============================================
+// PACE STEPS + DEPTH ZONES (2026-11-14 pace/depth rebuild)
+// --------------------------------------------
+// PACE_STEPS — pace_steps.csv, one row per step (1..N), ascending. Each row:
+//   { step, fallMin, fallMax (sec), spawnMin, spawnMax (ms), maxOnScreen }
+// A creature's fall (time to reach its target) = rand(fallMin..fallMax) × its zone's
+// Fall Mult ÷ its creature speedMult. Spawn cadence and the on-screen cap are the step's.
+// ZONE_ORDER — tier slugs shallow → deep, ordered by each zone's Pace Floor (the data
+// decides the ladder, not CSV row position and no longer score).
+// ============================================
+let PACE_STEPS = [];
+let ZONE_ORDER = [];
+
+// "full" (any case) = unlimited reach → Infinity. Anything else must be a number.
+function parseReachValue(raw) {
+    const v = (raw === undefined || raw === null) ? '' : String(raw).trim();
+    if (/^full$/i.test(v)) return Infinity;
+    return v === '' ? NaN : parseFloat(v);
+}
+
+function parsePaceSteps(csvText) {
+    const rows = parseCSV(csvText || '');
+    const steps = [];
+    rows.forEach(r => {
+        const step = parseInt(r['Step'], 10);
+        const row = {
+            step: step,
+            fallMin: parseFloat(r['Fall Min (sec)']),
+            fallMax: parseFloat(r['Fall Max (sec)']),
+            spawnMin: parseFloat(r['Spawn Min (sec)']) * 1000,
+            spawnMax: parseFloat(r['Spawn Max (sec)']) * 1000,
+            maxOnScreen: parseInt(r['Max On Screen'], 10)
+        };
+        if (Object.values(row).some(v => isNaN(v))) {
+            throw new Error('pace_steps.csv row "' + (r['Step'] || '?') + '" has a missing or bad value');
+        }
+        steps.push(row);
+    });
+    steps.sort((a, b) => a.step - b.step);
+    if (!steps.length) throw new Error('pace_steps.csv has no rows');
+    PACE_STEPS = steps;
+}
+
+function buildZoneOrder() {
+    ZONE_ORDER = Object.keys(TIERS).sort((a, b) => TIERS[a].paceFloor - TIERS[b].paceFloor);
+    ZONE_ORDER.forEach((k, i) => { TIERS[k].zoneIndex = i; });
+}
+
+// ============================================
 // ASYNC DATA LOADER
 // ============================================
 
@@ -196,7 +244,9 @@ async function loadGameData() {
     // in Game_mechanics/. The flat challenges_commands.csv is fully retired (2026-06-20):
     // spawns come from the Gameplay/ package (generateStageSpec) and command validation /
     // the God-Mode menu read the lifecycle stages (LIFECYCLE_STAGES) directly.
-    const coreFiles = ['Gameplay/units.csv', 'Game_mechanics/game_difficulty_progression.csv', 'Game_mechanics/scoring.csv'];
+    // pace_steps.csv (added 2026-11-14) is core too: without it there is no fall time or
+    // spawn cadence at all, so a failed fetch drops the whole load to the embedded fallback.
+    const coreFiles = ['Gameplay/units.csv', 'Game_mechanics/game_difficulty_progression.csv', 'Game_mechanics/scoring.csv', 'Game_mechanics/pace_steps.csv'];
     const auxFiles = ['Gameplay/inc_numbers.csv', 'Gameplay/hospitals.csv'];
 
     let results;
@@ -228,7 +278,7 @@ async function loadGameData() {
     const comCallsText = await fetch(base + 'Gameplay/com_radio_calls.csv', { cache: 'no-store' }).then(r => r.ok ? r.text() : null).catch(() => null);
     parseComRadioCalls(comCallsText);
 
-    const [unitsText, progressionText, scoringText] = results;
+    const [unitsText, progressionText, scoringText, paceText] = results;
 
     // The parsing below runs OUTSIDE the fetch try/catch above. Guard it so a core CSV
     // that fetches 200 but is structurally malformed degrades to the embedded fallback,
@@ -276,12 +326,22 @@ async function loadGameData() {
         const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
         tierKeys.push(key);
 
-        const points = parseInt((r['Points Required'] || '0').replace(/,/g, ''), 10) || 0;
-        const speedMin = parseFloat((r['Speed (Min)'] || r['Speed (Max)'] || '1x').replace('x', ''));
-        const speedMax = parseFloat((r['Speed (Max)'] || r['Speed (Min)'] || '1x').replace('x', ''));
-        const spawnMinSec = parseFloat(r['Spawn (Min sec)'] || r['Spawn Time (Min sec)']);
-        const spawnMaxSec = parseFloat(r['Spawn (Max sec)'] || r['Spawn (Min sec)'] || r['Spawn Time (Min sec)']);
-        const maxTargets = parseInt(r['Max Targets'] || r['Max Asteroids on Screen'], 10);
+        // Depth ZONE columns (2026-11-14 pace/depth rebuild). Depth is no longer bought with
+        // score: Points Required, Speed, Spawn, Max Targets and Sweep Period are retired —
+        // fall time, spawn cadence and the on-screen cap now come from pace_steps.csv, and a
+        // zone only says which pace steps it spans (Floor..Ceiling), how much slower its
+        // creatures fall (Fall Mult, × the step's fall time), and how far its sonar reaches.
+        // These are REQUIRED: a missing/garbled one throws, and the catch below drops the
+        // whole load to the embedded fallback rather than inventing a value.
+        const paceFloor = parseInt(r['Pace Floor'], 10);
+        const paceCeiling = parseInt(r['Pace Ceiling'], 10);
+        const fallMult = parseFloat(r['Fall Mult']);
+        const spriteReach = parseReachValue(r['Sprite Reach']);
+        const textReach = parseReachValue(r['Text Reach']);
+        const lockOnRadius = parseReachValue(r['Lock-On Radius']);
+        if (![paceFloor, paceCeiling, fallMult, spriteReach, textReach, lockOnRadius].every(v => !isNaN(v)) || paceFloor > paceCeiling) {
+            throw new Error('zone row "' + name + '" has a missing or bad Pace Floor / Pace Ceiling / Fall Mult / Sprite Reach / Text Reach / Lock-On Radius');
+        }
         const baseHit = parseInt(r['Base Hit (Clear)'], 10) || 100;
         const impactPenalty = parseInt(r['Target Impact (Penalty)'], 10) || -50;
         const creatureRadius = parseInt(r['Asteroid Radius'] || r['Creature Radius'], 10) || CONFIG.creatureRadius;
@@ -315,10 +375,10 @@ async function loadGameData() {
 
         // Sonar sweep reveal — the screen-wide sweep arm is a clock; these are
         // positions in DEGREES past each target's own 12 o'clock (where the arm
-        // first crosses it). Sweep Period turns those angles into real reading
-        // time (the per-level difficulty dial). See drawBubble in script.js.
+        // first crosses it). The rotation period is ONE value for every zone now
+        // (PACE_RULES.sweepPeriodSec in config.js) — the per-rank Sweep Period column
+        // is retired (2026-11-14). See drawBubble in script.js.
         const sweep = {
-            periodSec:   parseFloat(r['Sweep Period (sec)'] || '6'),
             unitAppear:  parseFloat(r['Unit Appear (deg)']  || '0'),
             unitFade:    parseFloat(r['Unit Fade (deg)']    || '180'),
             unitClear:   parseFloat(r['Unit Clear (deg)']   || '270'),
@@ -331,13 +391,12 @@ async function loadGameData() {
 
         TIERS[key] = {
             label: name.toUpperCase(),
-            min: points,
-            max: Infinity,
-            speedMin: speedMin,
-            speedMax: speedMax,
-            spawnMin: spawnMinSec * 1000,
-            spawnMax: spawnMaxSec * 1000,
-            maxTargets: maxTargets,
+            paceFloor: paceFloor,
+            paceCeiling: paceCeiling,
+            fallMult: fallMult,
+            spriteReach: spriteReach,       // virtual units from the sweep origin; Infinity = "full"
+            textReach: textReach,
+            lockOnRadius: lockOnRadius,
             baseHit: baseHit,
             impactPenalty: impactPenalty,
             creatureRadius: creatureRadius,
@@ -392,17 +451,9 @@ async function loadGameData() {
         Object.assign(TIERS[k], dm);
     });
 
-    // Score ceiling: each tier ends one point below the NEXT-HIGHEST threshold. "Next" is
-    // derived from the Points Required values themselves (sorted ascending), not from CSV
-    // row order — a tier learns its successor from the data, so a reordered file still
-    // produces the same ladder. The highest tier keeps max = Infinity.
-    // slice() because sort() mutates and tierKeys must stay in CSV-row order for the
-    // Object.keys(TIERS)-indexing consumers elsewhere (creature minTier, visibility, etc).
-    const byThreshold = tierKeys.slice().sort((a, b) => TIERS[a].min - TIERS[b].min);
-    byThreshold.forEach((k, i) => {
-        const nextKey = byThreshold[i + 1];
-        TIERS[k].max = nextKey ? TIERS[nextKey].min - 1 : Infinity;
-    });
+    // --- Pace steps → PACE_STEPS, then the shallow→deep zone ladder ---
+    parsePaceSteps(paceText);
+    buildZoneOrder();
 
     // --- Scoring → update SCORING multipliers from scoring.csv v2 ---
     // scoring.csv carries two banner rows ("SCORING SYSTEM" + a blank line) BEFORE its
@@ -651,31 +702,41 @@ function loadFallbackData() {
     // --- Auxiliary pools (fallback) ---
     parseAuxiliaryPools([null, null]);
 
-    // Rebuild TIERS from fallback progression data (synced with progression.csv)
+    // Rebuild TIERS from fallback progression data (synced with game_difficulty_progression.csv;
+    // depth/depthMin/depthMax/coneAngle repeat TIER_DEPTH_BY_KEY in loadGameData)
     Object.keys(TIERS).forEach(k => delete TIERS[k]);
     Object.assign(TIERS, {
-        bubblehopper:         { label: "BUBBLE HOPPER",         min: 0,     max: 5000,     speedMin: 0.5, speedMax: 0.8, spawnMin: 7500, spawnMax: 10500, maxTargets: 3,  baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55, tocSpawnMin: 8000, tocSpawnMax: 12000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 15000, tocDespawnMax: 25000, bedAssignChance: 0.40, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
-        rigwalker:            { label: "RIG WALKER",             min: 5001,  max: 20000,    speedMin: 0.9, speedMax: 1.3, spawnMin: 5400, spawnMax: 7500, maxTargets: 4,  baseHit: 250,  impactPenalty: -125, creatureRadius: 20, sonarSpeed: 850,  depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42, tocSpawnMin: 6000, tocSpawnMax: 9000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 12000, tocDespawnMax: 18000, bedAssignChance: 0.45, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
-        crushdepthoperator:   { label: "CRUSH DEPTH OPERATOR",   min: 20001, max: 50000,    speedMin: 1.4, speedMax: 2.0, spawnMin: 3750, spawnMax: 5250, maxTargets: 3,  baseHit: 500,  impactPenalty: -275, creatureRadius: 17, sonarSpeed: 1000, depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30, tocSpawnMin: 4000, tocSpawnMax: 6000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 8000, tocDespawnMax: 12000, bedAssignChance: 0.50, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
-        theaquanaut:          { label: "THE AQUANAUT",            min: 50001, max: Infinity, speedMin: 2.2, speedMax: 3.5, spawnMin: 1200, spawnMax: 2700, maxTargets: 4,  baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20, tocSpawnMin: 2500, tocSpawnMax: 4000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 5000, tocDespawnMax: 8000, bedAssignChance: 0.60, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 }
+        bubblehopper:         { label: "BUBBLE HOPPER",         paceFloor: 1, paceCeiling: 4,  fallMult: 1.00, spriteReach: Infinity, textReach: Infinity, lockOnRadius: 0,   baseHit: 100,  impactPenalty: -50,  creatureRadius: 22, sonarSpeed: 700,  depth: 30,   depthMin: 0,    depthMax: 100,  coneAngle: 55, tocSpawnMin: 8000, tocSpawnMax: 12000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 15000, tocDespawnMax: 25000, bedAssignChance: 0.40, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
+        rigwalker:            { label: "RIG WALKER",             paceFloor: 3, paceCeiling: 6,  fallMult: 1.15, spriteReach: 520,      textReach: 600,      lockOnRadius: 150, baseHit: 250,  impactPenalty: -125, creatureRadius: 20, sonarSpeed: 850,  depth: 150,  depthMin: 100,  depthMax: 400,  coneAngle: 42, tocSpawnMin: 6000, tocSpawnMax: 9000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 12000, tocDespawnMax: 18000, bedAssignChance: 0.45, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
+        crushdepthoperator:   { label: "CRUSH DEPTH OPERATOR",   paceFloor: 5, paceCeiling: 8,  fallMult: 1.30, spriteReach: 350,      textReach: 430,      lockOnRadius: 150, baseHit: 500,  impactPenalty: -275, creatureRadius: 17, sonarSpeed: 1000, depth: 500,  depthMin: 400,  depthMax: 1000, coneAngle: 30, tocSpawnMin: 4000, tocSpawnMax: 6000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 8000, tocDespawnMax: 12000, bedAssignChance: 0.50, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 },
+        theaquanaut:          { label: "THE AQUANAUT",            paceFloor: 7, paceCeiling: 10, fallMult: 1.45, spriteReach: 250,      textReach: 310,      lockOnRadius: 150, baseHit: 1000, impactPenalty: -550, creatureRadius: 15, sonarSpeed: 1200, depth: 1000, depthMin: 1000, depthMax: 4000, coneAngle: 20, tocSpawnMin: 2500, tocSpawnMax: 4000, tocActiveMin: 1, tocActiveMax: 2, tocOffloadMin: 40000, tocOffloadMax: 120000, tocDespawnMin: 5000, tocDespawnMax: 8000, bedAssignChance: 0.60, tocBandTopPct: 0.68, tocBandBotPct: 0.95, tocPatrolAmpMin: 90, tocPatrolAmpMax: 160, tocPatrolSpeedMin: 0.45, tocPatrolSpeedMax: 0.85, tocBobAmp: 14 }
     });
 
-    // Sweep-reveal block — the one thing these literals were missing, and the whole reason
-    // a file:// game played differently from a served one: without `sweep`, getSweepConfig()
-    // fell through to DEFAULT_SWEEP_CFG for EVERY rank, so the sonar never sped up as you
-    // descended (flat 6s instead of 6/5/4/3) and the challenge text lingered ~60° longer.
-    // Mirrors the sweep columns of Game_mechanics/game_difficulty_progression.csv: only the
-    // period ramps per rank; the reveal angles are identical on all four rows, so they are
-    // written once. Keep in sync if those columns change.
-    const FALLBACK_SWEEP_PERIODS = { bubblehopper: 6, rigwalker: 5, crushdepthoperator: 4, theaquanaut: 3 };
+    // Sweep-reveal block. Mirrors the degree columns of
+    // Game_mechanics/game_difficulty_progression.csv (identical on all four rows today, so
+    // written once). The rotation period is NOT here: it is one value for every zone,
+    // PACE_RULES.sweepPeriodSec in config.js, on both the http and file:// paths.
     Object.keys(TIERS).forEach(k => {
         TIERS[k].sweep = {
-            periodSec: FALLBACK_SWEEP_PERIODS[k] !== undefined ? FALLBACK_SWEEP_PERIODS[k] : 6,
             unitAppear: 0, unitFade: 180, unitClear: 270,
             chalWipeEnd: 180, chalFade: 180, chalClear: 270,
             chalMode: 'cumulative', chalFrac: 1
         };
     });
+
+    // Pace steps — mirrors Game_mechanics/pace_steps.csv row for row. Keep in sync.
+    parsePaceSteps(`Step,Fall Min (sec),Fall Max (sec),Spawn Min (sec),Spawn Max (sec),Max On Screen
+1,34,38,12.5,14.5,3
+2,30,34,10.5,12.0,3
+3,27,30,8.8,10.0,4
+4,24,27,7.4,8.4,4
+5,21,24,6.2,7.0,4
+6,19,21,5.2,5.9,5
+7,17,19,4.4,5.0,5
+8,15,17,3.8,4.3,5
+9,13.5,15,3.3,3.7,6
+10,12,13.5,2.9,3.2,6`);
+    buildZoneOrder();
 
     // Fallback PowerLine prompts
     const plFallback = [
@@ -773,9 +834,11 @@ function weightedRandom(items) {
 }
 
 // ============================================
-// TIERED DIFFICULTY — setTier()
-// Dynamically scales fallSpeed, spawnRate, maxTargets
-// based on the 8 depth ranks (Surface Tender → Life Support Tech)
+// DEPTH ZONE — setTier()
+// Applies a zone's own per-zone values (creature radius, sonar pulse speed). Pace —
+// fall time, spawn cadence, the on-screen cap — is NOT a zone value any more; it comes
+// from the pace step (applyPaceStep in script.js). Depth is chosen by the pace/zone
+// rules in script.js (paceOnClear / enterZone), never by score.
 // ============================================
 
 function setTier(tierKey) {
@@ -785,19 +848,9 @@ function setTier(tierKey) {
         return false;
     }
     state.tier = tierKey;
-    state.speedMult = data.speedMax;
-    state.spawnInterval = data.spawnMin;
-    state.maxTargets = data.maxTargets;
     CONFIG.creatureRadius = data.creatureRadius;
     CONFIG.sonarPulseSpeed = data.sonarSpeed;
     return true;
-}
-
-function getTierForScore(score) {
-    for (const [key, data] of Object.entries(TIERS)) {
-        if (score >= data.min && score <= data.max) return key;
-    }
-    return 'bubblehopper';
 }
 
 // ============================================
