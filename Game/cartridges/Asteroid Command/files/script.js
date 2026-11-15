@@ -126,11 +126,6 @@ Object.values(FREIGHTER_FLEET).forEach(group => {
 // STATE
 // ============================================
 
-// ============================================
-// PLAYER IDENTITY (set by CAT login)
-// ============================================
-const player = { name: '', oasis: '' };
-
 const state = {
     running: false,
     paused: false,
@@ -179,7 +174,6 @@ const state = {
     // Difficulty chosen on the DIFFICULTY screen — a tier key from progression.csv.
     // Survives restarts (it's a menu setting, not run state) and doubles as the
     // demotion floor, so picking EXPERT can't drop you back to TRAINEE speed.
-    selectedDifficulty: 'trainee',
     beamActive: false,
     beamTimer: 0,
     gameOverPending: false,
@@ -299,6 +293,7 @@ function init() {
 
     // Pause menu buttons
     document.getElementById('resume-btn').addEventListener('click', () => resumeGame());
+    document.getElementById('end-drill-btn')?.addEventListener('click', () => endDrill());
     document.getElementById('restart-pause-btn').addEventListener('click', () => {
         resumeGame();
         startGame(CONFIG.isHolodeck);
@@ -331,7 +326,10 @@ function init() {
         if (e && e.type === 'keydown' && (e.ctrlKey || e.metaKey || e.altKey)) return;
         // Don't dismiss if the event came from an input (e.g. holodeck password)
         if (e && e.target && e.target.tagName === 'INPUT') return;
+        // The mute key mutes; it never leaves the title screen
+        if (e && e.type === 'keydown' && isMuteKey(e)) return;
         titleDismissed = true;
+        attractStop();
         window._dismissTitleScreen = null;  // clean up global ref
         // Don't stop title music here — let it play through CAT login.
         // It will be replaced when startMenuMusic() is called from showMainMenu().
@@ -340,24 +338,27 @@ function init() {
         document.removeEventListener('keydown', dismissTitleScreen);
         DOM.startOverlay.removeEventListener('click', dismissTitleScreen);
 
-        // CAT login (dispatcher info) removed for now — go straight to the main menu.
-        // Default the dispatcher identity so scoring/leaderboard still work.
-        if (!player.name) player.name = 'DISPATCHER';
+        // Nobody signs in before playing — the call sign is asked for only when a
+        // score makes the board (game over).
         showMainMenu();
     }
 
-    // Expose dismissTitleScreen so the boot-level onEnded callback can reach it
-    window._dismissTitleScreen = dismissTitleScreen;
+    // The title music ending no longer leaves the title screen: attract mode
+    // keeps cycling there, so the menu music simply takes over underneath.
+    // (Boot's onEnded callback still calls through this name.)
+    const onTitleMusicEnded = () => { if (!titleDismissed) startMenuMusic(); };
+    window._dismissTitleScreen = onTitleMusicEnded;
 
-    // If title music is already playing (started at boot completion), wire up the onEnded→dismiss
+    // If title music is already playing (started at boot completion), wire up the onEnded
     if (AudioManager._musicEl && !AudioManager._musicOnEnded) {
-        const onEnded = () => dismissTitleScreen();
+        const onEnded = () => onTitleMusicEnded();
         AudioManager._musicOnEnded = onEnded;
         AudioManager._musicEl.addEventListener('ended', onEnded);
     }
 
     function startMenuMusic() {
         if (CONFIG.isHolodeck) return;  // No music in holodeck mode
+        startMenuMusicRef = startMenuMusic;
         AudioManager.playMusic('music/Asteroid Command - Menus.mp3', {
             loop: true,
             volume: 0.5,
@@ -382,149 +383,137 @@ function init() {
 
     document.addEventListener('keydown', dismissTitleScreen);
     DOM.startOverlay.addEventListener('click', dismissTitleScreen);
+    startMenuMusicRef = startMenuMusic;
 
     // ============================================
-    // CAT LOGIN TERMINAL
+    // ATTRACT MODE — title idle → high score board → how-to card → title
+    // Timings: MENU.attract in core/config.js. Any key (or click) on the board or
+    // the card goes back to the title screen; it never starts a game.
     // ============================================
+    const startContentEl = document.getElementById('start-content');
+    const attractBoardEl = document.getElementById('attract-board');
+    const attractHowtoEl = document.getElementById('attract-howto');
+    const attract = { phase: 'title', timer: null };
 
-    const catOverlay = document.getElementById('cat-login-overlay');
-    const catOutput = document.getElementById('cat-output');
-    const catInput = document.getElementById('cat-input');
-    const catPrompt = document.getElementById('cat-prompt');
-    const catLeaderboard = document.getElementById('cat-leaderboard');
-    let catStep = 'name'; // 'name' → 'oasis' → done
-
-    function showCATLogin() {
-        catOverlay.classList.remove('hidden');
-        catOutput.textContent = '';
-        catStep = 'name';
-        catInput.value = '';
-        catInput.type = 'text';
-        catAppend('NIAGARA REGION EMS');
-        catAppend('DISPATCH TRAINING SYSTEM v2.0');
-        catAppend('');
-        catAppend('READY.');
-        catAppend('');
-        catPrompt.textContent = 'ENTER NAME: ';
-        // Defer focus so the click that triggered dismissTitleScreen doesn't steal it
-        setTimeout(() => catInput.focus(), 0);
-        renderLeaderboard();
-        catLeaderboard.classList.remove('hidden');
+    function attractSchedule(ms, fn) {
+        clearTimeout(attract.timer);
+        attract.timer = setTimeout(fn, ms);
     }
-
-    // Clicking anywhere on the CAT overlay refocuses the input
-    catOverlay.addEventListener('click', () => {
-        if (!catOverlay.classList.contains('hidden')) catInput.focus();
+    function attractShow(phase) {
+        attract.phase = phase;
+        startContentEl.classList.toggle('attract-on', phase !== 'title');
+        attractBoardEl.classList.toggle('hidden', phase !== 'board');
+        attractHowtoEl.classList.toggle('hidden', phase !== 'howto');
+    }
+    function attractToTitle() {
+        if (titleDismissed) return;
+        attractShow('title');
+        attractSchedule(MENU.attract.titleIdleMs, attractBoard);
+    }
+    function attractBoard() {
+        if (titleDismissed) return;
+        renderBoard(document.getElementById('attract-board-list'), null);
+        attractShow('board');
+        attractSchedule(MENU.attract.boardMs, attractHowto);
+    }
+    function attractHowto() {
+        if (titleDismissed) return;
+        attractHowtoEl.innerHTML = renderAttractHowto();
+        attractShow('howto');
+        attractSchedule(MENU.attract.howtoMs, attractToTitle);
+    }
+    function attractStop() {
+        clearTimeout(attract.timer);
+        attractShow('title');
+    }
+    // Capture phase, so it runs before dismissTitleScreen: on the board or the
+    // card a key returns to the title instead of opening the menu.
+    function attractIntercept(e) {
+        if (titleDismissed || attract.phase === 'title') return;
+        if (e.type === 'keydown' && (e.ctrlKey || e.metaKey || e.altKey)) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        if (e.type === 'keydown' && isMuteKey(e)) { toggleMute(); return; }
+        attractToTitle();
+    }
+    window.addEventListener('keydown', attractIntercept, true);
+    window.addEventListener('click', attractIntercept, true);
+    // Idle means idle: moving the mouse on the title screen restarts the wait
+    window.addEventListener('mousemove', () => {
+        if (!titleDismissed && attract.phase === 'title') attractSchedule(MENU.attract.titleIdleMs, attractBoard);
     });
-
-    function catAppend(text) {
-        catOutput.textContent += text + '\n';
-        // Auto-scroll
-        const screen = document.getElementById('cat-screen');
-        if (screen) screen.scrollTop = screen.scrollHeight;
-    }
-
-    catInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const val = catInput.value.trim();
-            if (!val) return;
-
-            if (catStep === 'name') {
-                player.name = val.toUpperCase();
-                catAppend('ENTER NAME: ' + player.name);
-                catAppend('');
-                catPrompt.textContent = 'OASIS #: ';
-                catInput.value = '';
-                catStep = 'oasis';
-            } else if (catStep === 'oasis') {
-                player.oasis = val;
-                catAppend('OASIS #: ' + val);
-                catAppend('');
-                catAppend('WELCOME, ' + player.name + '.');
-                catAppend('LOADING DISPATCH CONSOLE...');
-                catInput.value = '';
-                catStep = 'done';
-                // Brief delay then show main menu
-                setTimeout(() => {
-                    catOverlay.classList.add('hidden');
-                    showMainMenu();
-                }, 1200);
-            }
-        }
-    });
+    attractToTitle();
 
     // ============================================
-    // LEADERBOARD (localStorage-backed)
+    // MUTE — one key, title / menus / pause only (see MENU in core/config.js)
     // ============================================
+    applyMute(loadMuted());
 
-    function getScores() {
-        try {
-            const raw = localStorage.getItem('asteroid-command-scores');
-            return raw ? JSON.parse(raw) : [];
-        } catch { return []; }
-    }
+    // ============================================
+    // HIGH SCORE NAME ENTRY (game over) — see beginGameOverBoard()
+    // ============================================
+    const entryOasis = document.getElementById('entry-oasis');
+    const entryCall  = document.getElementById('entry-callsign');
+    const entryError = document.getElementById('name-entry-error');
+    if (entryCall) entryCall.maxLength = MENU.callSignMax;
 
-    function saveScore(name, oasis, score, tier) {
-        const scores = getScores();
-        scores.push({
-            name: name,
-            oasis: oasis,
-            score: score,
-            tier: tier,
-            date: new Date().toISOString().split('T')[0]
-        });
-        // Keep top 100 all-time (sorted descending)
-        scores.sort((a, b) => b.score - a.score);
-        if (scores.length > 100) scores.length = 100;
-        localStorage.setItem('asteroid-command-scores', JSON.stringify(scores));
-        return scores;
-    }
-
-    function getTop10() {
-        return getScores().slice(0, 10);
-    }
-
-    function renderLeaderboard() {
-        const list = document.getElementById('cat-lb-list');
-        if (!list) return;
-        const top10 = getTop10();
-        if (top10.length === 0) {
-            list.innerHTML = '<div class="cat-lb-empty">NO SCORES RECORDED</div>';
+    function entryKeys(e) {
+        if (e.key === 'Escape') {
+            // Skip: the score is not saved
+            e.preventDefault(); e.stopPropagation();
+            showGameOverBoard(null);
             return;
         }
-        let html = '<div class="cat-lb-row header">' +
-            '<span class="cat-lb-rank">#</span>' +
-            '<span class="cat-lb-name">NAME</span>' +
-            '<span class="cat-lb-score">SCORE</span>' +
-            '<span class="cat-lb-tier">RANK</span></div>';
-        top10.forEach((s, i) => {
-            html += '<div class="cat-lb-row">' +
-                '<span class="cat-lb-rank">' + (i + 1) + '</span>' +
-                '<span class="cat-lb-name">' + (s.name || 'UNKNOWN') + '</span>' +
-                '<span class="cat-lb-score">' + (s.score || 0).toLocaleString() + '</span>' +
-                '<span class="cat-lb-tier">' + (s.tier || '') + '</span></div>';
-        });
-        list.innerHTML = html;
-    }
-
-    // Submit Score button on game over
-    document.getElementById('submit-score-btn').addEventListener('click', () => {
-        const statusEl = document.getElementById('score-submit-status');
-        if (!player.name) {
-            if (statusEl) { statusEl.textContent = 'NO PLAYER LOGGED IN'; statusEl.className = 'dataset-status error'; }
+        if (e.key !== 'Enter') return;
+        e.preventDefault(); e.stopPropagation();
+        const oasis = entryOasis.value.trim();
+        if (!oasis) {
+            entryError.textContent = 'OASIS # REQUIRED';
+            entryOasis.focus();
             return;
         }
-        // The leaderboard records the highest rank reached this run, not the rank at game over.
+        entryError.textContent = '';
+        if (e.target === entryOasis) { entryCall.focus(); return; }
+        const callSign = entryCall.value.trim().slice(0, MENU.callSignMax) || 'DISPATCHER';
         const best = state.highestTier || state.tier;
-        const tierLabel = TIERS[best] ? TIERS[best].label : String(best).toUpperCase();
-        saveScore(player.name, player.oasis, state.score, tierLabel);
-        if (statusEl) {
-            statusEl.textContent = '✓ SCORE SUBMITTED: ' + state.score.toLocaleString();
-            statusEl.className = 'dataset-status success';
+        const id = saveScore({
+            callSign, oasis, score: state.score,
+            tier: TIERS[best] ? TIERS[best].label : String(best).toUpperCase()
+        });
+        showGameOverBoard(id);
+    }
+    if (entryOasis) entryOasis.addEventListener('keydown', entryKeys);
+    if (entryCall)  entryCall.addEventListener('keydown', entryKeys);
+
+    // ── Holodeck: DELETE SCORE ──
+    const gmDeleteWrap = document.getElementById('gm-delete-scores');
+    const gmDeleteList = document.getElementById('gm-delete-list');
+    function renderDeleteList() {
+        const rows = boardEntries();
+        gmDeleteList.innerHTML = rows.length
+            ? rows.map((r, i) => `<button type="button" class="gm-del-row" data-i="${i}">` +
+                `#${i + 1} ${escHtml(boardName(r))} &middot; ${(r.score || 0).toLocaleString()}</button>`).join('')
+            : '<div class="hs-empty">NO SCORES RECORDED</div>';
+    }
+    document.getElementById('delete-score-btn')?.addEventListener('click', () => {
+        AudioManager.play('lcarsButton');
+        gmDeleteWrap.classList.toggle('hidden');
+        if (!gmDeleteWrap.classList.contains('hidden')) renderDeleteList();
+    });
+    gmDeleteList?.addEventListener('click', e => {
+        const btn = e.target.closest('.gm-del-row');
+        if (!btn) return;
+        // Two clicks: the first arms the row, the second deletes it
+        if (!btn.classList.contains('armed')) {
+            gmDeleteList.querySelectorAll('.gm-del-row.armed').forEach(b => b.classList.remove('armed'));
+            btn.classList.add('armed');
+            btn.dataset.label = btn.textContent;
+            btn.textContent = 'CLICK AGAIN TO DELETE — ' + btn.dataset.label;
+            return;
         }
-        // Disable button after submission
-        document.getElementById('submit-score-btn').disabled = true;
+        deleteScoreAt(parseInt(btn.dataset.i, 10));
+        AudioManager.play('lcarsButton');
+        renderDeleteList();
     });
 
     // When returning to menu from game-over or pause, skip the title phase
@@ -540,133 +529,23 @@ function init() {
         startMenuMusic();
     });
 
-    // CAREER PROGRESSION panel on the SCORING & PROGRESSION page. Ranks have no
-    // points thresholds any more, so this lists each rank's pay and penalty from
-    // progression.csv and the promote/demote rules from RANKING (core/config.js).
-    function renderCareerProgression() {
-        const el = document.getElementById('tier-rows');
-        if (!el) return;
-        const row = (k, v) => `<div class="tier-row"><span>${k}</span><span>${v}</span></div>`;
-        const ranks = tierKeysInOrder().map(key => {
-            const t = TIERS[key];
-            return row(t.label + ':', `${t.baseHit.toLocaleString()} / ${t.impactPenalty.toLocaleString()}`);
-        });
-        el.innerHTML = row('RANK:', 'CLEAN KILL / IMPACT')
-            + ranks.join('')
-            + row('PROMOTE:', `Clear as fast as the next rank spawns (last ${Math.max(RANKING.paceWindow, RANKING.paceMinClears)} clears at this rank)`)
-            + row('PROMOTE:', `${RANKING.pressureSeconds}s at a rank with no target landing`)
-            + row('DEMOTE:', 'Every target that lands (zone, debris, tower)')
-            + row('START:', 'Chosen on DIFFICULTY &mdash; a start, not a floor');
-    }
-
-    // Main menu ↔ Scoring submenu navigation
-    const scoringBgLayer = document.getElementById('scoring-bg-layer');
-    document.getElementById('scoring-btn').addEventListener('click', () => {
-        renderCareerProgression();
-        document.getElementById('start-content').classList.add('hidden');
-        document.getElementById('scoring-page').classList.remove('hidden');
-        DOM.startOverlay.classList.remove('main-menu-bg');
-        DOM.startOverlay.classList.add('scoring-menu-bg');
-        scoringBgLayer.classList.remove('hidden');
+    // Drill summary → back to the Trainer
+    document.getElementById('drill-done-btn')?.addEventListener('click', () => {
+        document.getElementById('drill-summary-overlay').classList.add('hidden');
+        DOM.startOverlay.classList.remove('hidden');
+        titleDismissed = true;
+        titlePrompt.classList.add('hidden');
+        normalMenuBtns.classList.remove('hidden');
+        openSubPage('trainer-page', trainerBgLayer, 'trainer-menu-bg');
+        startMenuMusic();
     });
-    document.getElementById('back-to-menu-btn').addEventListener('click', () => {
-        document.getElementById('scoring-page').classList.add('hidden');
-        document.getElementById('start-content').classList.remove('hidden');
-        DOM.startOverlay.classList.remove('scoring-menu-bg');
-        DOM.startOverlay.classList.add('main-menu-bg');
-        scoringBgLayer.classList.add('hidden');
-    });
-
-    // Main menu ↔ Settings submenu navigation
-    const settingsBgLayer = document.getElementById('settings-bg-layer');
-    let musicEnabled = true;
-    let sfxEnabled = true;
-    const musicToggleBtn = document.getElementById('music-toggle-btn');
-    const sfxToggleBtn = document.getElementById('sfx-toggle-btn');
-
-    document.getElementById('settings-btn').addEventListener('click', () => {
-        document.getElementById('start-content').classList.add('hidden');
-        document.getElementById('settings-page').classList.remove('hidden');
-        DOM.startOverlay.classList.remove('main-menu-bg');
-        DOM.startOverlay.classList.add('settings-menu-bg');
-        settingsBgLayer.classList.remove('hidden');
-    });
-    document.getElementById('settings-back-btn').addEventListener('click', () => {
-        document.getElementById('settings-page').classList.add('hidden');
-        document.getElementById('start-content').classList.remove('hidden');
-        DOM.startOverlay.classList.remove('settings-menu-bg');
-        DOM.startOverlay.classList.add('main-menu-bg');
-        settingsBgLayer.classList.add('hidden');
-    });
-
-    musicToggleBtn.addEventListener('click', () => {
-        musicEnabled = !musicEnabled;
-        musicToggleBtn.textContent = musicEnabled ? 'ON' : 'OFF';
-        musicToggleBtn.classList.toggle('on', musicEnabled);
-        musicToggleBtn.classList.toggle('off', !musicEnabled);
-        if (musicEnabled) {
-            // Restore music volume
-            if (AudioManager._musicEl) AudioManager._musicEl.volume = 0.5;
-        } else {
-            // Mute music
-            if (AudioManager._musicEl) AudioManager._musicEl.volume = 0;
-        }
-        AudioManager._musicMuted = !musicEnabled;
-    });
-
-    sfxToggleBtn.addEventListener('click', () => {
-        sfxEnabled = !sfxEnabled;
-        sfxToggleBtn.textContent = sfxEnabled ? 'ON' : 'OFF';
-        sfxToggleBtn.classList.toggle('on', sfxEnabled);
-        sfxToggleBtn.classList.toggle('off', !sfxEnabled);
-        AudioManager._sfxMuted = !sfxEnabled;
-        if (sfxEnabled) {
-            if (AudioManager.masterGain) AudioManager.masterGain.gain.value = 0.35;
-        } else {
-            if (AudioManager.masterGain) AudioManager.masterGain.gain.value = 0;
-        }
-    });
-
-    // Main menu ↔ High Scores submenu navigation
-    const highscoresBgLayer = document.getElementById('highscores-bg-layer');
-
-    function renderHighScoresPage() {
-        const list = document.getElementById('highscores-list');
-        if (!list) return;
-        const top10 = getTop10();
-        if (top10.length === 0) {
-            list.innerHTML = '<div class="hs-empty">NO SCORES RECORDED</div>';
-            return;
-        }
-        let html = '<div class="hs-row header">' +
-            '<span class="hs-rank">#</span>' +
-            '<span class="hs-name">DISPATCHER</span></div>';
-        top10.forEach((s, i) => {
-            html += '<div class="hs-row">' +
-                '<span class="hs-rank">' + (i + 1) + '</span>' +
-                '<span class="hs-name">' + (s.name || 'UNKNOWN') + '</span></div>';
-        });
-        list.innerHTML = html;
-    }
-
-    document.getElementById('highscores-btn').addEventListener('click', () => {
-        renderHighScoresPage();
-        document.getElementById('start-content').classList.add('hidden');
-        document.getElementById('highscores-page').classList.remove('hidden');
-        DOM.startOverlay.classList.remove('main-menu-bg');
-        DOM.startOverlay.classList.add('highscores-menu-bg');
-        highscoresBgLayer.classList.remove('hidden');
-    });
-    document.getElementById('highscores-back-btn').addEventListener('click', () => {
-        document.getElementById('highscores-page').classList.add('hidden');
-        document.getElementById('start-content').classList.remove('hidden');
-        DOM.startOverlay.classList.remove('highscores-menu-bg');
-        DOM.startOverlay.classList.add('main-menu-bg');
-        highscoresBgLayer.classList.add('hidden');
+    document.getElementById('drill-again-btn')?.addEventListener('click', () => {
+        document.getElementById('drill-summary-overlay').classList.add('hidden');
+        startDrill(lastDrillItem);
     });
 
     // ── Generic submenu open/close ──────────────────────────────────────────
-    // Same shape as Settings and High Scores above: swap the overlay background
+    // Swap the overlay background
     // class and reveal the greyscale art layer behind the page.
     function openSubPage(pageId, layerEl, bgClass, before) {
         if (before) before();
@@ -684,111 +563,49 @@ function init() {
         if (layerEl) layerEl.classList.add('hidden');
     }
 
-    // ── Main menu ↔ Difficulty ──────────────────────────────────────────────
-    const difficultyBgLayer = document.getElementById('difficulty-bg-layer');
-    const diffTrigger  = document.getElementById('difficulty-trigger');
-    const diffCurrent  = document.getElementById('difficulty-current');
-    const diffList     = document.getElementById('difficulty-list');
-    const diffReadout  = document.getElementById('difficulty-readout');
+    // ── Main menu ↔ Trainer ─────────────────────────────────────────────────
+    // TRAINER holds LEARN (the manual) and DRILL (one item, no game over).
+    const trainerBgLayer = document.getElementById('trainer-bg-layer');
+    const drillListEl = document.getElementById('drill-list');
 
-    // Tier keys in ladder order come from tierKeysInOrder() in core/data.js
-    // (progression.csv row order).
+    document.getElementById('trainer-btn')?.addEventListener('click', () => {
+        openSubPage('trainer-page', trainerBgLayer, 'trainer-menu-bg');
+    });
+    document.getElementById('trainer-back-btn')?.addEventListener('click', () => {
+        closeSubPage('trainer-page', trainerBgLayer, 'trainer-menu-bg');
+    });
 
-    function renderDifficultyList() {
-        if (!diffList) return;
-        diffList.innerHTML = tierKeysInOrder().map(key => {
-            const t = TIERS[key];
-            const sel = key === state.selectedDifficulty ? ' selected' : '';
-            return `<li class="ac-dropdown-item${sel}" role="option" data-key="${key}">
-                        <span class="ac-opt-level">${t.difficulty || t.label}</span>
-                        <span class="ac-opt-rank">${t.label}</span>
-                    </li>`;
+    // DRILL: pick one item. Labels come from commands.csv (its phrasings).
+    function renderDrillList() {
+        if (!drillListEl) return;
+        drillListEl.innerHTML = MENU.drillItems.map(item => {
+            let hint;
+            if (item === 'SHORTHAND') hint = 'satellite banners';
+            else {
+                const ph = [...new Set(DATA_ACTIONS.filter(a => a.m === item).map(a => a.c))];
+                hint = ph.slice(0, 3).join(' / ') + (ph.length > 3 ? ' …' : '');
+            }
+            return `<button type="button" class="arcade-btn drill-item-btn" data-item="${item}">` +
+                   `${item}<span class="drill-item-hint">${escHtml(hint)}</span></button>`;
         }).join('');
     }
-
-    function renderDifficultyReadout() {
-        if (!diffReadout) return;
-        const t = TIERS[state.selectedDifficulty];
-        if (!t) { diffReadout.innerHTML = ''; return; }
-        const spawn = (t.spawnMin / 1000).toFixed(1) + '–' + (t.spawnMax / 1000).toFixed(1) + 's';
-        const rows = [
-            ['RANK',          t.label],
-            ['FALL TIME',     t.fallMin + '–' + t.fallMax + 's'],
-            ['NEW TARGET',    'every ' + spawn],
-            ['MAX ON SCREEN', t.maxTargets],
-            ['CLEAN KILL',    '+' + t.baseHit],
-            ['IMPACT',        t.impactPenalty],
-            ['CARD FAILURE',  t.impactPenalty * CARD_HELP.failPenaltyMultiplier]
-        ];
-        diffReadout.innerHTML =
-            '<div class="diff-readout-head">SHIFT CONDITIONS</div>' +
-            rows.map(([k, v]) =>
-                `<div class="diff-stat"><span class="diff-stat-k">${k}</span>` +
-                `<span class="diff-stat-v">${v}</span></div>`).join('');
-    }
-
-    function setDropdownOpen(open) {
-        if (!diffList) return;
-        diffList.classList.toggle('hidden', !open);
-        diffTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-        diffTrigger.classList.toggle('open', open);
-        // Menu nav reads this so arrow keys drive the list, not the buttons.
-        state.dropdownOpen = open;
-    }
-
-    function selectDifficulty(key) {
-        if (!TIERS[key]) return;
-        state.selectedDifficulty = key;
-        diffCurrent.textContent = TIERS[key].difficulty || TIERS[key].label;
-        try { localStorage.setItem('ac_difficulty', key); } catch (e) { /* private mode */ }
-        renderDifficultyList();
-        renderDifficultyReadout();
-    }
-
-    if (diffTrigger) {
-        diffTrigger.addEventListener('click', e => {
-            e.stopPropagation();
-            setDropdownOpen(diffList.classList.contains('hidden'));
-        });
-        diffList.addEventListener('click', e => {
-            const item = e.target.closest('.ac-dropdown-item');
-            if (!item) return;
-            selectDifficulty(item.dataset.key);
-            setDropdownOpen(false);
-        });
-        // Arrow/Enter/Escape while the list is open
-        document.addEventListener('keydown', e => {
-            if (!state.dropdownOpen) return;
-            const keys = tierKeysInOrder();
-            const idx = keys.indexOf(state.selectedDifficulty);
-            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-                e.preventDefault(); e.stopPropagation();
-                selectDifficulty(keys[Math.min(idx + 1, keys.length - 1)]);
-            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-                e.preventDefault(); e.stopPropagation();
-                selectDifficulty(keys[Math.max(idx - 1, 0)]);
-            } else if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
-                e.preventDefault(); e.stopPropagation();
-                setDropdownOpen(false);
-            }
-        }, true);
-        document.addEventListener('click', () => { if (state.dropdownOpen) setDropdownOpen(false); });
-    }
-
-    // Guarded: a browser holding a cached index.html against fresh JS would
-    // otherwise throw here and abort the rest of init(), taking unrelated menu
-    // wiring down with it.
-    const diffBtn = document.getElementById('difficulty-btn');
-    if (diffBtn) diffBtn.addEventListener('click', () => {
-        openSubPage('difficulty-page', difficultyBgLayer, 'difficulty-menu-bg', () => {
-            selectDifficulty(state.selectedDifficulty);
-            setDropdownOpen(false);
-        });
+    document.getElementById('drill-btn')?.addEventListener('click', () => {
+        renderDrillList();
+        document.getElementById('trainer-page').classList.add('hidden');
+        document.getElementById('drill-page').classList.remove('hidden');
     });
-    const diffBackBtn = document.getElementById('difficulty-back-btn');
-    if (diffBackBtn) diffBackBtn.addEventListener('click', () => {
-        setDropdownOpen(false);
-        closeSubPage('difficulty-page', difficultyBgLayer, 'difficulty-menu-bg');
+    document.getElementById('drill-back-btn')?.addEventListener('click', () => {
+        document.getElementById('drill-page').classList.add('hidden');
+        document.getElementById('trainer-page').classList.remove('hidden');
+    });
+    drillListEl?.addEventListener('click', e => {
+        const btn = e.target.closest('.drill-item-btn');
+        if (!btn) return;
+        document.getElementById('drill-page').classList.add('hidden');
+        DOM.startOverlay.classList.remove('trainer-menu-bg');
+        trainerBgLayer.classList.add('hidden');
+        document.getElementById('start-content').classList.remove('hidden');
+        startDrill(btn.dataset.item);
     });
 
     // ── Main menu ↔ How To Play ─────────────────────────────────────────────
@@ -796,18 +613,27 @@ function init() {
     // tables — lives in core/howtoplay.js. This block only owns the doorway.
     const howtoplayBgLayer = document.getElementById('howtoplay-bg-layer');
 
-    const htpBtn = document.getElementById('howtoplay-btn');
-    if (htpBtn) htpBtn.addEventListener('click', () => {
+    document.getElementById('learn-btn')?.addEventListener('click', () => {
+        document.getElementById('trainer-page').classList.add('hidden');
+        trainerBgLayer.classList.add('hidden');
+        DOM.startOverlay.classList.remove('trainer-menu-bg');
         openSubPage('howtoplay-page', howtoplayBgLayer, 'howtoplay-menu-bg',
                     () => HowToPlay.open());
     });
 
+    // Leaving the manual goes back to the Trainer it was opened from.
+    function closeHowToPlay() {
+        closeSubPage('howtoplay-page', howtoplayBgLayer, 'howtoplay-menu-bg');
+        openSubPage('trainer-page', trainerBgLayer, 'trainer-menu-bg');
+    }
+    window._closeHowToPlay = closeHowToPlay;
+
     // BACK walks the manual back a level first — sub-page → panel 6 → contents
-    // → main menu — so a player three screens deep isn't dumped out of help.
+    // → Trainer — so a player three screens deep isn't dumped out of help.
     const htpBackBtn = document.getElementById('howtoplay-back-btn');
     if (htpBackBtn) htpBackBtn.addEventListener('click', () => {
         if (HowToPlay.back()) return;
-        closeSubPage('howtoplay-page', howtoplayBgLayer, 'howtoplay-menu-bg');
+        closeHowToPlay();
     });
 
     const htpNextBtn = document.getElementById('htp-next-btn');
@@ -817,35 +643,6 @@ function init() {
     if (htpScroll) htpScroll.addEventListener('click', HowToPlay.onCardClick);
 
 
-    // Restore the saved difficulty once the CSVs have populated TIERS.
-    (function restoreDifficulty() {
-        let saved = null;
-        try { saved = localStorage.getItem('ac_difficulty'); } catch (e) { /* private mode */ }
-        const apply = () => {
-            if (saved && TIERS[saved]) state.selectedDifficulty = saved;
-            if (diffCurrent && TIERS[state.selectedDifficulty]) {
-                diffCurrent.textContent = TIERS[state.selectedDifficulty].difficulty
-                                       || TIERS[state.selectedDifficulty].label;
-            }
-            renderDifficultyList();
-            renderDifficultyReadout();
-        };
-        // TIERS is rebuilt by loadGameData(); poll briefly rather than racing it.
-        if (Object.keys(TIERS).length) apply();
-        let tries = 0;
-        const t = setInterval(() => {
-            if (Object.keys(TIERS).length || ++tries > 40) { apply(); clearInterval(t); }
-        }, 100);
-    })();
-
-    // ── Change Dispatcher (re-login as different player) ──
-    document.getElementById('change-player-btn').addEventListener('click', () => {
-        normalMenuBtns.classList.add('hidden');
-        player.name = '';
-        player.oasis = '';
-        showCATLogin();
-    });
-
     // ── Menu Keyboard Navigation (Arrow keys + Enter) ──
     let menuSelectedIndex = 0;
 
@@ -854,24 +651,19 @@ function init() {
         const startOverlay = document.getElementById('start-overlay');
         const gameOverOverlay = document.getElementById('game-over-overlay');
         const pauseOverlay = document.getElementById('pause-overlay');
+        const drillSummary = document.getElementById('drill-summary-overlay');
 
         let container = null;
         if (startOverlay && !startOverlay.classList.contains('hidden')) {
-            // Check which page is visible: main menu, scoring, settings, or high scores
+            // Check which page is visible: main menu, Trainer, Drill list or the manual
             const startContent = document.getElementById('start-content');
-            const scoringPage = document.getElementById('scoring-page');
-            const settingsPage = document.getElementById('settings-page');
-            const highscoresPage = document.getElementById('highscores-page');
-            const difficultyPage = document.getElementById('difficulty-page');
+            const trainerPage = document.getElementById('trainer-page');
+            const drillPage = document.getElementById('drill-page');
             const howtoplayPage = document.getElementById('howtoplay-page');
-            if (scoringPage && !scoringPage.classList.contains('hidden')) {
-                container = scoringPage;
-            } else if (settingsPage && !settingsPage.classList.contains('hidden')) {
-                container = settingsPage;
-            } else if (highscoresPage && !highscoresPage.classList.contains('hidden')) {
-                container = highscoresPage;
-            } else if (difficultyPage && !difficultyPage.classList.contains('hidden')) {
-                container = difficultyPage;
+            if (trainerPage && !trainerPage.classList.contains('hidden')) {
+                container = trainerPage;
+            } else if (drillPage && !drillPage.classList.contains('hidden')) {
+                container = drillPage;
             } else if (howtoplayPage && !howtoplayPage.classList.contains('hidden')) {
                 container = howtoplayPage;
             } else if (startContent && !startContent.classList.contains('hidden')) {
@@ -881,6 +673,8 @@ function init() {
             container = gameOverOverlay;
         } else if (pauseOverlay && !pauseOverlay.classList.contains('hidden')) {
             container = pauseOverlay;
+        } else if (drillSummary && !drillSummary.classList.contains('hidden')) {
+            container = drillSummary;
         }
 
         if (!container) return [];
@@ -913,6 +707,14 @@ function init() {
     });
 
     document.addEventListener('keydown', e => {
+        // Mute: title screen, menus and pause only — never during play, where
+        // every key types into the Command Box (and never inside a text field).
+        if (isMuteKey(e) && !(e.target && e.target.tagName === 'INPUT')
+            && !(state.running && !state.paused)) {
+            e.preventDefault();
+            toggleMute();
+            return;
+        }
         // Menu navigation — only when a menu overlay is visible and game is NOT running
         // Skip menu nav while any prompt/input is active, or event came from an input element
         const skipMenuNav = state.holodeckPromptActive || state.devPromptActive
@@ -968,11 +770,7 @@ function init() {
             // Inside the manual, ESCAPE is the same "one level up" as BACK.
             const htpPage = document.getElementById('howtoplay-page');
             if (htpPage && !htpPage.classList.contains('hidden')) {
-                if (!HowToPlay.back()) {
-                    closeSubPage('howtoplay-page',
-                                 document.getElementById('howtoplay-bg-layer'),
-                                 'howtoplay-menu-bg');
-                }
+                if (!HowToPlay.back()) window._closeHowToPlay();
                 return;
             }
             if (state.paused) {
@@ -1826,6 +1624,8 @@ function spawnAsteroid() {
         challenge: specs.challenge,
         command: specs.command,
         type: specs.type,
+        baseName: specs.baseName,
+        baseCode: specs.baseCode,
         glow: 0.5 + Math.random() * 0.5,
         spriteIndex: spriteIndex,
         spawnTime: Date.now(),           // Speed Demon tracking
@@ -1842,6 +1642,7 @@ function spawnAsteroid() {
 
 function maintainAsteroids(dt) {
     if (state.rebuilding) return;
+    if (state.drill && state.drill.shorthand) return;   // banners only
     const tierData = TIERS[state.tier];
     if (!tierData) return;
 
@@ -1998,6 +1799,10 @@ function handleCommand(value) {
         const sat = state.satellite;
         if (sat && sat.phase === 'flying' && sat.code === input) {
             catchSatellite(sat);
+        } else if (state.drill) {
+            fireStrayLaser(sat);
+            if (sat && sat.phase === 'flying') drillMissBanner(sat);
+            else showStatus('NO BANNER IN RANGE', "miss");
         } else {
             fireStrayLaser(sat);        // the gun still goes off, just badly
             applyMisfire('NO SUCH SHORTHAND');
@@ -2030,6 +1835,8 @@ function handleCommand(value) {
     if (input === '') {
         if (CONFIG.isHolodeck && state.asteroids.length > 0) {
             fireProjectile(state.asteroids[0]) ? showStatus("TARGETING OLDEST", "hit") : showStatus("TOWER OFFLINE", "miss");
+        } else if (state.drill) {
+            drillMissNearest();
         } else if (state.asteroids.length > 0) {
             applyMisfire('NO COMMAND');
             updateHUD();
@@ -2050,6 +1857,15 @@ function handleCommand(value) {
             // scored twice, or destroy a defence the player has already been paid for killing.
             match.claimed = true;
             recordClear();
+            if (state.drill) {
+                drillRight();
+                showStatus('CORRECT', "hit");
+                DOM.input.classList.add('success');
+                setTimeout(() => DOM.input.classList.remove('success'), 200);
+                updateHUD();
+                checkTier();
+                return;
+            }
             state.streak++;
             state.streakSinceShieldHit++;
             state.consecutiveBasesDestroyed = 0;  // any asteroid kill resets base counter
@@ -2102,6 +1918,8 @@ function handleCommand(value) {
             checkCalibration();
             checkRegen();
         }
+    } else if (state.drill) {
+        drillMissNearest();
     } else {
         applyMisfire('SHIELD ABSORBS');
     }
@@ -2240,6 +2058,7 @@ function getKillStreakText(streak) {
 
 // Apply score, enforce floor at 0
 function applyScore(delta) {
+    if (state.drill) return;            // Trainer DRILL: no score
     state.score = Math.max(0, state.score + delta);
 }
 
@@ -2249,6 +2068,7 @@ function applyScore(delta) {
 // this run (a high-water mark, so losing points and re-earning them, or
 // bouncing between ranks, never pays twice).
 function checkCalibration() {
+    if (state.drill) return;            // Trainer DRILL: no bonuses
     const step = SCORING.calibrationInterval;
     if (!(step > 0)) return;
     const reached = Math.floor(state.score / step) * step;
@@ -2548,7 +2368,7 @@ function changeRank(newTierKey, reason) {
 
     if (oldData && data.order < oldData.order) {
         showStatus(`DEMOTED: ${data.label || newTierKey.toUpperCase()}`, "impact");
-    } else if (!state.ranksReached.includes(newTierKey)) {
+    } else if (!state.drill && !state.ranksReached.includes(newTierKey)) {
         // Rank-Up Bonus: 2x the new rank's Base Hit, first time each rank is reached this run
         state.ranksReached.push(newTierKey);
         const rankUpBonus = data.baseHit * SCORING.rankUpMult;
@@ -2648,6 +2468,17 @@ function maintainSatellite(dt) {
     // during flight as well, so the configured interval is measured spawn-to-spawn
     // rather than clear-to-spawn — otherwise the real-world gap is the interval
     // PLUS however long the last banner took to cross, which is 16-24 s at Trainee.
+    if (state.drill) {
+        if (!state.drill.shorthand) return;           // command drills: no banners
+        if (state.satellite) { updateSatellite(dt); return; }
+        state.drill.bannerWait = (state.drill.bannerWait || 0) + dt * 1000;
+        if (state.drill.bannerWait >= MENU.drillBannerGapMs) {
+            state.drill.bannerWait = 0;
+            spawnSatellite();
+        }
+        return;
+    }
+
     if (state.timers.satelliteTimer === undefined) scheduleSatellite(true);
     state.timers.satelliteTimer += dt * 1000;
 
@@ -2684,6 +2515,13 @@ function updateSatellite(dt) {
         state.satellite = null;
         state.satellitesMissed++;
 
+        if (state.drill) {
+            if (state.cardHelp && state.cardHelp.code === sat.code) resolveCardHelp('escaped');
+            drillMissBanner(sat);
+            recordLanding();
+            return;
+        }
+
         // A card was open on this banner and never answered — that's the
         // expensive failure, not a plain miss.
         if (state.cardHelp && state.cardHelp.code === sat.code) {
@@ -2718,6 +2556,25 @@ function catchSatellite(sat, viaCard = false) {
     shredBanner(sat);           // banner tears free and starts burning down
 
     state.satellitesCaught++;
+
+    if (state.drill) {
+        // One banner at a time: the satellite goes up with its banner so the
+        // next one can come straight in.
+        AudioManager.play('hit');
+        createExplosion(satelliteBannerCenter(sat).x, sat.y, '#4d94d1', 45);
+        createExplosion(sat.x, sat.y, '#ffaa33', 30);
+        state.satellite = null;
+        if (viaCard) {
+            drillMissBanner(sat, true);         // needed the card: counted as a miss
+        } else {
+            drillRight();
+            recordClear();
+            showStatus(`${sat.code} — CORRECT`, "hit");
+        }
+        updateHUD();
+        checkTier();
+        return;
+    }
 
     if (viaCard) {
         AudioManager.play('hit');
@@ -2831,8 +2688,9 @@ function resolveCardHelp(outcome) {
 
     applyScore(penalty);
     // 'impact' so it behaves like a real strike: crack, shield hit, and a
-    // downed tower if the shields were already gone.
-    applyDamage(CARD_HELP.failDamage, 'impact');
+    // downed tower if the shields were already gone. (Not in a drill: a banner
+    // that gets through does no damage there.)
+    if (!state.drill) applyDamage(CARD_HELP.failDamage, 'impact');
     showStatus(`${card.code} LOST — ${penalty}`, "miss");
     flashScorePenalty();
     updateHUD();
@@ -5015,10 +4873,17 @@ function update(dt) {
                     if (a.y - a.radius > COORD_SYSTEM.height) state.asteroids.splice(i, 1);
                     continue;
                 }
-                const initiator = { type: 'asteroid', id: a.id, unitID: a.unitID, x: a.x, y: a.y };
-                const receiver = { type: a.target.type, id: a.target.id, name: a.target.name, x: a.target.x, y: a.target.y };
                 createShatter(a.x, a.y, a.spriteIndex);
                 createExplosion(a.x, a.y, '#ff3366', 35);
+                if (state.drill) {
+                    // Trainer DRILL: a target that gets through does no damage.
+                    drillMissTarget(a);
+                    recordLanding();
+                    state.asteroids.splice(i, 1);
+                    continue;
+                }
+                const initiator = { type: 'asteroid', id: a.id, unitID: a.unitID, x: a.x, y: a.y };
+                const receiver = { type: a.target.type, id: a.target.id, name: a.target.name, x: a.target.x, y: a.target.y };
                 damageDefense(a.target, initiator, receiver);
                 state.asteroids.splice(i, 1);
             }
@@ -6687,6 +6552,216 @@ function drawExplosion(ctx, e) {
 }
 
 // ============================================
+// MENUS — mute, high score board, Trainer DRILL
+// Cartridge menu standard (MENU in core/config.js).
+// ============================================
+
+let startMenuMusicRef = null;       // set by init(); used when a drill ends
+let lastDrillItem = null;
+
+function escHtml(v) {
+    return String(v).replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ── Mute ──
+function isMuteKey(e) {
+    return !!(e && e.key && !e.ctrlKey && !e.metaKey && !e.altKey
+              && e.key.toLowerCase() === MENU.muteKey);
+}
+function loadMuted() {
+    try { return localStorage.getItem(MENU.muteStorageKey) === '1'; } catch (e) { return false; }
+}
+function applyMute(muted) {
+    AudioManager._musicMuted = muted;
+    AudioManager._sfxMuted = muted;
+    if (AudioManager._musicEl) AudioManager._musicEl.volume = muted ? 0 : 0.5;
+    if (AudioManager.masterGain) AudioManager.masterGain.gain.value = muted ? 0 : 0.35;
+    const key = MENU.muteKey.toUpperCase();
+    document.querySelectorAll('.mute-hint').forEach(el => {
+        el.textContent = muted ? `${key} \u2014 SOUND ON` : `${key} \u2014 MUTE`;
+        el.classList.toggle('muted', muted);
+    });
+}
+function toggleMute() {
+    const muted = !AudioManager._musicMuted;
+    try { localStorage.setItem(MENU.muteStorageKey, muted ? '1' : '0'); } catch (e) { /* private mode */ }
+    applyMute(muted);
+}
+
+// ── High score board ──
+// Stored sorted, highest first, under MENU.scoresStorageKey (top 100 kept, as
+// before); the board shows the first MENU.boardSize. Old entries carry `name`,
+// which shows as the call sign. The OASIS # is stored but never displayed.
+function getScores() {
+    try {
+        const raw = localStorage.getItem(MENU.scoresStorageKey);
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+}
+function setScores(list) {
+    try { localStorage.setItem(MENU.scoresStorageKey, JSON.stringify(list)); } catch (e) { /* private mode */ }
+}
+function boardEntries() { return getScores().slice(0, MENU.boardSize); }
+function boardName(r) { return r.callSign || r.name || 'UNKNOWN'; }
+function scoreMakesBoard(score) {
+    if (!(score > 0)) return false;
+    const top = boardEntries();
+    return top.length < MENU.boardSize || score > (top[top.length - 1].score || 0);
+}
+function saveScore(entry) {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const scores = getScores();
+    scores.push({
+        id, callSign: entry.callSign, name: entry.callSign, oasis: entry.oasis,
+        score: entry.score, tier: entry.tier, date: new Date().toISOString().split('T')[0]
+    });
+    scores.sort((a, b) => (b.score || 0) - (a.score || 0));
+    if (scores.length > 100) scores.length = 100;
+    setScores(scores);
+    return id;
+}
+function deleteScoreAt(index) {
+    const scores = getScores();
+    if (index >= 0 && index < scores.length) { scores.splice(index, 1); setScores(scores); }
+}
+function renderBoard(el, highlightId) {
+    if (!el) return;
+    const rows = boardEntries();
+    if (!rows.length) { el.innerHTML = '<div class="hs-empty">NO SCORES RECORDED</div>'; return; }
+    el.innerHTML =
+        '<div class="hs-row header"><span class="hs-rank">#</span><span class="hs-name">CALL SIGN</span>' +
+        '<span class="hs-score">SCORE</span><span class="hs-tier">HIGHEST RANK</span></div>' +
+        rows.map((r, i) =>
+            `<div class="hs-row${highlightId && r.id === highlightId ? ' hs-new' : ''}">` +
+            `<span class="hs-rank">${i + 1}</span>` +
+            `<span class="hs-name">${escHtml(boardName(r))}</span>` +
+            `<span class="hs-score">${(r.score || 0).toLocaleString()}</span>` +
+            `<span class="hs-tier">${escHtml(r.tier || '')}</span></div>`).join('');
+}
+
+// Game over: name entry first if the score makes the board, then the board.
+function beginGameOverBoard(qualifies) {
+    const entry = document.getElementById('name-entry');
+    const board = document.getElementById('game-over-board');
+    const buttons = document.getElementById('game-over-buttons');
+    board.classList.add('hidden');
+    if (qualifies && entry) {
+        document.getElementById('entry-oasis').value = '';
+        document.getElementById('entry-callsign').value = '';
+        document.getElementById('name-entry-error').textContent = '';
+        entry.classList.remove('hidden');
+        buttons.classList.add('hidden');
+        setTimeout(() => document.getElementById('entry-oasis').focus(), 0);
+    } else {
+        showGameOverBoard(null);
+    }
+}
+function showGameOverBoard(highlightId) {
+    const entry = document.getElementById('name-entry');
+    const board = document.getElementById('game-over-board');
+    if (entry) entry.classList.add('hidden');
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
+    renderBoard(board, highlightId);
+    board.classList.remove('hidden');
+    document.getElementById('game-over-buttons').classList.remove('hidden');
+}
+
+// Attract-mode how-to card. Examples come from the datasets.
+function renderAttractHowto() {
+    const unit = (DATA_UNITS_FULL[0] && (DATA_UNITS_FULL[0].id || DATA_UNITS_FULL[0])) || '2101';
+    const loc = DATA_LOCATIONS_FULL[3] || DATA_LOCATIONS_FULL[0] || { c: 'Thorold', m: '72103' };
+    const seen = new Set();
+    const rows = DATA_ACTIONS.filter(a => !seen.has(a.m) && seen.add(a.m)).slice(0, 4).map(a =>
+        `<div class="attract-ex"><span>${escHtml(unit)} &middot; ${escHtml(a.c)} ${escHtml(loc.c)}</span>` +
+        `<span>&rarr;</span><code>${escHtml(a.m)} ${escHtml(unit)} ${escHtml(loc.m)}</code></div>`).join('');
+    return `<h3>HOW TO PLAY</h3>
+        <p>Every asteroid carries a call. Type its PowerLine command and press <strong>ENTER</strong>.</p>
+        ${rows}
+        <p class="attract-keys">F12 clears the box &middot; <code>/CODE</code> catches a banner &middot; ESC pauses</p>`;
+}
+
+// ── Trainer DRILL ──
+// One item (AP / ENP / BSE / LA / SHORTHAND), the real game's adaptive pace,
+// no game over, no score, nothing saved. A miss shows the correct command.
+function startDrill(item) {
+    lastDrillItem = item;
+    startGame(false, {
+        item,
+        command: item === 'SHORTHAND' ? null : item,
+        shorthand: item === 'SHORTHAND',
+        right: 0, missed: 0, misses: {}, bannerWait: 0
+    });
+}
+function drillRight() { if (state.drill) state.drill.right++; }
+function drillCountMiss(label) {
+    const d = state.drill;
+    if (!d) return;
+    d.missed++;
+    d.misses[label] = (d.misses[label] || 0) + 1;
+}
+function drillMissTarget(a) {
+    drillCountMiss(`${a.baseName || '?'} \u2192 ${a.baseCode || '?'}`);
+    showDrillHint(`${a.unitID} \u00b7 ${a.challenge}`, a.command);
+    showStatus('MISSED', "miss");
+}
+function drillMissBanner(sat, viaCard = false) {
+    drillCountMiss(`${sat.banner} \u2192 ${sat.code}`);
+    showDrillHint(sat.banner, sat.code);
+    showStatus(viaCard ? `${sat.code} — CARD USED` : 'MISSED', "miss");
+}
+// A wrong command is charged to the target closest to landing.
+function drillMissNearest() {
+    if (state.drill && state.drill.shorthand) {
+        const sat = state.satellite;
+        if (sat && sat.phase === 'flying') drillMissBanner(sat);
+        return;
+    }
+    const live = state.asteroids.filter(a => !a.claimed);
+    DOM.input.classList.add('error');
+    setTimeout(() => DOM.input.classList.remove('error'), 300);
+    if (!live.length) { showStatus('NO TARGET', "miss"); return; }
+    const nearest = live.reduce((b, a) => (a.y > b.y ? a : b));
+    drillMissTarget(nearest);
+}
+let drillHintTimer = null;
+function showDrillHint(challenge, command) {
+    const el = document.getElementById('drill-hint');
+    if (!el) return;
+    document.getElementById('drill-hint-challenge').textContent = challenge;
+    document.getElementById('drill-hint-command').textContent = command;
+    el.classList.remove('hidden');
+    clearTimeout(drillHintTimer);
+    drillHintTimer = setTimeout(hideDrillHint, MENU.drillShowCommandMs);
+}
+function hideDrillHint() {
+    clearTimeout(drillHintTimer);
+    const el = document.getElementById('drill-hint');
+    if (el) el.classList.add('hidden');
+}
+// Pause → END DRILL: stop the run and show the summary card.
+function endDrill() {
+    const d = state.drill;
+    state.paused = false;
+    state.running = false;
+    DOM.pauseOverlay.classList.add('hidden');
+    hideDrillHint();
+    clearCardHelp();
+    state.drill = null;
+    if (!d) return;
+    document.getElementById('drill-summary-item').textContent = `DRILL: ${d.item}`;
+    document.getElementById('drill-summary-counts').innerHTML =
+        `<span class="drill-right">RIGHT ${d.right}</span><span class="drill-missed">MISSED ${d.missed}</span>`;
+    const worst = Object.entries(d.misses).sort((a, b) => b[1] - a[1]).slice(0, MENU.drillMostMissedShown);
+    document.getElementById('drill-summary-missed').innerHTML = worst.length
+        ? '<div class="drill-missed-head">MISSED MOST</div>' + worst.map(([k, n]) =>
+            `<div class="drill-missed-row">${escHtml(k)} &mdash; missed ${n}</div>`).join('')
+        : '<div class="drill-missed-head">NOTHING MISSED</div>';
+    document.getElementById('drill-summary-overlay').classList.remove('hidden');
+}
+
+// ============================================
 // GAME CONTROL
 // ============================================
 
@@ -6708,7 +6783,7 @@ function resumeGame() {
     requestAnimationFrame(gameLoop);
 }
 
-function startGame(holodeck = false) {
+function startGame(holodeck = false, drill = null) {
     // Block start if holodeck menu just appeared (prevents Enter from password
     // submission propagating through menu-nav and clicking ENTER HOLODECK)
     if (state._holodeckMenuShownAt && Date.now() - state._holodeckMenuShownAt < 400) return;
@@ -6716,9 +6791,9 @@ function startGame(holodeck = false) {
     clearTimeout(state.timers.gameOverDelay);
     clearCardHelp();
 
-    // Opening rank comes from the DIFFICULTY screen. It is only the starting
-    // rank: the run then promotes and demotes from there (RANK MOVEMENT).
-    const startKey = TIERS[state.selectedDifficulty] ? state.selectedDifficulty : 'trainee';
+    // Every run opens at the first rank and adapts from there (RANK MOVEMENT).
+    // There is no difficulty menu.
+    const startKey = tierKeysInOrder()[0] || 'trainee';
     const startTier = TIERS[startKey];
 
     Object.assign(state, {
@@ -6739,6 +6814,7 @@ function startGame(holodeck = false) {
         towerDisabled: false, rebuilding: false, ambulance: null, ambulanceDestroyCount: 0,
         satellite: null, bannerDebris: [], lasers: [], satelliteStreak: 0, satellitesCaught: 0, satellitesMissed: 0,
         cardHelp: null, cardHelpUsed: 0, cardHelpFailed: 0,
+        drill: drill,                                // Trainer DRILL (null in the real game)
         beamActive: false, gameOverPending: false,
         backspaces: 0, cleanHits: 0, environmentalParticles: [],
         timers: {},                                  // maintainAsteroids() spawns the first target straight away
@@ -6783,6 +6859,13 @@ function startGame(holodeck = false) {
     if (holodeck) triggerHolodeck(CONFIG.isBeta);
     if (CONFIG.isBeta) showBeta();
 
+    // Pause menu: a drill ends with END DRILL; the real game restarts or quits.
+    document.getElementById('end-drill-btn')?.classList.toggle('hidden', !drill);
+    document.getElementById('restart-pause-btn')?.classList.toggle('hidden', !!drill);
+    document.getElementById('quit-btn')?.classList.toggle('hidden', !!drill);
+    hideDrillHint();
+    if (drill) showStatus(`DRILL — ${drill.item}`, "bonus");
+
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 }
@@ -6807,12 +6890,7 @@ function gameOver() {
     DOM.finalScore.textContent = state.score;
 
     // Check if the player's score qualifies for the top 10
-    let existingScores = [];
-    try {
-        const raw = localStorage.getItem('asteroid-command-scores');
-        existingScores = raw ? JSON.parse(raw).slice(0, 10) : [];
-    } catch { /* empty */ }
-    const isTop10 = existingScores.length < 10 || state.score > (existingScores[existingScores.length - 1]?.score || 0);
+    const isTop10 = scoreMakesBoard(state.score);
     if (isTop10 && state.score > 0) {
         AudioManager.playMusic('music/Asteroid Command - High Score.mp3', {
             loop: true,
@@ -6838,15 +6916,11 @@ function gameOver() {
 
     clearHolodeck();
     hideBeta();
-    // Reset submit score button for this game
-    const submitBtn = document.getElementById('submit-score-btn');
-    const submitStatus = document.getElementById('score-submit-status');
-    if (submitBtn) submitBtn.disabled = false;
-    if (submitStatus) { submitStatus.textContent = ''; submitStatus.className = 'dataset-status'; }
     // Blur command input so arrow keys work for menu navigation
     if (DOM.input) DOM.input.blur();
     DOM.gameOverOverlay.classList.add('game-over-bg');
     DOM.gameOverOverlay.classList.remove('hidden');
+    beginGameOverBoard(isTop10 && state.score > 0);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

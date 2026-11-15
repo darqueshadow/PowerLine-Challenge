@@ -255,8 +255,7 @@ const HowToPlay = (function () {
     }
 
     function panelScoring() {
-        const t = TIERS[typeof state !== 'undefined' && state.selectedDifficulty]
-               || firstTier();
+        const t = firstTier();                 // every run opens at the first rank
 
         const bonusRows = [
             ['<strong>PERFECT</strong>',         `+${pct(SCORING.perfectMult)}`,
@@ -455,7 +454,7 @@ const HowToPlay = (function () {
                     then some.`);
     }
 
-    // ── PANEL 7 — DIFFICULTY & RANK ──────────────────────────────────────
+    // ── PANEL 7 — RANK ──────────────────────────────────────
     function panelRanks() {
         const sec = v => (Math.round(v * 10) / 10).toString();
         const rows = tiers().map((t, i, all) => {
@@ -486,17 +485,8 @@ const HowToPlay = (function () {
                  <li><strong>Let one land, move down.</strong> Every target that lands &mdash; zone,
                      debris or tower &mdash; drops you one rank.</li>
                </ol>`
-            + `<h4 class="htp-sub">YOU DON'T HAVE TO START AT THE BOTTOM</h4>`
-            + para(`<strong>MAIN MENU &rarr; DIFFICULTY</strong> lets you open at any of the
-                    ${tiers().length}. Pick your level and the run starts at that rank's speed, spawn
-                    rate, target count and scoring. An experienced dispatcher should not have to grind
-                    the ${esc(titleCase(firstTier().label || 'Trainee'))} ramp to find a challenge.`)
-            + para(`Two things worth knowing:`)
-            + `<ol class="htp-ol">
-                 <li><strong>It is a starting point, not a floor.</strong> Let targets land and you
-                     will be demoted below it.</li>
-                 <li><strong>It sticks.</strong> Your choice is remembered between sessions.</li>
-               </ol>`
+            + para(`Every run opens at ${esc(titleCase(firstTier().label || 'Trainee'))}. There is no
+                    difficulty to pick &mdash; the game finds your level by how you dispatch.`)
             + callout('danger', '', `<strong>${esc(top.label || 'O.A.S')}:</strong> a new target every
                     ${top.spawnMin ? sec(top.spawnMin / 1000) : '2.5'}&ndash;${top.spawnMax ? sec(top.spawnMax / 1000) : '2.9'}
                     seconds, ${top.fallMin ? sec(top.fallMin) : '9.5'} seconds to land,
@@ -578,8 +568,8 @@ const HowToPlay = (function () {
               { id: 'card',    n: '6C', title: 'THE CARD LIFELINE',
                 blurb: 'The cheat with teeth.', body: panelCard }
           ] },
-        { id: 'ranks',     n: '7', title: 'DIFFICULTY & RANK',
-          blurb: 'The eight ranks, choosing your start.', body: panelRanks },
+        { id: 'ranks',     n: '7', title: 'RANK',
+          blurb: 'The eight ranks, moving up and down.', body: panelRanks },
         { id: 'edge',      n: '8', title: "DISPATCHER'S EDGE",
           blurb: 'Strategy tips.', body: panelEdge }
     ];
@@ -627,7 +617,7 @@ const HowToPlay = (function () {
         if (!route) {
             host.innerHTML = renderContents();
             if (crumb) crumb.textContent = 'CONTENTS';
-            if (backBtn) backBtn.textContent = 'BACK TO MAIN MENU';
+            if (backBtn) backBtn.textContent = 'BACK TO TRAINER';
             if (nextBtn) nextBtn.classList.add('hidden');
         } else {
             const parent = PANELS.find(x => x.id === route.p);

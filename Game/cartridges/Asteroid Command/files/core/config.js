@@ -139,6 +139,41 @@ const RANKING = {
 };
 
 // ============================================
+// MENUS — mute, attract mode, high score board, Trainer
+// Cartridge menu standard: the main menu is BEGIN MISSION + TRAINER only.
+// ============================================
+
+const MENU = {
+    // One mute key (music + sound effects together). Works on the title screen,
+    // in menus and in the pause menu; never during play, where every key types
+    // into the Command Box. Saved in localStorage under muteStorageKey.
+    muteKey: 'm',
+    muteStorageKey: 'ac_muted',
+
+    // Attract mode: the title screen sits idle for titleIdleMs, then shows the
+    // high score board for boardMs, then a short how-to card for howtoMs, then
+    // returns to the title and repeats. Any key goes back to the title screen.
+    attract: {
+        titleIdleMs: 10000,
+        boardMs: 8000,
+        howtoMs: 8000
+    },
+
+    // High score board: entries shown (and needed to qualify), call sign length.
+    boardSize: 10,
+    callSignMax: 10,
+    scoresStorageKey: 'asteroid-command-scores',
+
+    // Trainer → DRILL: the items on offer (one per drill, never combined).
+    // AP/ENP/BSE/LA are commands.csv codes; SHORTHAND is the satellite banners.
+    drillItems: ['AP', 'ENP', 'BSE', 'LA', 'SHORTHAND'],
+    // On any miss the correct command is shown this long.
+    drillShowCommandMs: 2000,
+    drillMostMissedShown: 5,          // rows on the end-of-drill summary card
+    drillBannerGapMs: 800             // SHORTHAND drill: pause before the next banner
+};
+
+// ============================================
 // SATELLITE BANNER BONUS
 // A satellite tows a beach-plane style banner across the sky. The banner shows
 // the long form of a CAD shorthand ("Police Department Notified"); the player

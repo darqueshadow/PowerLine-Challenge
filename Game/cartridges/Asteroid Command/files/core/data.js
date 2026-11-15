@@ -690,6 +690,12 @@ function getTargetSpecs() {
         if (baseLocs.length === 0) baseLocs = CONFIG.isHolodeck ? DATA_LOCATIONS_SAMPLE : DATA_LOCATIONS_FULL;
     }
 
+    // Trainer DRILL: only the drilled command, every phrasing, every base.
+    if (state.drill && state.drill.command) {
+        const only = DATA_ACTIONS.filter(a => a.m === state.drill.command);
+        if (only.length) baseActions = only;
+    }
+
     const units = baseUnits;
     const locs = baseLocs;
 
@@ -715,6 +721,9 @@ function getTargetSpecs() {
         unitID: unitID,
         challenge: `${action.c} ${loc.c}`,
         command: `${action.m} ${unitID} ${loc.m}`,
-        type: action.type
+        type: action.type,
+        // Trainer DRILL summary groups misses by base ("Thorold → 72103")
+        baseName: loc.c,
+        baseCode: loc.m
     };
 }

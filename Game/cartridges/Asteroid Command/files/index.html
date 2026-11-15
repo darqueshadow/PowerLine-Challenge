@@ -125,27 +125,28 @@
                     <button id="resume-btn">RESUME MISSION</button>
                     <button id="restart-pause-btn">RESTART MISSION</button>
                     <button id="quit-btn">QUIT TO MENU</button>
+                    <button id="end-drill-btn" class="hidden">END DRILL</button>
                 </div>
+                <div class="mute-hint"></div>
             </div>
         </div>
 
-        <!-- CAT Login Terminal (Commodore PET style) -->
-        <div id="cat-login-overlay" class="hidden">
-            <div id="cat-monitor">
-                <div id="cat-bezel">
-                    <div id="cat-header">*** COMMODORE AUTOMATED TERMINAL ***</div>
-                    <div id="cat-screen">
-                        <div id="cat-output"></div>
-                        <div id="cat-input-line">
-                            <span id="cat-prompt"></span>
-                            <input type="text" id="cat-input" autocomplete="off" spellcheck="false" maxlength="30">
-                            <span id="cat-cursor">█</span>
-                        </div>
-                    </div>
-                    <div id="cat-leaderboard" class="hidden">
-                        <div id="cat-lb-title">═══ TOP 10 DISPATCHERS ═══</div>
-                        <div id="cat-lb-list"></div>
-                    </div>
+        <!-- Trainer DRILL: the correct command after a miss, ~2 s -->
+        <div id="drill-hint" class="hidden">
+            <div id="drill-hint-challenge"></div>
+            <div id="drill-hint-command"></div>
+        </div>
+
+        <!-- Trainer DRILL summary card (END DRILL) -->
+        <div id="drill-summary-overlay" class="hidden">
+            <div id="drill-summary-content">
+                <h1>DRILL COMPLETE</h1>
+                <p id="drill-summary-item"></p>
+                <div id="drill-summary-counts"></div>
+                <div id="drill-summary-missed"></div>
+                <div class="menu-buttons">
+                    <button id="drill-again-btn">DRILL AGAIN</button>
+                    <button id="drill-done-btn">BACK TO TRAINER</button>
                 </div>
             </div>
         </div>
@@ -157,10 +158,29 @@
                 <p>All zones destroyed.</p>
                 <p>FINAL SCORE: <span id="final-score">0</span></p>
                 <div id="final-stats"></div>
-                <button id="submit-score-btn">SUBMIT SCORE</button>
-                <span id="score-submit-status" class="dataset-status"></span>
-                <button id="restart-btn">RESTART MISSION</button>
-                <button id="main-menu-btn">MAIN MENU</button>
+
+                <!-- High score name entry: only when the score makes the board -->
+                <div id="name-entry" class="hidden">
+                    <div class="name-entry-head">NEW HIGH SCORE</div>
+                    <label class="name-entry-row" for="entry-oasis">
+                        <span class="name-entry-label">OASIS #</span>
+                        <input type="text" id="entry-oasis" autocomplete="off" spellcheck="false" maxlength="12">
+                    </label>
+                    <label class="name-entry-row" for="entry-callsign">
+                        <span class="name-entry-label">CALL SIGN</span>
+                        <input type="text" id="entry-callsign" autocomplete="off" spellcheck="false" maxlength="10">
+                    </label>
+                    <p class="name-entry-note">Your OASIS # is saved with your score but won't be shown on the board.</p>
+                    <p class="name-entry-keys">ENTER &mdash; NEXT / SAVE &nbsp;&middot;&nbsp; ESC &mdash; SKIP (SCORE NOT SAVED)</p>
+                    <span id="name-entry-error" class="name-entry-error"></span>
+                </div>
+
+                <div id="game-over-board" class="score-board hidden"></div>
+
+                <div id="game-over-buttons" class="menu-buttons">
+                    <button id="restart-btn">RESTART MISSION</button>
+                    <button id="main-menu-btn">MAIN MENU</button>
+                </div>
             </div>
         </div>
 
@@ -180,15 +200,15 @@
 
                 <div id="normal-menu-buttons" class="menu-buttons hidden">
                     <button id="start-btn">BEGIN MISSION</button>
-                    <button id="howtoplay-btn">HOW TO PLAY</button>
-                    <button id="difficulty-btn">DIFFICULTY</button>
-                    <button id="scoring-btn">SCORING &amp; PROGRESSION</button>
-                    <div class="menu-buttons-row">
-                        <button id="settings-btn">SETTINGS</button>
-                        <button id="highscores-btn">HIGH SCORES</button>
-                    </div>
-                    <button id="change-player-btn" class="hidden">CHANGE DISPATCHER</button>
+                    <button id="trainer-btn" class="arcade-btn">TRAINER</button>
                 </div>
+
+                <!-- Attract mode: high score board, then a short how-to card -->
+                <div id="attract-board" class="attract-panel hidden">
+                    <h3>&#x2550;&#x2550;&#x2550; TOP DISPATCHERS &#x2550;&#x2550;&#x2550;</h3>
+                    <div id="attract-board-list" class="score-board"></div>
+                </div>
+                <div id="attract-howto" class="attract-panel hidden"></div>
 
                 <div id="holodeck-menu-buttons" class="menu-buttons hidden">
                     <div class="menu-buttons-row">
@@ -205,117 +225,45 @@
                     </div>
                     <div class="gm-footer-actions">
                         <button id="update-datasets-btn" class="gm-dataset-btn">UPDATE DATASETS</button>
+                        <button id="delete-score-btn" class="gm-dataset-btn">DELETE SCORE</button>
                         <span id="dataset-status" class="dataset-status"></span>
+                    </div>
+                    <div id="gm-delete-scores" class="hidden">
+                        <div class="gm-delete-head">CLICK A SCORE TO DELETE IT</div>
+                        <div id="gm-delete-list"></div>
                     </div>
                 </div>
                 </div><!-- /title-top -->
+
+                <div class="mute-hint title-mute-hint"></div>
 
                 <div id="title-credits">
                     <span class="studio-name">Between Calls Interactive</span>
                 </div>
             </div>
 
-            <div id="scoring-bg-layer" class="hidden"></div>
-            <!-- Scoring & Progression Submenu -->
-            <div id="scoring-page" class="menu-page hidden">
+            <!-- Trainer: LEARN (the manual) and DRILL (one item, no game over) -->
+            <div id="trainer-bg-layer" class="hidden"></div>
+            <div id="trainer-page" class="menu-page hidden">
                 <h1>ASTEROID COMMAND</h1>
-                <p class="subtitle">SCORING &amp; PROGRESSION</p>
-
-                <div id="scoring-info">
-                    <h3>SCALING DIFFICULTY STAKES</h3>
-                    <div class="score-row"><span>Base Hit:</span><span>Rank-based (100 — 1,000)</span></div>
-                    <div class="score-row"><span>Perfect Shot (0 BS):</span><span>+25% of Base Hit</span></div>
-                    <div class="score-row"><span>Early Intercept:</span><span>+50% of Base Hit</span></div>
-                    <div class="score-row"><span>Speed Demon (&lt;1.5s):</span><span>+15% of Base Hit</span></div>
-                    <div class="score-row penalty"><span>Key Dust (1-2 BS):</span><span>-10% of Base Hit</span></div>
-                    <div class="score-row penalty"><span>Signal Noise (3-4 BS):</span><span>-20% of Base Hit</span></div>
-                    <div class="score-row penalty"><span>Comms Drift (5-6 BS):</span><span>Flat -30</span></div>
-                    <div class="score-row penalty"><span>Static Jam (7+ BS):</span><span>Flat -50</span></div>
-                    <div class="score-row penalty"><span>Misfire:</span><span>Flat -50</span></div>
-                    <div class="score-row penalty"><span>Zone Impact:</span><span>Rank penalty (-50 to -750)</span></div>
-                    <div class="score-row bonus"><span>Perfect Streak:</span><span>+75 / +150 / +400 / +1,000 (flat)</span></div>
+                <p class="subtitle">TRAINER</p>
+                <div class="trainer-panel">
+                    <p class="trainer-intro">LEARN is the manual: the calls, the grid, scoring, shorthand and rank.
+                        DRILL runs one command at a time with no game over and no score.</p>
                 </div>
-
-                <div id="tier-info">
-                    <h3>CAREER PROGRESSION</h3>
-                    <!-- Filled from progression.csv + RANKING (core/config.js) by
-                         renderCareerProgression() in script.js each time the page opens. -->
-                    <div id="tier-rows"></div>
-                </div>
-
                 <div class="menu-buttons">
-                    <button id="back-to-menu-btn">BACK TO MAIN MENU</button>
+                    <button id="learn-btn" class="arcade-btn">LEARN</button>
+                    <button id="drill-btn" class="arcade-btn">DRILL</button>
+                    <button id="trainer-back-btn" class="arcade-back-btn">BACK TO MAIN MENU</button>
                 </div>
             </div>
 
-            <!-- Settings Submenu -->
-            <div id="settings-bg-layer" class="hidden"></div>
-            <div id="settings-page" class="menu-page hidden">
+            <div id="drill-page" class="menu-page hidden">
                 <h1>ASTEROID COMMAND</h1>
-                <p class="subtitle">SETTINGS</p>
-
-                <div id="settings-panel">
-                    <div class="settings-row">
-                        <span class="settings-label">MUSIC</span>
-                        <button id="music-toggle-btn" class="toggle-btn on">ON</button>
-                    </div>
-                    <div class="settings-row">
-                        <span class="settings-label">SFX</span>
-                        <button id="sfx-toggle-btn" class="toggle-btn on">ON</button>
-                    </div>
-                </div>
-
+                <p class="subtitle">DRILL &mdash; PICK ONE</p>
+                <div class="menu-buttons" id="drill-list"></div>
                 <div class="menu-buttons">
-                    <button id="settings-back-btn">BACK TO MAIN MENU</button>
-                </div>
-            </div>
-
-            <!-- High Scores Submenu -->
-            <div id="highscores-bg-layer" class="hidden"></div>
-            <div id="highscores-page" class="menu-page hidden">
-                <h1>ASTEROID COMMAND</h1>
-                <p class="subtitle">HIGH SCORES</p>
-
-                <div id="highscores-panel">
-                    <h3>═══ TOP 10 DISPATCHERS ═══</h3>
-                    <div id="highscores-list"></div>
-                </div>
-
-                <div class="menu-buttons">
-                    <button id="highscores-back-btn">BACK TO MAIN MENU</button>
-                </div>
-            </div>
-
-            <!-- Difficulty Submenu -->
-            <div id="difficulty-bg-layer" class="hidden"></div>
-            <div id="difficulty-page" class="menu-page hidden">
-                <h1>ASTEROID COMMAND</h1>
-                <p class="subtitle">DIFFICULTY</p>
-
-                <div id="difficulty-panel">
-                    <p class="diff-intro">
-                        Pick the shift you're walking into. The run opens at that rank's fall time,
-                        spawn rate and scoring &mdash; from there you move up by keeping pace and
-                        down every time a target lands.
-                    </p>
-
-                    <div class="diff-select-row">
-                        <span class="diff-select-label">START AT</span>
-                        <div id="difficulty-dropdown" class="ac-dropdown">
-                            <button type="button" id="difficulty-trigger" class="ac-dropdown-trigger"
-                                    aria-haspopup="listbox" aria-expanded="false">
-                                <span id="difficulty-current">NOVICE</span>
-                                <span class="ac-dropdown-caret">&#x25BC;</span>
-                            </button>
-                            <ul id="difficulty-list" class="ac-dropdown-list hidden" role="listbox"></ul>
-                        </div>
-                    </div>
-
-                    <div id="difficulty-readout"></div>
-                </div>
-
-                <div class="menu-buttons">
-                    <button id="difficulty-back-btn">BACK TO MAIN MENU</button>
+                    <button id="drill-back-btn" class="arcade-back-btn">BACK TO TRAINER</button>
                 </div>
             </div>
 
@@ -325,13 +273,13 @@
             <div id="howtoplay-bg-layer" class="hidden"></div>
             <div id="howtoplay-page" class="menu-page hidden">
                 <h1>ASTEROID COMMAND</h1>
-                <p class="subtitle">HOW TO PLAY</p>
+                <p class="subtitle">TRAINER &mdash; LEARN</p>
                 <div id="htp-crumb">CONTENTS</div>
 
                 <div id="howtoplay-scroll"></div>
 
                 <div class="menu-buttons htp-nav">
-                    <button id="howtoplay-back-btn">BACK TO MAIN MENU</button>
+                    <button id="howtoplay-back-btn">BACK TO TRAINER</button>
                     <button id="htp-next-btn" class="hidden">NEXT</button>
                 </div>
             </div>
