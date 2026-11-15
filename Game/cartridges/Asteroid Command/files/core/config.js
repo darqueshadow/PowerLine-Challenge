@@ -132,7 +132,8 @@ const SCORING = {
 
 const RANKING = {
     paceWindow: 6,              // clears averaged for the pace check
-    paceMinClears: 4,           // clears needed at a rank before pace can promote
+    paceMinClears: 4,           // clears needed at a rank before pace can promote (the window resets on
+                                // rank change, so with paceWindow 6 it takes 6 fresh clears either way)
     pressureSeconds: 60,        // seconds without a landing that promotes
     emptySkyDelaySec: 1.0       // empty sky: next target after this, or the rank's interval if shorter
 };

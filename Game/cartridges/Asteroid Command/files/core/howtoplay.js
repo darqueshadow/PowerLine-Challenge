@@ -479,8 +479,8 @@ const HowToPlay = (function () {
             + `<h4 class="htp-sub">RANK FOLLOWS HOW YOU DISPATCH, NOT YOUR SCORE</h4>`
             + `<ol class="htp-ol">
                  <li><strong>Keep pace, move up.</strong> Clear calls as fast as the next rank sends
-                     them (averaged over your last ${RANKING.paceWindow} clears, at least
-                     ${RANKING.paceMinClears} at this rank) and you are promoted.</li>
+                     them (averaged over your last ${Math.max(RANKING.paceWindow, RANKING.paceMinClears)}
+                     clears at this rank) and you are promoted.</li>
                  <li><strong>Hold the line, move up.</strong> ${RANKING.pressureSeconds} seconds at a
                      rank without a single target landing also promotes you.</li>
                  <li><strong>Let one land, move down.</strong> Every target that lands &mdash; zone,

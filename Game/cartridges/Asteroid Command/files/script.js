@@ -553,7 +553,7 @@ function init() {
         });
         el.innerHTML = row('RANK:', 'CLEAN KILL / IMPACT')
             + ranks.join('')
-            + row('PROMOTE:', `Clear as fast as the next rank spawns (last ${RANKING.paceWindow} clears, min ${RANKING.paceMinClears} at rank)`)
+            + row('PROMOTE:', `Clear as fast as the next rank spawns (last ${Math.max(RANKING.paceWindow, RANKING.paceMinClears)} clears at this rank)`)
             + row('PROMOTE:', `${RANKING.pressureSeconds}s at a rank with no target landing`)
             + row('DEMOTE:', 'Every target that lands (zone, debris, tower)')
             + row('START:', 'Chosen on DIFFICULTY &mdash; a start, not a floor');
@@ -2517,7 +2517,10 @@ function recordLanding() {
 
 // Pace check: promote if the player is clearing faster than the next rank spawns.
 function checkPacePromotion() {
-    if (state.clearsAtRank < RANKING.paceMinClears || state.paceClears.length < 2) return;
+    // Needs a full window of paceWindow clears. The history is wiped on every
+    // rank change, so in practice that means paceWindow fresh clears at this rank.
+    if (state.clearsAtRank < RANKING.paceMinClears
+        || state.paceClears.length < Math.max(2, RANKING.paceWindow)) return;
     const up = tierStep(state.tier, +1);
     if (!up) return;
     const c = state.paceClears;
